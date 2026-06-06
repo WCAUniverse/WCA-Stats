@@ -32,7 +32,24 @@
   nav button{background:transparent; border:1px solid transparent; color:var(--muted); font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; cursor:pointer; transition:.15s;}
   nav button:hover{color:var(--txt);}
   nav button.active{color:#111; background:var(--gold); font-weight:600;}
-
+.head-right{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .socials{display:flex; align-items:center; gap:6px;}
+  .socials a{
+    color:var(--muted); font-size:20px; line-height:1;
+    width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+    border:1px solid transparent; border-radius:8px; transition:.15s;
+  }
+  .socials a:hover{color:var(--gold); border-color:var(--line); transform:translateY(-2px);}
+  /* brand-color hovers */
+  .socials a[aria-label="Twitch"]:hover{color:#9146FF;}
+  .socials a[aria-label="YouTube"]:hover{color:#FF0000;}
+  .socials a[aria-label="TikTok"]:hover{color:#25F4EE;}
+  .socials a[aria-label="Instagram"]:hover{color:#E1306C;}
+  .socials a[aria-label="Discord"]:hover{color:#5865F2;}
+  @media(max-width:560px){
+    .socials{margin-top:4px; gap:10px;}
+    .socials a{font-size:22px;}
+  }
   .section-title{font-size:13px; color:var(--gold); letter-spacing:3px; margin:36px 0 14px; display:flex; align-items:center; gap:10px;}
   .section-title::after{content:''; flex:1; height:1px; background:var(--line);}
 
@@ -91,6 +108,49 @@
   .rcard .rmeta{font-size:12px; color:var(--muted);}
   .gender-pill{font-size:10px; font-family:'Oswald'; letter-spacing:1px; padding:1px 6px; border-radius:4px; background:var(--panel2); color:var(--muted);}
 
+  /* roster photo avatars + clickable cards */
+  .rcard{cursor:pointer; transition:.15s;}
+  .rcard:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .av.av-img{padding:0; overflow:hidden;}
+  .av.av-img img{width:100%; height:100%; object-fit:cover; display:block;}
+  .rmeta.nick{color:var(--gold-dim); font-style:italic; font-family:'Barlow Condensed'; font-size:14px;}
+
+  /* profile modal */
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(3px);
+    display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:100; overflow-y:auto;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--panel); border:1px solid var(--gold); border-radius:14px;
+    width:100%; max-width:520px; padding:24px; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.5);}
+  .modal-close{position:absolute; top:12px; right:12px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--muted); width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:18px;
+    display:flex; align-items:center; justify-content:center; transition:.15s;}
+  .modal-close:hover{color:var(--txt); border-color:var(--gold);}
+  .pf-head{display:flex; gap:16px; align-items:center; margin-bottom:16px;}
+  .pf-photo{width:140px; height:187px; border-radius:12px; overflow:hidden; flex-shrink:0;
+    border:1px solid var(--gold); background:var(--panel2);}
+  .pf-photo img{width:100%; height:100%; object-fit:contain; object-position:bottom; display:block;}
+  .pf-photo-init{display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald'; font-size:32px; color:var(--gold);}
+  .pf-nick{font-family:'Barlow Condensed'; font-style:italic; color:var(--gold-dim); font-size:16px;}
+  .pf-name{font-size:26px; color:#fff; line-height:1.1; margin:2px 0 6px;}
+  .pf-tags{display:flex; gap:6px;}
+  .pf-bio{font-size:14px; line-height:1.6; color:var(--muted); margin-bottom:16px;
+    padding-bottom:16px; border-bottom:1px solid var(--line);}
+  .pf-fields{display:flex; flex-direction:column; gap:0;}
+  .pf-row{display:flex; gap:12px; padding:9px 0; border-bottom:1px solid var(--line);}
+  .pf-row:last-child{border-bottom:none;}
+  .pf-lbl{font-family:'Oswald'; font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--gold-dim); width:100px; flex-shrink:0; padding-top:2px;}
+  .pf-val{font-family:'Barlow'; font-size:15px; color:var(--txt); flex:1; min-width:0;}
+  .pf-val a{color:var(--gold); text-decoration:none;}
+  .pf-val a:hover{text-decoration:underline;}
+  .pf-empty{color:var(--muted2); font-style:italic; font-size:14px;}
+  @media(max-width:480px){
+    .pf-head{flex-direction:column; text-align:center;}
+    .pf-tags{justify-content:center;}
+    .pf-lbl{width:84px;}
+  }
+
   .loading{text-align:center; color:var(--muted); padding:60px 0; font-family:'Oswald'; letter-spacing:2px;}
   .err{background:#2a1515; border:1px solid var(--loss); color:#f0a0a0; padding:16px; border-radius:10px; margin:20px 0; font-size:14px; line-height:1.6;}
   .page{display:none;} .page.active{display:block;}
@@ -106,14 +166,23 @@
       <span class="logo">WCA</span>
       <span class="sub">World Championship Alliance</span>
     </div>
-    <nav>
-      <button data-page="dash" class="active">Dashboard</button>
-      <button data-page="mens">Mens</button>
-      <button data-page="womens">Womens</button>
-      <button data-page="undisputed">Undisputed</button>
-      <button data-page="factions">Factions</button>
-      <button data-page="roster">Roster</button>
-    </nav>
+    <div class="head-right">
+      <nav>
+        <button data-page="dash" class="active">Dashboard</button>
+        <button data-page="mens">Mens</button>
+        <button data-page="womens">Womens</button>
+        <button data-page="undisputed">Undisputed</button>
+        <button data-page="factions">Factions</button>
+        <button data-page="roster">Roster</button>
+      </nav>
+      <div class="socials">
+        <a href="https://twitch.tv/Infantryink" target="_blank" rel="noopener noreferrer" aria-label="Twitch" title="Twitch"><i class="ti ti-brand-twitch"></i></a>
+        <a href="https://youtube.com/@WCAUniverse" target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube"><i class="ti ti-brand-youtube"></i></a>
+        <a href="https://tiktok.com/@wcauniverse" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><i class="ti ti-brand-tiktok"></i></a>
+        <a href="https://instagram.com/wcauniverse" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
+        <a href="https://discord.gg/SBFAnU8SDT" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -140,6 +209,14 @@
     <div class="section-title">Full Roster — A to Z</div>
     <input class="search" id="roster-search" placeholder="Search wrestlers…" autocomplete="off">
     <div class="roster-grid" id="roster-grid"><div class="loading">Loading…</div></div>
+  </div>
+</div>
+
+<!-- WRESTLER PROFILE MODAL -->
+<div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)closeProfile()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeProfile()" aria-label="Close"><i class="ti ti-x"></i></button>
+    <div id="profile-body"></div>
   </div>
 </div>
 
@@ -308,7 +385,9 @@ async function loadDashboard(){
 
 async function loadRoster(){
   const grid=document.getElementById('roster-grid');
-  const {data,error}=await sb.from('wrestlers').select('name,gender,is_active').order('name');
+  const {data,error}=await sb.from('wrestlers')
+    .select('name,gender,is_active,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match')
+    .order('name');
   if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
   window._roster=data;
   renderRoster('');
@@ -317,16 +396,73 @@ function renderRoster(q){
   const grid=document.getElementById('roster-grid');
   const list=(window._roster||[]).filter(w=>w.name.toLowerCase().includes(q.toLowerCase()));
   if(!list.length){grid.innerHTML='<div class="loading">No matches</div>';return;}
-  grid.innerHTML=list.map(w=>{
+  grid.innerHTML=list.map((w,i)=>{
     const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
     const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
-    return `<div class="rcard" style="${w.is_active?'':'opacity:.5'}">
-      <div class="av">${init}</div>
+    const av = w.avatar_url
+      ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='${init}'"></div>`
+      : `<div class="av">${init}</div>`;
+    const sub = w.nickname ? `<div class="rmeta nick">"${esc(w.nickname)}"</div>` : '';
+    return `<div class="rcard" data-idx="${i}" style="${w.is_active?'':'opacity:.5'}">
+      ${av}
       <div class="info"><div class="rn">${esc(w.name)}</div>
+      ${sub}
       <div class="rmeta"><span class="gender-pill">${g}</span> ${w.is_active?'':'· inactive'}</div></div>
     </div>`;
   }).join('');
+  grid.querySelectorAll('.rcard').forEach(card=>{
+    card.onclick=()=>openProfile(list[+card.dataset.idx]);
+  });
 }
+
+function fieldRow(label, value){
+  if(!value) return '';
+  return `<div class="pf-row"><span class="pf-lbl">${label}</span><span class="pf-val">${esc(value)}</span></div>`;
+}
+function fmtDate(d){
+  if(!d) return '';
+  const dt=new Date(d+'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+}
+function openProfile(w){
+  if(!w) return;
+  const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
+  const photo = w.image_url
+    ? `<div class="pf-photo"><img src="${esc(w.image_url)}" alt="${esc(w.name)}" onerror="this.parentNode.innerHTML='${init}';this.parentNode.classList.add('pf-photo-init')"></div>`
+    : `<div class="pf-photo pf-photo-init">${init}</div>`;
+  let theme='';
+  if(w.theme_song){
+    theme = w.theme_url
+      ? `<a href="${esc(w.theme_url)}" target="_blank" rel="noopener noreferrer">${esc(w.theme_song)} <i class="ti ti-external-link" style="font-size:13px"></i></a>`
+      : esc(w.theme_song);
+  }
+  const body = [
+    fieldRow('Height', w.height),
+    fieldRow('Weight', w.weight),
+    fieldRow('From', w.from_loc),
+    theme ? `<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">${theme}</span></div>` : '',
+    fieldRow('Signatures', w.signatures),
+    fieldRow('Finishers', w.finishers),
+    fieldRow('Debut', fmtDate(w.debut_date)),
+    fieldRow('Last Match', fmtDate(w.last_match)),
+  ].join('');
+  const bio = w.bio ? `<div class="pf-bio">${esc(w.bio)}</div>` : '';
+  document.getElementById('profile-body').innerHTML = `
+    <div class="pf-head">
+      ${photo}
+      <div class="pf-head-txt">
+        ${w.nickname?`<div class="pf-nick">"${esc(w.nickname)}"</div>`:''}
+        <h2 class="pf-name">${esc(w.name)}</h2>
+        <div class="pf-tags"><span class="gender-pill">${g}</span>${w.is_active?'':'<span class="gender-pill">Inactive</span>'}</div>
+      </div>
+    </div>
+    ${bio}
+    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>`;
+  document.getElementById('profile-modal').classList.add('open');
+}
+function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
 
 // navigation
 document.querySelectorAll('nav button').forEach(b=>{
@@ -339,6 +475,7 @@ document.querySelectorAll('nav button').forEach(b=>{
   };
 });
 document.getElementById('roster-search').addEventListener('input',e=>renderRoster(e.target.value));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
 
 // boot
 if(!isConfigured){
