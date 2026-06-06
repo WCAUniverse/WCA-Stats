@@ -266,7 +266,7 @@ function rowHTML(p, idx, isChamp){
     <div class="wl"><b>${p.wins}</b>-<s>${p.losses}</s></div>
   </div>`;
 }
-function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 // Sort: #1 contenders (ready, by dots) first, then everyone by WINS, win% tiebreak
 function sortRanked(list){
