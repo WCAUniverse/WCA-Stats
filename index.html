@@ -156,6 +156,72 @@
   .page{display:none;} .page.active{display:block;}
   .legend{display:flex; gap:18px; font-size:12px; color:var(--muted); margin:6px 0 20px; flex-wrap:wrap;}
   .legend span{display:flex; align-items:center; gap:6px;}
+
+  /* ===== EVENTS / FIGHT CARD ===== */
+  .event-hero{position:relative; border:1px solid var(--gold); border-radius:14px; overflow:hidden;
+    margin:30px 0 22px; background:linear-gradient(180deg,#1a1710,#0d0d0f);}
+  .event-hero .hero-bg{position:absolute; inset:0; background-size:cover; background-position:center; opacity:.25;}
+  .event-hero .hero-in{position:relative; padding:38px 24px; text-align:center;}
+  .event-hero .ev-name{font-family:'Oswald'; font-weight:700; font-size:clamp(38px,9vw,72px);
+    color:var(--gold); letter-spacing:3px; line-height:.95; text-shadow:0 2px 20px rgba(0,0,0,.6);}
+  .event-hero .ev-tag{font-family:'Barlow Condensed'; font-size:clamp(18px,3vw,26px); color:#fff;
+    letter-spacing:2px; text-transform:uppercase; margin-top:4px; opacity:.92;}
+  .event-meta{display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-top:18px;}
+  .event-meta .mi{display:flex; align-items:center; gap:8px; font-family:'Barlow Condensed';
+    font-size:17px; color:#ddd; letter-spacing:.5px;}
+  .event-meta .mi i{color:var(--gold); font-size:18px;}
+
+  .card-list{display:flex; flex-direction:column; gap:12px; margin-top:6px;}
+  .bout{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+    position:relative; transition:.15s;}
+  .bout.main{border-color:var(--gold); background:var(--gold-deep);}
+  .bout .bout-label{display:flex; align-items:center; justify-content:center; gap:10px;
+    font-family:'Oswald'; font-size:11px; letter-spacing:2px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:10px;}
+  .bout.main .bout-label{color:var(--gold);}
+  .bout .bout-label::before,.bout .bout-label::after{content:''; height:1px; width:40px; background:var(--line);}
+  .bout .vs-row{display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap;}
+  .bout .fighter{flex:1; min-width:0; text-align:center;}
+  .bout .fighter .fname{font-family:'Oswald'; font-weight:600; font-size:clamp(18px,3.4vw,28px);
+    color:#fff; line-height:1.05; letter-spacing:.5px;}
+  .bout.main .fighter .fname{font-size:clamp(20px,4vw,34px);}
+  .bout .fighter .fsub{font-family:'Barlow Condensed'; font-size:14px; color:var(--muted); margin-top:2px;}
+  .bout .vs{font-family:'Oswald'; font-weight:700; font-size:20px; color:var(--gold);
+    flex-shrink:0; padding:0 4px; opacity:.9;}
+  .bout .stip{text-align:center; font-family:'Barlow Condensed'; font-size:14px; letter-spacing:1px;
+    color:var(--teal); text-transform:uppercase; margin-top:8px;}
+  .bout .bnotes{text-align:center; font-size:12px; color:var(--muted); margin-top:6px; font-style:italic;}
+  .name-link{cursor:pointer; transition:.12s;}
+  .name-link:hover{color:var(--gold);}
+
+  .stream-wrap{margin:26px 0 0;}
+  .stream-frame{position:relative; padding-top:56.25%; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000;}
+  .stream-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+
+  .event-empty{text-align:center; color:var(--muted); padding:70px 20px; font-family:'Oswald'; letter-spacing:2px;}
+
+  /* belt images across the site */
+  .belt-bg{position:absolute; right:-10px; top:-6px; width:96px; height:96px; object-fit:contain; opacity:.10; pointer-events:none;}
+  .lbl-belt{height:16px; width:auto; vertical-align:middle; object-fit:contain;}
+  .rank-belt{width:30px; height:30px; object-fit:contain; vertical-align:middle;}
+  i.rank-belt{font-size:20px;}
+  .belt-ico{}
+
+  /* title-on-line badge on a bout */
+  .title-on-line{display:flex; align-items:center; justify-content:center; gap:8px; margin:2px 0 10px;
+    font-family:'Oswald'; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold);}
+  .title-belt{height:26px; width:auto; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));}
+
+  /* multi-member sides */
+  .fmembers{font-family:'Barlow Condensed'; font-size:16px; color:var(--muted); margin-top:2px; line-height:1.2;}
+  .bout.main .fmembers{font-size:18px; color:#cfcfcf;}
+  .amp{font-family:'Oswald'; font-size:13px; color:var(--gold-dim); margin:1px 0;}
+  /* tighten layout when 3 or 4 sides share a row */
+  .bout.sides-3 .fighter .fname,.bout.sides-4 .fighter .fname{font-size:clamp(15px,2.6vw,22px);}
+  .bout.sides-4 .vs{font-size:16px;}
+  @media(max-width:560px){
+    .bout.sides-3 .vs-row,.bout.sides-4 .vs-row{flex-direction:column;}
+    .bout.sides-3 .vs,.bout.sides-4 .vs{padding:2px 0;}
+  }
 </style>
 </head>
 <body>
@@ -169,6 +235,7 @@
     <div class="head-right">
       <nav>
         <button data-page="dash" class="active">Dashboard</button>
+        <button data-page="events">Events</button>
         <button data-page="mens">Mens</button>
         <button data-page="womens">Womens</button>
         <button data-page="undisputed">Undisputed</button>
@@ -196,6 +263,11 @@
 
     <div class="section-title">Division Standings — top 5</div>
     <div id="contenders"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- EVENTS / FIGHT CARD -->
+  <div class="page" id="page-events">
+    <div id="events-content"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- DIVISION PAGES -->
@@ -249,14 +321,14 @@ function dots(n){
   for(let i=0;i<3;i++) h+=`<span class="dot ${i<n?'on':''}"></span>`;
   return h+'</div>';
 }
-function rowHTML(p, idx, isChamp){
+function rowHTML(p, idx, isChamp, div){
   const champ = isChamp;
   const ready = p.is_ready_contender;
   let tags='';
   if(champ) tags+='<span class="tag champ">Champion</span>';
   else if(ready) tags+='<span class="tag ready">#1 Contender</span>';
   const rankCell = champ
-    ? '<i class="ti ti-trophy" style="color:var(--gold);font-size:20px"></i>'
+    ? beltIcon(div, 'rank-belt')
     : p._slot;
   return `<div class="row ${champ?'champ':(idx%2?'alt':'')}">
     <div class="rank">${rankCell}</div>
@@ -267,6 +339,20 @@ function rowHTML(p, idx, isChamp){
   </div>`;
 }
 function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ===== BELTS: division -> image =====
+let BELTS = {};
+async function loadBelts(){
+  const {data}=await sb.from('belts').select('*');
+  (data||[]).forEach(b=>{ BELTS[b.division]=b; });
+}
+function beltFor(div){ return BELTS[div]||null; }
+// Returns an <img> belt if available for that division, else a trophy icon.
+function beltIcon(div, cls){
+  const b=beltFor(div);
+  if(b && b.image_url) return `<img class="${cls||'belt-ico'}" src="${esc(b.image_url)}" alt="${esc(div)} championship">`;
+  return `<i class="ti ti-trophy ${cls||'belt-ico'}" style="color:var(--gold)"></i>`;
+}
 
 // Sort: #1 contenders (ready, by dots) first, then everyone by WINS, win% tiebreak
 function sortRanked(list){
@@ -285,8 +371,8 @@ async function loadDivision(divName, elId){
   const champs = data.filter(p=>p.is_champion);
   const rest = sortRanked(data.filter(p=>!p.is_champion));
   rest.forEach((p,i)=>p._slot=i+1);
-  let rows = champs.map(p=>rowHTML(p,0,true)).join('');
-  rows += rest.map((p,i)=>rowHTML(p,i,false)).join('');
+  let rows = champs.map(p=>rowHTML(p,0,true,divName)).join('');
+  rows += rest.map((p,i)=>rowHTML(p,i,false,divName)).join('');
   if(!data.length) rows='<div class="loading" style="padding:30px">No ranked competitors yet</div>';
   el.innerHTML=`<div class="division"><div class="div-head"><h3>${divName} Division</h3><span class="count">${data.length} ranked</span></div>${rows}</div>`;
 }
@@ -304,7 +390,7 @@ async function loadFactions(){
   let rows='';
   ordered.forEach((p,idx)=>{
     const isChamp = champName && p.name===champName;
-    const slot = isChamp ? '<i class="ti ti-trophy" style="color:var(--gold);font-size:20px"></i>' : (idx);
+    const slot = isChamp ? beltIcon('Faction','rank-belt') : (idx);
     rows+=`<div class="row ${isChamp?'champ':(idx%2?'alt':'')}">
       <div class="rank">${slot}</div>
       ${ringSVG(p.win_pct||0)}
@@ -330,9 +416,16 @@ async function loadDashboard(){
   let cards = cardDivs.map(([key,label])=>{
     const c=champMap[key];
     const vacant=!c;
+    const belt=beltFor(key);
+    const watermark = belt && belt.image_url
+      ? `<img class="belt-bg" src="${esc(belt.image_url)}" alt="">`
+      : `<i class="ti ti-trophy belt"></i>`;
+    const lblIco = belt && belt.image_url
+      ? `<img class="lbl-belt" src="${esc(belt.image_url)}" alt="">`
+      : `<i class="ti ti-trophy"></i>`;
     return `<div class="champ-card${vacant?' vacant':''}">
-      <i class="ti ti-trophy belt"></i>
-      <div class="lbl"><i class="ti ti-trophy"></i> ${label}</div>
+      ${watermark}
+      <div class="lbl">${lblIco} ${label}</div>
       <div class="who">${vacant?'VACANT':esc(c.champion)}</div>
       <div class="meta">${vacant?'title up for grabs':'since '+esc(c.show_won||'—')}</div></div>`;
   }).join('');
@@ -464,6 +557,137 @@ function openProfile(w){
 }
 function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
 
+// ===== EVENTS / FIGHT CARD =====
+function fmtEventDate(ts){
+  if(!ts) return '';
+  const d=new Date(ts);
+  if(isNaN(d)) return '';
+  return d.toLocaleString(undefined,{weekday:'short',month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+}
+// Build a stream iframe from either a full embed URL or a bare Twitch channel name.
+function streamEmbed(url){
+  if(!url) return '';
+  let u=url.trim();
+  // YouTube watch link -> embed
+  const ytWatch=u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if(ytWatch) u=`https://www.youtube.com/embed/${ytWatch[1]}`;
+  // If it doesn't look like a URL, treat it as a Twitch channel name.
+  let src;
+  if(/^https?:\/\//i.test(u)){
+    src=u;
+  }else{
+    const parent=location.hostname||'localhost';
+    src=`https://player.twitch.tv/?channel=${encodeURIComponent(u)}&parent=${parent}`;
+  }
+  return `<div class="stream-wrap"><div class="section-title">Watch Live</div>
+    <div class="stream-frame"><iframe src="${esc(src)}" allowfullscreen scrolling="no"
+      allow="autoplay; fullscreen"></iframe></div></div>`;
+}
+// A side may have a main name + an extra (partner) name.
+function nameLink(n){
+  if(!n) return '';
+  const known=(window._roster||[]).some(w=>w.name===n);
+  return known ? `<span class="name-link" data-wname="${esc(n)}">${esc(n)}</span>` : esc(n);
+}
+// One side = optional team name + list of members.
+function sideCell(side, isMain){
+  if(!side) return `<div class="fighter"><div class="fname">TBD</div></div>`;
+  const members=(side.members||[]).filter(Boolean);
+  let inner='';
+  if(side.team_name){
+    inner += `<div class="fname">${esc(side.team_name)}</div>`;
+    if(members.length) inner += `<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
+  }else if(members.length){
+    inner = members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>');
+  }else{
+    inner = `<div class="fname">TBD</div>`;
+  }
+  return `<div class="fighter">${inner}</div>`;
+}
+function parseSides(m){
+  let sides=m.sides;
+  if(typeof sides==='string'){ try{ sides=JSON.parse(sides); }catch{ sides=null; } }
+  if(Array.isArray(sides) && sides.length) return sides;
+  // legacy fallback
+  const out=[];
+  const a=[m.side_a,m.side_a_extra].filter(Boolean);
+  const b=[m.side_b,m.side_b_extra].filter(Boolean);
+  if(a.length) out.push({team_name:'',members:a});
+  if(b.length) out.push({team_name:'',members:b});
+  return out.length?out:[{team_name:'',members:[]},{team_name:'',members:[]}];
+}
+function boutHTML(m, isMain){
+  const sides=parseSides(m);
+  const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
+  // championship badge
+  let titleTag='';
+  if(m.championship){
+    const belt=beltFor(m.championship);
+    const img = belt && belt.image_url
+      ? `<img class="title-belt" src="${esc(belt.image_url)}" alt="${esc(m.championship)} title">`
+      : `<i class="ti ti-trophy" style="color:var(--gold)"></i>`;
+    titleTag=`<div class="title-on-line">${img}<span>${esc(m.championship)} Championship</span></div>`;
+  }
+  const stip = m.stipulation ? `<div class="stip">${esc(m.stipulation)}</div>` : '';
+  const notes = m.notes ? `<div class="bnotes">${esc(m.notes)}</div>` : '';
+  // join sides with VS
+  let vsRow='';
+  sides.forEach((s,idx)=>{
+    if(idx>0) vsRow+=`<div class="vs">VS</div>`;
+    vsRow+=sideCell(s, isMain);
+  });
+  return `<div class="bout ${isMain?'main':''} sides-${sides.length}">
+    <div class="bout-label">${esc(label)}</div>
+    ${titleTag}
+    <div class="vs-row">${vsRow}</div>
+    ${stip}${notes}
+  </div>`;
+}
+async function loadEvents(){
+  const el=document.getElementById('events-content');
+  const {data:evs,error}=await sb.from('v_featured_event').select('*');
+  if(error){el.innerHTML=`<div class="err">Couldn't load events: ${esc(error.message)}</div>`;return;}
+  const ev=(evs&&evs[0]);
+  if(!ev){el.innerHTML='<div class="event-empty">No upcoming event announced yet — check back soon.</div>';return;}
+
+  const {data:matches}=await sb.from('event_matches').select('*')
+    .eq('event_id',ev.id).order('slot');
+  const list=(matches||[]).sort((a,b)=>(a.slot||0)-(b.slot||0));
+
+  const meta=[];
+  if(ev.event_date) meta.push(`<div class="mi"><i class="ti ti-calendar-event"></i>${esc(fmtEventDate(ev.event_date))}</div>`);
+  if(ev.watch_text) meta.push(`<div class="mi"><i class="ti ti-device-tv"></i>${esc(ev.watch_text)}</div>`);
+  if(ev.location)   meta.push(`<div class="mi"><i class="ti ti-map-pin"></i>${esc(ev.location)}</div>`);
+
+  const hero=`<div class="event-hero">
+    ${ev.poster_url?`<div class="hero-bg" style="background-image:url('${esc(ev.poster_url)}')"></div>`:''}
+    <div class="hero-in">
+      <div class="ev-name">${esc(ev.name)}</div>
+      ${ev.tagline?`<div class="ev-tag">${esc(ev.tagline)}</div>`:''}
+      ${meta.length?`<div class="event-meta">${meta.join('')}</div>`:''}
+    </div>
+  </div>`;
+
+  let cardHTML='';
+  if(list.length){
+    cardHTML='<div class="section-title">Fight Card</div><div class="card-list">'+
+      list.map((m,i)=>boutHTML(m, m.slot===1 || (i===0 && !list.some(x=>x.slot===1)))).join('')+
+      '</div>';
+  }else{
+    cardHTML='<div class="event-empty" style="padding:30px">Card to be announced.</div>';
+  }
+
+  el.innerHTML = hero + cardHTML + streamEmbed(ev.stream_url);
+
+  // make known wrestler names open the profile modal
+  el.querySelectorAll('.name-link').forEach(n=>{
+    n.onclick=()=>{
+      const w=(window._roster||[]).find(x=>x.name===n.dataset.wname);
+      if(w) openProfile(w);
+    };
+  });
+}
+
 // navigation
 document.querySelectorAll('nav button').forEach(b=>{
   b.onclick=()=>{
@@ -486,11 +710,14 @@ if(!isConfigured){
     values from your Supabase project (Settings → API). Then reload. Until then you're
     seeing the layout with no data.</div>`;
 }else{
-  loadDashboard();
-  loadDivision('Mens','mens-content');
-  loadDivision('Womens','womens-content');
-  loadDivision('Undisputed','undisputed-content');
-  loadFactions();
+  loadBelts().then(()=>{
+    loadDashboard();
+    loadEvents();
+    loadDivision('Mens','mens-content');
+    loadDivision('Womens','womens-content');
+    loadDivision('Undisputed','undisputed-content');
+    loadFactions();
+  });
   loadRoster();
 }
 </script>
