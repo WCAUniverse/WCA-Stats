@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WCA — World Championship Alliance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0d0d0f; --panel:#161618; --panel2:#1d1d20; --line:#2a2a2e;
+    --gold:#E9B949; --gold-dim:#b08d2e; --gold-deep:#1f1d16;
+    --win:#3ECF8E; --loss:#E24B4A; --teal:#5DCAA5;
+    --txt:#f2f2f0; --muted:#8a8a86; --muted2:#5c5c58;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--txt); font-family:'Barlow',sans-serif; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.disp{font-family:'Oswald',sans-serif; font-weight:600; letter-spacing:.5px; text-transform:uppercase;}
+  .cond{font-family:'Barlow Condensed',sans-serif;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 20px 80px;}
+
+  /* header */
+  header{border-bottom:1px solid var(--line); background:linear-gradient(180deg,#111 0%,var(--bg) 100%);}
+  .head-inner{max-width:1080px; margin:0 auto; padding:22px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand .logo{font-family:'Oswald'; font-weight:700; font-size:28px; color:var(--gold); letter-spacing:2px;}
+  .brand .sub{font-size:12px; color:var(--muted); letter-spacing:3px; text-transform:uppercase;}
+  nav{display:flex; gap:4px; flex-wrap:wrap;}
+  nav button{background:transparent; border:1px solid transparent; color:var(--muted); font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; cursor:pointer; transition:.15s;}
+  nav button:hover{color:var(--txt);}
+  nav button.active{color:#111; background:var(--gold); font-weight:600;}
+
+  .section-title{font-size:13px; color:var(--gold); letter-spacing:3px; margin:36px 0 14px; display:flex; align-items:center; gap:10px;}
+  .section-title::after{content:''; flex:1; height:1px; background:var(--line);}
+
+  /* champion dashboard cards */
+  .champ-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px;}
+  .champ-card{background:var(--gold-deep); border:1px solid var(--gold); border-radius:10px; padding:16px; position:relative; overflow:hidden;}
+  .champ-card.chat{background:#1a132b; border-color:#9146FF;}
+  .champ-card.chat .lbl{color:#b89cff;}
+  .champ-card.chat .belt{color:rgba(145,70,255,.10);}
+  .champ-card.vacant{background:#161618; border-color:var(--line);}
+  .champ-card.vacant .who{color:var(--muted2); font-style:italic;}
+  .champ-card.vacant .lbl{color:var(--muted);}
+  .champ-card .lbl{font-family:'Oswald'; font-size:11px; letter-spacing:2px; color:var(--gold-dim); display:flex; align-items:center; gap:6px; margin-bottom:8px;}
+  .champ-card .who{font-family:'Oswald'; font-size:24px; font-weight:600; color:#fff; line-height:1.1;}
+  .champ-card .meta{font-size:13px; color:var(--muted); margin-top:4px;}
+  .champ-card .belt{position:absolute; right:-8px; top:-8px; font-size:60px; color:rgba(233,185,73,.07);}
+
+  /* division block */
+  .division{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:6px 6px 10px; margin-bottom:18px;}
+  .div-head{display:flex; align-items:center; justify-content:space-between; padding:12px 14px 8px;}
+  .div-head h3{font-size:18px; color:#fff;}
+  .div-head .count{font-size:12px; color:var(--muted); font-family:'Barlow';}
+
+  .row{display:flex; align-items:center; gap:14px; padding:9px 14px; border-radius:8px;}
+  .row.champ{background:var(--gold-deep); border:1px solid var(--gold); margin:0 6px 6px;}
+  .row.alt{background:rgba(255,255,255,.02);}
+  .rank{width:26px; text-align:center; font-family:'Oswald'; font-size:16px; color:var(--muted); flex-shrink:0;}
+  .row.champ .rank{color:var(--gold);}
+  .nm{flex:1; font-family:'Barlow Condensed'; font-size:19px; font-weight:500; color:#eee; min-width:0;}
+  .row.champ .nm{color:#fff;}
+  .tag{font-family:'Oswald'; font-size:10px; letter-spacing:1.5px; padding:2px 7px; border-radius:4px; margin-left:8px; white-space:nowrap;}
+  .tag.champ{background:var(--gold); color:#111;}
+  .tag.ready{background:rgba(62,207,142,.15); color:var(--win); border:1px solid rgba(62,207,142,.4);}
+  .tag.tie{background:rgba(93,202,165,.12); color:var(--teal);}
+
+  /* contender dots */
+  .dots{display:flex; gap:4px; flex-shrink:0;}
+  .dot{width:10px; height:10px; border-radius:50%; background:#34343a;}
+  .dot.on{background:var(--gold);}
+
+  /* radial ring */
+  .ring{width:46px; height:46px; flex-shrink:0; position:relative;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Oswald'; font-size:12px; font-weight:600; color:#fff;}
+  .wl{font-family:'Barlow Condensed'; font-size:15px; color:var(--muted); width:54px; text-align:right; flex-shrink:0;}
+  .wl b{color:var(--win); font-weight:600;} .wl s{color:var(--loss); text-decoration:none; font-weight:600;}
+
+  /* roster */
+  .search{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--txt); font-family:'Barlow'; font-size:15px; padding:12px 14px; border-radius:8px; margin-bottom:16px;}
+  .search:focus{outline:none; border-color:var(--gold);}
+  .roster-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px;}
+  .rcard{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:12px;}
+  .rcard .av{width:38px; height:38px; border-radius:50%; background:var(--panel2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'Oswald'; font-size:14px; color:var(--gold); flex-shrink:0;}
+  .rcard .info{flex:1; min-width:0;}
+  .rcard .rn{font-family:'Barlow Condensed'; font-size:18px; font-weight:500; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rcard .rmeta{font-size:12px; color:var(--muted);}
+  .gender-pill{font-size:10px; font-family:'Oswald'; letter-spacing:1px; padding:1px 6px; border-radius:4px; background:var(--panel2); color:var(--muted);}
+
+  .loading{text-align:center; color:var(--muted); padding:60px 0; font-family:'Oswald'; letter-spacing:2px;}
+  .err{background:#2a1515; border:1px solid var(--loss); color:#f0a0a0; padding:16px; border-radius:10px; margin:20px 0; font-size:14px; line-height:1.6;}
+  .page{display:none;} .page.active{display:block;}
+  .legend{display:flex; gap:18px; font-size:12px; color:var(--muted); margin:6px 0 20px; flex-wrap:wrap;}
+  .legend span{display:flex; align-items:center; gap:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <span class="logo">WCA</span>
+      <span class="sub">World Championship Alliance</span>
+    </div>
+    <nav>
+      <button data-page="dash" class="active">Dashboard</button>
+      <button data-page="mens">Mens</button>
+      <button data-page="womens">Womens</button>
+      <button data-page="undisputed">Undisputed</button>
+      <button data-page="factions">Factions</button>
+      <button data-page="roster">Roster</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="config-error"></div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dash">
+    <div class="section-title">Current Champions</div>
+    <div class="champ-grid" id="champ-cards"><div class="loading">Loading…</div></div>
+
+    <div class="section-title">Division Standings — top 5</div>
+    <div id="contenders"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- DIVISION PAGES -->
+  <div class="page" id="page-mens"><div class="legend"><span><span class="dot on" style="position:static"></span> = contender point (3 = ready)</span><span><b style="color:var(--win)">green</b> wins · <s style="color:var(--loss)">red</s> losses</span></div><div id="mens-content"></div></div>
+  <div class="page" id="page-womens"><div id="womens-content"></div></div>
+  <div class="page" id="page-undisputed"><div id="undisputed-content"></div></div>
+  <div class="page" id="page-factions"><div id="factions-content"></div></div>
+
+  <!-- ROSTER -->
+  <div class="page" id="page-roster">
+    <div class="section-title">Full Roster — A to Z</div>
+    <input class="search" id="roster-search" placeholder="Search wrestlers…" autocomplete="off">
+    <div class="roster-grid" id="roster-grid"><div class="loading">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+//  ONE STEP LEFT: paste your Publishable key on the line below.
+//  In Supabase: Settings (gear) > API Keys > "Publishable key"
+//  (it starts with  sb_publishable_... ) > click the copy icon.
+//  Paste it between the quotes on the SUPABASE_KEY line, keep the quotes, save.
+//  Your Project URL is already filled in for you.
+// ============================================================================
+const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+// ============================================================================
+
+let sb = null;
+const isConfigured = SUPABASE_URL.startsWith("http") && SUPABASE_KEY.length > 20;
+if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function ringSVG(pct){
+  const r=18, c=2*Math.PI*r, off=c*(1-pct);
+  return `<div class="ring"><svg width="46" height="46" viewBox="0 0 46 46">
+    <circle cx="23" cy="23" r="${r}" fill="none" stroke="var(--loss)" stroke-width="5" opacity="0.55"/>
+    <circle cx="23" cy="23" r="${r}" fill="none" stroke="var(--win)" stroke-width="5"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke-linecap="round"/>
+  </svg><div class="pct">${Math.round(pct*100)}%</div></div>`;
+}
+function dots(n){
+  let h='<div class="dots">';
+  for(let i=0;i<3;i++) h+=`<span class="dot ${i<n?'on':''}"></span>`;
+  return h+'</div>';
+}
+function rowHTML(p, idx, isChamp){
+  const champ = isChamp;
+  const ready = p.is_ready_contender;
+  let tags='';
+  if(champ) tags+='<span class="tag champ">Champion</span>';
+  else if(ready) tags+='<span class="tag ready">#1 Contender</span>';
+  const rankCell = champ
+    ? '<i class="ti ti-trophy" style="color:var(--gold);font-size:20px"></i>'
+    : p._slot;
+  return `<div class="row ${champ?'champ':(idx%2?'alt':'')}">
+    <div class="rank">${rankCell}</div>
+    ${ringSVG(p.win_pct||0)}
+    <div class="nm">${esc(p.name)}${tags}</div>
+    ${champ?'':dots(p.contender_points||0)}
+    <div class="wl"><b>${p.wins}</b>-<s>${p.losses}</s></div>
+  </div>`;
+}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// Sort: #1 contenders (ready, by dots) first, then everyone by WINS, win% tiebreak
+function sortRanked(list){
+  return list.slice().sort((a,b)=>{
+    if(a.is_ready_contender!==b.is_ready_contender) return a.is_ready_contender?-1:1;
+    if((b.contender_points||0)!==(a.contender_points||0)) return (b.contender_points||0)-(a.contender_points||0);
+    if(b.wins!==a.wins) return b.wins-a.wins;
+    return (b.win_pct||0)-(a.win_pct||0);
+  });
+}
+
+async function loadDivision(divName, elId){
+  const el=document.getElementById(elId);
+  const {data, error} = await sb.from('v_division_rankings').select('*').eq('division',divName);
+  if(error){el.innerHTML=`<div class="err">Couldn't load ${divName}: ${error.message}</div>`;return;}
+  const champs = data.filter(p=>p.is_champion);
+  const rest = sortRanked(data.filter(p=>!p.is_champion));
+  rest.forEach((p,i)=>p._slot=i+1);
+  let rows = champs.map(p=>rowHTML(p,0,true)).join('');
+  rows += rest.map((p,i)=>rowHTML(p,i,false)).join('');
+  if(!data.length) rows='<div class="loading" style="padding:30px">No ranked competitors yet</div>';
+  el.innerHTML=`<div class="division"><div class="div-head"><h3>${divName} Division</h3><span class="count">${data.length} ranked</span></div>${rows}</div>`;
+}
+
+async function loadFactions(){
+  const el=document.getElementById('factions-content');
+  const {data,error}=await sb.from('v_faction_rankings').select('*');
+  if(error){el.innerHTML=`<div class="err">Couldn't load factions: ${error.message}</div>`;return;}
+  const {data:champs}=await sb.from('v_current_champions').select('*').eq('division','Faction');
+  const champName=(champs&&champs[0])?champs[0].champion:null;
+  // pull champion out, sort the rest, then put champion on top
+  const champRows=data.filter(p=>champName && p.name===champName);
+  const rest=sortRanked(data.filter(p=>!(champName && p.name===champName)));
+  const ordered=[...champRows, ...rest];
+  let rows='';
+  ordered.forEach((p,idx)=>{
+    const isChamp = champName && p.name===champName;
+    const slot = isChamp ? '<i class="ti ti-trophy" style="color:var(--gold);font-size:20px"></i>' : (idx);
+    rows+=`<div class="row ${isChamp?'champ':(idx%2?'alt':'')}">
+      <div class="rank">${slot}</div>
+      ${ringSVG(p.win_pct||0)}
+      <div class="nm">${esc(p.name)}${isChamp?'<span class="tag champ">Champion</span>':(p.is_ready_contender?'<span class="tag ready">#1 Contender</span>':'')}
+      <div style="font-size:12px;color:var(--muted);font-family:Barlow">${esc(p.members_txt||'')}</div></div>
+      ${isChamp?'':dots(p.contender_points||0)}
+      <div class="wl"><b>${p.wins}</b>-<s>${p.losses}</s></div>
+    </div>`;
+  });
+  el.innerHTML=`<div class="section-title">Faction Rankings</div><div class="division">${rows||'<div class="loading">No factions</div>'}</div>`;
+}
+
+const DIVISIONS=['Mens','Womens','Undisputed'];
+
+async function loadDashboard(){
+  // ---- champion cards: always show all divisions, VACANT if none ----
+  const {data:champs,error:e1}=await sb.from('v_current_champions').select('*');
+  const {data:chat}=await sb.from('v_chat_champion_now').select('*').limit(1);
+  const cc=document.getElementById('champ-cards');
+  const champMap={};
+  (champs||[]).forEach(c=>{champMap[c.division]=c;});
+  const cardDivs=[['Mens','Mens'],['Womens','Womens'],['Undisputed','Undisputed'],['Faction','Faction']];
+  let cards = cardDivs.map(([key,label])=>{
+    const c=champMap[key];
+    const vacant=!c;
+    return `<div class="champ-card${vacant?' vacant':''}">
+      <i class="ti ti-trophy belt"></i>
+      <div class="lbl"><i class="ti ti-trophy"></i> ${label}</div>
+      <div class="who">${vacant?'VACANT':esc(c.champion)}</div>
+      <div class="meta">${vacant?'title up for grabs':'since '+esc(c.show_won||'—')}</div></div>`;
+  }).join('');
+  const ch=(chat&&chat[0]);
+  cards += `<div class="champ-card chat"><i class="ti ti-device-gamepad-2 belt"></i>
+    <div class="lbl"><i class="ti ti-device-gamepad-2"></i> Chat Champion</div>
+    <div class="who">${ch?esc(ch.username):'—'}</div>
+    <div class="meta">${ch?'since '+esc(ch.show_won||''):'none yet'}</div></div>`;
+  // all-time most chat championships (show all tied leaders)
+  const {data:lb}=await sb.from('v_chat_champion_leaderboard').select('*');
+  let topNames='—', topMeta='none yet';
+  if(lb&&lb.length){
+    const max=lb[0].reigns;
+    const leaders=lb.filter(r=>r.reigns===max).map(r=>esc(r.username));
+    topNames=leaders.join(', ');
+    topMeta=max+(max===1?' reign':' reigns')+' all-time'+(leaders.length>1?' ('+leaders.length+'-way tie)':'');
+  }
+  cards += `<div class="champ-card chat"><i class="ti ti-crown belt"></i>
+    <div class="lbl"><i class="ti ti-crown"></i> Most Chat Titles</div>
+    <div class="who" style="font-size:${topNames.length>24?'17px':'24px'}">${topNames}</div>
+    <div class="meta">${topMeta}</div></div>`;
+  cc.innerHTML=cards;
+  if(e1)cc.innerHTML=`<div class="err">${e1.message}</div>`;
+
+  // ---- top 5 per division: #1 contender(s) on top, then next ranked ----
+  const ce=document.getElementById('contenders');
+  let html='';
+  for(const d of DIVISIONS){
+    const {data}=await sb.from('v_division_rankings').select('*').eq('division',d);
+    if(!data||!data.length) continue;
+    const nonChamp=sortRanked(data.filter(p=>!p.is_champion));
+    const top5=nonChamp.slice(0,5);
+    const readyCount=top5.filter(p=>p.is_ready_contender).length;
+    const tie=readyCount>1;
+    html+=`<div class="division"><div class="div-head"><h3>${d}</h3>${tie?'<span class="tag tie">'+readyCount+'-way tie — multi-man match</span>':''}</div>`;
+    top5.forEach((p,i)=>{
+      const ready=p.is_ready_contender;
+      html+=`<div class="row ${ready?'champ':(i%2?'alt':'')}">
+        <div class="rank">${i+1}</div>
+        ${ringSVG(p.win_pct||0)}
+        <div class="nm">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
+        ${dots(p.contender_points||0)}
+        <div class="wl"><b>${p.wins}</b>-<s>${p.losses}</s></div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  ce.innerHTML=html||'<div class="loading" style="padding:30px">No ranked competitors yet</div>';
+}
+
+async function loadRoster(){
+  const grid=document.getElementById('roster-grid');
+  const {data,error}=await sb.from('wrestlers').select('name,gender,is_active').order('name');
+  if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
+  window._roster=data;
+  renderRoster('');
+}
+function renderRoster(q){
+  const grid=document.getElementById('roster-grid');
+  const list=(window._roster||[]).filter(w=>w.name.toLowerCase().includes(q.toLowerCase()));
+  if(!list.length){grid.innerHTML='<div class="loading">No matches</div>';return;}
+  grid.innerHTML=list.map(w=>{
+    const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+    const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
+    return `<div class="rcard" style="${w.is_active?'':'opacity:.5'}">
+      <div class="av">${init}</div>
+      <div class="info"><div class="rn">${esc(w.name)}</div>
+      <div class="rmeta"><span class="gender-pill">${g}</span> ${w.is_active?'':'· inactive'}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// navigation
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const pg=b.dataset.page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+pg).classList.add('active');
+  };
+});
+document.getElementById('roster-search').addEventListener('input',e=>renderRoster(e.target.value));
+
+// boot
+if(!isConfigured){
+  document.getElementById('config-error').innerHTML=
+    `<div class="err"><b>Almost there — add your Supabase keys.</b><br>
+    Open this file in a text editor and find the line near the top that says
+    <code>PASTE_YOUR_PROJECT_URL_HERE</code>. Replace it and the key below it with the
+    values from your Supabase project (Settings → API). Then reload. Until then you're
+    seeing the layout with no data.</div>`;
+}else{
+  loadDashboard();
+  loadDivision('Mens','mens-content');
+  loadDivision('Womens','womens-content');
+  loadDivision('Undisputed','undisputed-content');
+  loadFactions();
+  loadRoster();
+}
+</script>
+</body>
+</html>
