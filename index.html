@@ -199,6 +199,57 @@
 
   .event-empty{text-align:center; color:var(--muted); padding:70px 20px; font-family:'Oswald'; letter-spacing:2px;}
 
+  /* ===== BETTING BOARD ===== */
+  .bet-status{font-family:'Barlow'; font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    padding:2px 9px; border-radius:20px; margin-left:10px; display:inline-flex; align-items:center; gap:5px; vertical-align:middle;}
+  .bet-status.open{background:rgba(62,207,142,.15); color:var(--win); border:1px solid rgba(62,207,142,.4);}
+  .bet-status.closed{background:rgba(140,140,134,.12); color:var(--muted); border:1px solid var(--line);}
+  .bet-status.settled{background:rgba(233,185,73,.14); color:var(--gold); border:1px solid var(--gold-dim);}
+  .bet-status.void{background:rgba(226,75,74,.12); color:var(--loss); border:1px solid rgba(226,75,74,.4);}
+  .betside{display:flex; flex-direction:column; align-items:center; gap:5px;}
+  .side-pot{font-family:'Oswald'; font-size:16px; color:var(--gold); font-weight:600; margin-top:4px;}
+  .side-pot.muted{color:var(--muted2); font-size:13px; font-weight:400; font-family:'Barlow';}
+  .side-share{font-size:12px; color:var(--muted); font-weight:400;}
+  .side-mult{font-family:'Barlow Condensed'; font-size:13px; color:var(--teal); letter-spacing:.5px;}
+  .favtag{color:var(--muted); font-size:10px; border:1px solid var(--line); border-radius:4px; padding:0 4px;}
+  .dogtag{color:var(--win); font-size:10px; border:1px solid rgba(62,207,142,.4); border-radius:4px; padding:0 4px;}
+  .pick-btn{margin-top:6px; background:transparent; border:1px solid var(--gold-dim); color:var(--gold);
+    font-family:'Oswald'; font-size:12px; letter-spacing:1px; text-transform:uppercase; padding:7px 12px;
+    border-radius:7px; cursor:pointer; transition:.15s;}
+  .pick-btn:hover{background:var(--gold); color:#111;}
+  .pick-btn.picked{background:var(--gold); color:#111; font-weight:600;}
+  .betside.picked{outline:1px solid var(--gold); outline-offset:6px; border-radius:8px;}
+  .my-bet{text-align:center; font-size:14px; color:var(--txt); margin-top:12px; font-family:'Barlow';}
+  .my-bet.muted{color:var(--muted);}
+  .my-bet b{color:var(--gold);}
+  .link-btn{background:none; border:none; color:var(--loss); cursor:pointer; font-size:13px; text-decoration:underline; margin-left:6px;}
+  .bet-board{margin-top:12px; border-top:1px solid var(--line); padding-top:8px;}
+  .bet-board summary{cursor:pointer; font-family:'Barlow Condensed'; font-size:14px; color:var(--muted); letter-spacing:.5px;}
+  .bet-board summary:hover{color:var(--gold);}
+  .bb-list{margin-top:10px; display:flex; flex-direction:column; gap:4px;}
+  .bb-row{display:flex; align-items:center; gap:10px; padding:5px 8px; border-radius:6px; background:rgba(255,255,255,.02);}
+  .bb-who{flex:1; display:flex; align-items:center; gap:8px; font-family:'Barlow Condensed'; font-size:15px; color:#ddd; min-width:0;}
+  .bb-av{width:22px; height:22px; border-radius:50%; object-fit:cover; border:1px solid var(--gold-dim);}
+  .bb-init{width:22px; height:22px; border-radius:50%; background:var(--gold-deep); border:1px solid var(--gold-dim);
+    display:flex; align-items:center; justify-content:center; font-family:'Oswald'; font-size:10px; color:var(--gold);}
+  .bb-pick{font-family:'Barlow Condensed'; font-size:14px; color:var(--teal); flex:1; text-align:center; min-width:0;}
+  .bb-amt{font-family:'Oswald'; font-size:14px; color:var(--gold); font-weight:600;}
+
+  /* bet modal */
+  .bet-on{text-align:center; color:var(--muted); margin-bottom:4px;} .bet-on b{color:var(--txt);}
+  .bet-bal-line{text-align:center; font-size:14px; color:var(--muted); margin-bottom:16px;} .bet-bal-line b{color:var(--gold);}
+  .bet-presets{display:flex; gap:6px; margin-bottom:12px;}
+  .bet-presets button{flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    font-family:'Oswald'; font-size:13px; padding:9px 0; border-radius:7px; cursor:pointer; transition:.15s;}
+  .bet-presets button:hover{border-color:var(--gold); color:var(--gold);}
+  .bet-input{width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    font-family:'Oswald'; font-size:20px; text-align:center; padding:12px; border-radius:8px; margin-bottom:6px;}
+  .bet-input:focus{outline:none; border-color:var(--gold);}
+  .confirm-bet{width:100%; background:var(--gold); color:#111; border:none; font-family:'Oswald'; font-weight:600;
+    font-size:15px; letter-spacing:1px; text-transform:uppercase; padding:13px; border-radius:8px; cursor:pointer; margin-top:8px;}
+  .confirm-bet:hover{filter:brightness(1.08);}
+  .bet-fine{text-align:center; font-size:12px; color:var(--muted2); margin-top:10px;}
+
   /* belt images across the site */
   .belt-bg{position:absolute; right:-10px; top:-6px; width:96px; height:96px; object-fit:contain; opacity:.10; pointer-events:none;}
   .lbl-belt{height:16px; width:auto; vertical-align:middle; object-fit:contain;}
@@ -311,6 +362,27 @@
   <div class="modal-box">
     <button class="modal-close" onclick="closeProfile()" aria-label="Close"><i class="ti ti-x"></i></button>
     <div id="profile-body"></div>
+  </div>
+</div>
+
+<!-- BET MODAL -->
+<div class="modal-overlay" id="bet-modal" onclick="if(event.target===this)closeBet()">
+  <div class="modal-box" style="max-width:420px">
+    <button class="modal-close" onclick="closeBet()" aria-label="Close"><i class="ti ti-x"></i></button>
+    <h2 class="pf-name" style="font-size:22px">Place your bet</h2>
+    <div class="bet-on">on <b id="bet-side-name">—</b></div>
+    <div class="bet-bal-line">Your balance: <b id="bet-bal">$0</b></div>
+    <div class="bet-presets">
+      <button onclick="betPct(0.05)">5%</button>
+      <button onclick="betPct(0.10)">10%</button>
+      <button onclick="betPct(0.25)">25%</button>
+      <button onclick="betPct(0.50)">50%</button>
+      <button onclick="betAllIn()">All in</button>
+    </div>
+    <input id="bet-amount" type="number" min="1" placeholder="Amount" class="bet-input">
+    <div class="msg" id="bet-msg"></div>
+    <button class="confirm-bet" onclick="confirmBet()">Confirm bet</button>
+    <div class="bet-fine">You can change or cancel your bet until the match closes.</div>
   </div>
 </div>
 
@@ -686,10 +758,21 @@ function parseSides(m){
   if(b.length) out.push({team_name:'',members:b});
   return out.length?out:[{team_name:'',members:[]},{team_name:'',members:[]}];
 }
-function boutHTML(m, isMain){
+function sideTotals(sides, bets){
+  // returns {totals:[per-side], pot, counts:[per-side]}
+  const totals = sides.map(()=>0);
+  const counts = sides.map(()=>0);
+  bets.forEach(b=>{ if(b.side_index<totals.length){ totals[b.side_index]+=Number(b.amount); counts[b.side_index]++; } });
+  const pot = totals.reduce((a,b)=>a+b,0);
+  return {totals, pot, counts};
+}
+function multiplierFor(pot, sideTotal){
+  if(!sideTotal) return null;          // no money on this side yet
+  return pot / sideTotal;              // payout-per-$1 if this side wins
+}
+function boutHTML(m, isMain, ctx){
   const sides=parseSides(m);
   const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
-  // championship badge
   let titleTag='';
   if(m.championship){
     const belt=beltFor(m.championship);
@@ -700,29 +783,118 @@ function boutHTML(m, isMain){
   }
   const stip = m.stipulation ? `<div class="stip">${esc(m.stipulation)}</div>` : '';
   const notes = m.notes ? `<div class="bnotes">${esc(m.notes)}</div>` : '';
-  // join sides with VS
+
+  const status = ctx.statusBySlot[m.slot] || null;   // 'open'|'closed'|'settled'|'void'|null
+  const bets = (ctx.betsBySlot[m.slot] || []);
+  const { totals, pot, counts } = sideTotals(sides, bets);
+  const myBet = ctx.myBetsBySlot[m.slot] || null;     // {side_index, amount} or null
+
+  // VS row with per-side pot + multiplier + bet button
   let vsRow='';
   sides.forEach((s,idx)=>{
     if(idx>0) vsRow+=`<div class="vs">VS</div>`;
-    vsRow+=sideCell(s, isMain);
+    const mult = multiplierFor(pot, totals[idx]);
+    const isFav = pot>0 && totals[idx]===Math.max(...totals) && totals[idx]>0;
+    const isDog = pot>0 && totals[idx]===Math.min(...totals.filter(t=>t>0).length?totals:[0]) && totals[idx]>0 && !isFav;
+    const potLine = pot>0
+      ? `<div class="side-pot">${fmtMoney(totals[idx])} <span class="side-share">${Math.round((totals[idx]/pot)*100)}%</span></div>
+         <div class="side-mult">${mult?('pays '+mult.toFixed(2)+'×'):'—'}${isFav?' <span class="favtag">FAV</span>':''}${isDog?' <span class="dogtag">UNDERDOG</span>':''}</div>`
+      : `<div class="side-pot muted">no bets yet</div>`;
+    const picked = myBet && myBet.side_index===idx;
+    const canBet = status==='open' && ctx.signedIn;
+    const betBtn = canBet
+      ? `<button class="pick-btn ${picked?'picked':''}" onclick="openBet(${m.slot},${idx})">${picked?'✓ Your pick':'Bet this side'}</button>`
+      : '';
+    vsRow += `<div class="fighter betside ${picked?'picked':''}">${sideCellInner(s,isMain)}${potLine}${betBtn}</div>`;
   });
+
+  // status ribbon
+  let ribbon='';
+  if(status==='open')        ribbon=`<span class="bet-status open"><i class="ti ti-coins"></i> Betting open</span>`;
+  else if(status==='closed') ribbon=`<span class="bet-status closed"><i class="ti ti-lock"></i> Bets locked</span>`;
+  else if(status==='settled')ribbon=`<span class="bet-status settled"><i class="ti ti-check"></i> Settled</span>`;
+  else if(status==='void')   ribbon=`<span class="bet-status void"><i class="ti ti-ban"></i> Voided — refunded</span>`;
+
+  // my-bet line + change/cancel
+  let mine='';
+  if(myBet){
+    const sideName = sideLabel(sides[myBet.side_index]);
+    mine = `<div class="my-bet">You bet <b>${fmtMoney(myBet.amount)}</b> on <b>${esc(sideName)}</b>
+      ${status==='open'?`<button class="link-btn" onclick="cancelBet(${m.slot})">cancel</button>`:''}</div>`;
+  } else if(status==='open' && !ctx.signedIn){
+    mine = `<div class="my-bet muted">Sign in with Discord to place a bet.</div>`;
+  }
+
+  // public bettor list
+  let board='';
+  if(bets.length){
+    const rows = bets.slice().sort((a,b)=>Number(b.amount)-Number(a.amount)).map(b=>{
+      const sideName = sideLabel(sides[b.side_index]);
+      const init=(b.player_name||'P').slice(0,2).toUpperCase();
+      const av = b.player_avatar
+        ? `<img class="bb-av" src="${esc(b.player_avatar)}" onerror="this.outerHTML='<span class=\\'bb-init\\'>${init}</span>'">`
+        : `<span class="bb-init">${init}</span>`;
+      return `<div class="bb-row"><span class="bb-who">${av}${esc(b.player_name)}</span>
+        <span class="bb-pick">${esc(sideName)}</span>
+        <span class="bb-amt">${fmtMoney(b.amount)}</span></div>`;
+    }).join('');
+    board = `<details class="bet-board"${isMain?' open':''}>
+      <summary>${bets.length} bet${bets.length>1?'s':''} · ${fmtMoney(pot)} pot — see who's betting</summary>
+      <div class="bb-list">${rows}</div></details>`;
+  }
+
   return `<div class="bout ${isMain?'main':''} sides-${sides.length}">
-    <div class="bout-label">${esc(label)}</div>
+    <div class="bout-label">${esc(label)}${ribbon}</div>
     ${titleTag}
     <div class="vs-row">${vsRow}</div>
     ${stip}${notes}
+    ${mine}
+    ${board}
   </div>`;
 }
+// side label used in text (team name or members)
+function sideLabel(s){
+  if(!s) return 'TBD';
+  if(s.team_name) return s.team_name;
+  return (s.members||[]).filter(Boolean).join(' & ') || 'TBD';
+}
+// inner of a side cell (names only), reused by betting layout
+function sideCellInner(side, isMain){
+  if(!side) return `<div class="fname">TBD</div>`;
+  const members=(side.members||[]).filter(Boolean);
+  if(side.team_name){
+    let h=`<div class="fname">${esc(side.team_name)}</div>`;
+    if(members.length) h+=`<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
+    return h;
+  }
+  if(members.length) return members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>');
+  return `<div class="fname">TBD</div>`;
+}
+let CURRENT_EVENT = null;       // featured event row
+let CURRENT_MATCHES = [];       // its matches
 async function loadEvents(){
   const el=document.getElementById('events-content');
   const {data:evs,error}=await sb.from('v_featured_event').select('*');
   if(error){el.innerHTML=`<div class="err">Couldn't load events: ${esc(error.message)}</div>`;return;}
   const ev=(evs&&evs[0]);
   if(!ev){el.innerHTML='<div class="event-empty">No upcoming event announced yet — check back soon.</div>';return;}
+  CURRENT_EVENT = ev;
 
   const {data:matches}=await sb.from('event_matches').select('*')
     .eq('event_id',ev.id).order('slot');
   const list=(matches||[]).sort((a,b)=>(a.slot||0)-(b.slot||0));
+  CURRENT_MATCHES = list;
+
+  // betting statuses + all bets for this event
+  const {data:statuses}=await sb.from('match_betting').select('*').eq('event_id',ev.id);
+  const {data:board}=await sb.from('v_bet_board').select('*').eq('event_id',ev.id);
+  const statusBySlot={}; (statuses||[]).forEach(s=>statusBySlot[s.slot]=s.status);
+  const betsBySlot={};   (board||[]).forEach(b=>{ (betsBySlot[b.slot]=betsBySlot[b.slot]||[]).push(b); });
+  const myBetsBySlot={};
+  if(CURRENT_USER){
+    (board||[]).filter(b=>b.user_id===CURRENT_USER.id).forEach(b=>{ myBetsBySlot[b.slot]={side_index:b.side_index, amount:b.amount}; });
+  }
+  const ctx={ signedIn: !!CURRENT_USER, statusBySlot, betsBySlot, myBetsBySlot };
 
   const meta=[];
   if(ev.event_date) meta.push(`<div class="mi"><i class="ti ti-calendar-event"></i>${esc(fmtEventDate(ev.event_date))}</div>`);
@@ -741,7 +913,7 @@ async function loadEvents(){
   let cardHTML='';
   if(list.length){
     cardHTML='<div class="section-title">Fight Card</div><div class="card-list">'+
-      list.map((m,i)=>boutHTML(m, m.slot===1 || (i===0 && !list.some(x=>x.slot===1)))).join('')+
+      list.map((m,i)=>boutHTML(m, m.slot===1 || (i===0 && !list.some(x=>x.slot===1)), ctx)).join('')+
       '</div>';
   }else{
     cardHTML='<div class="event-empty" style="padding:30px">Card to be announced.</div>';
@@ -749,13 +921,58 @@ async function loadEvents(){
 
   el.innerHTML = hero + cardHTML + streamEmbed(ev.stream_url);
 
-  // make known wrestler names open the profile modal
   el.querySelectorAll('.name-link').forEach(n=>{
     n.onclick=()=>{
       const w=(window._roster||[]).find(x=>x.name===n.dataset.wname);
       if(w) openProfile(w);
     };
   });
+}
+
+// ===== BET PLACEMENT =====
+let BET_CTX = null;   // {slot, side_index}
+function openBet(slot, side_index){
+  if(!CURRENT_USER){ alert('Sign in with Discord to place a bet.'); return; }
+  const m = CURRENT_MATCHES.find(x=>x.slot===slot);
+  if(!m) return;
+  const sides = parseSides(m);
+  BET_CTX = { slot, side_index };
+  const sideName = sideLabel(sides[side_index]);
+  const bal = MY_PROFILE ? Number(MY_PROFILE.balance) : 0;
+  document.getElementById('bet-side-name').textContent = sideName;
+  document.getElementById('bet-bal').textContent = fmtMoney(bal);
+  document.getElementById('bet-amount').value = '';
+  document.getElementById('bet-msg').className='msg';
+  document.getElementById('bet-modal').classList.add('open');
+}
+function closeBet(){ document.getElementById('bet-modal').classList.remove('open'); BET_CTX=null; }
+function betPct(pct){
+  const bal = MY_PROFILE ? Number(MY_PROFILE.balance) : 0;
+  document.getElementById('bet-amount').value = Math.max(1, Math.floor(bal*pct));
+}
+function betAllIn(){
+  const bal = MY_PROFILE ? Number(MY_PROFILE.balance) : 0;
+  document.getElementById('bet-amount').value = bal;
+}
+async function confirmBet(){
+  if(!BET_CTX) return;
+  const amt = parseInt(document.getElementById('bet-amount').value,10);
+  const msg = document.getElementById('bet-msg');
+  if(!amt || amt<1){ msg.className='msg err show'; msg.textContent='Enter an amount of at least $1.'; return; }
+  const { data, error } = await sb.rpc('place_bet',{
+    p_event: CURRENT_EVENT.id, p_slot: BET_CTX.slot, p_side: BET_CTX.side_index, p_amount: amt
+  });
+  if(error){ msg.className='msg err show'; msg.textContent=error.message; return; }
+  closeBet();
+  await refreshUser();   // update balance pill
+  await loadEvents();    // refresh board
+}
+async function cancelBet(slot){
+  if(!confirm('Cancel your bet on this match? Your wager is refunded.')) return;
+  const { error } = await sb.rpc('cancel_bet',{ p_event: CURRENT_EVENT.id, p_slot: slot });
+  if(error){ alert(error.message); return; }
+  await refreshUser();
+  await loadEvents();
 }
 
 // navigation
