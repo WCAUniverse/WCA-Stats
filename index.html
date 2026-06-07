@@ -222,6 +222,25 @@
     .bout.sides-3 .vs-row,.bout.sides-4 .vs-row{flex-direction:column;}
     .bout.sides-3 .vs,.bout.sides-4 .vs{padding:2px 0;}
   }
+
+  /* auth / balance */
+  .userbox{display:flex; align-items:center; gap:10px;}
+  .login-btn{background:#5865F2; color:#fff; border:none; font-family:'Oswald'; font-size:13px;
+    letter-spacing:1px; text-transform:uppercase; padding:9px 14px; border-radius:8px; cursor:pointer;
+    display:flex; align-items:center; gap:7px; transition:.15s;}
+  .login-btn:hover{filter:brightness(1.1); transform:translateY(-1px);}
+  .login-btn i{font-size:16px;}
+  .user-chip{display:flex; align-items:center; gap:9px; background:var(--panel); border:1px solid var(--line);
+    border-radius:30px; padding:5px 6px 5px 10px;}
+  .user-chip .uava{width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--gold);}
+  .user-chip .uava-init{width:28px;height:28px;border-radius:50%;background:var(--gold-deep);border:1px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-size:12px;color:var(--gold);}
+  .user-chip .ubal{font-family:'Oswald'; font-size:15px; color:var(--gold); font-weight:600; line-height:1;}
+  .user-chip .uname{font-family:'Barlow Condensed'; font-size:12px; color:var(--muted); line-height:1;}
+  .user-chip .ucol{display:flex; flex-direction:column; gap:2px;}
+  .logout-x{background:transparent; border:none; color:var(--muted2); cursor:pointer; font-size:16px; padding:2px 6px; border-radius:6px;}
+  .logout-x:hover{color:var(--loss);}
+  @media(max-width:560px){ .userbox{margin-top:6px;} }
 </style>
 </head>
 <body>
@@ -248,6 +267,9 @@
         <a href="https://tiktok.com/@wcauniverse" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><i class="ti ti-brand-tiktok"></i></a>
         <a href="https://instagram.com/wcauniverse" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
         <a href="https://discord.gg/SBFAnU8SDT" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
+      </div>
+      <div class="userbox" id="userbox">
+        <button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>
       </div>
     </div>
   </div>
@@ -352,6 +374,53 @@ function beltIcon(div, cls){
   const b=beltFor(div);
   if(b && b.image_url) return `<img class="${cls||'belt-ico'}" src="${esc(b.image_url)}" alt="${esc(div)} championship">`;
   return `<i class="ti ti-trophy ${cls||'belt-ico'}" style="color:var(--gold)"></i>`;
+}
+
+// ===== AUTH + POINTS =====
+let CURRENT_USER = null;   // { id, ... } from auth
+let MY_PROFILE = null;     // row from profiles
+function fmtMoney(n){ return '$' + (Number(n)||0).toLocaleString('en-US'); }
+
+async function signInDiscord(){
+  await sb.auth.signInWithOAuth({
+    provider: 'discord',
+    options: { redirectTo: window.location.href }
+  });
+}
+async function signOut(){ await sb.auth.signOut(); location.reload(); }
+
+async function refreshUser(){
+  const { data:{ user } } = await sb.auth.getUser();
+  CURRENT_USER = user || null;
+  const box = document.getElementById('userbox');
+  if(!CURRENT_USER){
+    box.innerHTML = `<button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>`;
+    document.getElementById('loginBtn').onclick = signInDiscord;
+    MY_PROFILE = null;
+    return;
+  }
+  // claim any idle points, then load profile
+  try{ await sb.rpc('claim_idle_points'); }catch(e){}
+  const { data:prof } = await sb.from('profiles').select('*').eq('id', CURRENT_USER.id).single();
+  MY_PROFILE = prof || null;
+  renderUserChip();
+}
+function renderUserChip(){
+  const box = document.getElementById('userbox');
+  if(!MY_PROFILE){ return; }
+  const name = MY_PROFILE.username || 'Player';
+  const init = name.slice(0,2).toUpperCase();
+  const ava = MY_PROFILE.avatar_url
+    ? `<img class="uava" src="${esc(MY_PROFILE.avatar_url)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
+    : `<div class="uava-init">${init}</div>`;
+  box.innerHTML = `<div class="user-chip">
+      ${ava}
+      <div class="ucol">
+        <span class="ubal">${fmtMoney(MY_PROFILE.balance)}</span>
+        <span class="uname">${esc(name)}</span>
+      </div>
+      <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
+    </div>`;
 }
 
 // Sort: #1 contenders (ready, by dots) first, then everyone by WINS, win% tiebreak
@@ -710,6 +779,8 @@ if(!isConfigured){
     values from your Supabase project (Settings → API). Then reload. Until then you're
     seeing the layout with no data.</div>`;
 }else{
+  const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=signInDiscord;
+  refreshUser();
   loadBelts().then(()=>{
     loadDashboard();
     loadEvents();
