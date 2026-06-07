@@ -410,8 +410,9 @@ function renderUserChip(){
   if(!MY_PROFILE){ return; }
   const name = MY_PROFILE.display_name || MY_PROFILE.username || 'Player';
   const init = name.slice(0,2).toUpperCase();
-  const ava = MY_PROFILE.avatar_url
-    ? `<img class="uava" src="${esc(MY_PROFILE.avatar_url)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
+  const avaSrc = MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url;
+  const ava = avaSrc
+    ? `<img class="uava" src="${esc(avaSrc)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
     : `<div class="uava-init">${init}</div>`;
   box.innerHTML = `<div class="user-chip">
       ${ava}
