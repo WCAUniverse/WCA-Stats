@@ -196,6 +196,21 @@
   .stream-wrap{margin:26px 0 0;}
   .stream-frame{position:relative; padding-top:56.25%; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000;}
   .stream-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  /* player + chat side by side */
+  .watch-grid{display:grid; grid-template-columns:1fr 340px; gap:12px; align-items:stretch;}
+  .watch-grid .stream-frame{padding-top:0; height:480px;}
+  .chat-col{display:flex; flex-direction:column; gap:8px;}
+  .chat-frame{flex:1; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#18181b; min-height:440px;}
+  .chat-frame iframe{width:100%; height:100%; border:0; display:block;}
+  .chat-popout{font-family:'Barlow'; font-size:12px; color:var(--muted); text-decoration:none;
+    display:inline-flex; align-items:center; gap:6px; justify-content:center; padding:6px;
+    border:1px solid var(--line); border-radius:8px; transition:.15s;}
+  .chat-popout:hover{color:var(--gold); border-color:var(--gold-dim);}
+  @media(max-width:820px){
+    .watch-grid{grid-template-columns:1fr;}
+    .watch-grid .stream-frame{padding-top:56.25%; height:auto;}
+    .chat-frame{height:380px; min-height:0;}
+  }
 
   .event-empty{text-align:center; color:var(--muted); padding:70px 20px; font-family:'Oswald'; letter-spacing:2px;}
 
@@ -710,17 +725,35 @@ function fmtEventDate(ts){
 function streamEmbed(url){
   if(!url) return '';
   let u=url.trim();
-  // YouTube watch link -> embed
+  const parent=location.hostname||'localhost';
+
+  // --- detect Twitch (bare channel name, or a twitch.tv URL) ---
+  let twitchChannel=null;
+  const tUrl=u.match(/twitch\.tv\/([A-Za-z0-9_]+)/i);
+  if(tUrl){ twitchChannel=tUrl[1]; }
+  else if(/^[A-Za-z0-9_]{2,30}$/.test(u)){ twitchChannel=u; }  // looks like just a channel name
+
+  if(twitchChannel){
+    const player=`https://player.twitch.tv/?channel=${encodeURIComponent(twitchChannel)}&parent=${parent}`;
+    const chat=`https://www.twitch.tv/embed/${encodeURIComponent(twitchChannel)}/chat?parent=${parent}&darkpopout`;
+    const popout=`https://www.twitch.tv/popout/${encodeURIComponent(twitchChannel)}/chat`;
+    return `<div class="stream-wrap"><div class="section-title">Watch Live</div>
+      <div class="watch-grid">
+        <div class="stream-frame"><iframe src="${esc(player)}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe></div>
+        <div class="chat-col">
+          <div class="chat-frame"><iframe src="${esc(chat)}" scrolling="no"></iframe></div>
+          <a class="chat-popout" href="${esc(popout)}" target="_blank" rel="noopener noreferrer">
+            <i class="ti ti-external-link"></i> Can't type in chat? Pop it out</a>
+        </div>
+      </div></div>`;
+  }
+
+  // --- YouTube (watch link or youtu.be -> embed) : player only ---
   const ytWatch=u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   if(ytWatch) u=`https://www.youtube.com/embed/${ytWatch[1]}`;
-  // If it doesn't look like a URL, treat it as a Twitch channel name.
-  let src;
-  if(/^https?:\/\//i.test(u)){
-    src=u;
-  }else{
-    const parent=location.hostname||'localhost';
-    src=`https://player.twitch.tv/?channel=${encodeURIComponent(u)}&parent=${parent}`;
-  }
+
+  // any other full URL: player only
+  const src = /^https?:\/\//i.test(u) ? u : `https://player.twitch.tv/?channel=${encodeURIComponent(u)}&parent=${parent}`;
   return `<div class="stream-wrap"><div class="section-title">Watch Live</div>
     <div class="stream-frame"><iframe src="${esc(src)}" allowfullscreen scrolling="no"
       allow="autoplay; fullscreen"></iframe></div></div>`;
