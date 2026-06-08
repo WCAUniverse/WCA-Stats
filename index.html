@@ -510,6 +510,8 @@
     color:var(--gold); display:flex; align-items:center; gap:9px; margin:0 0 10px;
     padding-bottom:8px; border-bottom:1px solid var(--line);}
   .faction-name i{font-size:18px;}
+  .rcard-stub{cursor:default; opacity:.72; border-style:dashed;}
+  .rcard-stub:hover{transform:none; border-color:var(--line);}
 
   /* rank chips in profile header */
   .pf-ranks{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
@@ -826,8 +828,9 @@ function sortRanked(list){
 
 async function loadDivision(divName, elId){
   const el=document.getElementById(elId);
-  const {data, error} = await sb.from('v_division_rankings').select('*').eq('division',divName);
+  const {data: raw, error} = await sb.from('v_division_rankings').select('*').eq('division',divName);
   if(error){el.innerHTML=`<div class="err">Couldn't load ${divName}: ${error.message}</div>`;return;}
+  const data = (raw||[]).filter(p=>!HIDDEN_NAMES.has(p.name));
   const champs = data.filter(p=>p.is_champion);
   const rest = sortRanked(data.filter(p=>!p.is_champion));
   rest.forEach((p,i)=>p._slot=i+1);
@@ -914,7 +917,8 @@ async function loadDashboard(){
   const ce=document.getElementById('contenders');
   let html='';
   for(const d of DIVISIONS){
-    const {data}=await sb.from('v_division_rankings').select('*').eq('division',d);
+    const {data:raw}=await sb.from('v_division_rankings').select('*').eq('division',d);
+    const data=(raw||[]).filter(p=>!HIDDEN_NAMES.has(p.name));
     if(!data||!data.length) continue;
     const nonChamp=sortRanked(data.filter(p=>!p.is_champion));
     const top5=nonChamp.slice(0,3);
@@ -937,6 +941,14 @@ async function loadDashboard(){
 }
 
 // Maps built once for the merged roster: division membership, rank positions, factions.
+let HIDDEN_NAMES = new Set();   // wrestlers with status='hidden' — excluded site-wide
+// Load the set of hidden wrestler names so rankings/dashboard exclude them.
+async function loadHiddenNames(){
+  try{
+    const {data}=await sb.from('wrestlers').select('name,status').eq('status','hidden');
+    HIDDEN_NAMES = new Set((data||[]).map(w=>w.name));
+  }catch(e){ HIDDEN_NAMES = new Set(); }
+}
 let RANK_BY_NAME = {};   // name -> [{division, rank}]
 let DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
 let FACTIONS = [];       // [{name, members:[names], champion?}]
@@ -946,16 +958,20 @@ let ROSTER_FILTER = 'all';
 async function loadRoster(){
   const grid=document.getElementById('roster-grid');
   const {data,error}=await sb.from('wrestlers')
-    .select('name,gender,is_active,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5')
+    .select('name,gender,is_active,status,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5')
     .order('name');
   if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
-  window._roster=data;
+  // track hidden names so rankings/dashboard can exclude them too
+  HIDDEN_NAMES = new Set((data||[]).filter(w=>w.status==='hidden').map(w=>w.name));
+  // hidden wrestlers never appear on the public site
+  window._roster=(data||[]).filter(w=>w.status!=='hidden');
 
   // build rank + division membership from the division rankings view
   RANK_BY_NAME = {};
   DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
   for(const d of ['Mens','Womens','Undisputed']){
-    const {data:rows}=await sb.from('v_division_rankings').select('*').eq('division',d);
+    const {data:rowsRaw}=await sb.from('v_division_rankings').select('*').eq('division',d);
+    const rows=(rowsRaw||[]).filter(p=>!HIDDEN_NAMES.has(p.name));
     if(!rows) continue;
     const champs = rows.filter(p=>p.is_champion);
     const rest   = sortRanked(rows.filter(p=>!p.is_champion));
@@ -1001,12 +1017,31 @@ function rosterCard(w){
     ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='${init}'"></div>`
     : `<div class="av">${init}</div>`;
   const sub = w.nickname ? `<div class="rmeta nick">"${esc(w.nickname)}"</div>` : '';
-  return `<div class="rcard" data-name="${esc(w.name)}" style="${w.is_active?'':'opacity:.5'}">
+  // A stub = a faction member with no matching roster row (no profile to open).
+  if(w._stub){
+    return `<div class="rcard rcard-stub" title="No profile linked — check the name spelling in the faction's member list">
+      <div class="av">${init}</div>
+      <div class="info"><div class="rn">${esc(w.name)}</div>
+      <div class="rmeta" style="color:var(--muted2);font-style:italic">no profile linked</div></div>
+    </div>`;
+  }
+  // A real wrestler: gray only when genuinely inactive.
+  return `<div class="rcard" data-name="${esc(w.name)}" style="${w.is_active===false?'opacity:.5':''}">
     ${av}
     <div class="info"><div class="rn">${esc(w.name)}</div>${sub}</div>
   </div>`;
 }
-function wrestlerByName(n){ return (window._roster||[]).find(w=>w.name===n); }
+function wrestlerByName(n){
+  if(!n) return undefined;
+  const list=(window._roster||[]);
+  // 1) exact match
+  let w=list.find(x=>x.name===n);
+  if(w) return w;
+  // 2) forgiving match: trim + collapse spaces + case-insensitive
+  const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
+  const key=norm(n);
+  return list.find(x=>norm(x.name)===key);
+}
 
 function renderRoster(q){
   const grid=document.getElementById('roster-grid');
@@ -1553,14 +1588,16 @@ if(!isConfigured){
   const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=signInDiscord;
   applyTheme();
   refreshUser();
-  loadBelts().then(()=>{
-    loadDashboard();
-    loadEvents();
-    loadLive();
-    loadDivision('Mens','mens-content');
-    loadDivision('Womens','womens-content');
-    loadDivision('Undisputed','undisputed-content');
-    loadFactions();
+  loadHiddenNames().then(()=>{
+    loadBelts().then(()=>{
+      loadDashboard();
+      loadEvents();
+      loadLive();
+      loadDivision('Mens','mens-content');
+      loadDivision('Womens','womens-content');
+      loadDivision('Undisputed','undisputed-content');
+      loadFactions();
+    });
   });
   loadRoster();
 }
