@@ -445,6 +445,35 @@
   /* a section title that holds its own rule span + a right-side link */
   .section-title.st-flex::after{display:none;}
   .section-title .st-rule{flex:1; height:1px; background:var(--line);}
+
+  /* ============================================================
+     PHASE 4 — Live page
+     ============================================================ */
+  /* nav button gets a pulsing dot when a match is flagged live */
+  #nav-live-btn.is-live::before{content:''; display:inline-block; width:7px; height:7px;
+    border-radius:50%; background:var(--loss); margin-right:7px; vertical-align:middle;
+    box-shadow:0 0 0 0 rgba(226,75,74,.6); animation:wcaPulse 1.8s infinite;}
+
+  .live-eventbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    margin:18px 0 6px;}
+  .live-evname{background:none; border:none; cursor:pointer; text-align:left;
+    font-family:'Oswald'; font-weight:700; font-size:clamp(24px,4vw,38px);
+    color:#fff; letter-spacing:1px; line-height:1; padding:0; transition:.15s;}
+  .live-evname:hover{color:var(--gold);}
+  .live-evtag{font-family:'Barlow Condensed'; font-weight:500; font-size:.55em;
+    color:var(--gold-dim); letter-spacing:2px; text-transform:uppercase;}
+  .live-fullcard{margin-left:auto; background:var(--gold); border:none; cursor:pointer;
+    font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    color:#15120a; font-weight:600; padding:11px 18px; border-radius:10px;
+    display:inline-flex; align-items:center; gap:8px; transition:.15s;}
+  .live-fullcard:hover{filter:brightness(1.08); transform:translateY(-2px);}
+  .live-fullcard i{font-size:16px;}
+  .live-between{text-align:center; color:var(--muted); font-family:'Oswald';
+    letter-spacing:1.5px; padding:34px 20px; border:1px dashed var(--line);
+    border-radius:12px; margin-top:14px;}
+  @media(max-width:600px){
+    .live-fullcard{margin-left:0; width:100%; justify-content:center;}
+  }
 </style>
 </head>
 <body>
@@ -458,6 +487,7 @@
     <div class="head-right">
       <nav>
         <button data-page="dash" class="active">Dashboard</button>
+        <button data-page="live" id="nav-live-btn">Live</button>
         <button data-page="events">Events</button>
         <button data-page="mens">Mens</button>
         <button data-page="womens">Womens</button>
@@ -517,6 +547,11 @@
       <button class="see-all" onclick="goPage('mens')">see full standings <i class="ti ti-arrow-right"></i></button>
     </div>
     <div id="contenders"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- LIVE -->
+  <div class="page" id="page-live">
+    <div id="live-content"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- EVENTS / FIGHT CARD -->
@@ -1110,12 +1145,15 @@ function sideCellInner(side, isMain){
 }
 let CURRENT_EVENT = null;       // featured event row
 let CURRENT_MATCHES = [];       // its matches
-async function loadEvents(){
-  const el=document.getElementById('events-content');
+let CURRENT_CTX = null;         // shared betting context (reused by Live page)
+
+// Loads the featured event + matches + betting context once, stores globally.
+// Both the Events card and the Live page read from this.
+async function loadFeaturedData(){
   const {data:evs,error}=await sb.from('v_featured_event').select('*');
-  if(error){el.innerHTML=`<div class="err">Couldn't load events: ${esc(error.message)}</div>`;return;}
+  if(error) return {error};
   const ev=(evs&&evs[0]);
-  if(!ev){el.innerHTML='<div class="event-empty">No upcoming event announced yet — check back soon.</div>';return;}
+  if(!ev){ CURRENT_EVENT=null; CURRENT_MATCHES=[]; CURRENT_CTX=null; return {ev:null}; }
   CURRENT_EVENT = ev;
 
   const {data:matches}=await sb.from('event_matches').select('*')
@@ -1123,7 +1161,6 @@ async function loadEvents(){
   const list=(matches||[]).sort((a,b)=>(a.slot||0)-(b.slot||0));
   CURRENT_MATCHES = list;
 
-  // betting statuses + all bets for this event
   const {data:statuses}=await sb.from('match_betting').select('*').eq('event_id',ev.id);
   const {data:board}=await sb.from('v_bet_board').select('*').eq('event_id',ev.id);
   const statusBySlot={}; (statuses||[]).forEach(s=>statusBySlot[s.slot]=s.status);
@@ -1132,7 +1169,27 @@ async function loadEvents(){
   if(CURRENT_USER){
     (board||[]).filter(b=>b.user_id===CURRENT_USER.id).forEach(b=>{ myBetsBySlot[b.slot]={side_index:b.side_index, amount:b.amount}; });
   }
-  const ctx={ signedIn: !!CURRENT_USER, statusBySlot, betsBySlot, myBetsBySlot };
+  CURRENT_CTX = { signedIn: !!CURRENT_USER, statusBySlot, betsBySlot, myBetsBySlot };
+  return {ev, list, ctx:CURRENT_CTX};
+}
+
+// Re-bind wrestler name-link clicks (profile popups) within a container.
+function bindNameLinks(el){
+  el.querySelectorAll('.name-link').forEach(n=>{
+    n.onclick=()=>{
+      const w=(window._roster||[]).find(x=>x.name===n.dataset.wname);
+      if(w) openProfile(w);
+    };
+  });
+}
+
+async function loadEvents(){
+  const el=document.getElementById('events-content');
+  const r = await loadFeaturedData();
+  if(r.error){el.innerHTML=`<div class="err">Couldn't load events: ${esc(r.error.message)}</div>`;return;}
+  const ev=CURRENT_EVENT;
+  if(!ev){el.innerHTML='<div class="event-empty">No upcoming event announced yet — check back soon.</div>';return;}
+  const list=CURRENT_MATCHES, ctx=CURRENT_CTX;
 
   const meta=[];
   if(ev.event_date) meta.push(`<div class="mi"><i class="ti ti-calendar-event"></i>${esc(fmtEventDate(ev.event_date))}</div>`);
@@ -1158,13 +1215,58 @@ async function loadEvents(){
   }
 
   el.innerHTML = hero + streamEmbed(ev.stream_url) + cardHTML;
+  bindNameLinks(el);
+}
 
-  el.querySelectorAll('.name-link').forEach(n=>{
-    n.onclick=()=>{
-      const w=(window._roster||[]).find(x=>x.name===n.dataset.wname);
-      if(w) openProfile(w);
-    };
-  });
+// ===== LIVE PAGE =====
+async function loadLive(){
+  const el=document.getElementById('live-content');
+  const navBtn=document.getElementById('nav-live-btn');
+  const r = await loadFeaturedData();
+  if(r.error){el.innerHTML=`<div class="err">Couldn't load live: ${esc(r.error.message)}</div>`;return;}
+  const ev=CURRENT_EVENT;
+
+  // nothing live at all
+  if(!ev){
+    if(navBtn) navBtn.classList.remove('is-live');
+    el.innerHTML='<div class="event-empty">Nothing live right now — check back for the next event.</div>';
+    return;
+  }
+
+  // which match is flagged live?
+  let liveSlot=null;
+  try{
+    const {data:ln}=await sb.from('live_now').select('*').eq('id',1).single();
+    if(ln && ln.is_live && String(ln.event_id)===String(ev.id) && ln.slot!=null) liveSlot=ln.slot;
+  }catch(e){}
+
+  const liveMatch = liveSlot!=null ? CURRENT_MATCHES.find(m=>m.slot===liveSlot) : null;
+  if(navBtn) navBtn.classList.toggle('is-live', !!liveMatch);
+
+  // stream block (reuses existing embed)
+  const stream = streamEmbed(ev.stream_url);
+
+  // event name + cross-page nudges (clickable name + explicit button)
+  const eventBar=`<div class="live-eventbar">
+    <button class="live-evname" onclick="goPage('events')" title="See the full card">
+      ${esc(ev.name)}${ev.tagline?` <span class="live-evtag">${esc(ev.tagline)}</span>`:''}
+    </button>
+    <button class="live-fullcard" onclick="goPage('events')">
+      <i class="ti ti-list-details"></i> See full card &amp; bet every match <i class="ti ti-arrow-right"></i>
+    </button>
+  </div>`;
+
+  // the current-match block
+  let liveBlock='';
+  if(liveMatch){
+    liveBlock=`<div class="section-title"><span class="live-dot"></span> Current Match — LIVE</div>
+      <div class="card-list">${boutHTML(liveMatch, true, CURRENT_CTX)}</div>`;
+  }else{
+    liveBlock=`<div class="live-between">No match is live right now — the full card is below.</div>`;
+  }
+
+  el.innerHTML = (stream||'') + eventBar + liveBlock;
+  bindNameLinks(el);
 }
 
 // ===== BET PLACEMENT =====
@@ -1203,14 +1305,21 @@ async function confirmBet(){
   if(error){ msg.className='msg err show'; msg.textContent=error.message; return; }
   closeBet();
   await refreshUser();   // update balance pill
-  await loadEvents();    // refresh board
+  await refreshBetViews();
+  wcaToast('Bet placed', 'Editable until the match locks.');
 }
 async function cancelBet(slot){
   if(!confirm('Cancel your bet on this match? Your wager is refunded.')) return;
   const { error } = await sb.rpc('cancel_bet',{ p_event: CURRENT_EVENT.id, p_slot: slot });
   if(error){ alert(error.message); return; }
   await refreshUser();
+  await refreshBetViews();
+  wcaToast('Bet cancelled', 'Your wager was refunded.');
+}
+// Refresh whichever bet-showing pages exist so Live and Events stay in sync.
+async function refreshBetViews(){
   await loadEvents();
+  if(document.getElementById('page-live')) await loadLive();
 }
 
 // navigation
@@ -1221,6 +1330,7 @@ document.querySelectorAll('nav button').forEach(b=>{
     const pg=b.dataset.page;
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+pg).classList.add('active');
+    if(pg==='live') loadLive();   // always fetch the latest live state on open
   };
 });
 // Programmatic page switch reused by hero buttons / "see full standings".
@@ -1246,6 +1356,7 @@ if(!isConfigured){
   loadBelts().then(()=>{
     loadDashboard();
     loadEvents();
+    loadLive();
     loadDivision('Mens','mens-content');
     loadDivision('Womens','womens-content');
     loadDivision('Undisputed','undisputed-content');
