@@ -582,6 +582,212 @@
   .f5.d{background:var(--muted); color:#0b0b0d;}
   .f5streak{font-family:'Oswald'; font-size:13px; letter-spacing:1px; color:var(--muted);
     margin-left:10px; vertical-align:middle;}
+
+  /* ============================================================
+     PHASE 7 — STORYLINES feed
+     Four post types, visually distinct, stacked in one feed.
+     All colors via CSS variables — admin-themeable.
+     ============================================================ */
+  .sl-intro{font-family:'Barlow'; font-size:15px; line-height:1.6; color:var(--muted);
+    max-width:680px; margin:2px 0 18px;}
+  .sl-feed{display:flex; flex-direction:column; gap:18px;}
+  .sl-empty{text-align:center; color:var(--muted); padding:60px 20px; font-family:'Oswald';
+    letter-spacing:2px; border:1px dashed var(--line); border-radius:12px;}
+
+  /* shared post shell */
+  .slpost{position:relative; border-radius:14px; overflow:hidden;}
+  .slpost .sl-pin{position:absolute; top:12px; right:12px; z-index:3;
+    font-family:'Oswald'; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--gold); background:var(--gold-deep); border:1px solid var(--gold-dim);
+    border-radius:20px; padding:3px 10px; display:inline-flex; align-items:center; gap:5px;}
+  /* the custom story-date chip — shown on EVERY type (timeline thread) */
+  .sl-date{display:inline-flex; align-items:center; gap:6px; font-family:'Oswald';
+    font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dim);}
+  .sl-date i{font-size:14px; color:var(--gold-dim);}
+  .sl-kind{font-family:'Oswald'; font-size:10px; letter-spacing:2px; text-transform:uppercase;
+    padding:2px 9px; border-radius:5px; background:var(--panel2); color:var(--muted);
+    border:1px solid var(--line);}
+
+  /* ---- SOCIAL post (our own card design — no real platform branding) ---- */
+  .sl-social{background:var(--panel); border:1px solid var(--line); padding:16px 18px;}
+  .sl-social .sl-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+  .sl-social .sl-av{width:46px; height:46px; border-radius:50%; object-fit:cover;
+    border:1px solid var(--gold-dim); flex-shrink:0; background:var(--panel2);}
+  .sl-social .sl-av-init{width:46px; height:46px; border-radius:50%; flex-shrink:0;
+    background:var(--gold-deep); border:1px solid var(--gold-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald'; font-size:16px; color:var(--gold);}
+  .sl-social .sl-who{flex:1; min-width:0;}
+  .sl-social .sl-name{font-family:'Barlow Condensed'; font-weight:600; font-size:18px;
+    color:#fff; line-height:1.1; display:flex; align-items:center; gap:6px;}
+  .sl-social .sl-name .sl-verify{color:var(--gold); font-size:15px;}
+  .sl-social .sl-handle{font-family:'Barlow'; font-size:13px; color:var(--muted);}
+  .sl-social .sl-text{font-family:'Barlow'; font-size:16px; line-height:1.55; color:var(--txt);
+    white-space:pre-wrap; word-break:break-word;}
+  .sl-social .sl-foot{display:flex; gap:22px; margin-top:12px; padding-top:10px;
+    border-top:1px solid var(--line);}
+  .sl-social .sl-stat{display:inline-flex; align-items:center; gap:6px;
+    font-family:'Barlow'; font-size:13px; color:var(--muted);}
+  .sl-social .sl-stat i{font-size:16px;}
+  .sl-social .sl-stat.heart i{color:var(--loss);}
+  .sl-social .sl-cardfoot{display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-top:12px; flex-wrap:wrap;}
+
+  /* threaded replies — a visually CHAINED conversation */
+  .sl-thread{margin-top:4px; display:flex; flex-direction:column;}
+  .sl-reply{position:relative; display:flex; align-items:flex-start; gap:12px;
+    padding:14px 0 0 0;}
+  /* the connecting line down the avatar gutter */
+  .sl-reply::before{content:''; position:absolute; left:22px; top:-4px; width:2px; height:18px;
+    background:var(--gold-dim); opacity:.5;}
+  .sl-reply .sl-av, .sl-reply .sl-av-init{width:38px; height:38px;}
+  .sl-reply .sl-av-init{font-size:13px;}
+  .sl-reply .sl-rbody{flex:1; min-width:0; background:var(--panel2);
+    border:1px solid var(--line); border-radius:12px; border-top-left-radius:3px;
+    padding:10px 13px;}
+  .sl-reply .sl-name{font-size:16px;}
+  .sl-reply .sl-text{font-size:15px; margin-top:2px;}
+
+  /* ---- ARTICLE — headline-first, news style, text-only ---- */
+  .sl-article{background:linear-gradient(180deg,var(--panel),var(--bg2,#100f12));
+    border:1px solid var(--line); padding:22px 24px;}
+  .sl-article .sl-eyebrow{display:flex; align-items:center; gap:12px; margin-bottom:12px;
+    flex-wrap:wrap;}
+  .sl-article .sl-pub{font-family:'Oswald'; font-size:11px; letter-spacing:3px;
+    text-transform:uppercase; color:var(--gold);}
+  .sl-article .sl-headline{font-family:'Oswald'; font-weight:700;
+    font-size:clamp(26px,5vw,44px); line-height:1.02; letter-spacing:.5px;
+    color:#fff; text-transform:uppercase; margin:2px 0;}
+  .sl-article .sl-byline{font-family:'Barlow Condensed'; font-size:14px; letter-spacing:1px;
+    color:var(--muted); margin-top:10px; text-transform:uppercase;}
+  .sl-article .sl-body{font-family:'Barlow'; font-size:16px; line-height:1.65;
+    color:#d7d4cc; margin-top:12px; white-space:pre-wrap; word-break:break-word;
+    border-top:1px solid var(--line); padding-top:12px;}
+
+  /* ---- HR / OFFICIAL NOTICE — letterhead bulletin, totally different look ---- */
+  .sl-hr{background:#11100c; border:1px solid var(--gold);
+    padding:0; box-shadow:0 0 0 1px var(--gold-deep) inset;}
+  .sl-hr .sl-letterhead{display:flex; align-items:center; gap:14px;
+    padding:16px 22px; border-bottom:2px solid var(--gold);
+    background:linear-gradient(180deg,var(--gold-deep),transparent);}
+  .sl-hr .sl-seal{width:46px; height:46px; border-radius:50%; flex-shrink:0;
+    border:2px solid var(--gold); display:flex; align-items:center; justify-content:center;
+    color:var(--gold); font-size:24px; background:#0c0b08;}
+  .sl-hr .sl-dept{font-family:'Oswald'; font-weight:700; letter-spacing:3px;
+    text-transform:uppercase; color:var(--gold); font-size:clamp(14px,2.4vw,18px); line-height:1.1;}
+  .sl-hr .sl-deptsub{font-family:'Barlow Condensed'; font-size:12px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--gold-dim);}
+  .sl-hr .sl-memo{padding:20px 24px;}
+  .sl-hr .sl-memo-meta{font-family:'Barlow Condensed'; font-size:13px; letter-spacing:1px;
+    color:var(--muted); text-transform:uppercase; border-bottom:1px dashed var(--gold-dim);
+    padding-bottom:10px; margin-bottom:14px; display:flex; flex-wrap:wrap; gap:6px 22px;}
+  .sl-hr .sl-memo-meta b{color:#e7d9a8; font-weight:600;}
+  .sl-hr .sl-subject{font-family:'Oswald'; font-weight:600; font-size:clamp(18px,3.4vw,26px);
+    letter-spacing:1px; text-transform:uppercase; color:#fff; margin-bottom:10px;}
+  .sl-hr .sl-body{font-family:'Barlow'; font-size:15px; line-height:1.7; color:#d7d4cc;
+    white-space:pre-wrap; word-break:break-word;}
+  .sl-hr .sl-sign{margin-top:16px; padding-top:14px; border-top:1px solid var(--gold-deep);
+    font-family:'Barlow Condensed'; font-size:14px; letter-spacing:1px; color:var(--gold-dim);
+    text-transform:uppercase;}
+
+  /* ---- TIMELINE entry — compact dated beat on a vertical spine ---- */
+  .sl-timeline{background:var(--panel); border:1px solid var(--line);
+    padding:16px 18px 16px 0;}
+  .sl-timeline .sl-tl-in{position:relative; padding-left:46px;}
+  .sl-timeline .sl-tl-in::before{content:''; position:absolute; left:18px; top:4px; bottom:-16px;
+    width:2px; background:var(--gold-dim); opacity:.45;}
+  .sl-timeline .sl-node{position:absolute; left:11px; top:2px; width:16px; height:16px;
+    border-radius:50%; background:var(--gold); border:3px solid var(--bg);
+    box-shadow:0 0 0 1px var(--gold-dim);}
+  .sl-timeline .sl-tl-date{font-family:'Oswald'; font-size:13px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--gold); margin-bottom:4px;}
+  .sl-timeline .sl-tl-title{font-family:'Oswald'; font-weight:600; font-size:20px;
+    color:#fff; line-height:1.1; margin-bottom:6px;}
+  .sl-timeline .sl-body{font-family:'Barlow'; font-size:15px; line-height:1.6;
+    color:#cfcdc6; white-space:pre-wrap; word-break:break-word;}
+
+  /* type chip header row shared by article/timeline/hr meta line */
+  .sl-toprow{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    flex-wrap:wrap; margin-bottom:10px;}
+
+  /* gilded frame accent on storyline cards (matches Phase 2 .gilt treatment) */
+  .slpost::before{content:''; position:absolute; inset:0; border-radius:inherit; padding:1px;
+    pointer-events:none; opacity:.45;
+    background:linear-gradient(180deg,rgba(233,185,73,.22),transparent 45%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; z-index:1;}
+  .sl-hr.slpost::before{display:none;} /* HR notice has its own gold frame */
+
+  /* pagination */
+  .sl-pager{display:flex; align-items:center; justify-content:center; gap:14px;
+    margin-top:26px;}
+  .sl-pager button{background:var(--panel); border:1px solid var(--line); color:var(--txt);
+    font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    padding:9px 18px; border-radius:8px; cursor:pointer; transition:.15s;
+    display:inline-flex; align-items:center; gap:7px;}
+  .sl-pager button:hover:not(:disabled){border-color:var(--gold); color:var(--gold);}
+  .sl-pager button:disabled{opacity:.35; cursor:not-allowed;}
+  .sl-pager .sl-pageinfo{font-family:'Oswald'; font-size:12px; letter-spacing:1.5px;
+    color:var(--muted);}
+
+  @media(max-width:560px){
+    .sl-article{padding:18px 16px;}
+    .sl-hr .sl-memo{padding:16px 16px;}
+    .sl-hr .sl-letterhead{padding:14px 16px;}
+  }
+
+  /* ---- ENGAGEMENT BAR (likes / dislikes / comments) — Phase B ---- */
+  .sl-engage{display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-top:14px; padding-top:12px; border-top:1px solid var(--line); position:relative; z-index:2;}
+  .sl-hr .sl-engage{margin:0; padding:14px 24px; border-top:1px solid var(--gold-deep);}
+  .sl-react{display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    font-family:'Oswald'; font-size:13px; letter-spacing:.5px; color:var(--muted);
+    background:var(--panel2); border:1px solid var(--line); border-radius:30px;
+    padding:7px 14px; transition:.15s; user-select:none;}
+  .sl-react:hover{border-color:var(--gold-dim); color:var(--txt);}
+  .sl-react i{font-size:17px; line-height:1;}
+  .sl-react .sl-cnt{font-weight:600; min-width:8px;}
+  .sl-react.on-like{background:rgba(62,207,142,.14); border-color:var(--win); color:var(--win);}
+  .sl-react.on-dislike{background:rgba(226,75,74,.14); border-color:var(--loss); color:var(--loss);}
+  .sl-react.busy{opacity:.55; pointer-events:none;}
+  .sl-cbtn{display:inline-flex; align-items:center; gap:7px; cursor:pointer; margin-left:auto;
+    font-family:'Oswald'; font-size:13px; letter-spacing:.5px; color:var(--muted);
+    background:transparent; border:1px solid var(--line); border-radius:30px;
+    padding:7px 14px; transition:.15s;}
+  .sl-cbtn:hover{border-color:var(--gold-dim); color:var(--gold);}
+  .sl-cbtn i{font-size:17px;}
+
+  /* comment thread (expandable) */
+  .sl-comments{position:relative; z-index:2; margin-top:2px; padding:0 0 0 0; display:none;}
+  .sl-comments.open{display:block; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+  .sl-hr .sl-comments{padding:0 24px 18px;}
+  .sl-hr .sl-comments.open{margin-top:0; border-top:none;}
+  .sl-cform{display:flex; flex-direction:column; gap:8px; margin-bottom:16px;}
+  .sl-cform textarea{width:100%; background:var(--panel2); border:1px solid var(--line);
+    color:var(--txt); font-family:'Barlow'; font-size:15px; line-height:1.5;
+    padding:10px 12px; border-radius:10px; resize:vertical; min-height:60px;}
+  .sl-cform textarea:focus{outline:none; border-color:var(--gold);}
+  .sl-cform .sl-crow{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .sl-cpost{background:var(--gold); color:#15120a; border:none; cursor:pointer;
+    font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    font-weight:600; padding:9px 18px; border-radius:8px; transition:.15s;}
+  .sl-cpost:hover{filter:brightness(1.08);} .sl-cpost:disabled{opacity:.45; cursor:not-allowed;}
+  .sl-csignin{font-family:'Barlow'; font-size:14px; color:var(--muted);
+    background:var(--panel2); border:1px dashed var(--line); border-radius:10px;
+    padding:12px 14px; margin-bottom:16px; text-align:center;}
+  .sl-csignin button{background:none; border:none; color:var(--gold); cursor:pointer;
+    font:inherit; text-decoration:underline; padding:0;}
+  .sl-clist{display:flex; flex-direction:column; gap:12px;}
+  .sl-comment{display:flex; flex-direction:column; gap:3px;}
+  .sl-comment .sl-cmeta{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .sl-comment .sl-cname{font-family:'Barlow Condensed'; font-weight:600; font-size:16px; color:#fff;}
+  .sl-comment .sl-cwhen{font-family:'Barlow'; font-size:12px; color:var(--muted2);}
+  .sl-comment .sl-cbody{font-family:'Barlow'; font-size:15px; line-height:1.55; color:var(--txt);
+    white-space:pre-wrap; word-break:break-word;}
+  .sl-comment .sl-cmine{font-family:'Barlow'; font-size:12px; color:var(--muted2);
+    background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; margin-left:4px;}
+  .sl-comment .sl-cmine:hover{color:var(--loss);}
+  .sl-cempty{font-family:'Barlow'; font-size:14px; color:var(--muted); font-style:italic; padding:4px 0;}
 </style>
 </head>
 <body>
@@ -599,6 +805,7 @@
         <button data-page="events">Events</button>
         <button data-page="rankings">Rankings</button>
         <button data-page="roster">Roster</button>
+        <button data-page="storylines">Storylines</button>
       </nav>
       <div class="socials">
         <a href="https://twitch.tv/Infantryink" target="_blank" rel="noopener noreferrer" aria-label="Twitch" title="Twitch"><i class="ti ti-brand-twitch"></i></a>
@@ -692,6 +899,22 @@
     </div>
     <input class="search" id="roster-search" placeholder="Search this list…" autocomplete="off">
     <div class="roster-grid" id="roster-grid"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- STORYLINES (storyline-driven content hub: social / articles / HR / timeline) -->
+  <div class="page" id="page-storylines">
+    <div class="section-title">Storylines</div>
+    <p class="sl-intro">The ongoing story of the WCA — social-media drama, breaking news,
+      official announcements, and a dated timeline of how every beat unfolded.</p>
+    <div class="roster-filters" id="sl-filters">
+      <button class="rfilter active" data-slfilter="all">All</button>
+      <button class="rfilter" data-slfilter="social">Social</button>
+      <button class="rfilter" data-slfilter="article">Articles</button>
+      <button class="rfilter" data-slfilter="notice">HR</button>
+      <button class="rfilter" data-slfilter="timeline">Timeline</button>
+    </div>
+    <div class="sl-feed" id="sl-feed"><div class="loading">Loading…</div></div>
+    <div id="sl-pager"></div>
   </div>
 </div>
 
@@ -1657,21 +1880,532 @@ async function refreshBetViews(){
   if(document.getElementById('page-live')) await loadLive();
 }
 
+// ============================================================================
+//  STORYLINES — public feed (Step 1: seeded examples, rendered for approval)
+//  Four post types stacked in one feed, sorted by custom story_date (newest
+//  first), pinned on top, 20 per page. Social posts pull the author's photo
+//  from the roster via wrestlerByName() — the same forgiving lookup the
+//  rankings use. Step 2 will swap SL_SEED for a live Supabase query.
+// ============================================================================
+const SL_PAGE_SIZE = 20;
+let SL_FILTER = 'all';
+let SL_PAGE = 1;
+
+// --- SEED DATA (visual approval only; replaced by a DB load in Step 2) ---
+// Mirrors the storylines table shape: kind, title, body, payload, story_date,
+// pinned, is_published. Replies live in payload.replies = [{name,text}].
+const SL_SEED = [
+  {
+    id: 1, kind: 'notice', pinned: true, is_published: true,
+    story_date: '2025-06-02',
+    title: 'IMMEDIATE RELEASE — Roster Cut',
+    body: "The World Championship Alliance has come to terms on the release of one (1) contracted competitor effective immediately. We thank them for their contributions and wish them success in all future endeavors.\n\nThis decision was made in the best interest of the locker room and the long-term direction of the brand.",
+    payload: { from: 'WCA Talent Relations', ref: 'HR-2025-0488', sign: 'Office of the Commissioner' }
+  },
+  {
+    id: 2, kind: 'article', pinned: false, is_published: true,
+    story_date: '2025-06-01',
+    title: 'Champion Storms Out of Contract Signing as Title Match Looms',
+    body: "Tensions boiled over at today's contract signing when the reigning champion flipped the table and walked out, leaving the challenger to address the crowd alone. Officials scrambled to restore order as the arena erupted.\n\nWhat was meant to be a formality has now thrown the main event into doubt with just days to go.",
+    payload: { publication: 'WCA NEWSWIRE', byline: 'By the WCA Newsdesk' }
+  },
+  {
+    id: 3, kind: 'social', pinned: false, is_published: true,
+    story_date: '2025-05-31',
+    title: '',
+    body: "Everyone keeps asking if I'm scared. Scared of what? I've beaten every name they've put in front of me. The gold comes home this Sunday. Screenshot this. 🏆",
+    payload: {
+      author: 'Cobra Vance',
+      handle: '@cobravance',
+      likes: '4.2K', replies: '318', reposts: '901',
+      thread: [
+        { name: 'Viper Cruz', text: "Funny — I don't remember you beating ME. Sunday you find out what scared actually feels like." },
+        { name: 'Cobra Vance', text: "Keep talking. The more you talk, the better it feels when I shut you up." },
+        { name: 'Dani Steel', text: "Both of you are fighting for MY shot. Enjoy the warm-up. 💅" }
+      ]
+    }
+  },
+  {
+    id: 4, kind: 'social', pinned: false, is_published: true,
+    story_date: '2025-05-29',
+    title: '',
+    body: "New ink, new era. They tried to write me off. Look at me now. 🔥 #WCA",
+    payload: {
+      author: 'Dani Steel',
+      handle: '@danisteel',
+      likes: '7.8K', replies: '540', reposts: '1.2K',
+      thread: []
+    }
+  },
+  {
+    id: 5, kind: 'timeline', pinned: false, is_published: true,
+    story_date: '2025-05-20',
+    title: 'The Alliance Splinters',
+    body: "After months of mounting friction, the dominant faction publicly fractures backstage — a betrayal that reshapes every division heading into summer.",
+    payload: {}
+  }
+];
+
+// Map a kind to a human label + icon for chips.
+const SL_KIND_META = {
+  social:   { label: 'Social',   icon: 'ti-message-circle-2' },
+  article:  { label: 'News',     icon: 'ti-news' },
+  notice:   { label: 'Official', icon: 'ti-building-bank' },
+  timeline: { label: 'Timeline', icon: 'ti-timeline-event' }
+};
+
+// Format the custom story_date (a plain date) — distinct from posted-at.
+function slDate(d){
+  if(!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+}
+// Initials fallback for a name with no roster photo.
+function slInit(name){
+  return String(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+}
+// An avatar <img>/<div> for a roster member, reusing their existing photo.
+// Prefers avatar_url (the round thumb), falls back to image_url, then initials.
+function slAvatar(name, cls){
+  const w = wrestlerByName(name);
+  const src = w ? (w.avatar_url || w.image_url) : null;
+  const init = slInit(name);
+  const c = cls || 'sl-av';
+  const ic = c + '-init';
+  if(src){
+    return `<img class="${c}" src="${esc(src)}" alt="${esc(name)}"
+      onerror="this.outerHTML='<div class=\\'${ic}\\'>${init}</div>'">`;
+  }
+  return `<div class="${ic}">${init}</div>`;
+}
+// A handle: use payload.handle, else derive from the name.
+function slHandle(p){
+  if(p.payload && p.payload.handle) return esc(p.payload.handle);
+  const a = (p.payload && p.payload.author) || '';
+  return '@' + a.toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+
+// ---- per-type renderers ----
+function slRenderSocial(p){
+  const author = (p.payload && p.payload.author) || 'WCA';
+  const stats = p.payload || {};
+  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  const main = `
+    <div class="sl-head">
+      ${slAvatar(author)}
+      <div class="sl-who">
+        <div class="sl-name">${esc(author)} <i class="ti ti-rosette-discount-check-filled sl-verify" title="Verified"></i></div>
+        <div class="sl-handle">${slHandle(p)} · <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
+      </div>
+    </div>
+    <div class="sl-text">${esc(p.body)}</div>
+    <div class="sl-foot">
+      <span class="sl-stat heart"><i class="ti ti-heart-filled"></i> ${esc(stats.likes||'0')}</span>
+      <span class="sl-stat"><i class="ti ti-message-circle"></i> ${esc(stats.replies||'0')}</span>
+      <span class="sl-stat"><i class="ti ti-repeat"></i> ${esc(stats.reposts||'0')}</span>
+    </div>`;
+  // threaded replies, chained
+  let thread = '';
+  const replies = (p.payload && Array.isArray(p.payload.thread)) ? p.payload.thread : [];
+  if(replies.length){
+    thread = `<div class="sl-thread">` + replies.map(r=>`
+      <div class="sl-reply">
+        ${slAvatar(r.name)}
+        <div class="sl-rbody">
+          <div class="sl-name">${esc(r.name)}</div>
+          <div class="sl-text">${esc(r.text)}</div>
+        </div>
+      </div>`).join('') + `</div>`;
+  }
+  return `<article class="slpost sl-social">${pin}${main}${thread}${slEngageBar(p)}</article>`;
+}
+function slRenderArticle(p){
+  const pub = (p.payload && p.payload.publication) || 'WCA NEWSWIRE';
+  const byline = (p.payload && p.payload.byline) || '';
+  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  return `<article class="slpost sl-article">${pin}
+    <div class="sl-eyebrow">
+      <span class="sl-pub">${esc(pub)}</span>
+      <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span>
+    </div>
+    <h2 class="sl-headline">${esc(p.title)}</h2>
+    ${byline?`<div class="sl-byline">${esc(byline)}</div>`:''}
+    ${p.body?`<div class="sl-body">${esc(p.body)}</div>`:''}
+  ${slEngageBar(p)}</article>`;
+}
+function slRenderNotice(p){
+  const pl = p.payload || {};
+  const from = pl.from || 'WCA Talent Relations';
+  const ref = pl.ref || '';
+  const sign = pl.sign || 'Office of the Commissioner';
+  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  return `<article class="slpost sl-hr">${pin}
+    <div class="sl-letterhead">
+      <div class="sl-seal"><i class="ti ti-shield-check"></i></div>
+      <div>
+        <div class="sl-dept">WCA HR Department</div>
+        <div class="sl-deptsub">Official Personnel Bulletin</div>
+      </div>
+    </div>
+    <div class="sl-memo">
+      <div class="sl-memo-meta">
+        <span>FROM: <b>${esc(from)}</b></span>
+        <span>DATE: <b>${esc(slDate(p.story_date))}</b></span>
+        ${ref?`<span>REF: <b>${esc(ref)}</b></span>`:''}
+      </div>
+      <div class="sl-subject">${esc(p.title)}</div>
+      <div class="sl-body">${esc(p.body)}</div>
+      <div class="sl-sign">— ${esc(sign)}</div>
+    </div>
+  ${slEngageBar(p)}</article>`;
+}
+function slRenderTimeline(p){
+  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  return `<article class="slpost sl-timeline">${pin}
+    <div class="sl-tl-in">
+      <span class="sl-node"></span>
+      <div class="sl-tl-date">${esc(slDate(p.story_date))}</div>
+      <div class="sl-tl-title">${esc(p.title)}</div>
+      ${p.body?`<div class="sl-body">${esc(p.body)}</div>`:''}
+    </div>
+  ${slEngageBar(p)}</article>`;
+}
+function slRenderPost(p){
+  switch(p.kind){
+    case 'social':   return slRenderSocial(p);
+    case 'article':  return slRenderArticle(p);
+    case 'notice':   return slRenderNotice(p);
+    case 'timeline': return slRenderTimeline(p);
+    default:         return '';
+  }
+}
+
+// Sort: pinned first, then by story_date newest-first.
+function slSort(list){
+  return list.slice().sort((a,b)=>{
+    if(!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+    const da = a.story_date||'', db = b.story_date||'';
+    if(da !== db) return da < db ? 1 : -1;
+    return (b.id||0)-(a.id||0);
+  });
+}
+
+let SL_ALL = [];          // published posts (live from DB, seed only as fallback)
+// Engagement state, keyed by storyline id:
+let SL_REACT = {};        // id -> { likes:realLikeCount, dislikes:realDislikeCount }
+let SL_MYREACT = {};      // id -> 1 | -1 | undefined  (this user's own vote)
+let SL_COMMENTS = {};     // id -> [ {id, name, body, created_at, mine} ]  (loaded lazily)
+let SL_CCOUNT = {};       // id -> number of visible comments
+let SL_OPEN = {};         // id -> bool (comment thread expanded)
+
+// Load published storylines from Supabase, then their reaction tallies and
+// comment counts. Falls back to the in-code SL_SEED only if the table has no
+// published rows yet (so the tab is never blank while you're setting it up).
+async function loadStorylines(){
+  SL_PAGE = 1;
+  let rows = [];
+  try{
+    const { data, error } = await sb.from('storylines')
+      .select('id,kind,title,body,payload,story_date,pinned,is_published,seed_likes,seed_dislikes')
+      .eq('is_published', true);
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){ rows = []; }
+
+  if(rows.length){
+    SL_ALL = rows;
+  }else{
+    // graceful fallback so the design is still visible before any real posts exist
+    SL_ALL = SL_SEED.filter(p=>p.is_published !== false)
+      .map(p=>Object.assign({seed_likes:0, seed_dislikes:0}, p));
+  }
+
+  await slLoadEngagement();
+  renderStorylines();
+}
+
+// Pull all real reactions + visible comment counts in a couple of queries,
+// then fold them into the per-post state maps.
+async function slLoadEngagement(){
+  SL_REACT = {}; SL_MYREACT = {}; SL_CCOUNT = {};
+  const ids = SL_ALL.map(p=>p.id).filter(v=>v!=null);
+  SL_ALL.forEach(p=>{ SL_REACT[p.id] = {likes:0, dislikes:0}; SL_CCOUNT[p.id]=0; });
+  if(!ids.length) return;
+
+  // real reactions for these posts
+  try{
+    const { data } = await sb.from('storyline_reactions')
+      .select('storyline_id,user_id,value').in('storyline_id', ids);
+    (data||[]).forEach(r=>{
+      const t = SL_REACT[r.storyline_id]; if(!t) return;
+      if(r.value===1) t.likes++; else if(r.value===-1) t.dislikes++;
+      if(CURRENT_USER && r.user_id===CURRENT_USER.id) SL_MYREACT[r.storyline_id]=r.value;
+    });
+  }catch(e){ /* leave tallies at 0 on failure */ }
+
+  // visible comment counts (RLS already hides is_hidden=true from the public)
+  try{
+    const { data } = await sb.from('storyline_comments')
+      .select('storyline_id').in('storyline_id', ids);
+    (data||[]).forEach(c=>{ if(SL_CCOUNT[c.storyline_id]!=null) SL_CCOUNT[c.storyline_id]++; });
+  }catch(e){ /* counts stay 0 on failure */ }
+}
+
+// Public-facing blended totals = admin seed + real votes.
+function slLikeTotal(p){ return (Number(p.seed_likes)||0) + (SL_REACT[p.id]?.likes||0); }
+function slDislikeTotal(p){ return (Number(p.seed_dislikes)||0) + (SL_REACT[p.id]?.dislikes||0); }
+
+// The engagement bar markup appended under every post type.
+function slEngageBar(p){
+  const mine = SL_MYREACT[p.id];
+  const likeCls = mine===1 ? ' on-like' : '';
+  const disCls  = mine===-1 ? ' on-dislike' : '';
+  const cc = SL_CCOUNT[p.id]||0;
+  return `<div class="sl-engage">
+      <span class="sl-react${likeCls}" data-react="like" data-id="${p.id}" onclick="slVote(${p.id},1)">
+        <i class="ti ti-thumb-up"></i><span class="sl-cnt">${slLikeTotal(p).toLocaleString()}</span>
+      </span>
+      <span class="sl-react${disCls}" data-react="dislike" data-id="${p.id}" onclick="slVote(${p.id},-1)">
+        <i class="ti ti-thumb-down"></i><span class="sl-cnt">${slDislikeTotal(p).toLocaleString()}</span>
+      </span>
+      <span class="sl-cbtn" onclick="slToggleComments(${p.id})">
+        <i class="ti ti-message-2"></i> ${cc} ${cc===1?'Comment':'Comments'}
+      </span>
+    </div>
+    <div class="sl-comments${SL_OPEN[p.id]?' open':''}" id="sl-comments-${p.id}"></div>`;
+}
+
+// ---- VOTING ----
+async function slVote(id, value){
+  if(!CURRENT_USER){
+    wcaToast('Sign in to react', 'Use Discord sign-in to like or dislike.', true);
+    return;
+  }
+  const t = SL_REACT[id] || (SL_REACT[id]={likes:0,dislikes:0});
+  const prev = SL_MYREACT[id];
+  // optimistic update
+  if(prev===1) t.likes=Math.max(0,t.likes-1);
+  if(prev===-1) t.dislikes=Math.max(0,t.dislikes-1);
+  let next;
+  if(prev===value){ next=undefined; }            // tapping the same again clears it
+  else { next=value; if(value===1) t.likes++; else t.dislikes++; }
+  SL_MYREACT[id]=next;
+  slRefreshEngage(id);
+
+  try{
+    if(next===undefined){
+      await sb.from('storyline_reactions').delete()
+        .eq('storyline_id', id).eq('user_id', CURRENT_USER.id);
+    }else{
+      // upsert so switching like<->dislike updates the single row
+      await sb.from('storyline_reactions')
+        .upsert({ storyline_id:id, user_id:CURRENT_USER.id, value:next },
+                { onConflict:'storyline_id,user_id' });
+    }
+  }catch(e){
+    wcaToast('Could not save', 'Your reaction did not save — try again.', true);
+    await slLoadEngagement(); renderStorylines();   // resync from server
+  }
+}
+// Re-render just one post's engage bar counts/state without rebuilding the feed.
+function slRefreshEngage(id){
+  const bar = document.querySelector(`.sl-engage [data-id="${id}"][data-react="like"]`)?.closest('.sl-engage');
+  const post = SL_ALL.find(p=>String(p.id)===String(id));
+  if(!bar || !post) return;
+  const like = bar.querySelector('[data-react="like"]');
+  const dis  = bar.querySelector('[data-react="dislike"]');
+  const mine = SL_MYREACT[id];
+  like.classList.toggle('on-like', mine===1);
+  dis.classList.toggle('on-dislike', mine===-1);
+  like.querySelector('.sl-cnt').textContent = slLikeTotal(post).toLocaleString();
+  dis.querySelector('.sl-cnt').textContent = slDislikeTotal(post).toLocaleString();
+}
+
+// ---- COMMENTS ----
+async function slToggleComments(id){
+  SL_OPEN[id] = !SL_OPEN[id];
+  const box = document.getElementById('sl-comments-'+id);
+  if(!box) return;
+  box.classList.toggle('open', SL_OPEN[id]);
+  if(SL_OPEN[id]) await slRenderComments(id);
+}
+async function slLoadComments(id){
+  try{
+    const { data, error } = await sb.from('storyline_comments')
+      .select('id,user_id,is_fake,fake_name,body,created_at')
+      .eq('storyline_id', id).order('created_at', { ascending:true });
+    if(error) throw error;
+    // resolve display names: real = display_name||username from profiles; fake = fake_name
+    const realIds = [...new Set((data||[]).filter(c=>!c.is_fake && c.user_id).map(c=>c.user_id))];
+    let nameById = {};
+    if(realIds.length){
+      const { data:profs } = await sb.from('profiles').select('id,username,display_name').in('id', realIds);
+      (profs||[]).forEach(pr=>{ nameById[pr.id] = pr.display_name || pr.username || 'Member'; });
+    }
+    SL_COMMENTS[id] = (data||[]).map(c=>({
+      id: c.id,
+      name: c.is_fake ? (c.fake_name||'Anonymous') : (nameById[c.user_id]||'Member'),
+      body: c.body,
+      created_at: c.created_at,
+      mine: !!(CURRENT_USER && !c.is_fake && c.user_id===CURRENT_USER.id)
+    }));
+    SL_CCOUNT[id] = SL_COMMENTS[id].length;
+  }catch(e){ SL_COMMENTS[id] = []; }
+}
+function slCommentWhen(ts){
+  if(!ts) return '';
+  const d = new Date(ts); if(isNaN(d)) return '';
+  const diff = (Date.now()-d.getTime())/1000;
+  if(diff < 60) return 'just now';
+  if(diff < 3600) return Math.floor(diff/60)+'m ago';
+  if(diff < 86400) return Math.floor(diff/3600)+'h ago';
+  if(diff < 604800) return Math.floor(diff/86400)+'d ago';
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+}
+async function slRenderComments(id){
+  const box = document.getElementById('sl-comments-'+id);
+  if(!box) return;
+  if(!SL_COMMENTS[id]){ box.innerHTML = '<div class="sl-cempty">Loading comments…</div>'; await slLoadComments(id); }
+  const list = SL_COMMENTS[id] || [];
+  // composer (signed-in) or sign-in nudge
+  const composer = CURRENT_USER
+    ? `<div class="sl-cform">
+         <textarea id="sl-cinput-${id}" placeholder="Add a comment…" maxlength="1000"></textarea>
+         <div class="sl-crow">
+           <span class="sl-cwhen">Posting as ${esc(MY_PROFILE ? (MY_PROFILE.display_name||MY_PROFILE.username||'Member') : 'Member')}</span>
+           <button class="sl-cpost" onclick="slPostComment(${id})">Post comment</button>
+         </div>
+       </div>`
+    : `<div class="sl-csignin">Want to join the conversation?
+         <button onclick="signInDiscord()">Sign in with Discord</button> to comment.</div>`;
+  const items = list.length
+    ? list.map(c=>`<div class="sl-comment">
+        <div class="sl-cmeta">
+          <span class="sl-cname">${esc(c.name)}</span>
+          <span class="sl-cwhen">${esc(slCommentWhen(c.created_at))}</span>
+          ${c.mine?`<button class="sl-cmine" onclick="slDeleteComment(${id},${c.id})">delete</button>`:''}
+        </div>
+        <div class="sl-cbody">${esc(c.body)}</div>
+      </div>`).join('')
+    : '<div class="sl-cempty">No comments yet — be the first.</div>';
+  box.innerHTML = composer + `<div class="sl-clist">${items}</div>`;
+  // refresh the count label on the toggle button
+  const cbtn = box.previousElementSibling?.querySelector('.sl-cbtn');
+  const cc = SL_CCOUNT[id]||list.length;
+  if(cbtn) cbtn.innerHTML = `<i class="ti ti-message-2"></i> ${cc} ${cc===1?'Comment':'Comments'}`;
+}
+async function slPostComment(id){
+  if(!CURRENT_USER){ wcaToast('Sign in to comment','Use Discord sign-in.',true); return; }
+  const ta = document.getElementById('sl-cinput-'+id);
+  const body = (ta?.value||'').trim();
+  if(!body){ return; }
+  const btn = ta.parentNode.querySelector('.sl-cpost');
+  if(btn){ btn.disabled=true; }
+  try{
+    const { error } = await sb.from('storyline_comments')
+      .insert({ storyline_id:id, user_id:CURRENT_USER.id, is_fake:false, body });
+    if(error) throw error;
+    ta.value='';
+    SL_COMMENTS[id]=null;            // force reload
+    await slRenderComments(id);
+    slRefreshCommentCount(id);
+    wcaToast('Comment posted','Thanks for joining in.');
+  }catch(e){
+    wcaToast('Could not post','Your comment did not save — try again.',true);
+  }finally{ if(btn) btn.disabled=false; }
+}
+async function slDeleteComment(id, commentId){
+  if(!confirm('Delete your comment?')) return;
+  try{
+    const { error } = await sb.from('storyline_comments')
+      .delete().eq('id', commentId).eq('user_id', CURRENT_USER.id);
+    if(error) throw error;
+    SL_COMMENTS[id]=null;
+    await slRenderComments(id);
+    slRefreshCommentCount(id);
+  }catch(e){ wcaToast('Could not delete','Try again.',true); }
+}
+function slRefreshCommentCount(id){
+  const post = SL_ALL.find(p=>String(p.id)===String(id));
+  const bar = document.querySelector(`#sl-comments-${id}`)?.previousElementSibling;
+  const cbtn = bar?.querySelector('.sl-cbtn');
+  const cc = SL_CCOUNT[id]||0;
+  if(cbtn) cbtn.innerHTML = `<i class="ti ti-message-2"></i> ${cc} ${cc===1?'Comment':'Comments'}`;
+}
+
+function renderStorylines(){
+  const feed = document.getElementById('sl-feed');
+  const pager = document.getElementById('sl-pager');
+  if(!feed) return;
+  let list = slSort(SL_ALL);
+  if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
+  if(!list.length){
+    feed.innerHTML = '<div class="sl-empty">No storylines here yet</div>';
+    if(pager) pager.innerHTML = '';
+    return;
+  }
+  const pages = Math.max(1, Math.ceil(list.length / SL_PAGE_SIZE));
+  if(SL_PAGE > pages) SL_PAGE = pages;
+  const start = (SL_PAGE-1) * SL_PAGE_SIZE;
+  const slice = list.slice(start, start + SL_PAGE_SIZE);
+  feed.innerHTML = slice.map(slRenderPost).join('');
+  // re-open any threads that were expanded before a re-render
+  slice.forEach(p=>{ if(SL_OPEN[p.id]) slRenderComments(p.id); });
+  // pagination only when needed
+  if(pages > 1){
+    pager.innerHTML = `<div class="sl-pager">
+      <button onclick="slGoPage(${SL_PAGE-1})" ${SL_PAGE<=1?'disabled':''}><i class="ti ti-arrow-left"></i> Newer</button>
+      <span class="sl-pageinfo">Page ${SL_PAGE} of ${pages}</span>
+      <button onclick="slGoPage(${SL_PAGE+1})" ${SL_PAGE>=pages?'disabled':''}>Older <i class="ti ti-arrow-right"></i></button>
+    </div>`;
+  } else {
+    pager.innerHTML = '';
+  }
+}
+function slGoPage(n){
+  SL_PAGE = n;
+  renderStorylines();
+  const pg = document.getElementById('page-storylines');
+  if(pg) window.scrollTo({top:0,behavior:'smooth'});
+}
+
 // navigation
 document.querySelectorAll('nav button').forEach(b=>{
   b.onclick=()=>{
-    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
     const pg=b.dataset.page;
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById('page-'+pg).classList.add('active');
-    if(pg==='live') loadLive();   // always fetch the latest live state on open
+    activatePage(pg);
+    // remember the tab in the URL hash so a refresh restores it
+    if(location.hash.slice(1)!==pg){ history.replaceState(null,'','#'+pg); }
   };
 });
+// Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
+function activatePage(pg){
+  const btn=document.querySelector('nav button[data-page="'+pg+'"]');
+  if(!btn) return false;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const page=document.getElementById('page-'+pg);
+  if(page) page.classList.add('active');
+  if(pg==='live') loadLive();   // always fetch the latest live state on open
+  if(pg==='storylines') loadStorylines();
+  return true;
+}
+// On load (and on back/forward), open whatever tab the hash points to.
+function restorePageFromHash(){
+  const pg=(location.hash||'').slice(1);
+  if(pg && document.querySelector('nav button[data-page="'+pg+'"]')){
+    activatePage(pg);
+  }
+}
+window.addEventListener('hashchange', restorePageFromHash);
 // Programmatic page switch reused by hero buttons / "see full standings".
 function goPage(pg){
-  const btn=document.querySelector('nav button[data-page="'+pg+'"]');
-  if(btn){ btn.click(); window.scrollTo({top:0,behavior:'smooth'}); }
+  if(activatePage(pg)){
+    if(location.hash.slice(1)!==pg){ history.replaceState(null,'','#'+pg); }
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
 }
 document.getElementById('roster-search').addEventListener('input',e=>renderRoster(e.target.value));
 // Roster division/faction filters
@@ -1692,6 +2426,16 @@ document.querySelectorAll('#rank-filters .rfilter').forEach(b=>{
     document.querySelectorAll('#page-rankings .rank-block').forEach(blk=>{
       blk.style.display = (f==='all' || blk.dataset.block===f) ? '' : 'none';
     });
+  };
+});
+// Storylines type filter (All / Social / Articles / HR / Timeline)
+document.querySelectorAll('#sl-filters .rfilter').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#sl-filters .rfilter').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    SL_FILTER=b.dataset.slfilter;
+    SL_PAGE=1;
+    renderStorylines();
   };
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
@@ -1719,7 +2463,9 @@ if(!isConfigured){
       loadFactions();
     });
   });
-  loadRoster();
+  loadRoster().then(()=>{ loadStorylines(); });
+  // restore the tab from the URL hash so a refresh stays put (defaults to Dashboard)
+  restorePageFromHash();
 }
 </script>
 </body>
