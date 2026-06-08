@@ -15,9 +15,19 @@
     --gold:#E9B949; --gold-dim:#b08d2e; --gold-deep:#1f1d16;
     --win:#3ECF8E; --loss:#E24B4A; --teal:#5DCAA5;
     --txt:#f2f2f0; --muted:#8a8a86; --muted2:#5c5c58;
+    --accent:#E9B949;
+    /* reference-inspired additions */
+    --bg2:#100f12; --gold2:#f6d579; --twitch:#9146FF;
+    --glow-gold:rgba(233,185,73,.10); --glow-accent:rgba(233,185,73,.08);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
-  body{background:var(--bg); color:var(--txt); font-family:'Barlow',sans-serif; -webkit-font-smoothing:antialiased;}
+  body{
+    background:
+      radial-gradient(1100px 560px at 82% -8%, var(--glow-gold), transparent 60%),
+      radial-gradient(840px 460px at -8% 8%, var(--glow-accent), transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--txt); font-family:'Barlow',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;}
   h1,h2,h3,.disp{font-family:'Oswald',sans-serif; font-weight:600; letter-spacing:.5px; text-transform:uppercase;}
   .cond{font-family:'Barlow Condensed',sans-serif;}
   .wrap{max-width:1080px; margin:0 auto; padding:0 20px 80px;}
@@ -307,6 +317,82 @@
   .logout-x{background:transparent; border:none; color:var(--muted2); cursor:pointer; font-size:16px; padding:2px 6px; border-radius:6px;}
   .logout-x:hover{color:var(--loss);}
   @media(max-width:560px){ .userbox{margin-top:6px;} }
+
+  /* ============================================================
+     PHASE 2 — reference-inspired aesthetic layer
+     Purely visual. No logic, data, or layout structure changed.
+     ============================================================ */
+
+  /* sticky frosted header (from gold-standard) */
+  header{position:sticky; top:0; z-index:40;
+    background:rgba(13,13,15,.86); backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);}
+
+  /* gilded hairline frame helper — opt-in via .gilt */
+  .gilt{position:relative;}
+  .gilt::before{content:''; position:absolute; inset:0; border-radius:inherit;
+    padding:1px; pointer-events:none;
+    background:linear-gradient(180deg,rgba(233,185,73,.32),rgba(233,185,73,0) 42%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;}
+
+  /* apply gilt glow to the major card surfaces, softly */
+  .champ-card, .division, .event-hero, .modal-box, .bout{position:relative;}
+  .champ-card::before, .division::before, .bout::before{
+    content:''; position:absolute; inset:0; border-radius:inherit; padding:1px;
+    pointer-events:none; opacity:.5;
+    background:linear-gradient(180deg,rgba(233,185,73,.22),transparent 45%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;}
+
+  /* refined section header with gradient rule (from references) */
+  .section-title{position:relative;}
+  .section-title::after{
+    background:linear-gradient(90deg,var(--line),transparent);}
+
+  /* brand logo subtle glow */
+  .brand .logo{text-shadow:0 0 22px rgba(233,185,73,.25);}
+
+  /* nav active pill: keep gold fill, add lift */
+  nav button{transition:.15s;}
+  nav button.active{box-shadow:0 4px 14px -6px rgba(233,185,73,.6);}
+
+  /* champion cards: gentle hover lift */
+  .champ-card{transition:transform .18s ease, box-shadow .18s ease;}
+  .champ-card:hover{transform:translateY(-2px); box-shadow:0 14px 34px -22px rgba(0,0,0,.8);}
+
+  /* page fade-in (from references) */
+  .page.active{animation:wcaFade .4s ease;}
+  @keyframes wcaFade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+
+  /* live dot pulse — reusable for the Live tab/badge in later phases */
+  .live-dot{display:inline-block; width:7px; height:7px; border-radius:50%;
+    background:var(--loss); margin-right:6px; vertical-align:middle;
+    box-shadow:0 0 0 0 rgba(226,75,74,.6); animation:wcaPulse 1.8s infinite;}
+  @keyframes wcaPulse{0%{box-shadow:0 0 0 0 rgba(226,75,74,.55);}
+    70%{box-shadow:0 0 0 7px rgba(226,75,74,0);} 100%{box-shadow:0 0 0 0 rgba(226,75,74,0);}}
+
+  /* toast helper (from gold-standard) */
+  .toast{position:fixed; bottom:28px; left:50%;
+    transform:translateX(-50%) translateY(80px);
+    background:linear-gradient(180deg,var(--panel2),var(--bg2));
+    border:1px solid var(--gold-dim); border-radius:13px; padding:14px 20px;
+    display:flex; align-items:center; gap:13px; z-index:200; opacity:0;
+    transition:.35s cubic-bezier(.2,.8,.2,1); box-shadow:0 20px 50px rgba(0,0,0,.6);
+    max-width:calc(100vw - 32px);}
+  .toast.show{transform:translateX(-50%) translateY(0); opacity:1;}
+  .toast .ic{width:38px; height:38px; border-radius:50%; flex-shrink:0;
+    background:var(--win); color:#06150d; display:flex; align-items:center;
+    justify-content:center; font-size:20px;}
+  .toast.err .ic{background:var(--loss); color:#fff;}
+  .toast .tt{font-family:'Oswald'; font-size:15px; letter-spacing:.5px;}
+  .toast .ts{font-family:'Barlow Condensed'; font-size:13px; color:var(--muted);}
+
+  /* nicer scrollbar (from pro-tracker) */
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
+  ::selection{background:var(--gold); color:#1a1407;}
 </style>
 </head>
 <body>
@@ -401,6 +487,12 @@
   </div>
 </div>
 
+<!-- TOAST (Phase 2) -->
+<div class="toast" id="wca-toast">
+  <div class="ic"><i class="ti ti-check"></i></div>
+  <div><div class="tt" id="wca-toast-t">Done</div><div class="ts" id="wca-toast-s"></div></div>
+</div>
+
 <script>
 // ============================================================================
 //  ONE STEP LEFT: paste your Publishable key on the line below.
@@ -413,9 +505,42 @@ const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
 // ============================================================================
 
+// ===== TOAST HELPER (Phase 2) =====
+let _toastTimer = null;
+function wcaToast(title, sub, isErr){
+  const el = document.getElementById('wca-toast');
+  if(!el) return;
+  document.getElementById('wca-toast-t').textContent = title || '';
+  document.getElementById('wca-toast-s').textContent = sub || '';
+  el.classList.toggle('err', !!isErr);
+  el.querySelector('.ic i').className = isErr ? 'ti ti-alert-triangle' : 'ti ti-check';
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 3200);
+}
+
 let sb = null;
 const isConfigured = SUPABASE_URL.startsWith("http") && SUPABASE_KEY.length > 20;
 if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===== THEME LOADER =====
+// Reads the single site_settings row and applies admin-chosen colors to the
+// page's CSS variables. If anything fails, the page keeps the colors baked
+// into the stylesheet above — it can never go blank from a theme error.
+const THEME_KEYS = ['bg','panel','panel2','line','gold','gold-dim','gold-deep',
+  'win','loss','teal','txt','muted','accent'];
+async function applyTheme(){
+  if(!sb) return;
+  try{
+    const {data,error} = await sb.from('site_settings').select('theme').eq('id',1).single();
+    if(error || !data || !data.theme) return;
+    const t = data.theme;
+    const root = document.documentElement;
+    THEME_KEYS.forEach(k=>{
+      if(t[k]) root.style.setProperty('--'+k, t[k]);
+    });
+  }catch(e){ /* keep stylesheet defaults */ }
+}
 
 function ringSVG(pct){
   const r=18, c=2*Math.PI*r, off=c*(1-pct);
@@ -1031,6 +1156,7 @@ if(!isConfigured){
     seeing the layout with no data.</div>`;
 }else{
   const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=signInDiscord;
+  applyTheme();
   refreshUser();
   loadBelts().then(()=>{
     loadDashboard();
