@@ -84,6 +84,11 @@
   .apply-rule i{color:var(--gold); font-size:22px; flex-shrink:0;}
   .apply-rule b{color:#fff;}
   @media(max-width:720px){ .apply-rules{grid-template-columns:1fr;} }
+  .apply-platform{display:flex; gap:14px; align-items:flex-start; background:rgba(233,185,73,.07);
+    border:1px solid var(--gold); border-radius:12px; padding:16px 18px; margin:0 0 22px;
+    font-family:'Barlow'; font-size:13.5px; color:#ddd; line-height:1.5;}
+  .apply-platform i{color:var(--gold); font-size:26px; flex-shrink:0;}
+  .apply-platform b{color:var(--gold);}
   .apply-gatebox{background:var(--panel); border:1px solid var(--line); border-radius:14px;
     padding:34px 24px; text-align:center;}
   .apply-gatebox .ag-ico{font-size:42px; color:var(--gold); margin-bottom:8px;}
@@ -210,7 +215,12 @@
 
   /* written-out W–L, color coded, centered-ish */
   .wl2{font-family:'Barlow Condensed'; font-size:17px; letter-spacing:.5px; flex-shrink:0;
-    display:flex; align-items:baseline; gap:6px; white-space:nowrap;}
+    display:flex; align-items:baseline; gap:6px; white-space:nowrap; margin-left:auto;
+    min-width:150px; justify-content:flex-end;}
+  /* last-5 sits in the middle: auto-margin left pushes it off the name,
+     and the W/L block's own auto-margin balances it toward center */
+  .row-mid{display:flex; align-items:center; justify-content:center; margin-left:auto;
+    flex-shrink:0; min-width:120px;}
   .wl2 .w2{color:var(--win);} .wl2 .l2{color:var(--loss);}
   .wl2 b{font-size:21px; font-weight:700;}
   .wl2 .w2 b{color:var(--win);} .wl2 .l2 b{color:var(--loss);}
@@ -243,14 +253,15 @@
   .row.big1 .nm-top{font-size:22px;}
   .row.big2 .nm-top{font-size:21px;}
 
-  /* tighten the rankings list width so rows aren't over-stretched */
-  #page-rankings .division{max-width:760px;}
+  /* widen the rankings list so name, last-5, W/L and points all have room */
+  #page-rankings .division{max-width:1000px;}
 
   /* mobile: stack the row pieces so they don't bunch */
   @media(max-width:620px){
     .row{flex-wrap:wrap; gap:8px 10px;}
     .nm{flex:1 1 100%;}
-    .wl2{font-size:15px;} .wl2 b{font-size:18px;}
+    .row-mid{margin-left:0; min-width:0; order:3;}
+    .wl2{font-size:15px; margin-left:auto; min-width:0; order:4;} .wl2 b{font-size:18px;}
     .f5b{width:16px; height:16px;}
     .dots-end{display:none;}
   }
@@ -1220,6 +1231,13 @@
       <div class="apply-rule"><i class="ti ti-checklist"></i> <span><b>How it works.</b> You apply → I review → I create/import & balance the CAW → you debut on the roster.</span></div>
     </div>
 
+    <div class="apply-platform">
+      <i class="ti ti-device-desktop"></i>
+      <div>
+        <b>WCA runs on PC.</b> WWE 2K25/2K26 has no full cross-platform sharing — a CAW made on <b>Xbox Series X|S or PS5 can't be imported to PC</b>. So if your existing character is on a current-gen console, your share code won't work for us. No problem: just fill out the application as a <b>new creation</b> with as much detail as you can, and I'll rebuild it from scratch on PC. Only CAWs already on <b>PC</b> can be imported directly.
+      </div>
+    </div>
+
     <div id="apply-gate"></div>
     <div id="apply-body" style="display:none"></div>
   </div>
@@ -1387,8 +1405,8 @@ function rowHTML(p, idx, isChamp, div){
       <div class="nm-top">${esc(p.name)}${tags}</div>
       ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}
     </div>
+    <div class="row-mid">${last5Mini(meta.last5)}</div>
     ${wlText(p.wins, p.losses)}
-    ${last5Mini(meta.last5)}
     ${champ?'<span class="dots-end"></span>':dots(p.contender_points||0)}
   </div>`;
 }
@@ -1661,8 +1679,8 @@ async function loadDashboard(){
         ${ringSVG(p.win_pct||0)}
         <div class="nm"><div class="nm-top">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
         ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}</div>
+        <div class="row-mid">${last5Mini(meta.last5)}</div>
         ${wlText(p.wins, p.losses)}
-        ${last5Mini(meta.last5)}
         ${dots(p.contender_points||0)}
       </div>`;
     });
@@ -2696,6 +2714,7 @@ function refreshRatingWidget(slot){
 // ===== WRESTLER APPLICATION (Apply page) =====
 let APPLY_HAS_CAW = null;       // true / false / null
 let APPLY_ALIGN = '';           // Face / Heel / Tweener
+let APPLY_PLATFORM = '';        // PC / Xbox-PS (only relevant when has CAW)
 async function loadApply(){
   const gate = document.getElementById('apply-gate');
   const body = document.getElementById('apply-body');
@@ -2744,7 +2763,7 @@ function applyFormHTML(){
   const s1 = `
     <div class="af-field">
       <label>Do you already have a WWE 2K25 CAW created? <span class="req">*</span></label>
-      <div class="af-help">If it's in Community Creations or saved on your console, choose Yes — it's faster for us to import.</div>
+      <div class="af-help">Choose Yes if you've already built the character. We'll ask which platform next — only PC CAWs can be imported directly.</div>
       <div class="af-toggle">
         <button type="button" id="caw-yes" onclick="applySetCaw(true)">Yes, I have a CAW</button>
         <button type="button" id="caw-no" onclick="applySetCaw(false)">No, create one for me</button>
@@ -2753,17 +2772,33 @@ function applyFormHTML(){
 
   // Section 2 — existing CAW (hidden until chosen)
   const s2 = `
-    <div class="af-field"><label>Community Creations share code or exact search details</label>
-      <input type="text" id="af_caw_code" placeholder="e.g. share code, creator name, or search terms"></div>
-    <div class="af-field"><label>How to find it</label>
-      <div class="af-help">Platform (PS5/Xbox/Steam), creator tag, and anything that helps us locate the exact CAW.</div>
-      <textarea id="af_caw_find"></textarea></div>
-    <div class="af-field"><label>Tweaks you want for our universe</label>
-      <div class="af-help">Anything we should adjust — including bringing the rating to our 85 OVR cap.</div>
-      <textarea id="af_caw_tweaks"></textarea></div>
-    <div class="af-field"><label>Screenshot URLs (optional)</label>
-      <div class="af-help">Paste image links, one per line.</div>
-      <textarea id="af_caw_screens" placeholder="https://…"></textarea></div>`;
+    <div class="af-field">
+      <label>What platform is your CAW on? <span class="req">*</span></label>
+      <div class="af-help">WCA is on PC. CAWs from Xbox Series X|S or PS5 can't be imported — those need to be rebuilt as a new creation.</div>
+      <div class="af-seg" id="af_caw_platform">
+        <button type="button" onclick="applySetPlatform('PC')">PC (Steam)</button>
+        <button type="button" onclick="applySetPlatform('Xbox/PS')">Xbox Series X|S / PS5</button>
+      </div>
+    </div>
+    <div id="af-caw-blocked" style="display:none">
+      <div class="apply-platform" style="margin:4px 0 0">
+        <i class="ti ti-alert-triangle"></i>
+        <div><b>That CAW can't transfer to PC.</b> No worries — please describe your character below as a <b>new creation</b> and I'll rebuild it on PC, balanced to our 85 OVR cap. Add reference image URLs and as much detail as you can so it comes out just like yours.</div>
+      </div>
+    </div>
+    <div id="af-caw-pc" style="display:none">
+      <div class="af-field"><label>Community Creations share code or exact search details</label>
+        <input type="text" id="af_caw_code" placeholder="e.g. share code, creator name, or search terms"></div>
+      <div class="af-field"><label>How to find it</label>
+        <div class="af-help">Creator tag, search terms, and anything that helps us locate the exact CAW on PC.</div>
+        <textarea id="af_caw_find"></textarea></div>
+      <div class="af-field"><label>Tweaks you want for our universe</label>
+        <div class="af-help">Anything we should adjust — including bringing the rating to our 85 OVR cap.</div>
+        <textarea id="af_caw_tweaks"></textarea></div>
+      <div class="af-field"><label>Screenshot URLs (optional)</label>
+        <div class="af-help">Paste image links, one per line.</div>
+        <textarea id="af_caw_screens" placeholder="https://…"></textarea></div>
+    </div>`;
 
   // Section 3 — character (new creation)
   const s3 = `
@@ -2848,13 +2883,35 @@ function applyFormHTML(){
   </form>`;
 }
 
-function wireApplyForm(){ APPLY_HAS_CAW=null; APPLY_ALIGN=''; }
+function wireApplyForm(){ APPLY_HAS_CAW=null; APPLY_ALIGN=''; APPLY_PLATFORM=''; }
 function applySetCaw(yes){
   APPLY_HAS_CAW = yes;
   document.getElementById('caw-yes').classList.toggle('on', yes);
   document.getElementById('caw-no').classList.toggle('on', !yes);
   document.getElementById('af-existing').style.display = yes ? '' : 'none';
-  document.getElementById('af-new').style.display = yes ? 'none' : '';
+  // when switching to "Yes", make them pick a platform before the new-creation form shows
+  if(yes){
+    APPLY_PLATFORM='';
+    document.querySelectorAll('#af_caw_platform button').forEach(b=>b.classList.remove('on'));
+    document.getElementById('af-caw-pc').style.display='none';
+    document.getElementById('af-caw-blocked').style.display='none';
+    document.getElementById('af-new').style.display='none';
+    document.getElementById('af-submitwrap').style.display='none';
+  }else{
+    document.getElementById('af-new').style.display='';
+    document.getElementById('af-submitwrap').style.display='';
+  }
+}
+function applySetPlatform(p){
+  APPLY_PLATFORM = p;
+  document.querySelectorAll('#af_caw_platform button').forEach(b=>{
+    b.classList.toggle('on', (p==='PC' && b.textContent.startsWith('PC')) || (p!=='PC' && !b.textContent.startsWith('PC')));
+  });
+  const isPC = p==='PC';
+  document.getElementById('af-caw-pc').style.display = isPC ? '' : 'none';
+  document.getElementById('af-caw-blocked').style.display = isPC ? 'none' : '';
+  // non-PC: route them to the full new-creation form (we rebuild from scratch)
+  document.getElementById('af-new').style.display = isPC ? 'none' : '';
   document.getElementById('af-submitwrap').style.display = '';
 }
 function applySetAlign(a){
@@ -2873,12 +2930,17 @@ async function submitApplication(){
   if(!CURRENT_USER){ wcaToast('Sign in first','Please sign in to apply.',true); return; }
   if(APPLY_HAS_CAW===null){ wcaToast('One thing','Let us know if you already have a CAW.',true); return; }
   const btn = document.getElementById('applySubmitBtn');
-  // validation by path
-  if(APPLY_HAS_CAW){
+  // A PC CAW is importable; anything else (non-PC, or new) needs the full new-creation form.
+  const importablePC = APPLY_HAS_CAW && APPLY_PLATFORM==='PC';
+  if(APPLY_HAS_CAW && !APPLY_PLATFORM){
+    showApplyErr('Please pick which platform your CAW is on.'); return;
+  }
+  if(importablePC){
     if(!afv('af_caw_code') && !afv('af_caw_find')){
-      showApplyErr('Add your CAW share code or details so we can find it.'); return;
+      showApplyErr('Add your CAW share code or details so we can find it on PC.'); return;
     }
   }else{
+    // new creation, or a non-PC CAW we must rebuild from scratch
     if(!afv('af_name')){ showApplyErr('Your wrestler needs a name.'); return; }
     if(!afv('af_backstory')){ showApplyErr('The backstory is required — it’s the heart of the character.'); return; }
     if(!APPLY_ALIGN){ showApplyErr('Pick an alignment (Face / Heel / Tweener).'); return; }
@@ -2888,12 +2950,20 @@ async function submitApplication(){
     if(ovr>85){ showApplyErr('The overall rating cap is 85 — please choose 85 or lower.'); return; }
     if(ovr<1){ showApplyErr('Overall rating must be at least 1.'); return; }
   }
+  // record platform note alongside the CAW details
+  let cawFind = afv('af_caw_find');
+  if(APPLY_HAS_CAW){
+    const tag = '[Platform: '+(APPLY_PLATFORM==='PC'?'PC':'Xbox Series X|S / PS5 — needs rebuild on PC')+']';
+    cawFind = cawFind ? (tag+'\n'+cawFind) : tag;
+  }
   const payload = {
     user_id: CURRENT_USER.id,
     applicant: (MY_PROFILE && (MY_PROFILE.display_name||MY_PROFILE.username)) || null,
     has_existing_caw: APPLY_HAS_CAW,
-    caw_share_code: afv('af_caw_code'), caw_find_notes: afv('af_caw_find'),
-    caw_tweaks: afv('af_caw_tweaks'), caw_screens: afv('af_caw_screens'),
+    caw_share_code: importablePC ? afv('af_caw_code') : null,
+    caw_find_notes: cawFind,
+    caw_tweaks: importablePC ? afv('af_caw_tweaks') : null,
+    caw_screens: importablePC ? afv('af_caw_screens') : null,
     wrestler_name: afv('af_name'), alias: afv('af_alias'), backstory: afv('af_backstory'),
     alignment: APPLY_ALIGN || null,
     height_est: afv('af_height'), weight_est: afv('af_weight'), body_type: afv('af_body'),
@@ -2922,7 +2992,7 @@ function showApplySuccess(){
     <div class="as-next">
       <b>What happens next</b><br>
       1. I personally review your application.<br>
-      2. I create or import your CAW in WWE 2K25.<br>
+      2. I create your CAW on PC (or import it if it's already a PC CAW).<br>
       3. I balance it to our <b>85 OVR cap</b> and lock in the details.<br>
       4. Your wrestler debuts on the roster — and you can start being booked.
     </div>
