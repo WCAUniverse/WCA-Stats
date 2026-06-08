@@ -95,15 +95,38 @@
   .rank.rk3{font-size:23px; color:#d8cea0;}
   .rank.rk4{font-size:20px; color:var(--muted);}
   .rank.rk5{font-size:18px; color:var(--muted);}
-  .nm{flex:1; font-family:'Barlow Condensed'; font-size:19px; font-weight:500; color:#eee; min-width:0;}
-  .row.champ .nm{color:#fff;}
+  .nm{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  .nm-top{font-family:'Barlow Condensed'; font-size:20px; font-weight:600; color:#eee; line-height:1.05;}
+  .row.champ .nm-top{color:#fff;}
+  .nm-sub{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .perf{font-family:'Barlow'; font-size:12px; color:var(--muted); font-style:italic;}
+  .soc-row{display:inline-flex; gap:6px; align-items:center;}
+  .soc-ico{color:var(--muted); font-size:16px; line-height:1; transition:.12s; display:inline-flex;}
+  .soc-ico:hover{color:var(--soc,var(--gold)); transform:translateY(-1px);}
+  .soc-row.sm .soc-ico{font-size:15px;}
   .tag{font-family:'Oswald'; font-size:10px; letter-spacing:1.5px; padding:2px 7px; border-radius:4px; margin-left:8px; white-space:nowrap;}
   .tag.champ{background:var(--gold); color:#111;}
   .tag.ready{background:rgba(62,207,142,.15); color:var(--win); border:1px solid rgba(62,207,142,.4);}
   .tag.tie{background:rgba(93,202,165,.12); color:var(--teal);}
 
+  /* written-out W–L, color coded, centered-ish */
+  .wl2{font-family:'Barlow Condensed'; font-size:17px; letter-spacing:.5px; flex-shrink:0;
+    display:flex; align-items:baseline; gap:6px; white-space:nowrap;}
+  .wl2 .w2{color:var(--win);} .wl2 .l2{color:var(--loss);}
+  .wl2 b{font-size:21px; font-weight:700;}
+  .wl2 .w2 b{color:var(--win);} .wl2 .l2 b{color:var(--loss);}
+  .wl2 .dash2{color:var(--muted2); font-size:18px;}
+
+  /* compact last-5 squares in a ranking row */
+  .f5mini{display:inline-flex; gap:3px; flex-shrink:0;}
+  .f5mini-empty{display:inline-block; width:0;}
+  .f5b{width:18px; height:18px; border-radius:4px; display:inline-flex; align-items:center;
+    justify-content:center; font-family:'Oswald'; font-size:10px; font-weight:600; color:#0b0b0d;}
+  .f5b.w{background:var(--win);} .f5b.l{background:var(--loss); color:#fff;} .f5b.d{background:var(--muted);}
+
   /* contender dots */
   .dots{display:flex; gap:4px; flex-shrink:0;}
+  .dots-end{width:38px; flex-shrink:0;}
   .dot{width:10px; height:10px; border-radius:50%; background:#34343a;}
   .dot.on{background:var(--gold);}
 
@@ -111,10 +134,27 @@
   .ring{width:46px; height:46px; flex-shrink:0; position:relative;}
   .ring svg{transform:rotate(-90deg);}
   .ring .pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Oswald'; font-size:12px; font-weight:600; color:#fff;}
-  .wl{font-family:'Barlow Condensed'; color:var(--muted); width:84px; text-align:right; flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:1px;}
-  .wl .wl-rec{font-size:22px; line-height:1;}
-  .wl .wl-pct{font-size:12px; color:var(--muted2); letter-spacing:.5px;}
-  .wl b{color:var(--win); font-weight:700;} .wl s{color:var(--loss); text-decoration:none; font-weight:700;}
+
+  /* graduated row size for top 3 + champion */
+  .row.big1{padding:13px 14px;}
+  .row.big2{padding:12px 14px;}
+  .row.big3{padding:11px 14px;}
+  .row.champ{padding:15px 14px;}
+  .row.champ .nm-top{font-size:23px;}
+  .row.big1 .nm-top{font-size:22px;}
+  .row.big2 .nm-top{font-size:21px;}
+
+  /* tighten the rankings list width so rows aren't over-stretched */
+  #page-rankings .division{max-width:760px;}
+
+  /* mobile: stack the row pieces so they don't bunch */
+  @media(max-width:620px){
+    .row{flex-wrap:wrap; gap:8px 10px;}
+    .nm{flex:1 1 100%;}
+    .wl2{font-size:15px;} .wl2 b{font-size:18px;}
+    .f5b{width:16px; height:16px;}
+    .dots-end{display:none;}
+  }
 
   /* roster */
   .search{width:100%; background:var(--panel); border:1px solid var(--line); color:var(--txt); font-family:'Barlow'; font-size:15px; padding:12px 14px; border-radius:8px; margin-bottom:16px;}
@@ -174,6 +214,9 @@
   .err{background:#2a1515; border:1px solid var(--loss); color:#f0a0a0; padding:16px; border-radius:10px; margin:20px 0; font-size:14px; line-height:1.6;}
   .page{display:none;} .page.active{display:block;}
   .legend{display:flex; gap:18px; font-size:12px; color:var(--muted); margin:6px 0 20px; flex-wrap:wrap;}
+  .legend.legend-big{font-size:14px; gap:24px; margin:10px 0 22px; padding:12px 16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;}
+  .legend.legend-big span{display:flex; align-items:center; gap:8px;}
   .legend span{display:flex; align-items:center; gap:6px;}
 
   /* ===== EVENTS / FIGHT CARD ===== */
@@ -523,6 +566,8 @@
   .rcard-stub:hover{transform:none; border-color:var(--line);}
 
   /* rank chips in profile header */
+  .pf-performer{display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap;}
+  .pf-performer .soc-ico{font-size:19px;}
   .pf-ranks{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
   .rankchip{font-family:'Oswald'; font-size:11px; letter-spacing:1px; color:var(--gold);
     background:var(--gold-deep); border:1px solid var(--gold-dim); border-radius:6px;
@@ -628,7 +673,7 @@
       <button class="rfilter" data-rank="Undisputed">Undisputed</button>
       <button class="rfilter" data-rank="Factions">Factions</button>
     </div>
-    <div class="legend"><span><span class="dot on" style="position:static"></span> = contender point (3 = ready)</span><span><b style="color:var(--win)">green</b> wins · <s style="color:var(--loss)">red</s> losses</span></div>
+    <div class="legend legend-big"><span><span class="dot on" style="position:static"></span> = contender point (3 = #1 contender, ready for a title shot)</span><span><b style="color:var(--win)">green</b> = wins · <s style="color:var(--loss)">red</s> = losses</span><span><span class="f5b w" style="width:16px;height:16px">W</span> <span class="f5b l" style="width:16px;height:16px">L</span> = last 5 matches</span></div>
     <div class="rank-block" data-block="Mens"><div class="section-title">Mens Division</div><div id="mens-content"></div></div>
     <div class="rank-block" data-block="Womens"><div class="section-title">Womens Division</div><div id="womens-content"></div></div>
     <div class="rank-block" data-block="Undisputed"><div class="section-title">Undisputed Division</div><div id="undisputed-content"></div></div>
@@ -753,21 +798,27 @@ function rowHTML(p, idx, isChamp, div){
   let tags='';
   if(champ) tags+='<span class="tag champ">Champion</span>';
   else if(ready) tags+='<span class="tag ready">#1 Contender</span>';
-  const rankCell = champ
-    ? beltIcon(div, 'rank-belt')
-    : p._slot;
-  // graduated rank size: #1 biggest, shrinking down the top 5
+  const rankCell = champ ? beltIcon(div, 'rank-belt') : p._slot;
   const slot = p._slot||0;
   const rankCls = champ ? 'rank rk-champ'
     : slot===1 ? 'rank rk1' : slot===2 ? 'rank rk2' : slot===3 ? 'rank rk3'
     : slot===4 ? 'rank rk4' : slot===5 ? 'rank rk5' : 'rank';
-  const pct = Math.round((p.win_pct||0)*100);
-  return `<div class="row ${champ?'champ':(idx%2?'alt':'')}">
+  const rowCls = champ ? 'row champ' : slot===1 ? (idx%2?'row alt big1':'row big1')
+    : slot===2 ? (idx%2?'row alt big2':'row big2') : slot===3 ? (idx%2?'row alt big3':'row big3')
+    : (idx%2?'row alt':'row');
+  const meta = WRESTLER_META[p.name] || {};
+  const perf = meta.performer ? `<span class="perf">${esc(meta.performer)}</span>` : '';
+  const socs = socialIcons(meta.socials, 'sm');
+  return `<div class="${rowCls}">
     <div class="${rankCls}">${rankCell}</div>
     ${ringSVG(p.win_pct||0)}
-    <div class="nm">${esc(p.name)}${tags}</div>
-    ${champ?'':dots(p.contender_points||0)}
-    <div class="wl"><span class="wl-rec"><b>${p.wins}</b>-<s>${p.losses}</s></span><span class="wl-pct">${pct}% win</span></div>
+    <div class="nm">
+      <div class="nm-top">${esc(p.name)}${tags}</div>
+      ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}
+    </div>
+    ${wlText(p.wins, p.losses)}
+    ${last5Mini(meta.last5)}
+    ${champ?'<span class="dots-end"></span>':dots(p.contender_points||0)}
   </div>`;
 }
 function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -875,10 +926,10 @@ async function loadFactions(){
     rows+=`<div class="row ${isChamp?'champ':(idx%2?'alt':'')}">
       <div class="rank">${slot}</div>
       ${ringSVG(p.win_pct||0)}
-      <div class="nm">${esc(p.name)}${isChamp?'<span class="tag champ">Champion</span>':(p.is_ready_contender?'<span class="tag ready">#1 Contender</span>':'')}
-      <div style="font-size:12px;color:var(--muted);font-family:Barlow">${esc(p.members_txt||'')}</div></div>
-      ${isChamp?'':dots(p.contender_points||0)}
-      <div class="wl"><b>${p.wins}</b>-<s>${p.losses}</s></div>
+      <div class="nm"><div class="nm-top">${esc(p.name)}${isChamp?'<span class="tag champ">Champion</span>':(p.is_ready_contender?'<span class="tag ready">#1 Contender</span>':'')}</div>
+      <div class="nm-sub"><span class="perf">${esc(p.members_txt||'')}</span></div></div>
+      ${wlText(p.wins, p.losses)}
+      ${isChamp?'<span class="dots-end"></span>':dots(p.contender_points||0)}
     </div>`;
   });
   el.innerHTML=`<div class="section-title">Faction Rankings</div><div class="division">${rows||'<div class="loading">No factions</div>'}</div>`;
@@ -945,12 +996,17 @@ async function loadDashboard(){
     html+=`<div class="division"><div class="div-head"><h3>${d}</h3>${tie?'<span class="tag tie">'+readyCount+'-way tie — multi-man match</span>':''}</div>`;
     top5.forEach((p,i)=>{
       const ready=p.is_ready_contender;
+      const meta=WRESTLER_META[p.name]||{};
+      const perf=meta.performer?`<span class="perf">${esc(meta.performer)}</span>`:'';
+      const socs=socialIcons(meta.socials,'sm');
       html+=`<div class="row ${ready?'champ':(i%2?'alt':'')}">
-        <div class="rank">${i+1}</div>
+        <div class="rank ${i===0?'rk1':i===1?'rk2':i===2?'rk3':''}">${i+1}</div>
         ${ringSVG(p.win_pct||0)}
-        <div class="nm">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
+        <div class="nm"><div class="nm-top">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
+        ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}</div>
+        ${wlText(p.wins, p.losses)}
+        ${last5Mini(meta.last5)}
         ${dots(p.contender_points||0)}
-        <div class="wl"><b>${p.wins}</b>-<s>${p.losses}</s></div>
       </div>`;
     });
     html+='</div>';
@@ -961,11 +1017,45 @@ async function loadDashboard(){
 // Maps built once for the merged roster: division membership, rank positions, factions.
 let HIDDEN_NAMES = new Set();   // wrestlers with status='hidden' — excluded site-wide
 // Load the set of hidden wrestler names so rankings/dashboard exclude them.
+let WRESTLER_META = {};  // name -> {performer, socials, last5} for ranking rows
 async function loadHiddenNames(){
   try{
-    const {data}=await sb.from('wrestlers').select('name,status').eq('status','hidden');
-    HIDDEN_NAMES = new Set((data||[]).map(w=>w.name));
-  }catch(e){ HIDDEN_NAMES = new Set(); }
+    const {data}=await sb.from('wrestlers').select('name,status,performer,socials,last5');
+    HIDDEN_NAMES = new Set((data||[]).filter(w=>w.status==='hidden').map(w=>w.name));
+    WRESTLER_META = {};
+    (data||[]).forEach(w=>{ WRESTLER_META[w.name]={performer:w.performer, socials:w.socials, last5:w.last5}; });
+  }catch(e){ HIDDEN_NAMES = new Set(); WRESTLER_META = {}; }
+}
+
+// Build clickable social icons from a socials JSON object.
+const SOCIAL_DEF = [
+  ['twitch','ti-brand-twitch','#9146FF'],
+  ['twitter','ti-brand-x','#fff'],
+  ['instagram','ti-brand-instagram','#E1306C'],
+  ['youtube','ti-brand-youtube','#FF0000'],
+  ['tiktok','ti-brand-tiktok','#25F4EE'],
+  ['bluesky','ti-brand-bluesky','#0085FF'],
+  ['discord','ti-brand-discord','#5865F2'],
+];
+function socialIcons(socials, size){
+  if(!socials) return '';
+  let s=socials;
+  if(typeof s==='string'){ try{ s=JSON.parse(s); }catch{ s={}; } }
+  const items=SOCIAL_DEF.filter(([k])=>s[k]).map(([k,ico,col])=>
+    `<a class="soc-ico" href="${esc(s[k])}" target="_blank" rel="noopener noreferrer"
+        style="--soc:${col}" title="${k}" onclick="event.stopPropagation()"><i class="ti ${ico}"></i></a>`);
+  if(!items.length) return '';
+  return `<span class="soc-row${size==='sm'?' sm':''}">${items.join('')}</span>`;
+}
+// Written-out W–L, color coded.
+function wlText(wins, losses){
+  return `<span class="wl2"><span class="w2"><b>${wins}</b> WIN</span><span class="dash2">–</span><span class="l2"><b>${losses}</b> LOSS</span></span>`;
+}
+// Last-5 squares for a ranking row (compact).
+function last5Mini(s){
+  const f=String(s||'').toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D'].includes(x)).slice(0,5);
+  if(!f.length) return '<span class="f5mini-empty"></span>';
+  return '<span class="f5mini">'+f.map(r=>`<span class="f5b ${r==='W'?'w':r==='L'?'l':'d'}">${r}</span>`).join('')+'</span>';
 }
 let RANK_BY_NAME = {};   // name -> [{division, rank}]
 let DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
@@ -976,7 +1066,7 @@ let ROSTER_FILTER = 'all';
 async function loadRoster(){
   const grid=document.getElementById('roster-grid');
   const {data,error}=await sb.from('wrestlers')
-    .select('name,gender,is_active,status,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5')
+    .select('name,gender,is_active,status,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5,performer,socials')
     .order('name');
   if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
   // track hidden names so rankings/dashboard can exclude them too
@@ -1179,6 +1269,7 @@ function openProfile(w){
         ${w.nickname?`<div class="pf-nick">"${esc(w.nickname)}"</div>`:''}
         <h2 class="pf-name">${esc(w.name)}</h2>
         <div class="pf-tags"><span class="gender-pill">${g}</span>${w.is_active?'':'<span class="gender-pill">Inactive</span>'}</div>
+        ${(w.performer||socialIcons(w.socials))?`<div class="pf-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
         ${rankHTML(w.name)}
       </div>
     </div>
