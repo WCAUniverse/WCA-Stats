@@ -492,6 +492,40 @@
     .lb-r{width:100%;}
     .live-fullcard{width:100%; justify-content:center;}
   }
+
+  /* ============================================================
+     PHASE 6 — merged Roster (filters, factions, ranks, last-5)
+     ============================================================ */
+  .roster-filters{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px;}
+  .rfilter{background:var(--panel); border:1px solid var(--line); color:var(--muted);
+    font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    padding:9px 16px; border-radius:8px; cursor:pointer; transition:.15s;}
+  .rfilter:hover{color:var(--txt); border-color:var(--gold-dim);}
+  .rfilter.active{background:var(--gold); color:#15120a; border-color:var(--gold); font-weight:600;}
+
+  /* faction grouping inside roster */
+  .roster-grid.as-block{display:block;}
+  .faction-group{margin-bottom:22px;}
+  .faction-name{font-family:'Oswald'; font-size:15px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--gold); display:flex; align-items:center; gap:9px; margin:0 0 10px;
+    padding-bottom:8px; border-bottom:1px solid var(--line);}
+  .faction-name i{font-size:18px;}
+
+  /* rank chips in profile header */
+  .pf-ranks{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .rankchip{font-family:'Oswald'; font-size:11px; letter-spacing:1px; color:var(--gold);
+    background:var(--gold-deep); border:1px solid var(--gold-dim); border-radius:6px;
+    padding:3px 9px; display:inline-flex; align-items:center; gap:5px;}
+
+  /* last-5 form squares */
+  .f5row{display:inline-flex; gap:4px; vertical-align:middle;}
+  .f5{width:22px; height:22px; border-radius:5px; display:inline-flex; align-items:center;
+    justify-content:center; font-family:'Oswald'; font-size:12px; font-weight:600; color:#0b0b0d;}
+  .f5.w{background:var(--win);}
+  .f5.l{background:var(--loss); color:#fff;}
+  .f5.d{background:var(--muted); color:#0b0b0d;}
+  .f5streak{font-family:'Oswald'; font-size:13px; letter-spacing:1px; color:var(--muted);
+    margin-left:10px; vertical-align:middle;}
 </style>
 </head>
 <body>
@@ -507,10 +541,7 @@
         <button data-page="dash" class="active">Dashboard</button>
         <button data-page="live" id="nav-live-btn">Live</button>
         <button data-page="events">Events</button>
-        <button data-page="mens">Mens</button>
-        <button data-page="womens">Womens</button>
-        <button data-page="undisputed">Undisputed</button>
-        <button data-page="factions">Factions</button>
+        <button data-page="rankings">Rankings</button>
         <button data-page="roster">Roster</button>
       </nav>
       <div class="socials">
@@ -562,7 +593,7 @@
 
     <div class="section-title st-flex">Division Standings — top 3
       <span class="st-rule"></span>
-      <button class="see-all" onclick="goPage('mens')">see full standings <i class="ti ti-arrow-right"></i></button>
+      <button class="see-all" onclick="goPage('rankings')">see full standings <i class="ti ti-arrow-right"></i></button>
     </div>
     <div id="contenders"><div class="loading">Loading…</div></div>
   </div>
@@ -577,16 +608,30 @@
     <div id="events-content"><div class="loading">Loading…</div></div>
   </div>
 
-  <!-- DIVISION PAGES -->
-  <div class="page" id="page-mens"><div class="legend"><span><span class="dot on" style="position:static"></span> = contender point (3 = ready)</span><span><b style="color:var(--win)">green</b> wins · <s style="color:var(--loss)">red</s> losses</span></div><div id="mens-content"></div></div>
-  <div class="page" id="page-womens"><div id="womens-content"></div></div>
-  <div class="page" id="page-undisputed"><div id="undisputed-content"></div></div>
-  <div class="page" id="page-factions"><div id="factions-content"></div></div>
+  <!-- RANKINGS (all divisions in one tab) -->
+  <div class="page" id="page-rankings">
+    <div class="legend"><span><span class="dot on" style="position:static"></span> = contender point (3 = ready)</span><span><b style="color:var(--win)">green</b> wins · <s style="color:var(--loss)">red</s> losses</span></div>
+    <div class="section-title">Mens Division</div>
+    <div id="mens-content"></div>
+    <div class="section-title">Womens Division</div>
+    <div id="womens-content"></div>
+    <div class="section-title">Undisputed Division</div>
+    <div id="undisputed-content"></div>
+    <div class="section-title">Factions</div>
+    <div id="factions-content"></div>
+  </div>
 
-  <!-- ROSTER -->
+  <!-- ROSTER (merged: filter by division/faction, A–Z, click for profile) -->
   <div class="page" id="page-roster">
-    <div class="section-title">Full Roster — A to Z</div>
-    <input class="search" id="roster-search" placeholder="Search wrestlers…" autocomplete="off">
+    <div class="section-title">Roster</div>
+    <div class="roster-filters" id="roster-filters">
+      <button class="rfilter active" data-filter="all">All</button>
+      <button class="rfilter" data-filter="Mens">Mens</button>
+      <button class="rfilter" data-filter="Womens">Womens</button>
+      <button class="rfilter" data-filter="Undisputed">Undisputed</button>
+      <button class="rfilter" data-filter="Factions">Factions</button>
+    </div>
+    <input class="search" id="roster-search" placeholder="Search this list…" autocomplete="off">
     <div class="roster-grid" id="roster-grid"><div class="loading">Loading…</div></div>
   </div>
 </div>
@@ -891,35 +936,121 @@ async function loadDashboard(){
   ce.innerHTML=html||'<div class="loading" style="padding:30px">No ranked competitors yet</div>';
 }
 
+// Maps built once for the merged roster: division membership, rank positions, factions.
+let RANK_BY_NAME = {};   // name -> [{division, rank}]
+let DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
+let FACTIONS = [];       // [{name, members:[names], champion?}]
+
+let ROSTER_FILTER = 'all';
+
 async function loadRoster(){
   const grid=document.getElementById('roster-grid');
   const {data,error}=await sb.from('wrestlers')
-    .select('name,gender,is_active,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match')
+    .select('name,gender,is_active,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5')
     .order('name');
   if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
   window._roster=data;
+
+  // build rank + division membership from the division rankings view
+  RANK_BY_NAME = {};
+  DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
+  for(const d of ['Mens','Womens','Undisputed']){
+    const {data:rows}=await sb.from('v_division_rankings').select('*').eq('division',d);
+    if(!rows) continue;
+    const champs = rows.filter(p=>p.is_champion);
+    const rest   = sortRanked(rows.filter(p=>!p.is_champion));
+    // champion is rank 1, then ranked order follows
+    const ordered = [...champs, ...rest];
+    ordered.forEach((p,i)=>{
+      DIV_MEMBERS[d].add(p.name);
+      (RANK_BY_NAME[p.name]=RANK_BY_NAME[p.name]||[]).push({division:d, rank:i+1, champ:!!p.is_champion});
+    });
+  }
+
+  // factions: members A–Z within each team, teams A–Z.
+  // Source: v_faction_rankings (team name + members_txt) — same data the Rankings page uses.
+  FACTIONS = [];
+  try{
+    const {data:fr}=await sb.from('v_faction_rankings').select('*');
+    if(fr && fr.length){
+      FACTIONS = fr.map(f=>{
+        const members = String(f.members_txt||'')
+          .split(',').map(s=>s.trim()).filter(Boolean)
+          .sort((a,b)=>a.localeCompare(b));
+        return { name: f.name || 'Faction', members };
+      }).filter(f=>f.members.length)
+        .sort((a,b)=>a.name.localeCompare(b.name));
+    }
+  }catch(e){ /* fail soft — Factions filter just shows empty */ }
+
   renderRoster('');
 }
+
+// Which wrestlers belong to the active filter (names set), or null for "all".
+function filterNames(){
+  if(ROSTER_FILTER==='all') return null;
+  if(ROSTER_FILTER==='Undisputed') return null; // Undisputed = everyone
+  if(ROSTER_FILTER==='Mens')   return DIV_MEMBERS.Mens;
+  if(ROSTER_FILTER==='Womens') return DIV_MEMBERS.Womens;
+  return null;
+}
+// Build a single roster card from a wrestler row.
+function rosterCard(w){
+  const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  const av = w.avatar_url
+    ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='${init}'"></div>`
+    : `<div class="av">${init}</div>`;
+  const sub = w.nickname ? `<div class="rmeta nick">"${esc(w.nickname)}"</div>` : '';
+  return `<div class="rcard" data-name="${esc(w.name)}" style="${w.is_active?'':'opacity:.5'}">
+    ${av}
+    <div class="info"><div class="rn">${esc(w.name)}</div>${sub}</div>
+  </div>`;
+}
+function wrestlerByName(n){ return (window._roster||[]).find(w=>w.name===n); }
+
 function renderRoster(q){
   const grid=document.getElementById('roster-grid');
-  const list=(window._roster||[]).filter(w=>w.name.toLowerCase().includes(q.toLowerCase()));
+  q=(q||'').toLowerCase();
+
+  // ---- Factions filter: grouped by team, members A–Z ----
+  if(ROSTER_FILTER==='Factions'){
+    if(!FACTIONS.length){ grid.innerHTML='<div class="loading">No factions yet</div>'; return; }
+    let html='';
+    FACTIONS.forEach(f=>{
+      // match names to roster rows; fall back to a name-only stub so no one is dropped
+      const members = f.members.map(nm=>{
+        const w = wrestlerByName(nm);
+        return w || { name:nm, _stub:true };
+      }).filter(w=>{
+        if(!q) return true;
+        return w.name.toLowerCase().includes(q) || f.name.toLowerCase().includes(q);
+      });
+      if(!members.length) return;
+      html += `<div class="faction-group">
+        <div class="faction-name"><i class="ti ti-users-group"></i> ${esc(f.name)}</div>
+        <div class="roster-grid">${members.map(rosterCard).join('')}</div>
+      </div>`;
+    });
+    grid.classList.add('as-block');
+    grid.innerHTML = html || '<div class="loading">No matches</div>';
+    bindRosterCards(grid);
+    return;
+  }
+
+  // ---- All / Mens / Womens / Undisputed ----
+  grid.classList.remove('as-block');
+  const names = filterNames();   // null = everyone
+  let list=(window._roster||[]).slice();
+  if(names) list = list.filter(w=>names.has(w.name));
+  if(q) list = list.filter(w=>w.name.toLowerCase().includes(q) || (w.nickname||'').toLowerCase().includes(q));
+  list.sort((a,b)=>a.name.localeCompare(b.name));   // always A–Z
   if(!list.length){grid.innerHTML='<div class="loading">No matches</div>';return;}
-  grid.innerHTML=list.map((w,i)=>{
-    const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
-    const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
-    const av = w.avatar_url
-      ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='${init}'"></div>`
-      : `<div class="av">${init}</div>`;
-    const sub = w.nickname ? `<div class="rmeta nick">"${esc(w.nickname)}"</div>` : '';
-    return `<div class="rcard" data-idx="${i}" style="${w.is_active?'':'opacity:.5'}">
-      ${av}
-      <div class="info"><div class="rn">${esc(w.name)}</div>
-      ${sub}
-      <div class="rmeta"><span class="gender-pill">${g}</span> ${w.is_active?'':'· inactive'}</div></div>
-    </div>`;
-  }).join('');
-  grid.querySelectorAll('.rcard').forEach(card=>{
-    card.onclick=()=>openProfile(list[+card.dataset.idx]);
+  grid.innerHTML=list.map(rosterCard).join('');
+  bindRosterCards(grid);
+}
+function bindRosterCards(scope){
+  scope.querySelectorAll('.rcard').forEach(card=>{
+    card.onclick=()=>{ const w=wrestlerByName(card.dataset.name); if(w) openProfile(w); };
   });
 }
 
@@ -932,6 +1063,36 @@ function fmtDate(d){
   const dt=new Date(d+'T00:00:00');
   if(isNaN(dt)) return d;
   return dt.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+}
+// Parse a stored last5 string ("W,W,L,D,W" newest-first) into ['W','W',...].
+function parseLast5(s){
+  if(!s) return [];
+  return String(s).toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D'].includes(x)).slice(0,5);
+}
+// Colored W/L/D squares + a streak readout, newest on the left.
+function last5HTML(s){
+  const f=parseLast5(s);
+  if(!f.length) return '';
+  const squares=f.map(r=>{
+    const cls=r==='W'?'w':r==='L'?'l':'d';
+    return `<span class="f5 ${cls}">${r}</span>`;
+  }).join('');
+  // streak = leading run of identical results (newest-first)
+  let n=0; for(const r of f){ if(r===f[0]) n++; else break; }
+  const streakTxt = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:`D${n}`;
+  return `<div class="pf-row"><span class="pf-lbl">Last 5</span>
+    <span class="pf-val"><span class="f5row">${squares}</span>
+    <span class="f5streak">${streakTxt}</span></span></div>`;
+}
+// Rank lines: "#4 · Mens", plus Undisputed (everyone) if ranked there.
+function rankHTML(name){
+  const arr=(RANK_BY_NAME[name]||[]).slice().sort((a,b)=>a.division.localeCompare(b.division));
+  if(!arr.length) return '';
+  const chips=arr.map(r=>{
+    const star = r.champ ? '<i class="ti ti-trophy" style="font-size:12px"></i> ' : '';
+    return `<span class="rankchip">${star}#${r.rank} · ${esc(r.division)}</span>`;
+  }).join('');
+  return `<div class="pf-ranks">${chips}</div>`;
 }
 function openProfile(w){
   if(!w) return;
@@ -947,6 +1108,7 @@ function openProfile(w){
       : esc(w.theme_song);
   }
   const body = [
+    last5HTML(w.last5),
     fieldRow('Height', w.height),
     fieldRow('Weight', w.weight),
     fieldRow('From', w.from_loc),
@@ -964,6 +1126,7 @@ function openProfile(w){
         ${w.nickname?`<div class="pf-nick">"${esc(w.nickname)}"</div>`:''}
         <h2 class="pf-name">${esc(w.name)}</h2>
         <div class="pf-tags"><span class="gender-pill">${g}</span>${w.is_active?'':'<span class="gender-pill">Inactive</span>'}</div>
+        ${rankHTML(w.name)}
       </div>
     </div>
     ${bio}
@@ -1367,6 +1530,15 @@ function goPage(pg){
   if(btn){ btn.click(); window.scrollTo({top:0,behavior:'smooth'}); }
 }
 document.getElementById('roster-search').addEventListener('input',e=>renderRoster(e.target.value));
+// Roster division/faction filters
+document.querySelectorAll('#roster-filters .rfilter').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#roster-filters .rfilter').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    ROSTER_FILTER=b.dataset.filter;
+    renderRoster(document.getElementById('roster-search').value);
+  };
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
 
 // boot
