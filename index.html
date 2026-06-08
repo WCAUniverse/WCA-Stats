@@ -69,6 +69,12 @@
   .champ-card.chat{background:#1a132b; border-color:#9146FF;}
   .champ-card.chat .lbl{color:#b89cff;}
   .champ-card.chat .belt{color:rgba(145,70,255,.10);}
+  .champ-card.bet{background:var(--gold-deep); border-color:var(--gold);}
+  .champ-card.bet .lbl{color:var(--gold);}
+  .champ-card.bet .belt{color:rgba(233,185,73,.10);}
+  .streak-x{display:inline-block; font-family:'Oswald'; font-size:14px; font-weight:700;
+    color:#111; background:var(--gold); border-radius:6px; padding:1px 7px; margin-left:6px;
+    vertical-align:middle; letter-spacing:.5px;}
   .champ-card.vacant{background:#161618; border-color:var(--line);}
   .champ-card.vacant .who{color:var(--muted2); font-style:italic;}
   .champ-card.vacant .lbl{color:var(--muted);}
@@ -1376,6 +1382,18 @@ async function loadDashboard(){
     <div class="lbl"><i class="ti ti-device-gamepad-2"></i> Chat Champion</div>
     <div class="who">${ch?esc(ch.username):'—'}</div>
     <div class="meta">${ch?'since '+esc(ch.show_won||''):'none yet'}</div></div>`;
+
+  // ---- Betting Champion (website betting winner) + consecutive-win streak ----
+  const {data:bc}=await sb.from('v_betting_champion_now').select('*').limit(1);
+  const {data:bstreak}=await sb.from('v_betting_champion_streak').select('*').limit(1);
+  const bnow=(bc&&bc[0]);
+  const bsk=(bstreak&&bstreak[0]);
+  const streakN = bsk && Number(bsk.streak)>1 ? Number(bsk.streak) : 0;
+  const streakBadge = streakN ? ` <span class="streak-x">×${streakN}</span>` : '';
+  cards += `<div class="champ-card bet"><i class="ti ti-coins belt"></i>
+    <div class="lbl"><i class="ti ti-coins"></i> Betting Champion</div>
+    <div class="who">${bnow?esc(bnow.username):'—'}${streakBadge}</div>
+    <div class="meta">${bnow?'since '+esc(bnow.show_won||''):'none yet'}</div></div>`;
   // all-time most chat championships (show all tied leaders)
   const {data:lb}=await sb.from('v_chat_champion_leaderboard').select('*');
   let topNames='—', topMeta='none yet';
@@ -1389,6 +1407,19 @@ async function loadDashboard(){
     <div class="lbl"><i class="ti ti-crown"></i> Most Chat Titles</div>
     <div class="who" style="font-size:${topNames.length>24?'17px':'24px'}">${topNames}</div>
     <div class="meta">${topMeta}</div></div>`;
+  // all-time most betting championships
+  const {data:blb}=await sb.from('v_betting_champion_leaderboard').select('*');
+  let bTopNames='—', bTopMeta='none yet';
+  if(blb&&blb.length){
+    const bmax=blb[0].reigns;
+    const bleaders=blb.filter(r=>r.reigns===bmax).map(r=>esc(r.username));
+    bTopNames=bleaders.join(', ');
+    bTopMeta=bmax+(bmax===1?' title':' titles')+' all-time'+(bleaders.length>1?' ('+bleaders.length+'-way tie)':'');
+  }
+  cards += `<div class="champ-card bet"><i class="ti ti-crown belt"></i>
+    <div class="lbl"><i class="ti ti-crown"></i> Most Betting Titles</div>
+    <div class="who" style="font-size:${bTopNames.length>24?'17px':'24px'}">${bTopNames}</div>
+    <div class="meta">${bTopMeta}</div></div>`;
   cc.innerHTML=cards;
   if(e1)cc.innerHTML=`<div class="err">${e1.message}</div>`;
 
