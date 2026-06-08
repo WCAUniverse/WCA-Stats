@@ -232,6 +232,13 @@
   .event-meta .mi{display:flex; align-items:center; gap:8px; font-family:'Barlow Condensed';
     font-size:17px; color:#ddd; letter-spacing:.5px;}
   .event-meta .mi i{color:var(--gold); font-size:18px;}
+  .ev-champ{display:inline-flex; align-items:center; gap:8px; margin-top:16px;
+    font-family:'Barlow Condensed'; font-size:clamp(16px,2.6vw,20px); letter-spacing:1px;
+    text-transform:uppercase; color:var(--gold); background:var(--gold-deep);
+    border:1px solid var(--gold); border-radius:30px; padding:6px 16px;}
+  .ev-champ i{font-size:20px;}
+  .ev-champ b{color:#fff; font-weight:600;}
+  .ev-champ .ev-champ-bal{color:var(--win); font-family:'Barlow'; font-size:.85em;}
 
   .card-list{display:flex; flex-direction:column; gap:12px; margin-top:6px;}
   .bout{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
@@ -1750,6 +1757,7 @@ async function loadEvents(){
       <div class="ev-name">${esc(ev.name)}</div>
       ${ev.tagline?`<div class="ev-tag">${esc(ev.tagline)}</div>`:''}
       ${meta.length?`<div class="event-meta">${meta.join('')}</div>`:''}
+      ${ev.is_complete && ev.champion_name?`<div class="ev-champ"><i class="ti ti-trophy"></i> Event Champion · <b>${esc(ev.champion_name)}</b>${ev.champion_balance!=null?` <span class="ev-champ-bal">${fmtMoney(ev.champion_balance)}</span>`:''}</div>`:''}
     </div>
   </div>`;
 
