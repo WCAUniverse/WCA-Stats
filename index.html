@@ -56,6 +56,7 @@
   .socials a[aria-label="TikTok"]:hover{color:#25F4EE;}
   .socials a[aria-label="Instagram"]:hover{color:#E1306C;}
   .socials a[aria-label="Discord"]:hover{color:#5865F2;}
+  .socials a[aria-label="Merch"]:hover{color:var(--gold);}
   @media(max-width:560px){
     .socials{margin-top:4px; gap:10px;}
     .socials a{font-size:22px;}
@@ -75,6 +76,28 @@
   .streak-x{display:inline-block; font-family:'Oswald'; font-size:14px; font-weight:700;
     color:#111; background:var(--gold); border-radius:6px; padding:1px 7px; margin-left:6px;
     vertical-align:middle; letter-spacing:.5px;}
+  /* ---- Next-event countdown ---- */
+  .countdown{position:relative; overflow:hidden; background:var(--gold-deep);
+    border:1px solid var(--gold); border-radius:16px; padding:22px 24px; margin:18px 0 6px;
+    text-align:center;}
+  .countdown .cd-kick{font-family:'Oswald'; font-size:12px; letter-spacing:3px;
+    text-transform:uppercase; color:var(--gold-dim); margin-bottom:4px;}
+  .countdown .cd-name{font-family:'Oswald'; font-weight:700; font-size:clamp(22px,4.5vw,34px);
+    color:#fff; line-height:1.05; margin-bottom:16px;}
+  .countdown .cd-clock{display:flex; justify-content:center; gap:14px; flex-wrap:wrap;}
+  .cd-unit{min-width:74px;}
+  .cd-num{font-family:'Oswald'; font-weight:700; font-size:clamp(30px,7vw,52px); color:var(--gold);
+    line-height:1; font-variant-numeric:tabular-nums;}
+  .cd-lbl{font-family:'Barlow'; font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--muted); margin-top:4px;}
+  .cd-sep{font-family:'Oswald'; font-weight:700; font-size:clamp(26px,6vw,46px); color:var(--gold-dim);
+    line-height:1; align-self:flex-start;}
+  .countdown.live{background:linear-gradient(180deg,rgba(207,62,62,.18),var(--gold-deep)); border-color:var(--bad);}
+  .countdown .cd-live{display:inline-flex; align-items:center; gap:10px; font-family:'Oswald';
+    font-weight:700; font-size:clamp(24px,5vw,40px); letter-spacing:2px; text-transform:uppercase; color:#fff;}
+  .countdown .cd-live .live-dot{width:14px; height:14px;}
+  .countdown .cd-when{font-family:'Barlow'; font-size:13px; color:var(--muted); margin-top:12px;}
+  @media(max-width:520px){ .cd-unit{min-width:60px;} .cd-sep{display:none;} .countdown .cd-clock{gap:10px;} }
   .champ-card.vacant{background:#161618; border-color:var(--line);}
   .champ-card.vacant .who{color:var(--muted2); font-style:italic;}
   .champ-card.vacant .lbl{color:var(--muted);}
@@ -980,11 +1003,12 @@
         <button data-page="storylines">Storylines</button>
       </nav>
       <div class="socials">
-        <a href="https://twitch.tv/Infantryink" target="_blank" rel="noopener noreferrer" aria-label="Twitch" title="Twitch"><i class="ti ti-brand-twitch"></i></a>
-        <a href="https://youtube.com/@WCAUniverse" target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube"><i class="ti ti-brand-youtube"></i></a>
-        <a href="https://tiktok.com/@wcauniverse" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><i class="ti ti-brand-tiktok"></i></a>
-        <a href="https://instagram.com/wcauniverse" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
-        <a href="https://discord.gg/SBFAnU8SDT" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
+        <a href="https://infantryink-shop.fourthwall.com/" id="merchLink" data-social="merch" target="_blank" rel="noopener noreferrer" aria-label="Merch" title="Shop Merch"><i class="ti ti-shopping-bag"></i></a>
+        <a href="https://twitch.tv/Infantryink" data-social="twitch" target="_blank" rel="noopener noreferrer" aria-label="Twitch" title="Twitch"><i class="ti ti-brand-twitch"></i></a>
+        <a href="https://youtube.com/@WCAUniverse" data-social="youtube" target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube"><i class="ti ti-brand-youtube"></i></a>
+        <a href="https://tiktok.com/@wcauniverse" data-social="tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><i class="ti ti-brand-tiktok"></i></a>
+        <a href="https://instagram.com/wcauniverse" data-social="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
+        <a href="https://discord.gg/SBFAnU8SDT" data-social="discord" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
       </div>
       <div class="userbox" id="userbox">
         <button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>
@@ -1022,6 +1046,8 @@
         </div>
       </div>
     </section>
+
+    <div id="countdown-wrap" style="display:none"></div>
 
     <div class="section-title">Current Champions</div>
     <div class="champ-grid" id="champ-cards"><div class="loading">Loading…</div></div>
@@ -1182,6 +1208,47 @@ if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // into the stylesheet above — it can never go blank from a theme error.
 const THEME_KEYS = ['bg','panel','panel2','line','gold','gold-dim','gold-deep',
   'win','loss','teal','txt','muted','accent'];
+// Apply admin-managed site layout: merch link, nav button order/visibility,
+// and social icon order/visibility. Falls back to the HTML defaults.
+async function loadMerchLink(){
+  if(!sb) return;
+  let row=null;
+  try{
+    const { data } = await sb.from('v_site_links').select('*').limit(1);
+    row = data && data[0];
+  }catch(e){ return; }
+  if(!row) return;
+  // merch href
+  const a = document.getElementById('merchLink');
+  if(a && row.merch_url){ a.href = row.merch_url; }
+  // nav order + visibility
+  applyLayout(document.querySelector('nav'), 'button[data-page]', 'page', row.nav_layout);
+  // social order + visibility
+  applyLayout(document.querySelector('.socials'), 'a[data-social]', 'social', row.social_layout);
+}
+// Reorder + show/hide children of `container` matching `selector`, keyed by
+// data-<attr>, according to `layout` = [{key,hidden}]. Items not in the
+// layout stay in their original order at the end and remain visible.
+function applyLayout(container, selector, attr, layout){
+  if(!container || !Array.isArray(layout) || !layout.length) return;
+  const items = Array.from(container.querySelectorAll(selector));
+  const byKey = {};
+  items.forEach(el=>{ byKey[el.getAttribute('data-'+attr)] = el; });
+  const used = new Set();
+  layout.forEach(entry=>{
+    const el = byKey[entry && entry.key];
+    if(!el) return;
+    used.add(entry.key);
+    el.style.display = entry.hidden ? 'none' : '';
+    container.appendChild(el);   // re-append in saved order
+  });
+  // anything not mentioned in the layout: leave visible, push to the end
+  items.forEach(el=>{
+    const k = el.getAttribute('data-'+attr);
+    if(!used.has(k)){ el.style.display=''; container.appendChild(el); }
+  });
+}
+
 async function applyTheme(){
   if(!sb) return;
   try{
@@ -1353,6 +1420,65 @@ async function loadFactions(){
 
 const DIVISIONS=['Mens','Womens','Undisputed'];
 
+// ===== NEXT-EVENT COUNTDOWN =====
+// Only renders when the admin has enabled it (v_countdown.enabled).
+// Off by default, so creating/editing/testing events shows nothing.
+let COUNTDOWN_TIMER = null;
+let COUNTDOWN_TARGET = null;
+let COUNTDOWN_NAME = '';
+async function loadCountdown(){
+  const wrap = document.getElementById('countdown-wrap');
+  if(!wrap) return;
+  if(COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
+  let row;
+  try{
+    const { data, error } = await sb.from('v_countdown').select('*').limit(1);
+    if(error) throw error;
+    row = data && data[0];
+  }catch(e){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  if(!row || !row.enabled || !row.event_date){
+    wrap.style.display='none'; wrap.innerHTML=''; return;
+  }
+  COUNTDOWN_TARGET = new Date(row.event_date).getTime();
+  COUNTDOWN_NAME = row.event_name || 'Next Event';
+  wrap.style.display='';
+  renderCountdown();
+  COUNTDOWN_TIMER = setInterval(renderCountdown, 1000);
+}
+function renderCountdown(){
+  const wrap = document.getElementById('countdown-wrap');
+  if(!wrap || COUNTDOWN_TARGET==null) return;
+  const diff = COUNTDOWN_TARGET - Date.now();
+  if(diff <= 0){
+    // hit zero → Live now / Starting soon
+    wrap.innerHTML = `<div class="countdown live">
+      <div class="cd-kick">${esc(COUNTDOWN_NAME)}</div>
+      <div class="cd-live"><span class="live-dot"></span> Live Now / Starting Soon</div>
+      <div class="cd-when"><a onclick="goPage('live')" style="color:var(--gold);cursor:pointer">Go to the live page →</a></div>
+    </div>`;
+    return;
+  }
+  const s = Math.floor(diff/1000);
+  const days = Math.floor(s/86400);
+  const hrs  = Math.floor((s%86400)/3600);
+  const mins = Math.floor((s%3600)/60);
+  const secs = s%60;
+  const pad = n=>String(n).padStart(2,'0');
+  const unit = (n,l)=>`<div class="cd-unit"><div class="cd-num">${n}</div><div class="cd-lbl">${l}</div></div>`;
+  const when = new Date(COUNTDOWN_TARGET).toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  wrap.innerHTML = `<div class="countdown">
+    <div class="cd-kick">Next Event</div>
+    <div class="cd-name">${esc(COUNTDOWN_NAME)}</div>
+    <div class="cd-clock">
+      ${unit(days,'Days')}<div class="cd-sep">:</div>
+      ${unit(pad(hrs),'Hours')}<div class="cd-sep">:</div>
+      ${unit(pad(mins),'Mins')}<div class="cd-sep">:</div>
+      ${unit(pad(secs),'Secs')}
+    </div>
+    <div class="cd-when">${esc(when)}</div>
+  </div>`;
+}
+
 async function loadDashboard(){
   // ---- champion cards: always show all divisions, VACANT if none ----
   const {data:champs,error:e1}=await sb.from('v_current_champions').select('*');
@@ -1422,6 +1548,8 @@ async function loadDashboard(){
     <div class="meta">${bTopMeta}</div></div>`;
   cc.innerHTML=cards;
   if(e1)cc.innerHTML=`<div class="err">${e1.message}</div>`;
+
+  loadCountdown();
 
   // ---- top 5 per division: #1 contender(s) on top, then next ranked ----
   const ce=document.getElementById('contenders');
@@ -3040,6 +3168,7 @@ function activatePage(pg){
   if(page) page.classList.add('active');
   if(pg==='live') loadLive();   // always fetch the latest live state on open
   else stopLiveRailPolling();   // leaving Live — stop the standings poll
+  if(pg!=='dashboard' && COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
   if(pg==='storylines') loadStorylines();
   if(pg==='leaderboard') loadLeaderboard();
   if(pg==='archive') loadArchive();
@@ -3114,6 +3243,7 @@ if(!isConfigured){
   const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=signInDiscord;
   applyTheme();
   refreshUser();
+  loadMerchLink();
   loadHiddenNames().then(()=>{
     loadBelts().then(()=>{
       loadDashboard();
