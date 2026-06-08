@@ -631,6 +631,63 @@
     .lb-net{min-width:72px; font-size:17px;}
   }
 
+  /* ---- Event Archive ---- */
+  .arch-grid{display:flex; flex-direction:column; gap:12px;}
+  .arch-card{display:flex; align-items:center; gap:16px; background:var(--panel);
+    border:1px solid var(--line); border-radius:12px; padding:14px 16px; cursor:pointer;
+    transition:.15s; text-align:left; width:100%; font:inherit; color:inherit;}
+  .arch-card:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .arch-poster{width:84px; height:56px; border-radius:8px; flex-shrink:0; object-fit:cover;
+    background:var(--panel2); border:1px solid var(--line);}
+  .arch-poster-ph{display:flex; align-items:center; justify-content:center; color:var(--gold-dim); font-size:24px;}
+  .arch-body{flex:1; min-width:0;}
+  .arch-name{font-family:'Oswald'; font-weight:600; font-size:20px; color:#fff; line-height:1.1;}
+  .arch-name em{font-family:'Barlow Condensed'; font-style:italic; font-weight:600;
+    font-size:.72em; color:var(--gold); margin-left:6px;}
+  .arch-sub{font-family:'Barlow'; font-size:12.5px; color:var(--muted); margin-top:4px;
+    display:flex; gap:14px; flex-wrap:wrap;}
+  .arch-sub .arch-champ{color:var(--gold-dim);}
+  .arch-go{flex-shrink:0; color:var(--muted); font-size:20px;}
+  .arch-card:hover .arch-go{color:var(--gold);}
+
+  .arch-back{display:inline-flex; align-items:center; gap:8px; background:var(--panel);
+    border:1px solid var(--line); color:var(--muted); font-family:'Oswald'; font-size:12px;
+    letter-spacing:1px; text-transform:uppercase; padding:9px 14px; border-radius:8px;
+    cursor:pointer; transition:.15s; margin-bottom:6px;}
+  .arch-back:hover{color:var(--gold); border-color:var(--gold-dim);}
+
+  /* read-only result bout (reuses .bout look; winner highlight) */
+  .rbout{background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; margin-bottom:12px;}
+  .rbout.main{border-color:var(--gold); background:var(--gold-deep);}
+  .rbout .rbout-label{display:flex; align-items:center; justify-content:center; gap:10px;
+    font-family:'Oswald'; font-size:11px; letter-spacing:2px; color:var(--gold-dim);
+    text-transform:uppercase; margin-bottom:10px;}
+  .rbout .rvs{display:flex; align-items:stretch; justify-content:center; gap:12px; flex-wrap:wrap;}
+  .rside{flex:1; min-width:0; text-align:center; padding:10px 12px; border-radius:10px;
+    border:1px solid transparent;}
+  .rside.win{border-color:var(--win); background:rgba(62,207,142,.08);}
+  .rside .rfname{font-family:'Oswald'; font-weight:600; font-size:clamp(17px,3.2vw,24px);
+    color:#fff; line-height:1.1;}
+  .rside .rwin-tag{display:inline-flex; align-items:center; gap:5px; margin-top:6px;
+    font-family:'Oswald'; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--win);}
+  .rside .rwin-tag i{font-size:14px;}
+  .rvs-mid{display:flex; align-items:center; font-family:'Oswald'; font-weight:700;
+    font-size:18px; color:var(--gold); flex-shrink:0;}
+  .rbout .rstip{text-align:center; font-family:'Barlow Condensed'; font-size:13px;
+    letter-spacing:1px; color:var(--teal); text-transform:uppercase; margin-top:8px;}
+  .rbout .rvoid{text-align:center; font-family:'Oswald'; font-size:11px; letter-spacing:1.5px;
+    color:var(--loss); text-transform:uppercase; margin-top:8px;}
+  .arch-storyline-link{cursor:pointer; color:var(--gold); text-decoration:none;}
+  .arch-storyline-link:hover{text-decoration:underline;}
+  .replay-wrap{margin:4px 0 8px;}
+  .replay-link{display:inline-flex; align-items:center; gap:8px; margin-top:10px;
+    font-family:'Barlow'; font-size:13px; color:var(--muted); text-decoration:none;
+    border:1px solid var(--line); border-radius:8px; padding:8px 14px; transition:.15s;}
+  .replay-link:hover{color:#FF0000; border-color:var(--gold-dim);}
+  .replay-link i{font-size:18px;}
+
   /* ============================================================
      PHASE 6 — merged Roster (filters, factions, ranks, last-5)
      ============================================================ */
@@ -891,6 +948,7 @@
         <button data-page="events">Events</button>
         <button data-page="rankings">Rankings</button>
         <button data-page="leaderboard">Leaderboard</button>
+        <button data-page="archive">Archive</button>
         <button data-page="roster">Roster</button>
         <button data-page="storylines">Storylines</button>
       </nav>
@@ -984,6 +1042,15 @@
       <button class="rfilter" data-lbview="alltime">All-Time</button>
     </div>
     <div id="lb-content"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- ARCHIVE (completed events: card + results + bets + linked storylines) -->
+  <div class="page" id="page-archive">
+    <div class="section-title">Event Archive</div>
+    <p class="sl-intro">Every WCA event that's in the books — full match cards, who won,
+      the final betting standings, and the storylines tied to each show.</p>
+    <div id="archive-list"><div class="loading">Loading…</div></div>
+    <div id="archive-detail" style="display:none"></div>
   </div>
 
   <!-- ROSTER (merged: filter by division/faction, A–Z, click for profile) -->
@@ -2074,6 +2141,189 @@ async function loadLeaderboard(){
   }).join('') + `</div>`;
 }
 
+// ===== EVENT ARCHIVE =====
+// Convert any common YouTube URL into an embedded player + a fallback link.
+function youtubeEmbed(url){
+  if(!url) return '';
+  const u=url.trim();
+  let id=null;
+  let m;
+  if((m=u.match(/[?&]v=([\w-]{6,})/)))            id=m[1];      // watch?v=ID
+  else if((m=u.match(/youtu\.be\/([\w-]{6,})/)))  id=m[1];      // youtu.be/ID
+  else if((m=u.match(/youtube\.com\/embed\/([\w-]{6,})/))) id=m[1]; // already embed
+  else if((m=u.match(/youtube\.com\/live\/([\w-]{6,})/)))  id=m[1]; // live/ID
+  else if(/^[\w-]{6,}$/.test(u)) id=u;                          // bare video id
+  const link = /^https?:\/\//i.test(u) ? u : (id?`https://youtu.be/${id}`:'');
+  if(!id){
+    // not a recognizable YouTube link — just offer the raw link if it's a URL
+    return link ? `<a class="replay-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-brand-youtube"></i> Watch the replay</a>` : '';
+  }
+  const src=`https://www.youtube.com/embed/${id}`;
+  return `<div class="replay-wrap">
+      <div class="stream-frame"><iframe src="${esc(src)}" allowfullscreen scrolling="no" allow="autoplay; encrypted-media; fullscreen"></iframe></div>
+      <a class="replay-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-brand-youtube"></i> Watch on YouTube</a>
+    </div>`;
+}
+let ARCHIVE_EVENTS = [];
+async function loadArchive(){
+  const listEl = document.getElementById('archive-list');
+  const detEl  = document.getElementById('archive-detail');
+  if(!listEl) return;
+  // returning to the list resets the detail view
+  detEl.style.display='none'; detEl.innerHTML='';
+  listEl.style.display='';
+  let rows;
+  try{
+    const { data, error } = await sb.from('v_archive_events').select('*');
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){ listEl.innerHTML=`<div class="lb-empty">Couldn't load the archive.</div>`; return; }
+  ARCHIVE_EVENTS = rows;
+  if(!rows.length){
+    listEl.innerHTML=`<div class="lb-empty">No events in the archive yet — completed shows appear here.</div>`;
+    return;
+  }
+  listEl.innerHTML = `<div class="arch-grid">` + rows.map(ev=>{
+    const poster = ev.poster_url
+      ? `<img class="arch-poster" src="${esc(ev.poster_url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'arch-poster arch-poster-ph\\'><i class=\\'ti ti-photo\\'></i></div>'">`
+      : `<div class="arch-poster arch-poster-ph"><i class="ti ti-trophy"></i></div>`;
+    const date = ev.event_date ? fmtEventDate(ev.event_date).split(',').slice(0,2).join(',') : '';
+    const champ = ev.champion_name ? `<span class="arch-champ"><i class="ti ti-trophy"></i> ${esc(ev.champion_name)}</span>` : '';
+    return `<button class="arch-card" onclick="openArchiveEvent(${ev.id})">
+      ${poster}
+      <div class="arch-body">
+        <div class="arch-name">${esc(ev.name)}${ev.tagline?` <em>${esc(ev.tagline)}</em>`:''}</div>
+        <div class="arch-sub">
+          ${date?`<span>${esc(date)}</span>`:''}
+          <span>${ev.match_count||0} match${ev.match_count===1?'':'es'}</span>
+          ${champ}
+        </div>
+      </div>
+      <i class="ti ti-chevron-right arch-go"></i>
+    </button>`;
+  }).join('') + `</div>`;
+}
+
+async function openArchiveEvent(id){
+  const listEl = document.getElementById('archive-list');
+  const detEl  = document.getElementById('archive-detail');
+  const ev = ARCHIVE_EVENTS.find(e=>String(e.id)===String(id));
+  if(!ev) return;
+  listEl.style.display='none';
+  detEl.style.display='';
+  detEl.innerHTML = `<div class="loading">Loading…</div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  // pull matches, statuses (winner), final standings, and linked storylines
+  const [matchesR, statusR, resultsR, storyR] = await Promise.all([
+    sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
+    sb.from('match_betting').select('*').eq('event_id', id),
+    sb.from('event_results').select('*').eq('event_id', id).order('rank'),
+    sb.from('storylines').select('id,kind,title,story_date,is_published,event_id').eq('event_id', id).eq('is_published', true)
+  ]);
+  const matches = matchesR.data || [];
+  const statuses = statusR.data || [];
+  const results = resultsR.data || [];
+  const stories = (storyR.error ? [] : (storyR.data || []));   // event_id column may be absent → fail soft
+  const statusBySlot = {}; const winBySlot = {};
+  statuses.forEach(s=>{ statusBySlot[s.slot]=s.status; if(s.winner_idx!=null) winBySlot[s.slot]=s.winner_idx; });
+
+  // hero
+  const date = ev.event_date ? fmtEventDate(ev.event_date) : '';
+  let html = `<button class="arch-back" onclick="loadArchive()"><i class="ti ti-arrow-left"></i> All events</button>`;
+  html += `<div class="event-hero">
+    ${ev.poster_url?`<div class="hero-bg" style="background-image:url('${esc(ev.poster_url)}')"></div>`:''}
+    <div class="hero-in">
+      <div class="ev-name">${esc(ev.name)}</div>
+      ${ev.tagline?`<div class="ev-tag">${esc(ev.tagline)}</div>`:''}
+      ${date?`<div class="event-meta"><div class="mi"><i class="ti ti-calendar-event"></i>${esc(date)}</div></div>`:''}
+      ${ev.champion_name?`<div class="ev-champ"><i class="ti ti-trophy"></i> Event Champion · <b>${esc(ev.champion_name)}</b></div>`:''}
+    </div>
+  </div>`;
+
+  // YouTube replay (if posted)
+  if(ev.replay_url){
+    const embed = youtubeEmbed(ev.replay_url);
+    if(embed){ html += `<div class="section-title">Watch the Replay</div>` + embed; }
+  }
+
+  // results card (read-only)
+  if(matches.length){
+    html += `<div class="section-title">Results</div>`;
+    html += matches.map((m,i)=>{
+      const isMain = m.slot===1 || (i===0 && !matches.some(x=>x.slot===1));
+      return archBoutHTML(m, isMain, statusBySlot[m.slot], winBySlot[m.slot]);
+    }).join('');
+  }
+
+  // final standings (from event_results)
+  if(results.length){
+    html += `<div class="section-title">Final Standings</div>`;
+    html += `<div class="lb-table">` + results.map(r=>{
+      const n = lbNet(r.net);
+      const rank = r.rank;
+      const cls = `lb-rowx lb-${rank<=3?rank:'n'}${rank%2?'':' alt'}`;
+      return `<div class="${cls}">
+        <span class="lb-rk">${rank}</span>
+        <span class="lb-nm">${esc(r.display_name)}${r.is_champion?'<span class="lb-me-tag">CHAMP</span>':''}</span>
+        <span class="lb-net ${n.cls}">${n.txt}</span>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  // linked storylines
+  if(stories.length){
+    html += `<div class="section-title">Storylines from this event</div>`;
+    const kindLabel={social:'Social',article:'Article',notice:'HR Notice',timeline:'Timeline'};
+    html += `<div class="lb-table">` + stories.map(s=>{
+      const t = s.title || kindLabel[s.kind] || 'Post';
+      return `<div class="lb-rowx">
+        <span class="lb-rk"><i class="ti ti-news" style="color:var(--gold-dim)"></i></span>
+        <span class="lb-nm"><a class="arch-storyline-link" onclick="goPage('storylines')">${esc(t)}</a></span>
+        <span class="lb-meta">${esc(kindLabel[s.kind]||s.kind||'')}</span>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  detEl.innerHTML = html;
+  bindNameLinks(detEl);
+}
+
+// Read-only historical bout: matchup + winner highlight (no betting controls).
+function archBoutHTML(m, isMain, status, winningSide){
+  const sides = parseSides(m);
+  const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
+  const titleTag = m.championship ? `<div class="rbout-label">${esc(m.championship)} Championship</div>` : '';
+  const voided = status==='void';
+  let vs='';
+  sides.forEach((s,idx)=>{
+    if(idx>0) vs += `<div class="rvs-mid">VS</div>`;
+    const isWin = !voided && winningSide!=null && Number(winningSide)===idx;
+    const members=(s.members||[]).filter(Boolean);
+    let nameHtml;
+    if(s.team_name){
+      nameHtml = `<div class="rfname">${esc(s.team_name)}</div>`
+        + (members.length?`<div class="arch-sub" style="justify-content:center">${members.map(nameLink).join(' &amp; ')}</div>`:'');
+    }else if(members.length){
+      nameHtml = `<div class="rfname">${members.map(nameLink).join(' &amp; ')}</div>`;
+    }else{
+      nameHtml = `<div class="rfname">TBD</div>`;
+    }
+    vs += `<div class="rside${isWin?' win':''}">
+      ${nameHtml}
+      ${isWin?`<div class="rwin-tag"><i class="ti ti-trophy"></i> Winner</div>`:''}
+    </div>`;
+  });
+  const stip = m.stipulation ? `<div class="rstip">${esc(m.stipulation)}</div>` : '';
+  const voidLine = voided ? `<div class="rvoid">Match voided — all bets refunded</div>` : '';
+  return `<div class="rbout ${isMain?'main':''}">
+    <div class="rbout-label">${esc(label)}</div>
+    ${titleTag}
+    <div class="rvs">${vs}</div>
+    ${stip}${voidLine}
+  </div>`;
+}
+
 // ===== BET PLACEMENT =====
 let BET_CTX = null;   // {slot, side_index}
 function openBet(slot, side_index){
@@ -2639,6 +2889,7 @@ function activatePage(pg){
   else stopLiveRailPolling();   // leaving Live — stop the standings poll
   if(pg==='storylines') loadStorylines();
   if(pg==='leaderboard') loadLeaderboard();
+  if(pg==='archive') loadArchive();
   return true;
 }
 // On load (and on back/forward), open whatever tab the hash points to.
