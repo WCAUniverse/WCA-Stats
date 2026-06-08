@@ -552,6 +552,85 @@
     .live-fullcard{width:100%; justify-content:center;}
   }
 
+  /* ---- Live winnings rail (stream + match on one side, leaderboard rail on the other) ---- */
+  .live-layout{display:grid; grid-template-columns:1fr 300px; gap:16px; align-items:start; margin-top:6px;}
+  .live-main{min-width:0;}
+  .live-rail{position:sticky; top:14px; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:14px 14px 8px; align-self:start;}
+  .live-rail h3{font-family:'Oswald'; font-size:14px; letter-spacing:2px; color:var(--gold);
+    display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+  .live-rail .lr-sub{font-family:'Barlow'; font-size:11.5px; color:var(--muted);
+    line-height:1.4; margin-bottom:12px;}
+  .lr-list{display:flex; flex-direction:column; gap:6px;}
+  .lr-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
+    background:rgba(255,255,255,.02); border:1px solid transparent;}
+  .lr-row.alt{background:rgba(255,255,255,.04);}
+  .lr-row.lr-top{background:var(--gold-deep); border-color:var(--gold);}
+  .lr-row.lr-me{border-color:var(--gold-dim); background:rgba(233,185,73,.06);}
+  .lr-rank{width:22px; text-align:center; font-family:'Oswald'; font-size:14px;
+    color:var(--muted); flex-shrink:0;}
+  .lr-row.lr-top .lr-rank{color:var(--gold); font-size:17px; font-weight:700;}
+  .lr-name{flex:1; min-width:0; font-family:'Barlow Condensed'; font-size:16px; color:#eee;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .lr-row.lr-top .lr-name{color:#fff;}
+  .lr-me-tag{font-family:'Oswald'; font-size:9px; letter-spacing:1px; color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:4px; padding:1px 5px; margin-left:6px;}
+  .lr-net{font-family:'Barlow Condensed'; font-size:16px; font-weight:600; flex-shrink:0;
+    white-space:nowrap;}
+  .lr-net.up{color:var(--win);} .lr-net.down{color:var(--loss);} .lr-net.even{color:var(--muted);}
+  .lr-empty{font-family:'Barlow'; font-size:13px; color:var(--muted); font-style:italic;
+    padding:14px 4px; text-align:center;}
+  .lr-foot{font-family:'Barlow'; font-size:10.5px; color:var(--muted2); text-align:center;
+    padding:8px 0 4px; letter-spacing:.5px;}
+  @media(max-width:880px){
+    .live-layout{grid-template-columns:1fr;}
+    .live-rail{position:static; order:2;}
+  }
+
+  /* ---- Points Leaderboard page ---- */
+  .lb-champ{display:flex; align-items:center; gap:16px; background:var(--gold-deep);
+    border:1px solid var(--gold); border-radius:14px; padding:18px 22px; margin:4px 0 18px;}
+  .lb-champ .lb-crown{font-size:40px; color:var(--gold); flex-shrink:0;}
+  .lb-champ .lb-cwho{flex:1; min-width:0;}
+  .lb-champ .lb-clbl{font-family:'Oswald'; font-size:11px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--gold-dim);}
+  .lb-champ .lb-cname{font-family:'Oswald'; font-weight:600; font-size:clamp(22px,4vw,30px);
+    color:#fff; line-height:1.1;}
+  .lb-champ .lb-cnet{font-family:'Barlow Condensed'; font-size:20px; font-weight:600;
+    color:var(--win); flex-shrink:0;}
+  .lb-evname{font-family:'Barlow Condensed'; font-size:14px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:10px;}
+  .lb-table{background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    overflow:hidden;}
+  .lb-rowx{display:flex; align-items:center; gap:14px; padding:11px 16px;
+    border-bottom:1px solid var(--line);}
+  .lb-rowx:last-child{border-bottom:none;}
+  .lb-rowx.alt{background:rgba(255,255,255,.02);}
+  .lb-rowx.lb-1{background:var(--gold-deep);}
+  .lb-rowx.lb-me{box-shadow:inset 3px 0 0 var(--gold);}
+  .lb-rk{width:34px; text-align:center; font-family:'Oswald'; font-size:17px;
+    color:var(--muted); flex-shrink:0;}
+  .lb-rowx.lb-1 .lb-rk{color:var(--gold); font-size:24px; font-weight:700;}
+  .lb-rowx.lb-2 .lb-rk{font-size:21px; color:#e7d9a8;}
+  .lb-rowx.lb-3 .lb-rk{font-size:19px; color:#d8cea0;}
+  .lb-nm{flex:1; min-width:0; font-family:'Barlow Condensed'; font-size:19px; color:#eee;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .lb-rowx.lb-1 .lb-nm{color:#fff; font-weight:600;}
+  .lb-me-tag{font-family:'Oswald'; font-size:9px; letter-spacing:1px; color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:4px; padding:1px 5px; margin-left:8px;}
+  .lb-meta{font-family:'Barlow'; font-size:12px; color:var(--muted); flex-shrink:0;
+    display:flex; gap:12px; align-items:center;}
+  .lb-meta .lb-titles{color:var(--gold-dim);}
+  .lb-net{font-family:'Barlow Condensed'; font-size:19px; font-weight:600; flex-shrink:0;
+    min-width:90px; text-align:right; white-space:nowrap;}
+  .lb-net.up{color:var(--win);} .lb-net.down{color:var(--loss);} .lb-net.even{color:var(--muted);}
+  .lb-empty{text-align:center; color:var(--muted); padding:50px 20px; font-family:'Oswald';
+    letter-spacing:2px; border:1px dashed var(--line); border-radius:12px;}
+  @media(max-width:620px){
+    .lb-meta{display:none;}
+    .lb-net{min-width:72px; font-size:17px;}
+  }
+
   /* ============================================================
      PHASE 6 — merged Roster (filters, factions, ranks, last-5)
      ============================================================ */
@@ -811,6 +890,7 @@
         <button data-page="live" id="nav-live-btn">Live</button>
         <button data-page="events">Events</button>
         <button data-page="rankings">Rankings</button>
+        <button data-page="leaderboard">Leaderboard</button>
         <button data-page="roster">Roster</button>
         <button data-page="storylines">Storylines</button>
       </nav>
@@ -892,6 +972,18 @@
     <div class="rank-block" data-block="Womens"><div class="section-title">Womens Division</div><div id="womens-content"></div></div>
     <div class="rank-block" data-block="Undisputed"><div class="section-title">Undisputed Division</div><div id="undisputed-content"></div></div>
     <div class="rank-block" data-block="Factions"><div class="section-title">Factions</div><div id="factions-content"></div></div>
+  </div>
+
+  <!-- LEADERBOARD (points: recent event standings + all-time winnings) -->
+  <div class="page" id="page-leaderboard">
+    <div class="section-title">Points Leaderboard</div>
+    <p class="sl-intro">Who's the sharpest bettor in the WCA? Everyone starts each event level —
+      so these standings rank pure betting skill, not who's been around longest.</p>
+    <div class="roster-filters" id="lb-filters">
+      <button class="rfilter active" data-lbview="recent">Most Recent Event</button>
+      <button class="rfilter" data-lbview="alltime">All-Time</button>
+    </div>
+    <div id="lb-content"><div class="loading">Loading…</div></div>
   </div>
 
   <!-- ROSTER (merged: filter by division/faction, A–Z, click for profile) -->
@@ -1831,8 +1923,155 @@ async function loadLive(){
     liveBlock=`<div class="live-between">No match is live right now — the full card is below.</div>`;
   }
 
-  el.innerHTML = (stream||'') + eventBar + liveBlock;
+  // stream + match live in the main column; the winnings rail sits beside it.
+  el.innerHTML = `<div class="live-layout">
+      <div class="live-main">${(stream||'') + eventBar + liveBlock}</div>
+      <aside class="live-rail" id="live-rail">
+        <h3><span class="live-dot"></span> Live Standings</h3>
+        <div class="lr-sub">Everyone betting tonight, ranked by how much they're up or down. Final totals stay a surprise.</div>
+        <div class="lr-list" id="lr-list"><div class="lr-empty">Loading…</div></div>
+        <div class="lr-foot" id="lr-foot"></div>
+      </aside>
+    </div>`;
   bindNameLinks(el);
+  loadLiveRail();          // fill the rail now
+  startLiveRailPolling();  // and keep it fresh while the Live page is open
+}
+
+// ===== LIVE WINNINGS RAIL =====
+// Shows everyone betting this event ranked by NET winnings (up/down from
+// their starting balance). Raw balances never reach the browser — the
+// live_winnings() RPC returns only name + net.
+let LIVE_RAIL_TIMER = null;
+function fmtNet(n){
+  const v = Number(n)||0;
+  const sign = v>0 ? '+' : (v<0 ? '−' : '');
+  return sign + '$' + Math.abs(v).toLocaleString('en-US');
+}
+async function loadLiveRail(){
+  const list = document.getElementById('lr-list');
+  const foot = document.getElementById('lr-foot');
+  if(!list || !CURRENT_EVENT) return;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('live_winnings', { p_event: CURRENT_EVENT.id });
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){
+    list.innerHTML = `<div class="lr-empty">Standings unavailable right now.</div>`;
+    if(foot) foot.textContent='';
+    return;
+  }
+  if(!rows.length){
+    list.innerHTML = `<div class="lr-empty">No bets in yet — be the first to wager.</div>`;
+    if(foot) foot.textContent='';
+    return;
+  }
+  const myId = CURRENT_USER ? CURRENT_USER.id : null;
+  list.innerHTML = rows.map((r,i)=>{
+    const net = Number(r.net)||0;
+    const cls = net>0 ? 'up' : (net<0 ? 'down' : 'even');
+    const mine = myId && r.user_id===myId;
+    const rowCls = `lr-row${i===0?' lr-top':(i%2?' alt':'')}${mine?' lr-me':''}`;
+    return `<div class="${rowCls}">
+      <span class="lr-rank">${i+1}</span>
+      <span class="lr-name">${esc(r.display_name)}${mine?'<span class="lr-me-tag">YOU</span>':''}</span>
+      <span class="lr-net ${cls}">${fmtNet(net)}</span>
+    </div>`;
+  }).join('');
+  if(foot) foot.textContent = `${rows.length} bettor${rows.length===1?'':'s'} · updates live`;
+}
+function startLiveRailPolling(){
+  stopLiveRailPolling();
+  LIVE_RAIL_TIMER = setInterval(()=>{
+    // only poll while the Live page is actually showing
+    const pg = document.getElementById('page-live');
+    if(pg && pg.classList.contains('active')){ loadLiveRail(); }
+    else { stopLiveRailPolling(); }
+  }, 15000);
+}
+function stopLiveRailPolling(){
+  if(LIVE_RAIL_TIMER){ clearInterval(LIVE_RAIL_TIMER); LIVE_RAIL_TIMER=null; }
+}
+
+// ===== POINTS LEADERBOARD =====
+let LB_VIEW = 'recent';
+function lbNet(n){
+  const v = Number(n)||0;
+  const sign = v>0 ? '+' : (v<0 ? '−' : '');
+  const cls = v>0 ? 'up' : (v<0 ? 'down' : 'even');
+  return { txt: sign + '$' + Math.abs(v).toLocaleString('en-US'), cls };
+}
+async function loadLeaderboard(){
+  const box = document.getElementById('lb-content');
+  if(!box) return;
+  const myId = CURRENT_USER ? CURRENT_USER.id : null;
+
+  if(LB_VIEW==='recent'){
+    let rows;
+    try{
+      const { data, error } = await sb.from('v_leaderboard_recent').select('*');
+      if(error) throw error;
+      rows = data || [];
+    }catch(e){ box.innerHTML = `<div class="lb-empty">Couldn't load standings.</div>`; return; }
+    if(!rows.length){
+      box.innerHTML = `<div class="lb-empty">No completed events yet — standings appear once a show wraps.</div>`;
+      return;
+    }
+    const champ = rows.find(r=>r.is_champion) || rows[0];
+    const evName = rows[0].event_name || '';
+    const cnet = lbNet(champ.net);
+    let html = `<div class="lb-champ">
+      <i class="ti ti-trophy lb-crown"></i>
+      <div class="lb-cwho">
+        <div class="lb-clbl">Event Champion</div>
+        <div class="lb-cname">${esc(champ.display_name)}</div>
+      </div>
+      <div class="lb-cnet">${cnet.txt}</div>
+    </div>`;
+    html += `<div class="lb-evname">${esc(evName)} — final standings</div>`;
+    html += `<div class="lb-table">` + rows.map(r=>{
+      const n = lbNet(r.net);
+      const cls = `lb-rowx lb-${r.rank<=3?r.rank:'n'}${r.rank%2?'':' alt'}`;
+      return `<div class="${cls}">
+        <span class="lb-rk">${r.rank}</span>
+        <span class="lb-nm">${esc(r.display_name)}</span>
+        <span class="lb-net ${n.cls}">${n.txt}</span>
+      </div>`;
+    }).join('') + `</div>`;
+    box.innerHTML = html;
+    return;
+  }
+
+  // all-time
+  let rows;
+  try{
+    const { data, error } = await sb.from('v_leaderboard_alltime').select('*');
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){ box.innerHTML = `<div class="lb-empty">Couldn't load all-time leaderboard.</div>`; return; }
+  if(!rows.length){
+    box.innerHTML = `<div class="lb-empty">No history yet — all-time standings build up as events complete.</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="lb-table">` + rows.map((r,i)=>{
+    const n = lbNet(r.lifetime_winnings);
+    const rank = i+1;
+    const mine = myId && r.user_id===myId;
+    const cls = `lb-rowx lb-${rank<=3?rank:'n'}${rank%2?'':' alt'}${mine?' lb-me':''}`;
+    const titles = Number(r.titles)||0;
+    const ev = Number(r.events_played)||0;
+    const meta = `<span class="lb-meta">
+      ${titles?`<span class="lb-titles"><i class="ti ti-trophy"></i> ${titles}</span>`:''}
+      <span>${ev} event${ev===1?'':'s'}</span>
+    </span>`;
+    return `<div class="${cls}">
+      <span class="lb-rk">${rank}</span>
+      <span class="lb-nm">${esc(r.display_name)}${mine?'<span class="lb-me-tag">YOU</span>':''}</span>
+      ${meta}
+      <span class="lb-net ${n.cls}">${n.txt}</span>
+    </div>`;
+  }).join('') + `</div>`;
 }
 
 // ===== BET PLACEMENT =====
@@ -2397,7 +2636,9 @@ function activatePage(pg){
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
   if(pg==='live') loadLive();   // always fetch the latest live state on open
+  else stopLiveRailPolling();   // leaving Live — stop the standings poll
   if(pg==='storylines') loadStorylines();
+  if(pg==='leaderboard') loadLeaderboard();
   return true;
 }
 // On load (and on back/forward), open whatever tab the hash points to.
@@ -2444,6 +2685,15 @@ document.querySelectorAll('#sl-filters .rfilter').forEach(b=>{
     SL_FILTER=b.dataset.slfilter;
     SL_PAGE=1;
     renderStorylines();
+  };
+});
+// Leaderboard view toggle (Most Recent Event / All-Time)
+document.querySelectorAll('#lb-filters .rfilter').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#lb-filters .rfilter').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    LB_VIEW=b.dataset.lbview;
+    loadLeaderboard();
   };
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
