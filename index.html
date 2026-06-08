@@ -393,6 +393,58 @@
   ::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px;}
   ::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
   ::selection{background:var(--gold); color:#1a1407;}
+
+  /* ============================================================
+     PHASE 3 — landing hero
+     ============================================================ */
+  .hero{position:relative; border:1px solid var(--line); border-radius:18px;
+    overflow:hidden; margin:24px 0 8px; min-height:300px;
+    background:linear-gradient(180deg,var(--panel),var(--bg2,#100f12));}
+  .hero-bg{position:absolute; inset:0;
+    background-image:url('https://dmfbhszvrbaknaevdhxh.supabase.co/storage/v1/object/public/wrestler-photos/logos/WCA%20World%20Logo.png');
+    background-size:cover; background-position:center; opacity:.32;}
+  .hero-veil{position:absolute; inset:0;
+    background:
+      radial-gradient(120% 120% at 18% 50%, var(--bg) 8%, rgba(13,13,15,.55) 42%, transparent 72%),
+      linear-gradient(180deg, rgba(13,13,15,.35), rgba(13,13,15,.78));}
+  .hero-in{position:relative; display:flex; align-items:center; gap:30px;
+    padding:42px 38px; flex-wrap:wrap;}
+  .hero-emblem{width:170px; height:170px; object-fit:contain; flex-shrink:0;
+    filter:drop-shadow(0 6px 30px rgba(233,185,73,.28));}
+  .hero-txt{flex:1; min-width:260px;}
+  .hero-kicker{font-family:'Oswald'; font-size:13px; letter-spacing:4px;
+    text-transform:uppercase; color:var(--gold); margin-bottom:8px;}
+  .hero-title{font-family:'Oswald'; font-weight:700; font-size:clamp(34px,6vw,58px);
+    line-height:.98; color:#fff; letter-spacing:1px; text-shadow:0 2px 24px rgba(0,0,0,.6);}
+  .hero-sub{font-family:'Barlow'; font-size:16px; line-height:1.6; color:#d7d4cc;
+    max-width:620px; margin-top:14px;}
+  .hero-sub em{color:var(--muted); font-style:italic; font-size:14px;}
+  .hero-cta{display:flex; gap:12px; margin-top:22px; flex-wrap:wrap;}
+  .hbtn{display:inline-flex; align-items:center; gap:9px; font-family:'Oswald';
+    font-size:14px; letter-spacing:1.2px; text-transform:uppercase; cursor:pointer;
+    padding:12px 20px; border-radius:10px; transition:.15s;
+    background:transparent; border:1px solid var(--gold-dim); color:var(--gold);}
+  .hbtn:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .hbtn.primary{background:var(--gold); border-color:var(--gold); color:#15120a; font-weight:600;}
+  .hbtn.primary:hover{filter:brightness(1.08);}
+  .hbtn i{font-size:17px;}
+  @media(max-width:600px){
+    .hero-in{padding:30px 22px; gap:20px; flex-direction:column; text-align:center;}
+    .hero-emblem{width:128px; height:128px;}
+    .hero-cta{justify-content:center;}
+    .hero-sub{margin-left:auto; margin-right:auto;}
+  }
+
+  /* "see full standings" link inside a section title */
+  .see-all{background:none; border:none; cursor:pointer;
+    font-family:'Oswald'; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--muted); display:inline-flex; align-items:center; gap:6px; transition:.15s;
+    padding:0; flex-shrink:0;}
+  .see-all:hover{color:var(--gold);}
+  .see-all i{font-size:15px;}
+  /* a section title that holds its own rule span + a right-side link */
+  .section-title.st-flex::after{display:none;}
+  .section-title .st-rule{flex:1; height:1px; background:var(--line);}
 </style>
 </head>
 <body>
@@ -430,12 +482,40 @@
 <div class="wrap">
   <div id="config-error"></div>
 
-  <!-- DASHBOARD -->
+  <!-- LANDING / DASHBOARD -->
   <div class="page active" id="page-dash">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-veil"></div>
+      <div class="hero-in">
+        <img class="hero-emblem" id="hero-emblem"
+             src="https://dmfbhszvrbaknaevdhxh.supabase.co/storage/v1/object/public/wrestler-photos/logos/WCA%20Logo.png"
+             alt="WCA emblem" onerror="this.style.display='none'">
+        <div class="hero-txt">
+          <div class="hero-kicker" id="hero-kicker">World Championship Alliance</div>
+          <h1 class="hero-title" id="hero-title">Welcome to WCA</h1>
+          <p class="hero-sub" id="hero-sub">
+            The home of the World Championship Alliance — live events, championship divisions,
+            and a full roster of competitors. Watch live, follow the rankings, and put your
+            coins on the line. <em>(Placeholder text — editable from the admin panel soon.)</em>
+          </p>
+          <div class="hero-cta">
+            <button class="hbtn primary" onclick="goPage('events')"><i class="ti ti-broadcast"></i> Watch &amp; Bet</button>
+            <button class="hbtn" onclick="goPage('roster')"><i class="ti ti-users-group"></i> Meet the Roster</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="section-title">Current Champions</div>
     <div class="champ-grid" id="champ-cards"><div class="loading">Loading…</div></div>
 
-    <div class="section-title">Division Standings — top 5</div>
+    <div class="section-title st-flex">Division Standings — top 3
+      <span class="st-rule"></span>
+      <button class="see-all" onclick="goPage('mens')">see full standings <i class="ti ti-arrow-right"></i></button>
+    </div>
     <div id="contenders"><div class="loading">Loading…</div></div>
   </div>
 
@@ -739,7 +819,7 @@ async function loadDashboard(){
     const {data}=await sb.from('v_division_rankings').select('*').eq('division',d);
     if(!data||!data.length) continue;
     const nonChamp=sortRanked(data.filter(p=>!p.is_champion));
-    const top5=nonChamp.slice(0,5);
+    const top5=nonChamp.slice(0,3);
     const readyCount=top5.filter(p=>p.is_ready_contender).length;
     const tie=readyCount>1;
     html+=`<div class="division"><div class="div-head"><h3>${d}</h3>${tie?'<span class="tag tie">'+readyCount+'-way tie — multi-man match</span>':''}</div>`;
@@ -1143,6 +1223,11 @@ document.querySelectorAll('nav button').forEach(b=>{
     document.getElementById('page-'+pg).classList.add('active');
   };
 });
+// Programmatic page switch reused by hero buttons / "see full standings".
+function goPage(pg){
+  const btn=document.querySelector('nav button[data-page="'+pg+'"]');
+  if(btn){ btn.click(); window.scrollTo({top:0,behavior:'smooth'}); }
+}
 document.getElementById('roster-search').addEventListener('input',e=>renderRoster(e.target.value));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
 
