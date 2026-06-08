@@ -454,25 +454,43 @@
     border-radius:50%; background:var(--loss); margin-right:7px; vertical-align:middle;
     box-shadow:0 0 0 0 rgba(226,75,74,.6); animation:wcaPulse 1.8s infinite;}
 
-  .live-eventbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-    margin:18px 0 6px;}
-  .live-evname{background:none; border:none; cursor:pointer; text-align:left;
-    font-family:'Oswald'; font-weight:700; font-size:clamp(24px,4vw,38px);
-    color:#fff; letter-spacing:1px; line-height:1; padding:0; transition:.15s;}
-  .live-evname:hover{color:var(--gold);}
-  .live-evtag{font-family:'Barlow Condensed'; font-weight:500; font-size:.55em;
-    color:var(--gold-dim); letter-spacing:2px; text-transform:uppercase;}
-  .live-fullcard{margin-left:auto; background:var(--gold); border:none; cursor:pointer;
+  .live-banner{position:relative; display:flex; align-items:center; gap:20px;
+    flex-wrap:wrap; margin:18px 0 6px; padding:22px 24px; border-radius:14px;
+    border:1px solid var(--gold-dim); overflow:hidden;
+    background:linear-gradient(180deg,var(--gold-deep),var(--panel));}
+  .live-banner::before{content:''; position:absolute; inset:0; border-radius:inherit;
+    padding:1px; pointer-events:none; opacity:.7;
+    background:linear-gradient(180deg,rgba(233,185,73,.30),transparent 45%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude;}
+  .live-banner .lb-l{flex:1; min-width:240px; position:relative;}
+  .lb-kick{font-family:'Oswald'; font-size:12px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--gold); margin-bottom:8px;}
+  .lb-name{background:none; border:none; cursor:pointer; text-align:left; padding:0;
+    font-family:'Oswald'; font-weight:700; font-size:clamp(28px,5vw,46px);
+    color:#fff; letter-spacing:1px; line-height:1; transition:.15s;}
+  .lb-name:hover{color:var(--gold);}
+  .lb-name em{font-family:'Barlow Condensed'; font-weight:600; font-style:italic;
+    font-size:.62em; color:var(--gold); letter-spacing:1px;}
+  .lb-meta{display:flex; gap:20px; flex-wrap:wrap; margin-top:14px;}
+  .lb-meta .mi{display:flex; align-items:center; gap:7px; font-family:'Barlow Condensed';
+    font-size:16px; color:#d7d4cc; letter-spacing:.5px;}
+  .lb-meta .mi i{color:var(--gold); font-size:17px;}
+  .lb-r{position:relative; flex-shrink:0;}
+
+  .live-fullcard{background:var(--gold); border:none; cursor:pointer;
     font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
-    color:#15120a; font-weight:600; padding:11px 18px; border-radius:10px;
+    color:#15120a; font-weight:600; padding:13px 20px; border-radius:10px;
     display:inline-flex; align-items:center; gap:8px; transition:.15s;}
   .live-fullcard:hover{filter:brightness(1.08); transform:translateY(-2px);}
   .live-fullcard i{font-size:16px;}
   .live-between{text-align:center; color:var(--muted); font-family:'Oswald';
     letter-spacing:1.5px; padding:34px 20px; border:1px dashed var(--line);
     border-radius:12px; margin-top:14px;}
-  @media(max-width:600px){
-    .live-fullcard{margin-left:0; width:100%; justify-content:center;}
+  @media(max-width:680px){
+    .live-banner{flex-direction:column; align-items:flex-start;}
+    .lb-r{width:100%;}
+    .live-fullcard{width:100%; justify-content:center;}
   }
 </style>
 </head>
@@ -1246,14 +1264,24 @@ async function loadLive(){
   // stream block (reuses existing embed)
   const stream = streamEmbed(ev.stream_url);
 
-  // event name + cross-page nudges (clickable name + explicit button)
-  const eventBar=`<div class="live-eventbar">
-    <button class="live-evname" onclick="goPage('events')" title="See the full card">
-      ${esc(ev.name)}${ev.tagline?` <span class="live-evtag">${esc(ev.tagline)}</span>`:''}
-    </button>
-    <button class="live-fullcard" onclick="goPage('events')">
-      <i class="ti ti-list-details"></i> See full card &amp; bet every match <i class="ti ti-arrow-right"></i>
-    </button>
+  // event banner: big bold name + tagline + date/watch/location + full-card CTA
+  const meta=[];
+  if(ev.event_date) meta.push(`<span class="mi"><i class="ti ti-calendar-event"></i>${esc(fmtEventDate(ev.event_date))}</span>`);
+  if(ev.watch_text) meta.push(`<span class="mi"><i class="ti ti-device-tv"></i>${esc(ev.watch_text)}</span>`);
+  if(ev.location)   meta.push(`<span class="mi"><i class="ti ti-map-pin"></i>${esc(ev.location)}</span>`);
+  const eventBar=`<div class="live-banner">
+    <div class="lb-l">
+      ${ev.watch_text?`<div class="lb-kick">${esc(ev.watch_text)}</div>`:''}
+      <button class="lb-name" onclick="goPage('events')" title="See the full card">
+        ${esc(ev.name)}${ev.tagline?` <em>${esc(ev.tagline)}</em>`:''}
+      </button>
+      ${meta.length?`<div class="lb-meta">${meta.join('')}</div>`:''}
+    </div>
+    <div class="lb-r">
+      <button class="live-fullcard" onclick="goPage('events')">
+        <i class="ti ti-list-details"></i> See full card &amp; bet every match <i class="ti ti-arrow-right"></i>
+      </button>
+    </div>
   </div>`;
 
   // the current-match block
