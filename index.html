@@ -2054,8 +2054,7 @@ function csSelect(name){
     ${(w.performer||socialIcons(w.socials))?`<div class="cs-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
     ${rankHTML(w.name)}
     ${w.bio?`<div class="cs-bio">${esc(w.bio)}</div>`:''}
-    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
-    <button class="cs-open" onclick="openProfile(wrestlerByName('${esc(w.name).replace(/'/g,"\\'")}'))"><i class="ti ti-id-badge-2"></i> Full profile</button>`;
+    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>`;
 
   stage.classList.remove('shown');
   requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('shown')));
@@ -2071,7 +2070,7 @@ function bindCSTray(){
   tray.querySelectorAll('.cs-icon').forEach(ic=>{
     const n=ic.dataset.name;
     ic.addEventListener('mouseenter',()=>csSelect(n));
-    ic.addEventListener('click',()=>{ csSelect(n); const w=wrestlerByName(n); if(w) openProfile(w); });
+    ic.addEventListener('click',()=>csSelect(n));
   });
 }
 // Render the tray from the same filtered/searched list renderRoster builds.
