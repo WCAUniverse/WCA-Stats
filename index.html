@@ -858,6 +858,99 @@
     margin-left:10px; vertical-align:middle;}
 
   /* ============================================================
+     CHARACTER-SELECT ROSTER (Tekken-style, single fighter shown)
+     Big portrait + animated name on top/center, info slides in from
+     the right, small icon tray along the bottom. All theme vars.
+     ============================================================ */
+  .cs-stage{
+    position:relative; background:
+      radial-gradient(900px 460px at 50% -10%, var(--glow-gold), transparent 60%),
+      linear-gradient(180deg, var(--panel) 0%, var(--bg2) 100%);
+    border:1px solid var(--line); border-radius:16px; overflow:hidden;
+    margin-bottom:14px; min-height:430px;
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:0;}
+  /* left = portrait + name; right = info panel */
+  .cs-portrait{position:relative; display:flex; align-items:flex-end; justify-content:center;
+    padding:18px 10px 0; min-height:300px; overflow:hidden;}
+  .cs-portrait::after{content:''; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:86%; height:60%; background:radial-gradient(60% 100% at 50% 100%, var(--glow-gold), transparent 70%);
+    pointer-events:none;}
+  .cs-photo{position:relative; z-index:2; max-height:400px; max-width:100%;
+    width:auto; height:auto; object-fit:contain; object-position:bottom;
+    filter:drop-shadow(0 18px 30px rgba(0,0,0,.55));
+    opacity:0; transform:translateY(18px) scale(.98); transition:opacity .28s ease, transform .28s ease;}
+  .cs-photo.in{opacity:1; transform:none;}
+  .cs-photo-init{position:relative; z-index:2; align-self:center;
+    width:180px; height:180px; border-radius:50%; background:var(--gold-deep);
+    border:2px solid var(--gold); display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald'; font-weight:700; font-size:64px; color:var(--gold);}
+  .cs-nameplate{position:absolute; left:0; right:0; bottom:0; z-index:3; padding:14px 16px 16px;
+    background:linear-gradient(0deg, rgba(0,0,0,.78), transparent);}
+  .cs-nick{font-family:'Barlow Condensed'; font-style:italic; color:var(--gold-dim);
+    font-size:16px; line-height:1; margin-bottom:2px;
+    opacity:0; transform:translateX(-14px); transition:.32s ease .04s;}
+  .cs-name{font-family:'Oswald'; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+    font-size:clamp(26px,4.4vw,44px); color:#fff; line-height:1;
+    text-shadow:0 3px 14px rgba(0,0,0,.6);
+    opacity:0; transform:translateX(-22px); transition:.34s cubic-bezier(.2,.8,.2,1);}
+  .cs-tags{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;
+    opacity:0; transform:translateX(-14px); transition:.34s ease .08s;}
+  .cs-stage.shown .cs-nick,.cs-stage.shown .cs-name,.cs-stage.shown .cs-tags{opacity:1; transform:none;}
+
+  /* right info panel — slides in from the right */
+  .cs-info{position:relative; border-left:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(255,255,255,.015), transparent);
+    padding:22px 22px 18px; overflow-y:auto; max-height:430px;
+    opacity:0; transform:translateX(34px); transition:.36s cubic-bezier(.2,.8,.2,1);}
+  .cs-stage.shown .cs-info{opacity:1; transform:none;}
+  .cs-info::-webkit-scrollbar{width:8px;}
+  .cs-info::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  .cs-performer{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+  .cs-performer .perf{font-family:'Barlow Condensed'; font-size:14px; color:var(--muted); letter-spacing:.5px;}
+  .cs-bio{font-family:'Barlow'; font-size:14px; line-height:1.6; color:var(--muted);
+    margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--line);}
+  .cs-open{display:inline-flex; align-items:center; gap:7px; margin-top:6px;
+    font-family:'Oswald'; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
+    color:#111; background:var(--gold); border:none; border-radius:8px; padding:9px 15px;
+    cursor:pointer; transition:.15s;}
+  .cs-open:hover{filter:brightness(1.08); transform:translateY(-1px);}
+  .cs-empty{display:flex; align-items:center; justify-content:center; height:100%;
+    color:var(--muted2); font-family:'Oswald'; letter-spacing:2px; text-transform:uppercase;
+    font-size:14px; text-align:center; padding:30px;}
+
+  /* the fighter-select tray */
+  .cs-tray-wrap{margin-top:2px;}
+  .cs-tray-label{font-family:'Oswald'; font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--gold-dim); margin:0 0 8px 2px;}
+  .cs-tray{display:grid; grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:7px;
+    max-height:230px; overflow-y:auto; padding:4px; background:var(--panel);
+    border:1px solid var(--line); border-radius:12px;}
+  .cs-tray::-webkit-scrollbar{width:8px;} .cs-tray::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  .cs-icon{position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden; cursor:pointer;
+    background:var(--panel2); border:1px solid var(--line); transition:transform .12s, border-color .12s;}
+  .cs-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+  .cs-icon .cs-icon-init{width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald'; font-weight:700; font-size:18px; color:var(--gold);}
+  .cs-icon:hover{transform:translateY(-2px); border-color:var(--gold-dim);}
+  .cs-icon.sel{border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset;}
+  .cs-icon.inactive{opacity:.45;}
+  /* faction grouping in tray */
+  .cs-fgroup{margin-bottom:14px;}
+  .cs-fname{font-family:'Oswald'; font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--gold); display:flex; align-items:center; gap:8px; margin:0 0 8px;
+    padding-bottom:6px; border-bottom:1px solid var(--line);}
+  .cs-fname i{font-size:15px;}
+
+  @media(max-width:760px){
+    .cs-stage{grid-template-columns:1fr; min-height:0;}
+    .cs-portrait{min-height:320px; padding-top:14px;}
+    .cs-photo{max-height:340px;}
+    .cs-info{border-left:none; border-top:1px solid var(--line); max-height:none;
+      transform:translateY(20px);}
+    .cs-stage.shown .cs-info{transform:none;}
+  }
+
+  /* ============================================================
      PHASE 7 — STORYLINES feed
      Four post types, visually distinct, stacked in one feed.
      All colors via CSS variables — admin-themeable.
@@ -1199,7 +1292,26 @@
       <button class="rfilter" data-filter="Factions">Factions</button>
     </div>
     <input class="search" id="roster-search" placeholder="Search this list…" autocomplete="off">
-    <div class="roster-grid" id="roster-grid"><div class="loading">Loading…</div></div>
+
+    <!-- Character-select stage: big portrait + name (left), info panel (right) -->
+    <div class="cs-stage" id="cs-stage">
+      <div class="cs-portrait" id="cs-portrait">
+        <div class="cs-photo-init" id="cs-photo-holder">WCA</div>
+        <div class="cs-nameplate" id="cs-nameplate"></div>
+      </div>
+      <div class="cs-info" id="cs-info">
+        <div class="cs-empty">Pick a fighter below</div>
+      </div>
+    </div>
+
+    <!-- Fighter-select tray -->
+    <div class="cs-tray-wrap">
+      <div class="cs-tray-label">Select a fighter</div>
+      <div class="cs-tray" id="cs-tray"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- legacy grid kept as a hidden fallback (still wired by bindRosterCards) -->
+    <div class="roster-grid" id="roster-grid" style="display:none"></div>
   </div>
 
   <!-- STORYLINES (storyline-driven content hub: social / articles / HR / timeline) -->
@@ -1832,8 +1944,9 @@ function renderRoster(q){
 
   // ---- Factions filter: grouped by team, members A–Z ----
   if(ROSTER_FILTER==='Factions'){
-    if(!FACTIONS.length){ grid.innerHTML='<div class="loading">No factions yet</div>'; return; }
+    if(!FACTIONS.length){ grid.innerHTML='<div class="loading">No factions yet</div>'; renderCSTray([],true,[]); return; }
     let html='';
+    const trayGroups=[];   // real wrestler rows only (stubs have no icon/profile)
     FACTIONS.forEach(f=>{
       // match names to roster rows; fall back to a name-only stub so no one is dropped
       const members = f.members.map(nm=>{
@@ -1844,6 +1957,7 @@ function renderRoster(q){
         return w.name.toLowerCase().includes(q) || f.name.toLowerCase().includes(q);
       });
       if(!members.length) return;
+      trayGroups.push({ name:f.name, members:members.filter(w=>!w._stub) });
       html += `<div class="faction-group">
         <div class="faction-name"><i class="ti ti-users-group"></i> ${esc(f.name)}</div>
         <div class="roster-grid">${members.map(rosterCard).join('')}</div>
@@ -1852,6 +1966,7 @@ function renderRoster(q){
     grid.classList.add('as-block');
     grid.innerHTML = html || '<div class="loading">No matches</div>';
     bindRosterCards(grid);
+    renderCSTray([], true, trayGroups.filter(g=>g.members.length));
     return;
   }
 
@@ -1862,14 +1977,127 @@ function renderRoster(q){
   if(names) list = list.filter(w=>names.has(w.name));
   if(q) list = list.filter(w=>w.name.toLowerCase().includes(q) || (w.nickname||'').toLowerCase().includes(q));
   list.sort((a,b)=>a.name.localeCompare(b.name));   // always A–Z
-  if(!list.length){grid.innerHTML='<div class="loading">No matches</div>';return;}
+  if(!list.length){grid.innerHTML='<div class="loading">No matches</div>'; renderCSTray([],false,null); return;}
   grid.innerHTML=list.map(rosterCard).join('');
   bindRosterCards(grid);
+  renderCSTray(list, false, null);
 }
 function bindRosterCards(scope){
   scope.querySelectorAll('.rcard').forEach(card=>{
     card.onclick=()=>{ const w=wrestlerByName(card.dataset.name); if(w) openProfile(w); };
   });
+}
+
+// ===== CHARACTER-SELECT ROSTER =====
+let CS_SELECTED = null;     // currently shown wrestler name
+function csInit(name){      // small icon markup for the tray
+  const w=wrestlerByName(name);
+  const init=String(name).split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  return {w, init};
+}
+// Build one tray icon (uses avatar_url -> image_url -> initials).
+function csIconHTML(w){
+  const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  const src=w.avatar_url||w.image_url||'';
+  const inner=src
+    ? `<img src="${esc(src)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;cs-icon-init&quot;>${init}</div>'">`
+    : `<div class="cs-icon-init">${init}</div>`;
+  const inactive=w.is_active===false?' inactive':'';
+  const sel=CS_SELECTED===w.name?' sel':'';
+  return `<div class="cs-icon${inactive}${sel}" data-name="${esc(w.name)}" title="${esc(w.name)}">${inner}</div>`;
+}
+// Render the big portrait + name + info panel for one wrestler (reuses openProfile's fields).
+function csSelect(name){
+  const w=wrestlerByName(name);
+  if(!w) return;
+  CS_SELECTED=name;
+  const stage=document.getElementById('cs-stage');
+  const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+
+  // portrait (large image_url, fall back to avatar then initials)
+  const big=w.image_url||w.avatar_url||'';
+  const holder=document.getElementById('cs-photo-holder');
+  if(big){
+    holder.outerHTML=`<img class="cs-photo" id="cs-photo-holder" src="${esc(big)}" alt="${esc(w.name)}"
+      onerror="this.outerHTML='<div class=&quot;cs-photo-init&quot; id=&quot;cs-photo-holder&quot;>${init}</div>'">`;
+    const img=document.getElementById('cs-photo-holder');
+    if(img && img.tagName==='IMG'){ requestAnimationFrame(()=>img.classList.add('in')); }
+  } else {
+    holder.outerHTML=`<div class="cs-photo-init" id="cs-photo-holder">${init}</div>`;
+  }
+
+  // nameplate
+  const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
+  document.getElementById('cs-nameplate').innerHTML=`
+    ${w.nickname?`<div class="cs-nick">"${esc(w.nickname)}"</div>`:''}
+    <div class="cs-name">${esc(w.name)}</div>
+    <div class="cs-tags"><span class="gender-pill">${g}</span>${w.is_active===false?'<span class="gender-pill">Inactive</span>':''}</div>`;
+
+  // info panel — reuse the same field builders the modal uses
+  const theme = w.theme_song
+    ? (w.theme_url
+        ? `<a href="${esc(w.theme_url)}" target="_blank" rel="noopener noreferrer">${esc(w.theme_song)} <i class="ti ti-external-link" style="font-size:13px"></i></a>`
+        : esc(w.theme_song))
+    : '';
+  const body=[
+    last5HTML(w.last5),
+    fieldRow('Height', w.height),
+    fieldRow('Weight', w.weight),
+    fieldRow('From', w.from_loc),
+    theme ? `<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">${theme}</span></div>` : '',
+    fieldRow('Signatures', w.signatures),
+    fieldRow('Finishers', w.finishers),
+    fieldRow('Debut', fmtDate(w.debut_date)),
+    fieldRow('Last Match', fmtDate(w.last_match)),
+  ].join('');
+  document.getElementById('cs-info').innerHTML=`
+    ${(w.performer||socialIcons(w.socials))?`<div class="cs-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
+    ${rankHTML(w.name)}
+    ${w.bio?`<div class="cs-bio">${esc(w.bio)}</div>`:''}
+    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
+    <button class="cs-open" onclick="openProfile(wrestlerByName('${esc(w.name).replace(/'/g,"\\'")}'))"><i class="ti ti-id-badge-2"></i> Full profile</button>`;
+
+  stage.classList.remove('shown');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('shown')));
+
+  // highlight the selected tray icon
+  document.querySelectorAll('#cs-tray .cs-icon').forEach(ic=>{
+    ic.classList.toggle('sel', ic.dataset.name===name);
+  });
+}
+// Wire hover + tap on the tray; clicking opens the full modal.
+function bindCSTray(){
+  const tray=document.getElementById('cs-tray');
+  tray.querySelectorAll('.cs-icon').forEach(ic=>{
+    const n=ic.dataset.name;
+    ic.addEventListener('mouseenter',()=>csSelect(n));
+    ic.addEventListener('click',()=>{ csSelect(n); const w=wrestlerByName(n); if(w) openProfile(w); });
+  });
+}
+// Render the tray from the same filtered/searched list renderRoster builds.
+function renderCSTray(list, isFactions, factionGroups){
+  const tray=document.getElementById('cs-tray');
+  if(isFactions){
+    if(!factionGroups || !factionGroups.length){ tray.innerHTML='<div class="loading">No factions yet</div>'; return; }
+    let html='';
+    factionGroups.forEach(f=>{
+      if(!f.members.length) return;
+      html+=`<div class="cs-fgroup" style="grid-column:1/-1">
+        <div class="cs-fname"><i class="ti ti-users-group"></i> ${esc(f.name)}</div>
+        <div class="cs-tray" style="border:none;padding:0;background:none;max-height:none">
+          ${f.members.map(csIconHTML).join('')}
+        </div></div>`;
+    });
+    tray.innerHTML=html||'<div class="loading">No matches</div>';
+  } else {
+    if(!list.length){ tray.innerHTML='<div class="loading">No matches</div>'; return; }
+    tray.innerHTML=list.map(csIconHTML).join('');
+  }
+  bindCSTray();
+  // keep a selection visible: re-show current if still present, else first.
+  const names=new Set([...tray.querySelectorAll('.cs-icon')].map(i=>i.dataset.name));
+  if(CS_SELECTED && names.has(CS_SELECTED)) csSelect(CS_SELECTED);
+  else if(names.size) csSelect([...names][0]);
 }
 
 function fieldRow(label, value){
