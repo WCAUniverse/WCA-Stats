@@ -1612,8 +1612,10 @@ async function loadDivision(divName, elId){
 
 async function loadFactions(){
   const el=document.getElementById('factions-content');
-  const {data,error}=await sb.from('v_faction_rankings').select('*');
+  const {data:dataRaw,error}=await sb.from('v_faction_rankings').select('*');
   if(error){el.innerHTML=`<div class="err">Couldn't load factions: ${error.message}</div>`;return;}
+  // Hide factions flagged is_hidden from the public rankings (record still exists in DB).
+  const data=(dataRaw||[]).filter(p=>p.is_hidden!==true);
   const {data:champs}=await sb.from('v_current_champions').select('*').eq('division','Faction');
   const champName=(champs&&champs[0])?champs[0].champion:null;
   // pull champion out, sort the rest, then put champion on top
@@ -1629,7 +1631,7 @@ async function loadFactions(){
       ${ringSVG(p.win_pct||0)}
       <div class="nm"><div class="nm-top">${esc(p.name)}${isChamp?'<span class="tag champ">Champion</span>':(p.is_ready_contender?'<span class="tag ready">#1 Contender</span>':'')}</div>
       <div class="nm-sub"><span class="perf">${esc(p.members_txt||'')}</span></div></div>
-      ${wlText(p.wins, p.losses)}
+      ${wlText(p.wins, p.losses, p.no_wins)}
       ${isChamp?'<span class="dots-end"></span>':dots(p.contender_points||0)}
     </div>`;
   });
@@ -1835,8 +1837,11 @@ function socialIcons(socials, size){
   return `<span class="soc-row${size==='sm'?' sm':''}">${items.join('')}</span>`;
 }
 // Written-out W–L, color coded.
-function wlText(wins, losses){
-  return `<span class="wl2"><span class="w2"><b>${wins}</b> WIN</span><span class="dash2">–</span><span class="l2"><b>${losses}</b> LOSS</span></span>`;
+function wlText(wins, losses, noWins){
+  const nw = (noWins!==undefined && noWins!==null)
+    ? `<span class="dash2">–</span><span class="nw2"><b>${noWins}</b> NW</span>`
+    : '';
+  return `<span class="wl2"><span class="w2"><b>${wins}</b> WIN</span><span class="dash2">–</span><span class="l2"><b>${losses}</b> LOSS</span>${nw}</span>`;
 }
 // Last-5 squares for a ranking row (compact).
 function last5Mini(s){
@@ -1884,7 +1889,7 @@ async function loadRoster(){
   try{
     const {data:fr}=await sb.from('v_faction_rankings').select('*');
     if(fr && fr.length){
-      FACTIONS = fr.map(f=>{
+      FACTIONS = fr.filter(f=>f.is_hidden!==true).map(f=>{
         const members = String(f.members_txt||'')
           .split(',').map(s=>s.trim()).filter(Boolean)
           .sort((a,b)=>a.localeCompare(b));
@@ -2727,15 +2732,17 @@ async function openArchiveEvent(id){
   detEl.innerHTML = `<div class="loading">Loading…</div>`;
   window.scrollTo({top:0,behavior:'smooth'});
 
-  // pull matches, statuses (winner), final standings, linked storylines, and ratings
-  const [matchesR, statusR, resultsR, storyR, ratingsR, myRatingsR] = await Promise.all([
+  // pull matches, statuses (winner), final standings, linked storylines, ratings, and the chat champion
+  const [matchesR, statusR, resultsR, storyR, ratingsR, myRatingsR, chatR] = await Promise.all([
     sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
     sb.from('match_betting').select('*').eq('event_id', id),
     sb.from('event_results').select('*').eq('event_id', id).order('rank'),
     sb.from('storylines').select('id,kind,title,story_date,is_published,event_id').eq('event_id', id).eq('is_published', true),
     sb.from('v_match_ratings').select('*').eq('event_id', id),
-    CURRENT_USER ? sb.from('match_ratings').select('slot,stars').eq('event_id', id).eq('user_id', CURRENT_USER.id) : Promise.resolve({data:[]})
+    CURRENT_USER ? sb.from('match_ratings').select('slot,stars').eq('event_id', id).eq('user_id', CURRENT_USER.id) : Promise.resolve({data:[]}),
+    sb.from('events').select('chat_champion').eq('id', id).single()
   ]);
+  const chatChampion = (chatR && chatR.data && chatR.data.chat_champion) ? chatR.data.chat_champion : '';
   const matches = matchesR.data || [];
   const statuses = statusR.data || [];
   const results = resultsR.data || [];
@@ -2758,6 +2765,7 @@ async function openArchiveEvent(id){
       ${ev.tagline?`<div class="ev-tag">${esc(ev.tagline)}</div>`:''}
       ${date?`<div class="event-meta"><div class="mi"><i class="ti ti-calendar-event"></i>${esc(date)}</div></div>`:''}
       ${ev.champion_name?`<div class="ev-champ"><i class="ti ti-trophy"></i> Event Champion · <b>${esc(ev.champion_name)}</b></div>`:''}
+      ${chatChampion?`<div class="ev-champ ev-chatchamp"><i class="ti ti-crown"></i> Chat Champion · <b>${esc(chatChampion)}</b></div>`:''}
     </div>
   </div>`;
 
@@ -3518,9 +3526,8 @@ async function loadStorylines(){
   if(rows.length){
     SL_ALL = rows;
   }else{
-    // graceful fallback so the design is still visible before any real posts exist
-    SL_ALL = SL_SEED.filter(p=>p.is_published !== false)
-      .map(p=>Object.assign({seed_likes:0, seed_dislikes:0}, p));
+    // No published posts yet — show a clean empty state (no template/seed posts).
+    SL_ALL = [];
   }
 
   await slLoadEngagement();
