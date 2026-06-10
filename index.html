@@ -249,7 +249,7 @@
   .f5mini-empty{display:inline-block; width:0;}
   .f5b{width:18px; height:18px; border-radius:4px; display:inline-flex; align-items:center;
     justify-content:center; font-family:'Oswald'; font-size:10px; font-weight:600; color:#0b0b0d;}
-  .f5b.w{background:var(--win);} .f5b.l{background:var(--loss); color:#fff;} .f5b.d{background:var(--muted);} .f5b.n{background:transparent; border:1px solid var(--muted); color:var(--muted);}
+  .f5b.w{background:var(--win);} .f5b.l{background:var(--loss); color:#fff;} .f5b.d{background:var(--muted);}
 
   /* contender dots */
   .dots{display:flex; gap:4px; flex-shrink:0;}
@@ -872,7 +872,6 @@
   .f5.w{background:var(--win);}
   .f5.l{background:var(--loss); color:#fff;}
   .f5.d{background:var(--muted); color:#0b0b0d;}
-  .f5.n{background:transparent; border:1px solid var(--muted); color:var(--muted);}
   .f5streak{font-family:'Oswald'; font-size:13px; letter-spacing:1px; color:var(--muted);
     margin-left:10px; vertical-align:middle;}
 
@@ -1207,6 +1206,14 @@
     background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; margin-left:4px;}
   .sl-comment .sl-cmine:hover{color:var(--loss);}
   .sl-cempty{font-family:'Barlow'; font-size:14px; color:var(--muted); font-style:italic; padding:4px 0;}
+  /* Discord-style formatting inside post/comment bodies */
+  .sl-code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.92em;
+    background:rgba(255,255,255,.07); border:1px solid var(--line); border-radius:4px; padding:1px 5px;}
+  .sl-pre{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.9em; line-height:1.5;
+    background:rgba(0,0,0,.35); border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    margin:6px 0; overflow-x:auto; white-space:pre-wrap; word-break:break-word;}
+  .sl-quote{display:block; border-left:3px solid var(--gold-dim); padding:1px 0 1px 12px;
+    margin:2px 0; color:#cfcdc6;}
 </style>
 </head>
 <body>
@@ -1306,7 +1313,7 @@
       <button class="rfilter" data-rank="Undisputed">Undisputed</button>
       <button class="rfilter" data-rank="Factions">Factions</button>
     </div>
-    <div class="legend legend-big"><span><span class="dot on" style="position:static"></span> = contender point (3 = #1 contender, ready for a title shot)</span><span><b style="color:var(--win)">green</b> = wins · <s style="color:var(--loss)">red</s> = losses</span><span><span class="f5b w" style="width:16px;height:16px">W</span> <span class="f5b l" style="width:16px;height:16px">L</span> <span class="f5b n" style="width:16px;height:16px">N</span> = last 5 (N = no win: rumble/gauntlet)</span></div>
+    <div class="legend legend-big"><span><span class="dot on" style="position:static"></span> = contender point (3 = #1 contender, ready for a title shot)</span><span><b style="color:var(--win)">green</b> = wins · <s style="color:var(--loss)">red</s> = losses</span><span><span class="f5b w" style="width:16px;height:16px">W</span> <span class="f5b l" style="width:16px;height:16px">L</span> = last 5 matches</span></div>
     <div class="rank-block" data-block="Mens"><div class="section-title">Mens Division</div><div id="mens-content"></div></div>
     <div class="rank-block" data-block="Womens"><div class="section-title">Womens Division</div><div id="womens-content"></div></div>
     <div class="rank-block" data-block="Undisputed"><div class="section-title">Undisputed Division</div><div id="undisputed-content"></div></div>
@@ -1570,12 +1577,42 @@ function rowHTML(p, idx, isChamp, div){
       <div class="nm-top">${esc(p.name)}${tags}</div>
       ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}
     </div>
-    <div class="row-mid">${last5Mini(p.seed_last5)}</div>
+    <div class="row-mid">${last5Mini(meta.last5)}</div>
     ${wlText(p.wins, p.losses)}
     ${champ?'<span class="dots-end"></span>':dots(p.contender_points||0)}
   </div>`;
 }
 function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// Discord-style formatting for post/comment bodies. Escapes first (safe), THEN
+// turns the safe markers into real formatting. Supports: **bold**, *italic* / _italic_,
+// __underline__, ~~strike~~, `code`, ```block```, > quote, and line breaks.
+function slFmt(s){
+  let t = esc(s);
+  // Protect URLs from markdown mangling (underscores/asterisks are common in links).
+  const urls = [];
+  t = t.replace(/https?:\/\/[^\s<]+/g, (u)=>{ urls.push(u); return '\u0000'+(urls.length-1)+'\u0000'; });
+  // code blocks ```...``` (do first so inner markers are left literal)
+  t = t.replace(/```([\s\S]+?)```/g, (m,c)=>'<pre class="sl-pre">'+c.replace(/\n$/,'')+'</pre>');
+  // inline `code`
+  t = t.replace(/`([^`\n]+?)`/g, '<code class="sl-code">$1</code>');
+  // bold **text**
+  t = t.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
+  // underline __text__
+  t = t.replace(/__([^\n]+?)__/g, '<u>$1</u>');
+  // strikethrough ~~text~~
+  t = t.replace(/~~([^\n]+?)~~/g, '<s>$1</s>');
+  // italic *text* or _text_  (after bold/underline so they don't clash)
+  t = t.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  t = t.replace(/(^|[^_])_([^_\n]+?)_(?!_)/g, '$1<em>$2</em>');
+  // blockquote: lines starting with "> "
+  t = t.replace(/^(?:&gt;|>)\s?(.*)$/gm, '<span class="sl-quote">$1</span>');
+  // line breaks
+  t = t.replace(/\n/g, '<br>');
+  // restore protected URLs
+  t = t.replace(/\u0000(\d+)\u0000/g, (m,i)=>urls[+i]);
+  return t;
+}
 
 // ===== BELTS: division -> image =====
 let BELTS = {};
@@ -1684,7 +1721,6 @@ async function loadFactions(){
       ${ringSVG(p.win_pct||0)}
       <div class="nm"><div class="nm-top">${esc(p.name)}${isChamp?'<span class="tag champ">Champion</span>':(p.is_ready_contender?'<span class="tag ready">#1 Contender</span>':'')}</div>
       <div class="nm-sub"><span class="perf">${esc(p.members_txt||'')}</span></div></div>
-      <div class="row-mid">${last5Mini(p.seed_last5)}</div>
       ${wlText(p.wins, p.losses, p.no_wins)}
       ${isChamp?'<span class="dots-end"></span>':dots(p.contender_points||0)}
     </div>`;
@@ -1847,7 +1883,7 @@ async function loadDashboard(){
         ${ringSVG(p.win_pct||0)}
         <div class="nm"><div class="nm-top">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
         ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}</div>
-        <div class="row-mid">${last5Mini(p.seed_last5)}</div>
+        <div class="row-mid">${last5Mini(meta.last5)}</div>
         ${wlText(p.wins, p.losses)}
         ${dots(p.contender_points||0)}
       </div>`;
@@ -1861,21 +1897,6 @@ async function loadDashboard(){
 let HIDDEN_NAMES = new Set();   // wrestlers with status='hidden' — excluded site-wide
 // Load the set of hidden wrestler names so rankings/dashboard exclude them.
 let WRESTLER_META = {};  // name -> {performer, socials, last5} for ranking rows
-let SEED_BY_NAME = {};   // lower(name) -> [{division, last5, wins, losses}] for per-division profile form
-async function loadSeedByName(){
-  try{
-    const {data}=await sb.from('wrestler_division_seed')
-      .select('wrestler_name,division_name,seed_last5,seed_wins,seed_losses');
-    SEED_BY_NAME = {};
-    (data||[]).forEach(r=>{
-      const k=(r.wrestler_name||'').toLowerCase();
-      (SEED_BY_NAME[k]=SEED_BY_NAME[k]||[]).push({
-        division:r.division_name, last5:r.seed_last5,
-        wins:r.seed_wins, losses:r.seed_losses
-      });
-    });
-  }catch(e){ SEED_BY_NAME = {}; }
-}
 async function loadHiddenNames(){
   try{
     const {data}=await sb.from('wrestlers').select('name,status,performer,socials,last5');
@@ -1914,9 +1935,9 @@ function wlText(wins, losses, noWins){
 }
 // Last-5 squares for a ranking row (compact).
 function last5Mini(s){
-  const f=String(s||'').toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D','N'].includes(x)).slice(0,5);
+  const f=String(s||'').toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D'].includes(x)).slice(0,5);
   if(!f.length) return '<span class="f5mini-empty"></span>';
-  return '<span class="f5mini">'+f.map(r=>`<span class="f5b ${r==='W'?'w':r==='L'?'l':r==='D'?'d':'n'}">${r}</span>`).join('')+'</span>';
+  return '<span class="f5mini">'+f.map(r=>`<span class="f5b ${r==='W'?'w':r==='L'?'l':'d'}">${r}</span>`).join('')+'</span>';
 }
 let RANK_BY_NAME = {};   // name -> [{division, rank}]
 let DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
@@ -2114,7 +2135,7 @@ function csSelect(name){
         : esc(w.theme_song))
     : '';
   const body=[
-    (last5PerDivisionHTML(w.name) || last5HTML(w.last5)),
+    last5HTML(w.last5),
     fieldRow('Height', w.height),
     fieldRow('Weight', w.weight),
     fieldRow('From', w.from_loc),
@@ -2186,39 +2207,24 @@ function fmtDate(d){
 // Parse a stored last5 string ("W,W,L,D,W" newest-first) into ['W','W',...].
 function parseLast5(s){
   if(!s) return [];
-  return String(s).toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D','N'].includes(x)).slice(0,5);
+  return String(s).toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D'].includes(x)).slice(0,5);
 }
 // Colored W/L/D squares + a streak readout, newest on the left.
 function last5HTML(s){
   const f=parseLast5(s);
   if(!f.length) return '';
   const squares=f.map(r=>{
-    const cls=r==='W'?'w':r==='L'?'l':r==='D'?'d':'n';
+    const cls=r==='W'?'w':r==='L'?'l':'d';
     return `<span class="f5 ${cls}">${r}</span>`;
   }).join('');
   // streak = leading run of identical results (newest-first)
   let n=0; for(const r of f){ if(r===f[0]) n++; else break; }
-  const streakTxt = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:f[0]==='D'?`D${n}`:`N${n}`;
+  const streakTxt = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:`D${n}`;
   return `<div class="pf-row"><span class="pf-lbl">Last 5</span>
     <span class="pf-val"><span class="f5row">${squares}</span>
     <span class="f5streak">${streakTxt}</span></span></div>`;
 }
-// Per-division recent form for a wrestler's profile. One "Last 5" row per division they compete in.
-function last5PerDivisionHTML(name){
-  const rows=(SEED_BY_NAME[(name||'').toLowerCase()]||[])
-    .filter(r=>parseLast5(r.last5).length)
-    .sort((a,b)=>a.division.localeCompare(b.division));
-  if(!rows.length) return '';
-  return rows.map(r=>{
-    const f=parseLast5(r.last5);
-    const squares=f.map(x=>`<span class="f5 ${x==='W'?'w':x==='L'?'l':'d'}">${x}</span>`).join('');
-    let n=0; for(const x of f){ if(x===f[0]) n++; else break; }
-    const streak = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:`D${n}`;
-    return `<div class="pf-row"><span class="pf-lbl">Last 5 · ${esc(r.division)}</span>
-      <span class="pf-val"><span class="f5row">${squares}</span>
-      <span class="f5streak">${streak}</span></span></div>`;
-  }).join('');
-}
+// Rank lines: "#4 · Mens", plus Undisputed (everyone) if ranked there.
 function rankHTML(name){
   const arr=(RANK_BY_NAME[name]||[]).slice().sort((a,b)=>a.division.localeCompare(b.division));
   if(!arr.length) return '';
@@ -2242,7 +2248,7 @@ function openProfile(w){
       : esc(w.theme_song);
   }
   const body = [
-    (last5PerDivisionHTML(w.name) || last5HTML(w.last5)),
+    last5HTML(w.last5),
     fieldRow('Height', w.height),
     fieldRow('Weight', w.weight),
     fieldRow('From', w.from_loc),
@@ -3493,7 +3499,7 @@ function slRenderSocial(p){
         <div class="sl-handle">${slHandle(p)} · <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
       </div>
     </div>
-    <div class="sl-text">${esc(p.body)}</div>
+    <div class="sl-text">${slFmt(p.body)}</div>
     ${slMedia(p.body)}
     <div class="sl-foot">
       <span class="sl-stat heart"><i class="ti ti-heart-filled"></i> ${esc(stats.likes||'0')}</span>
@@ -3509,7 +3515,7 @@ function slRenderSocial(p){
         ${slAvatar(r.name)}
         <div class="sl-rbody">
           <div class="sl-name">${esc(r.name)}</div>
-          <div class="sl-text">${esc(r.text)}</div>
+          <div class="sl-text">${slFmt(r.text)}</div>
         </div>
       </div>`).join('') + `</div>`;
   }
@@ -3526,7 +3532,7 @@ function slRenderArticle(p){
     </div>
     <h2 class="sl-headline">${esc(p.title)}</h2>
     ${byline?`<div class="sl-byline">${esc(byline)}</div>`:''}
-    ${p.body?`<div class="sl-body">${esc(p.body)}</div>`:''}
+    ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
@@ -3551,7 +3557,7 @@ function slRenderNotice(p){
         ${ref?`<span>REF: <b>${esc(ref)}</b></span>`:''}
       </div>
       <div class="sl-subject">${esc(p.title)}</div>
-      <div class="sl-body">${esc(p.body)}</div>
+      <div class="sl-body">${slFmt(p.body)}</div>
       ${slMedia(p.body)}
       <div class="sl-sign">— ${esc(sign)}</div>
     </div>
@@ -3564,7 +3570,7 @@ function slRenderTimeline(p){
       <span class="sl-node"></span>
       <div class="sl-tl-date">${esc(slDate(p.story_date))}</div>
       <div class="sl-tl-title">${esc(p.title)}</div>
-      ${p.body?`<div class="sl-body">${esc(p.body)}</div>`:''}
+      ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
       ${slMedia(p.body)}
     </div>
   ${slEngageBar(p)}</article>`;
@@ -3855,7 +3861,7 @@ async function slRenderComments(id){
           <span class="sl-cwhen">${esc(slCommentWhen(c.created_at))}</span>
           ${c.mine?`<button class="sl-cmine" onclick="slDeleteComment(${id},${c.id})">delete</button>`:''}
         </div>
-        <div class="sl-cbody">${esc(c.body)}</div>
+        <div class="sl-cbody">${slFmt(c.body)}</div>
         ${slMedia(c.body)}
       </div>`).join('')
     : '<div class="sl-cempty">No comments yet — be the first.</div>';
@@ -4094,7 +4100,6 @@ if(!isConfigured){
   refreshUser();
   loadMerchLink();
   loadHiddenNames().then(()=>{
-    loadSeedByName();
     loadBelts().then(()=>{
       loadDashboard();
       loadEvents();
