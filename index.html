@@ -249,7 +249,7 @@
   .f5mini-empty{display:inline-block; width:0;}
   .f5b{width:18px; height:18px; border-radius:4px; display:inline-flex; align-items:center;
     justify-content:center; font-family:'Oswald'; font-size:10px; font-weight:600; color:#0b0b0d;}
-  .f5b.w{background:var(--win);} .f5b.l{background:var(--loss); color:#fff;} .f5b.d{background:var(--muted);}
+  .f5b.w{background:var(--win);} .f5b.l{background:var(--loss); color:#fff;} .f5b.d{background:var(--muted);} .f5b.n{background:transparent; border:1px solid var(--muted); color:var(--muted);}
 
   /* contender dots */
   .dots{display:flex; gap:4px; flex-shrink:0;}
@@ -872,6 +872,7 @@
   .f5.w{background:var(--win);}
   .f5.l{background:var(--loss); color:#fff;}
   .f5.d{background:var(--muted); color:#0b0b0d;}
+  .f5.n{background:transparent; border:1px solid var(--muted); color:var(--muted);}
   .f5streak{font-family:'Oswald'; font-size:13px; letter-spacing:1px; color:var(--muted);
     margin-left:10px; vertical-align:middle;}
 
@@ -1305,7 +1306,7 @@
       <button class="rfilter" data-rank="Undisputed">Undisputed</button>
       <button class="rfilter" data-rank="Factions">Factions</button>
     </div>
-    <div class="legend legend-big"><span><span class="dot on" style="position:static"></span> = contender point (3 = #1 contender, ready for a title shot)</span><span><b style="color:var(--win)">green</b> = wins · <s style="color:var(--loss)">red</s> = losses</span><span><span class="f5b w" style="width:16px;height:16px">W</span> <span class="f5b l" style="width:16px;height:16px">L</span> = last 5 matches</span></div>
+    <div class="legend legend-big"><span><span class="dot on" style="position:static"></span> = contender point (3 = #1 contender, ready for a title shot)</span><span><b style="color:var(--win)">green</b> = wins · <s style="color:var(--loss)">red</s> = losses</span><span><span class="f5b w" style="width:16px;height:16px">W</span> <span class="f5b l" style="width:16px;height:16px">L</span> <span class="f5b n" style="width:16px;height:16px">N</span> = last 5 (N = no win: rumble/gauntlet)</span></div>
     <div class="rank-block" data-block="Mens"><div class="section-title">Mens Division</div><div id="mens-content"></div></div>
     <div class="rank-block" data-block="Womens"><div class="section-title">Womens Division</div><div id="womens-content"></div></div>
     <div class="rank-block" data-block="Undisputed"><div class="section-title">Undisputed Division</div><div id="undisputed-content"></div></div>
@@ -1683,6 +1684,7 @@ async function loadFactions(){
       ${ringSVG(p.win_pct||0)}
       <div class="nm"><div class="nm-top">${esc(p.name)}${isChamp?'<span class="tag champ">Champion</span>':(p.is_ready_contender?'<span class="tag ready">#1 Contender</span>':'')}</div>
       <div class="nm-sub"><span class="perf">${esc(p.members_txt||'')}</span></div></div>
+      <div class="row-mid">${last5Mini(p.seed_last5)}</div>
       ${wlText(p.wins, p.losses, p.no_wins)}
       ${isChamp?'<span class="dots-end"></span>':dots(p.contender_points||0)}
     </div>`;
@@ -1912,9 +1914,9 @@ function wlText(wins, losses, noWins){
 }
 // Last-5 squares for a ranking row (compact).
 function last5Mini(s){
-  const f=String(s||'').toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D'].includes(x)).slice(0,5);
+  const f=String(s||'').toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D','N'].includes(x)).slice(0,5);
   if(!f.length) return '<span class="f5mini-empty"></span>';
-  return '<span class="f5mini">'+f.map(r=>`<span class="f5b ${r==='W'?'w':r==='L'?'l':'d'}">${r}</span>`).join('')+'</span>';
+  return '<span class="f5mini">'+f.map(r=>`<span class="f5b ${r==='W'?'w':r==='L'?'l':r==='D'?'d':'n'}">${r}</span>`).join('')+'</span>';
 }
 let RANK_BY_NAME = {};   // name -> [{division, rank}]
 let DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
@@ -2184,19 +2186,19 @@ function fmtDate(d){
 // Parse a stored last5 string ("W,W,L,D,W" newest-first) into ['W','W',...].
 function parseLast5(s){
   if(!s) return [];
-  return String(s).toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D'].includes(x)).slice(0,5);
+  return String(s).toUpperCase().split(/[\s,]+/).filter(x=>['W','L','D','N'].includes(x)).slice(0,5);
 }
 // Colored W/L/D squares + a streak readout, newest on the left.
 function last5HTML(s){
   const f=parseLast5(s);
   if(!f.length) return '';
   const squares=f.map(r=>{
-    const cls=r==='W'?'w':r==='L'?'l':'d';
+    const cls=r==='W'?'w':r==='L'?'l':r==='D'?'d':'n';
     return `<span class="f5 ${cls}">${r}</span>`;
   }).join('');
   // streak = leading run of identical results (newest-first)
   let n=0; for(const r of f){ if(r===f[0]) n++; else break; }
-  const streakTxt = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:`D${n}`;
+  const streakTxt = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:f[0]==='D'?`D${n}`:`N${n}`;
   return `<div class="pf-row"><span class="pf-lbl">Last 5</span>
     <span class="pf-val"><span class="f5row">${squares}</span>
     <span class="f5streak">${streakTxt}</span></span></div>`;
