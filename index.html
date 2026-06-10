@@ -43,6 +43,24 @@
   nav button:hover{color:var(--txt);}
   nav button.active{color:#111; background:var(--gold); font-weight:600;}
 .head-right{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  /* hamburger toggle — hidden on desktop, shown on mobile */
+  .nav-toggle{display:none; background:transparent; border:1px solid var(--line); color:var(--gold);
+    font-size:22px; line-height:1; padding:7px 10px; border-radius:8px; cursor:pointer;}
+  .nav-toggle:hover{border-color:var(--gold);}
+  @media(max-width:760px){
+    .head-inner{padding:14px 16px; flex-wrap:nowrap;}
+    .brand .sub{display:none;}                 /* drop the long subtitle on mobile */
+    .nav-toggle{display:block; flex:0 0 auto;}
+    /* collapse the menu: hidden until toggled open, then a stacked dropdown */
+    .head-right{display:none; flex-basis:100%; flex-direction:column; align-items:stretch; gap:12px;
+      margin-top:12px; order:3;}
+    .head-right.open{display:flex;}
+    nav{flex-direction:column; gap:4px;}
+    nav button{width:100%; text-align:left; font-size:15px; padding:12px 14px;}
+    .socials{justify-content:center; gap:22px;}
+    .socials a{font-size:22px;}
+    .userbox{justify-content:center;}
+  }
   .socials{display:flex; align-items:center; gap:6px;}
   .socials a{
     color:var(--muted); font-size:20px; line-height:1;
@@ -1198,7 +1216,8 @@
       <span class="logo">WCA</span>
       <span class="sub">World Championship Alliance</span>
     </div>
-    <div class="head-right">
+    <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
+    <div class="head-right" id="headRight">
       <nav>
         <button data-page="dash" class="active">Dashboard</button>
         <button data-page="live" id="nav-live-btn">Live</button>
@@ -3949,10 +3968,15 @@ document.querySelectorAll('nav button').forEach(b=>{
     if(location.hash.slice(1)!==pg){ history.replaceState(null,'','#'+pg); }
   };
 });
+// Mobile nav: toggle the collapsed menu open/closed.
+function toggleNav(){
+  document.getElementById('headRight')?.classList.toggle('open');
+}
 // Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
 function activatePage(pg){
   const btn=document.querySelector('nav button[data-page="'+pg+'"]');
   if(!btn) return false;
+  document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
