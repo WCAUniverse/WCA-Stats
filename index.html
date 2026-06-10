@@ -1207,6 +1207,9 @@
   .sl-comment .sl-cmine:hover{color:var(--loss);}
   .sl-cempty{font-family:'Barlow'; font-size:14px; color:var(--muted); font-style:italic; padding:4px 0;}
   /* Discord-style formatting inside post/comment bodies */
+  .sl-text code, .sl-body code, .sl-cbody code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:.92em; background:rgba(255,255,255,.07); border:1px solid var(--line);
+    border-radius:4px; padding:1px 5px;}
   .sl-code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.92em;
     background:rgba(255,255,255,.07); border:1px solid var(--line); border-radius:4px; padding:1px 5px;}
   .sl-pre{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.9em; line-height:1.5;
@@ -1584,33 +1587,19 @@ function rowHTML(p, idx, isChamp, div){
 }
 function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-// Discord-style formatting for post/comment bodies. Escapes first (safe), THEN
-// turns the safe markers into real formatting. Supports: **bold**, *italic* / _italic_,
-// __underline__, ~~strike~~, `code`, ```block```, > quote, and line breaks.
+// Body formatting via a SAFE whitelist of HTML tags. Everything is escaped first
+// (so no injection is possible), then ONLY these approved tags are turned back into
+// real formatting: <b>/<strong>, <i>/<em>, <u>, <s>, <code>, <br>.
+// Anything else (scripts, links-as-html, etc.) stays as harmless text.
 function slFmt(s){
   let t = esc(s);
-  // Protect URLs from markdown mangling (underscores/asterisks are common in links).
-  const urls = [];
-  t = t.replace(/https?:\/\/[^\s<]+/g, (u)=>{ urls.push(u); return '\u0000'+(urls.length-1)+'\u0000'; });
-  // code blocks ```...``` (do first so inner markers are left literal)
-  t = t.replace(/```([\s\S]+?)```/g, (m,c)=>'<pre class="sl-pre">'+c.replace(/\n$/,'')+'</pre>');
-  // inline `code`
-  t = t.replace(/`([^`\n]+?)`/g, '<code class="sl-code">$1</code>');
-  // bold **text**
-  t = t.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
-  // underline __text__
-  t = t.replace(/__([^\n]+?)__/g, '<u>$1</u>');
-  // strikethrough ~~text~~
-  t = t.replace(/~~([^\n]+?)~~/g, '<s>$1</s>');
-  // italic *text* or _text_  (after bold/underline so they don't clash)
-  t = t.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
-  t = t.replace(/(^|[^_])_([^_\n]+?)_(?!_)/g, '$1<em>$2</em>');
-  // blockquote: lines starting with "> "
-  t = t.replace(/^(?:&gt;|>)\s?(.*)$/gm, '<span class="sl-quote">$1</span>');
-  // line breaks
+  const allow = ['b','strong','i','em','u','s','code','br'];
+  // Turn escaped &lt;tag&gt; / &lt;/tag&gt; back into real tags, only for allowed tags.
+  t = t.replace(/&lt;(\/?)([a-zA-Z0-9]+)&gt;/g, (m, slash, tag)=>{
+    return allow.includes(tag.toLowerCase()) ? '<'+slash+tag.toLowerCase()+'>' : m;
+  });
+  // Plain newlines become line breaks too.
   t = t.replace(/\n/g, '<br>');
-  // restore protected URLs
-  t = t.replace(/\u0000(\d+)\u0000/g, (m,i)=>urls[+i]);
   return t;
 }
 
