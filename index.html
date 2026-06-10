@@ -1569,7 +1569,7 @@ function rowHTML(p, idx, isChamp, div){
       <div class="nm-top">${esc(p.name)}${tags}</div>
       ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}
     </div>
-    <div class="row-mid">${last5Mini(meta.last5)}</div>
+    <div class="row-mid">${last5Mini(p.seed_last5 != null ? p.seed_last5 : meta.last5)}</div>
     ${wlText(p.wins, p.losses)}
     ${champ?'<span class="dots-end"></span>':dots(p.contender_points||0)}
   </div>`;
@@ -1845,7 +1845,7 @@ async function loadDashboard(){
         ${ringSVG(p.win_pct||0)}
         <div class="nm"><div class="nm-top">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
         ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}</div>
-        <div class="row-mid">${last5Mini(meta.last5)}</div>
+        <div class="row-mid">${last5Mini(p.seed_last5 != null ? p.seed_last5 : meta.last5)}</div>
         ${wlText(p.wins, p.losses)}
         ${dots(p.contender_points||0)}
       </div>`;
@@ -1859,6 +1859,21 @@ async function loadDashboard(){
 let HIDDEN_NAMES = new Set();   // wrestlers with status='hidden' — excluded site-wide
 // Load the set of hidden wrestler names so rankings/dashboard exclude them.
 let WRESTLER_META = {};  // name -> {performer, socials, last5} for ranking rows
+let SEED_BY_NAME = {};   // lower(name) -> [{division, last5, wins, losses}] for per-division profile form
+async function loadSeedByName(){
+  try{
+    const {data}=await sb.from('wrestler_division_seed')
+      .select('wrestler_name,division_name,seed_last5,seed_wins,seed_losses');
+    SEED_BY_NAME = {};
+    (data||[]).forEach(r=>{
+      const k=(r.wrestler_name||'').toLowerCase();
+      (SEED_BY_NAME[k]=SEED_BY_NAME[k]||[]).push({
+        division:r.division_name, last5:r.seed_last5,
+        wins:r.seed_wins, losses:r.seed_losses
+      });
+    });
+  }catch(e){ SEED_BY_NAME = {}; }
+}
 async function loadHiddenNames(){
   try{
     const {data}=await sb.from('wrestlers').select('name,status,performer,socials,last5');
@@ -2097,7 +2112,7 @@ function csSelect(name){
         : esc(w.theme_song))
     : '';
   const body=[
-    last5HTML(w.last5),
+    (last5PerDivisionHTML(w.name) || last5HTML(w.last5)),
     fieldRow('Height', w.height),
     fieldRow('Weight', w.weight),
     fieldRow('From', w.from_loc),
@@ -2186,7 +2201,22 @@ function last5HTML(s){
     <span class="pf-val"><span class="f5row">${squares}</span>
     <span class="f5streak">${streakTxt}</span></span></div>`;
 }
-// Rank lines: "#4 · Mens", plus Undisputed (everyone) if ranked there.
+// Per-division recent form for a wrestler's profile. One "Last 5" row per division they compete in.
+function last5PerDivisionHTML(name){
+  const rows=(SEED_BY_NAME[(name||'').toLowerCase()]||[])
+    .filter(r=>parseLast5(r.last5).length)
+    .sort((a,b)=>a.division.localeCompare(b.division));
+  if(!rows.length) return '';
+  return rows.map(r=>{
+    const f=parseLast5(r.last5);
+    const squares=f.map(x=>`<span class="f5 ${x==='W'?'w':x==='L'?'l':'d'}">${x}</span>`).join('');
+    let n=0; for(const x of f){ if(x===f[0]) n++; else break; }
+    const streak = f[0]==='W'?`W${n}`:f[0]==='L'?`L${n}`:`D${n}`;
+    return `<div class="pf-row"><span class="pf-lbl">Last 5 · ${esc(r.division)}</span>
+      <span class="pf-val"><span class="f5row">${squares}</span>
+      <span class="f5streak">${streak}</span></span></div>`;
+  }).join('');
+}
 function rankHTML(name){
   const arr=(RANK_BY_NAME[name]||[]).slice().sort((a,b)=>a.division.localeCompare(b.division));
   if(!arr.length) return '';
@@ -2210,7 +2240,7 @@ function openProfile(w){
       : esc(w.theme_song);
   }
   const body = [
-    last5HTML(w.last5),
+    (last5PerDivisionHTML(w.name) || last5HTML(w.last5)),
     fieldRow('Height', w.height),
     fieldRow('Weight', w.weight),
     fieldRow('From', w.from_loc),
@@ -4062,6 +4092,7 @@ if(!isConfigured){
   refreshUser();
   loadMerchLink();
   loadHiddenNames().then(()=>{
+    loadSeedByName();
     loadBelts().then(()=>{
       loadDashboard();
       loadEvents();
