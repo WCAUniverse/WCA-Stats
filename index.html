@@ -686,17 +686,21 @@
   }
 
   /* ---- Live winnings rail (stream + match on one side, leaderboard rail on the other) ---- */
-  .live-layout{display:grid; grid-template-columns:1fr 300px; gap:16px; align-items:start; margin-top:6px;}
+  /* Live page is now a single stacked column: stream/match on top,
+     then a full-width horizontal standings strip, then the chat hub. */
+  .live-layout{display:flex; flex-direction:column; gap:18px; margin-top:6px;}
   .live-main{min-width:0;}
-  .live-rail{position:sticky; top:14px; background:var(--panel); border:1px solid var(--line);
-    border-radius:14px; padding:14px 14px 8px; align-self:start;}
+  /* Standings as a full-width horizontal strip (no longer a side rail) */
+  .live-rail{background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:14px 16px 10px;}
   .live-rail h3{font-family:'Oswald'; font-size:14px; letter-spacing:2px; color:var(--gold);
     display:flex; align-items:center; gap:8px; margin-bottom:4px;}
   .live-rail .lr-sub{font-family:'Barlow'; font-size:11.5px; color:var(--muted);
     line-height:1.4; margin-bottom:12px;}
-  .lr-list{display:flex; flex-direction:column; gap:6px;}
-  .lr-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
-    background:rgba(255,255,255,.02); border:1px solid transparent;}
+  /* horizontal grid of standings cards that wraps onto new lines */
+  .lr-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px;}
+  .lr-row{display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px;
+    background:rgba(255,255,255,.02); border:1px solid var(--line);}
   .lr-row.alt{background:rgba(255,255,255,.04);}
   .lr-row.lr-top{background:var(--gold-deep); border-color:var(--gold);}
   .lr-row.lr-me{border-color:var(--gold-dim); background:rgba(233,185,73,.06);}
@@ -712,12 +716,52 @@
     white-space:nowrap;}
   .lr-net.up{color:var(--win);} .lr-net.down{color:var(--loss);} .lr-net.even{color:var(--muted);}
   .lr-empty{font-family:'Barlow'; font-size:13px; color:var(--muted); font-style:italic;
-    padding:14px 4px; text-align:center;}
+    padding:14px 4px; text-align:center; grid-column:1/-1;}
   .lr-foot{font-family:'Barlow'; font-size:10.5px; color:var(--muted2); text-align:center;
-    padding:8px 0 4px; letter-spacing:.5px;}
-  @media(max-width:880px){
-    .live-layout{grid-template-columns:1fr;}
-    .live-rail{position:static; order:2;}
+    padding:10px 0 2px; letter-spacing:.5px;}
+
+  /* ---- Live Chat Hub ---- */
+  .chat-hub{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:14px 16px 14px; display:flex; flex-direction:column;}
+  .chat-hub h3{font-family:'Oswald'; font-size:14px; letter-spacing:2px; color:var(--gold);
+    display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+  .chat-hub .ch-sub{font-family:'Barlow'; font-size:11.5px; color:var(--muted);
+    line-height:1.4; margin-bottom:12px;}
+  .ch-feed{display:flex; flex-direction:column; gap:9px; height:340px; overflow-y:auto;
+    padding:4px 6px 4px 2px; margin-bottom:12px;}
+  .ch-feed::-webkit-scrollbar{width:8px;}
+  .ch-feed::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  .ch-msg{display:flex; gap:10px; align-items:flex-start;}
+  .ch-ava{width:30px; height:30px; border-radius:50%; flex-shrink:0; object-fit:cover;
+    background:var(--gold-deep); border:1px solid var(--line);}
+  .ch-ava-init{width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; background:var(--gold-deep);
+    border:1px solid var(--gold-dim); color:var(--gold); font-family:'Oswald'; font-size:12px;}
+  .ch-body{min-width:0; flex:1;}
+  .ch-meta{display:flex; align-items:baseline; gap:8px; margin-bottom:1px;}
+  .ch-author{font-family:'Barlow Condensed'; font-weight:600; font-size:14px; color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ch-time{font-family:'Barlow'; font-size:10px; color:var(--muted2); flex-shrink:0;}
+  .ch-text{font-family:'Barlow'; font-size:13.5px; color:#ddd; line-height:1.4;
+    word-wrap:break-word; overflow-wrap:anywhere;}
+  .ch-empty{font-family:'Barlow'; font-size:13px; color:var(--muted); font-style:italic;
+    text-align:center; padding:24px 4px;}
+  .ch-composer{display:flex; gap:8px; align-items:flex-end;}
+  .ch-composer textarea{flex:1; background:var(--bg); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px; color:var(--txt); font-family:'Barlow';
+    font-size:14px; resize:none; min-height:42px; max-height:120px; line-height:1.35;}
+  .ch-composer textarea:focus{outline:none; border-color:var(--gold);}
+  .ch-send{background:var(--gold); color:#111; border:none; border-radius:10px;
+    font-family:'Oswald'; font-weight:700; font-size:14px; letter-spacing:.5px;
+    padding:0 18px; height:42px; cursor:pointer; flex-shrink:0; transition:.15s;}
+  .ch-send:hover{background:var(--gold2);}
+  .ch-send:disabled{opacity:.5; cursor:not-allowed;}
+  .ch-locked{background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; text-align:center; font-family:'Barlow'; font-size:13px; color:var(--muted);}
+  .ch-locked button{background:transparent; border:none; color:var(--gold); cursor:pointer;
+    font-family:'Barlow'; font-size:13px; text-decoration:underline; padding:0;}
+  @media(max-width:560px){
+    .ch-feed{height:300px;}
   }
 
   /* ---- Points Leaderboard page ---- */
@@ -2605,19 +2649,26 @@ async function loadLive(){
     liveBlock=`<div class="live-between">No match is live right now — the full card is below.</div>`;
   }
 
-  // stream + match live in the main column; the winnings rail sits beside it.
+  // stream + match on top; full-width standings strip below; chat hub last.
   el.innerHTML = `<div class="live-layout">
       <div class="live-main">${(stream||'') + eventBar + liveBlock}</div>
-      <aside class="live-rail" id="live-rail">
+      <section class="live-rail" id="live-rail">
         <h3><span class="live-dot"></span> Live Standings</h3>
         <div class="lr-sub">Everyone betting tonight, ranked by how much they're up or down. Final totals stay a surprise.</div>
         <div class="lr-list" id="lr-list"><div class="lr-empty">Loading…</div></div>
         <div class="lr-foot" id="lr-foot"></div>
-      </aside>
+      </section>
+      <section class="chat-hub" id="chat-hub">
+        <h3><i class="ti ti-brand-discord" style="color:var(--gold)"></i> Live Chat</h3>
+        <div class="ch-sub">Signed-in members can talk here — everyone can read along. Keep it clean.</div>
+        <div class="ch-feed" id="ch-feed"><div class="ch-empty">Loading chat…</div></div>
+        <div id="ch-composer-slot"></div>
+      </section>
     </div>`;
   bindNameLinks(el);
   loadLiveRail();          // fill the rail now
   startLiveRailPolling();  // and keep it fresh while the Live page is open
+  initChatHub();           // load chat + start realtime/polling
 }
 
 // ===== LIVE WINNINGS RAIL =====
@@ -2674,6 +2725,153 @@ function startLiveRailPolling(){
 }
 function stopLiveRailPolling(){
   if(LIVE_RAIL_TIMER){ clearInterval(LIVE_RAIL_TIMER); LIVE_RAIL_TIMER=null; }
+}
+
+// ===== LIVE CHAT HUB =====
+// Signed-in (Discord) members post; everyone reads. Messages live in the
+// chat_messages table. Realtime keeps the feed fresh; a slow poll is a backup.
+let CHAT_CHANNEL = null;       // supabase realtime subscription
+let CHAT_POLL_TIMER = null;
+let CHAT_LAST_TS = null;       // newest message timestamp we've shown
+const CHAT_MAX = 60;           // how many recent messages to load/keep
+
+function chatTime(ts){
+  const d = new Date(ts); if(isNaN(d)) return '';
+  return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+}
+function chatMsgHTML(m){
+  const name = m.author_name || 'Member';
+  const init = name.slice(0,2).toUpperCase();
+  const ava = m.author_avatar
+    ? `<img class="ch-ava" src="${esc(m.author_avatar)}" alt="" onerror="this.outerHTML='<div class=\\'ch-ava-init\\'>${init}</div>'">`
+    : `<div class="ch-ava-init">${init}</div>`;
+  return `<div class="ch-msg">
+      ${ava}
+      <div class="ch-body">
+        <div class="ch-meta">
+          <span class="ch-author">${esc(name)}</span>
+          <span class="ch-time">${chatTime(m.created_at)}</span>
+        </div>
+        <div class="ch-text">${esc(m.body)}</div>
+      </div>
+    </div>`;
+}
+function renderChatComposer(){
+  const slot = document.getElementById('ch-composer-slot');
+  if(!slot) return;
+  if(!CURRENT_USER){
+    slot.innerHTML = `<div class="ch-locked">
+      <button onclick="signInDiscord()">Sign in with Discord</button> to join the chat.</div>`;
+    return;
+  }
+  slot.innerHTML = `<div class="ch-composer">
+      <textarea id="ch-input" rows="1" maxlength="500" placeholder="Say something…"
+        oninput="chatAutoGrow(this)" onkeydown="chatKeydown(event)"></textarea>
+      <button class="ch-send" id="ch-send" onclick="sendChat()">Send</button>
+    </div>`;
+}
+function chatAutoGrow(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,120)+'px'; }
+function chatKeydown(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+}
+function chatScrollBottom(){
+  const feed = document.getElementById('ch-feed');
+  if(feed) feed.scrollTop = feed.scrollHeight;
+}
+function chatAppend(m){
+  const feed = document.getElementById('ch-feed');
+  if(!feed) return;
+  const empty = feed.querySelector('.ch-empty'); if(empty) empty.remove();
+  // skip if we've already shown this id
+  if(m.id && feed.querySelector(`[data-mid="${m.id}"]`)) return;
+  const near = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
+  const div = document.createElement('div');
+  div.innerHTML = chatMsgHTML(m).trim();
+  const node = div.firstChild;
+  if(m.id) node.setAttribute('data-mid', m.id);
+  feed.appendChild(node);
+  CHAT_LAST_TS = m.created_at;
+  if(near) chatScrollBottom();
+}
+async function initChatHub(){
+  renderChatComposer();
+  const feed = document.getElementById('ch-feed');
+  if(!feed) return;
+  let rows;
+  try{
+    const { data, error } = await sb.from('chat_messages')
+      .select('id,author_name,author_avatar,body,created_at')
+      .order('created_at',{ascending:false}).limit(CHAT_MAX);
+    if(error) throw error;
+    rows = (data||[]).reverse();
+  }catch(e){
+    feed.innerHTML = `<div class="ch-empty">Chat is unavailable right now.</div>`;
+    return;
+  }
+  if(!rows.length){
+    feed.innerHTML = `<div class="ch-empty">No messages yet — say hi.</div>`;
+  }else{
+    feed.innerHTML = rows.map(m=>{
+      const html = chatMsgHTML(m).trim();
+      return html.replace('<div class="ch-msg">', `<div class="ch-msg" data-mid="${m.id}">`);
+    }).join('');
+    CHAT_LAST_TS = rows[rows.length-1].created_at;
+    chatScrollBottom();
+  }
+  startChatRealtime();
+}
+function startChatRealtime(){
+  stopChatRealtime();
+  // realtime insert stream
+  try{
+    CHAT_CHANNEL = sb.channel('chat_messages_live')
+      .on('postgres_changes',
+        { event:'INSERT', schema:'public', table:'chat_messages' },
+        payload => { if(payload && payload.new) chatAppend(payload.new); })
+      .subscribe();
+  }catch(e){}
+  // backup poll every 20s in case realtime isn't enabled
+  CHAT_POLL_TIMER = setInterval(async ()=>{
+    const pg = document.getElementById('page-live');
+    if(!pg || !pg.classList.contains('active')){ stopChatRealtime(); return; }
+    if(!CHAT_LAST_TS) return;
+    try{
+      const { data } = await sb.from('chat_messages')
+        .select('id,author_name,author_avatar,body,created_at')
+        .gt('created_at', CHAT_LAST_TS).order('created_at',{ascending:true}).limit(CHAT_MAX);
+      (data||[]).forEach(chatAppend);
+    }catch(e){}
+  }, 20000);
+}
+function stopChatRealtime(){
+  if(CHAT_CHANNEL){ try{ sb.removeChannel(CHAT_CHANNEL); }catch(e){} CHAT_CHANNEL=null; }
+  if(CHAT_POLL_TIMER){ clearInterval(CHAT_POLL_TIMER); CHAT_POLL_TIMER=null; }
+}
+async function sendChat(){
+  if(!CURRENT_USER){ signInDiscord(); return; }
+  const input = document.getElementById('ch-input');
+  const btn = document.getElementById('ch-send');
+  if(!input) return;
+  const body = input.value.trim();
+  if(!body) return;
+  if(btn) btn.disabled = true;
+  const name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member';
+  const avatar = (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || null;
+  try{
+    const { error } = await sb.from('chat_messages').insert({
+      user_id: CURRENT_USER.id,
+      author_name: name,
+      author_avatar: avatar,
+      body
+    });
+    if(error) throw error;
+    input.value=''; chatAutoGrow(input);
+  }catch(e){
+    wcaToast('Message failed','Could not send — try again.',true);
+  }finally{
+    if(btn) btn.disabled = false;
+    input.focus();
+  }
 }
 
 // ===== POINTS LEADERBOARD =====
@@ -4028,7 +4226,7 @@ function activatePage(pg){
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
   if(pg==='live') loadLive();   // always fetch the latest live state on open
-  else stopLiveRailPolling();   // leaving Live — stop the standings poll
+  else { stopLiveRailPolling(); stopChatRealtime(); }   // leaving Live — stop polls/realtime
   if(pg!=='dashboard' && COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
   if(pg==='storylines') loadStorylines();
   if(pg==='leaderboard') loadLeaderboard();
