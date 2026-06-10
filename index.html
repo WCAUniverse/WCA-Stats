@@ -4,21 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WCA — World Championship Alliance</title>
-  <meta name="description" content="The home of the World Championship Alliance — live event stat tracking, championship rankings, full roster, storylines, viewer betting leaderboards, and event archive.">
-<meta name="theme-color" content="#E9B949">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="World Championship Alliance">
-<meta property="og:title" content="WCA — World Championship Alliance">
-<meta property="og:description" content="Live event stat tracking, championship rankings, full roster, storylines, and viewer betting leaderboards.">
-<meta property="og:url" content="https://wcauniverse.github.io/WCA-Stats/">
-<meta property="og:image" content="https://wcauniverse.github.io/WCA-Stats/preview/og-default.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="World Championship Alliance">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="WCA — World Championship Alliance">
-<meta name="twitter:description" content="Live event stat tracking, championship rankings, full roster, storylines, and viewer betting leaderboards.">
-<meta name="twitter:image" content="https://wcauniverse.github.io/WCA-Stats/preview/og-default.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1088,6 +1073,22 @@
   .sl-timeline .sl-body{font-family:'Barlow'; font-size:15px; line-height:1.6;
     color:#cfcdc6; white-space:pre-wrap; word-break:break-word;}
 
+  /* media embeds (linked, never stored) */
+  .sl-embed{margin-top:10px; border-radius:12px; overflow:hidden; border:1px solid var(--line);
+    background:#000; max-width:100%;}
+  .sl-embed-video{position:relative; width:100%; aspect-ratio:16/9;}
+  .sl-embed-video iframe, .sl-embed-video video{position:absolute; inset:0; width:100%; height:100%; border:0; display:block;}
+  .sl-embed-img img, .sl-embed-gif img{display:block; width:100%; height:auto; max-height:520px; object-fit:contain; background:#000;}
+  .sl-embed-gif{position:relative;}
+  /* GIF hover affordance: subtle dim + "GIF" tag, brightens on hover */
+  .sl-embed-gif::after{content:'GIF'; position:absolute; left:8px; bottom:8px; font:700 11px 'Barlow',sans-serif;
+    letter-spacing:1px; color:#fff; background:rgba(0,0,0,.65); border:1px solid rgba(255,255,255,.25);
+    padding:2px 7px; border-radius:6px; pointer-events:none;}
+  .sl-embed-gif img{filter:brightness(.92); transition:filter .2s ease;}
+  .sl-embed-gif:hover img{filter:brightness(1.05);}
+  .sl-embed a{display:block; padding:14px; color:var(--gold); text-decoration:none; font-weight:600;}
+  .sl-embed a:hover{text-decoration:underline;}
+
   /* type chip header row shared by article/timeline/hr meta line */
   .sl-toprow{display:flex; align-items:center; justify-content:space-between; gap:10px;
     flex-wrap:wrap; margin-bottom:10px;}
@@ -1154,6 +1155,23 @@
     font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
     font-weight:600; padding:9px 18px; border-radius:8px; transition:.15s;}
   .sl-cpost:hover{filter:brightness(1.08);} .sl-cpost:disabled{opacity:.45; cursor:not-allowed;}
+  .sl-cgif{background:transparent; color:var(--gold); border:1px solid var(--gold-dim); cursor:pointer;
+    font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    font-weight:600; padding:9px 14px; border-radius:8px; transition:.15s;}
+  .sl-cgif:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
+  .sl-gifpicker{border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--panel2); margin-top:4px;}
+  .sl-gifsearch{display:flex; gap:8px; margin-bottom:8px;}
+  .sl-gifsearch input{flex:1; background:var(--bg); border:1px solid var(--line); color:var(--txt);
+    border-radius:8px; padding:8px 12px; font-family:'Barlow'; font-size:14px;}
+  .sl-gifsearch input:focus{outline:none; border-color:var(--gold);}
+  .sl-gifsearch button{background:var(--gold); color:#15120a; border:none; cursor:pointer;
+    font-family:'Oswald'; font-size:12px; letter-spacing:1px; text-transform:uppercase; font-weight:600;
+    padding:8px 16px; border-radius:8px;}
+  .sl-gifgrid{display:flex; flex-wrap:wrap; gap:6px; max-height:300px; overflow-y:auto;}
+  .sl-gifgrid img{height:92px; border-radius:6px; cursor:pointer; border:1px solid var(--line); transition:.12s;}
+  .sl-gifgrid img:hover{border-color:var(--gold); transform:scale(1.03);}
+  .sl-gifattr{font-family:'Barlow'; font-size:11px; color:var(--muted); text-align:right;
+    margin-top:6px; letter-spacing:.5px;}
   .sl-csignin{font-family:'Barlow'; font-size:14px; color:var(--muted);
     background:var(--panel2); border:1px dashed var(--line); border-radius:10px;
     padding:12px 14px; margin-bottom:16px; text-align:center;}
@@ -3425,6 +3443,7 @@ function slRenderSocial(p){
       </div>
     </div>
     <div class="sl-text">${esc(p.body)}</div>
+    ${slMedia(p.body)}
     <div class="sl-foot">
       <span class="sl-stat heart"><i class="ti ti-heart-filled"></i> ${esc(stats.likes||'0')}</span>
       <span class="sl-stat"><i class="ti ti-message-circle"></i> ${esc(stats.replies||'0')}</span>
@@ -3457,6 +3476,7 @@ function slRenderArticle(p){
     <h2 class="sl-headline">${esc(p.title)}</h2>
     ${byline?`<div class="sl-byline">${esc(byline)}</div>`:''}
     ${p.body?`<div class="sl-body">${esc(p.body)}</div>`:''}
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderNotice(p){
@@ -3481,6 +3501,7 @@ function slRenderNotice(p){
       </div>
       <div class="sl-subject">${esc(p.title)}</div>
       <div class="sl-body">${esc(p.body)}</div>
+      ${slMedia(p.body)}
       <div class="sl-sign">— ${esc(sign)}</div>
     </div>
   ${slEngageBar(p)}</article>`;
@@ -3493,9 +3514,71 @@ function slRenderTimeline(p){
       <div class="sl-tl-date">${esc(slDate(p.story_date))}</div>
       <div class="sl-tl-title">${esc(p.title)}</div>
       ${p.body?`<div class="sl-body">${esc(p.body)}</div>`:''}
+      ${slMedia(p.body)}
     </div>
   ${slEngageBar(p)}</article>`;
 }
+// ---------------------------------------------------------------------------
+// MEDIA EMBEDS — turn any media LINK in a post body into a live embed.
+// Nothing is uploaded/stored: the media stays hosted wherever the link points
+// (YouTube, Vimeo, Imgur, Tenor, Giphy, direct .jpg/.gif/.mp4, etc.). We just
+// reference it. Returns HTML for any media links found, or "" if none.
+// ---------------------------------------------------------------------------
+function slMedia(text){
+  if(!text) return '';
+  const urls = (text.match(/https?:\/\/[^\s<>"']+/gi) || []);
+  if(!urls.length) return '';
+  const out = [];
+  const seen = new Set();
+  for(const raw of urls){
+    let url = raw.replace(/[.,)]+$/, '');   // trim trailing punctuation
+    if(seen.has(url)) continue; seen.add(url);
+    const u = url.toLowerCase();
+    let html = '';
+
+    // --- YouTube ---
+    let m = url.match(/(?:youtube\.com\/(?:watch\?v=|live\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+    if(m){
+      html = `<div class="sl-embed sl-embed-video"><iframe src="https://www.youtube.com/embed/${m[1]}"
+        title="YouTube video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen loading="lazy"></iframe></div>`;
+    }
+    // --- Vimeo ---
+    else if((m = url.match(/vimeo\.com\/(\d+)/i))){
+      html = `<div class="sl-embed sl-embed-video"><iframe src="https://player.vimeo.com/video/${m[1]}"
+        title="Vimeo video" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
+    }
+    // --- Streamable ---
+    else if((m = url.match(/streamable\.com\/([A-Za-z0-9]+)/i))){
+      html = `<div class="sl-embed sl-embed-video"><iframe src="https://streamable.com/e/${m[1]}"
+        frameborder="0" allowfullscreen loading="lazy"></iframe></div>`;
+    }
+    // --- Tenor / Giphy GIF pages (not direct files) ---
+    else if(/tenor\.com\/view\//i.test(u) || /giphy\.com\/gifs\//i.test(u)){
+      // These are GIF "view" pages; the simplest reliable embed is the page's media.
+      // Tenor/Giphy share-links usually resolve to a .gif when given to <img>; if not,
+      // we link out gracefully.
+      html = `<div class="sl-embed sl-embed-gif"><img src="${esc(url)}.gif" alt="GIF"
+        loading="lazy" onerror="this.parentNode.innerHTML='<a href=\\'${esc(url)}\\' target=\\'_blank\\' rel=\\'noopener\\'>View GIF ↗</a>'"></div>`;
+    }
+    // --- Direct video files ---
+    else if(/\.(mp4|webm|mov)(\?|$)/i.test(u)){
+      html = `<div class="sl-embed sl-embed-video"><video src="${esc(url)}" controls preload="metadata" playsinline></video></div>`;
+    }
+    // --- Direct GIF ---
+    else if(/\.gif(\?|$)/i.test(u)){
+      html = `<div class="sl-embed sl-embed-gif"><img src="${esc(url)}" alt="GIF" loading="lazy"></div>`;
+    }
+    // --- Direct images ---
+    else if(/\.(jpe?g|png|webp|avif|bmp)(\?|$)/i.test(u) || /i\.imgur\.com/i.test(u)){
+      html = `<div class="sl-embed sl-embed-img"><img src="${esc(url)}" alt="image" loading="lazy"
+        onerror="this.parentNode.style.display='none'"></div>`;
+    }
+    if(html) out.push(html);
+  }
+  return out.join('');
+}
+
 function slRenderPost(p){
   switch(p.kind){
     case 'social':   return slRenderSocial(p);
@@ -3695,10 +3778,21 @@ async function slRenderComments(id){
   // composer (signed-in) or sign-in nudge
   const composer = CURRENT_USER
     ? `<div class="sl-cform">
-         <textarea id="sl-cinput-${id}" placeholder="Add a comment…" maxlength="1000"></textarea>
+         <textarea id="sl-cinput-${id}" placeholder="Add a comment… (or add a GIF)" maxlength="1000"></textarea>
          <div class="sl-crow">
            <span class="sl-cwhen">Posting as ${esc(MY_PROFILE ? (MY_PROFILE.display_name||MY_PROFILE.username||'Member') : 'Member')}</span>
-           <button class="sl-cpost" onclick="slPostComment(${id})">Post comment</button>
+           <span style="display:flex;gap:8px;align-items:center">
+             <button class="sl-cgif" onclick="slToggleGifPicker(${id})" title="Add a GIF">🎞️ GIF</button>
+             <button class="sl-cpost" onclick="slPostComment(${id})">Post comment</button>
+           </span>
+         </div>
+         <div class="sl-gifpicker" id="sl-gifpick-${id}" style="display:none">
+           <div class="sl-gifsearch">
+             <input id="sl-gifq-${id}" placeholder="Search KLIPY for a GIF…" onkeydown="if(event.key==='Enter')slGifSearch(${id})">
+             <button onclick="slGifSearch(${id})">Search</button>
+           </div>
+           <div class="sl-gifgrid" id="sl-gifgrid-${id}"><div class="sl-cempty" style="padding:10px">Search for a GIF above. Powered by KLIPY.</div></div>
+           <div class="sl-gifattr">Powered by KLIPY</div>
          </div>
        </div>`
     : `<div class="sl-csignin">Want to join the conversation?
@@ -3711,6 +3805,7 @@ async function slRenderComments(id){
           ${c.mine?`<button class="sl-cmine" onclick="slDeleteComment(${id},${c.id})">delete</button>`:''}
         </div>
         <div class="sl-cbody">${esc(c.body)}</div>
+        ${slMedia(c.body)}
       </div>`).join('')
     : '<div class="sl-cempty">No comments yet — be the first.</div>';
   box.innerHTML = composer + `<div class="sl-clist">${items}</div>`;
@@ -3719,6 +3814,57 @@ async function slRenderComments(id){
   const cc = SL_CCOUNT[id]||list.length;
   if(cbtn) cbtn.innerHTML = `<i class="ti ti-message-2"></i> ${cc} ${cc===1?'Comment':'Comments'}`;
 }
+// ---- Public GIF picker (Tenor, via the swift-api function) ----
+function slToggleGifPicker(id){
+  const el = document.getElementById('sl-gifpick-'+id);
+  if(!el) return;
+  el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
+  if(el.style.display==='block'){ const q=document.getElementById('sl-gifq-'+id); if(q) q.focus(); }
+}
+async function slGifSearch(id){
+  const q = (document.getElementById('sl-gifq-'+id)?.value||'').trim();
+  const grid = document.getElementById('sl-gifgrid-'+id);
+  if(!q){ return; }
+  grid.innerHTML = '<div class="sl-cempty" style="padding:10px">Searching…</div>';
+  try{
+    const { data:out, error } = await sb.functions.invoke('swift-api', {
+      body: { postType:'gif', userPrompt:q, context:{ limit:16 } }
+    });
+    if(error || (out && out.error)){
+      grid.innerHTML = '<div class="sl-cempty" style="padding:10px">Couldn\'t load GIFs right now.</div>'; return;
+    }
+    const gifs = (out && out.gifs) || [];
+    if(!gifs.length){ grid.innerHTML = '<div class="sl-cempty" style="padding:10px">No GIFs found — try another search.</div>'; return; }
+    grid.innerHTML = gifs.map(g=>`
+      <img src="${esc(g.preview||g.url)}" data-url="${esc(g.url)}" title="${esc(g.desc||'GIF')}"
+           onclick="slPickGif(${id}, this.dataset.url)">`).join('');
+  }catch(e){
+    grid.innerHTML = '<div class="sl-cempty" style="padding:10px">Couldn\'t load GIFs right now.</div>';
+  }
+}
+// Picking a GIF posts it immediately as its own comment (so it embeds cleanly),
+// unless there's text typed — then it appends the link to that text.
+async function slPickGif(id, url){
+  if(!url) return;
+  const ta = document.getElementById('sl-cinput-'+id);
+  const existing = (ta?.value||'').trim();
+  if(existing){
+    ta.value = existing + ' ' + url;
+    slToggleGifPicker(id);
+    return;
+  }
+  // No text — post the GIF on its own.
+  if(!CURRENT_USER){ wcaToast('Sign in to comment','Use Discord sign-in.',true); return; }
+  try{
+    const { error } = await sb.from('storyline_comments')
+      .insert({ storyline_id:id, user_id:CURRENT_USER.id, is_fake:false, body:url });
+    if(error) throw error;
+    SL_COMMENTS[id]=null;
+    if(SL_CCOUNT[id]!=null) SL_CCOUNT[id]++;
+    await slRenderComments(id);
+  }catch(e){ wcaToast('Could not post GIF','Try again.',true); }
+}
+
 async function slPostComment(id){
   if(!CURRENT_USER){ wcaToast('Sign in to comment','Use Discord sign-in.',true); return; }
   const ta = document.getElementById('sl-cinput-'+id);
