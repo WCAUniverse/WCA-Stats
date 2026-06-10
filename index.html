@@ -1569,7 +1569,7 @@ function rowHTML(p, idx, isChamp, div){
       <div class="nm-top">${esc(p.name)}${tags}</div>
       ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}
     </div>
-    <div class="row-mid">${last5Mini(p.seed_last5 != null ? p.seed_last5 : meta.last5)}</div>
+    <div class="row-mid">${last5Mini(p.seed_last5)}</div>
     ${wlText(p.wins, p.losses)}
     ${champ?'<span class="dots-end"></span>':dots(p.contender_points||0)}
   </div>`;
@@ -1845,7 +1845,7 @@ async function loadDashboard(){
         ${ringSVG(p.win_pct||0)}
         <div class="nm"><div class="nm-top">${esc(p.name)}${ready?'<span class="tag ready">#1 Contender</span>':''}</div>
         ${(perf||socs)?`<div class="nm-sub">${perf}${socs}</div>`:''}</div>
-        <div class="row-mid">${last5Mini(p.seed_last5 != null ? p.seed_last5 : meta.last5)}</div>
+        <div class="row-mid">${last5Mini(p.seed_last5)}</div>
         ${wlText(p.wins, p.losses)}
         ${dots(p.contender_points||0)}
       </div>`;
