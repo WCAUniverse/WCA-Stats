@@ -6,7 +6,7 @@
 <title>WCA — World Championship Alliance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -1367,6 +1367,326 @@
     margin:6px 0; overflow-x:auto; white-space:pre-wrap; word-break:break-word;}
   .sl-quote{display:block; border-left:3px solid var(--gold-dim); padding:1px 0 1px 12px;
     margin:2px 0; color:#cfcdc6;}
+
+  /* ════════════════════════════════════════════════════════════
+     WCA — "HALL OF CHAMPIONS"  ·  luxury championship redesign
+     Black marble + brushed gold + engraved-serif display.
+     VISUAL ONLY. Targets existing classes/IDs. No JS/HTML logic
+     altered. (Two small ADDITIVE pieces — a dashboard storylines
+     section + its loader — are added separately and clearly marked.)
+     ════════════════════════════════════════════════════════════ */
+
+  :root{
+    --ink:#070707;           /* deepest black */
+    --marble:#0e0e10;        /* panel marble base */
+    --marble-2:#141416;
+    --vein:rgba(233,185,73,.06);
+    --au:#e9b949;            /* championship gold */
+    --au-bright:#f7df8e;
+    --au-deep:#8a6a1e;
+    --au-hair:rgba(233,185,73,.34);   /* hairline gold rule */
+    --au-faint:rgba(233,185,73,.13);
+    --serif:'Cormorant Garamond', Georgia, serif;
+    --content-max:1760px;
+  }
+
+  /* ---- the room: deep marble hall, gold light from above ---- */
+  body{
+    background:
+      radial-gradient(1300px 720px at 50% -14%, rgba(233,185,73,.085), transparent 60%),
+      radial-gradient(900px 600px at 8% 4%, rgba(233,185,73,.04), transparent 55%),
+      radial-gradient(900px 600px at 92% 4%, rgba(233,185,73,.04), transparent 55%),
+      var(--ink);
+    background-attachment:fixed;
+    color:#ece9e2;
+  }
+  /* faint marble veining + floor vignette over the whole hall */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(140% 120% at 50% 0%, transparent 56%, rgba(0,0,0,.62) 100%),
+      repeating-linear-gradient(115deg, rgba(255,255,255,.014) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(60deg, rgba(255,255,255,.01) 0 1px, transparent 1px 120px);
+    opacity:.7;
+  }
+  header,.wrap,.toast,.modal-overlay{position:relative; z-index:1;}
+
+  /* ════ TYPOGRAPHY — engraved nameplates ════
+     The single biggest "this is a new site" move: serif display. */
+  h1,h2,h3,.disp,
+  .hero-title,.section-title,.champ-card .who,.ev-name,
+  .cd-name,.pf-name,.div-head h3,.fname,.brand .logo{
+    font-family:var(--serif) !important;
+    letter-spacing:.5px;
+  }
+  .hero-title{font-weight:600; text-transform:none; letter-spacing:1px;}
+  .brand .logo{font-weight:700; letter-spacing:3px; font-size:30px;}
+  .champ-card .who{font-weight:600; text-transform:none; letter-spacing:.5px;}
+
+  /* widen the hall */
+  .wrap{max-width:var(--content-max); padding-left:clamp(18px,2.5vw,40px); padding-right:clamp(18px,2.5vw,40px);}
+  .head-inner{max-width:var(--content-max); padding-left:clamp(18px,2.5vw,40px); padding-right:clamp(18px,2.5vw,40px);}
+
+  /* ════ THE ENTRANCE — gallery header ════ */
+  header{
+    background:linear-gradient(180deg, rgba(8,8,8,.95), rgba(8,8,8,.82));
+    border-bottom:1px solid var(--au-hair);
+    box-shadow:0 18px 50px -36px #000;
+  }
+  header::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--au) 50%, transparent);
+    opacity:.6;
+  }
+  .brand .logo{color:var(--au); text-shadow:0 0 30px rgba(233,185,73,.45);}
+  .brand .sub{color:#7d7768; letter-spacing:4px;}
+
+  /* nav: refined gallery directory — letterspaced caps under a gold underline */
+  nav button{
+    font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:1.6px;
+    color:#9a948a; border:none; border-radius:0; padding:9px 13px 8px;
+    position:relative; background:transparent;
+  }
+  nav button::after{
+    content:''; position:absolute; left:13px; right:13px; bottom:2px; height:1px;
+    background:var(--au); transform:scaleX(0); transform-origin:center;
+    transition:transform .22s ease; opacity:.9;
+  }
+  nav button:hover{color:#f3ede0; background:transparent; box-shadow:none;}
+  nav button:hover::after{transform:scaleX(1);}
+  nav button.active{
+    color:var(--au); background:transparent; font-weight:600; box-shadow:none;
+  }
+  nav button.active::after{transform:scaleX(1); height:2px;}
+  #nav-live-btn.is-live{color:#fff;}
+  #nav-live-btn.is-live::after{background:var(--au); transform:scaleX(1);}
+  #nav-live-btn.is-live::before{
+    content:''; position:absolute; top:6px; right:6px; width:5px; height:5px; border-radius:50%;
+    background:#c41e3a; box-shadow:0 0 8px #c41e3a; animation:wcaPulse 1.6s infinite;
+  }
+
+  .user-chip{
+    background:linear-gradient(180deg,#181610,#0c0b0d);
+    border:1px solid var(--au-hair); border-radius:4px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .user-chip .ubal{font-family:var(--serif); font-size:19px; color:var(--au); text-shadow:0 0 16px rgba(233,185,73,.4);}
+
+  /* ════ MARBLE SURFACES — shared panel treatment ════ */
+  .hero,.champ-card,.division,.bout,.event-hero,.modal-box,.af-section,
+  .countdown,.apply-rule,.legend.legend-big,.slpost,.search,
+  .dash-tron,.dash-rail-card,.dsl-card{
+    background-color:var(--marble);
+    background-image:
+      linear-gradient(180deg, rgba(255,255,255,.022), transparent 38%),
+      repeating-linear-gradient(118deg, var(--vein) 0 1px, transparent 1px 64px);
+    border-color:var(--au-faint);
+    border-radius:6px;
+  }
+
+  /* ════ THE TITANTRON — dashboard hero as a gilded screen ════ */
+  .hero{
+    border:1px solid var(--au-hair); border-radius:8px; min-height:360px;
+    box-shadow:0 40px 90px -56px #000, inset 0 0 140px -50px rgba(233,185,73,.16);
+  }
+  .hero::after{
+    content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+    background:radial-gradient(120% 130% at 50% 30%, transparent 50%, rgba(0,0,0,.66) 100%);
+  }
+  /* gold corner brackets — like a framed exhibit */
+  .hero::before{
+    content:''; position:absolute; inset:14px; pointer-events:none; z-index:2; border-radius:4px;
+    background:
+      linear-gradient(var(--au),var(--au)) 0 0/26px 1px no-repeat,
+      linear-gradient(var(--au),var(--au)) 0 0/1px 26px no-repeat,
+      linear-gradient(var(--au),var(--au)) 100% 0/26px 1px no-repeat,
+      linear-gradient(var(--au),var(--au)) 100% 0/1px 26px no-repeat,
+      linear-gradient(var(--au),var(--au)) 0 100%/26px 1px no-repeat,
+      linear-gradient(var(--au),var(--au)) 0 100%/1px 26px no-repeat,
+      linear-gradient(var(--au),var(--au)) 100% 100%/26px 1px no-repeat,
+      linear-gradient(var(--au),var(--au)) 100% 100%/1px 26px no-repeat;
+    opacity:.5;
+  }
+  .hero-bg{opacity:.32; filter:saturate(.85);}
+  .hero-emblem{width:190px; height:190px; filter:drop-shadow(0 8px 40px rgba(233,185,73,.4)); animation:wcaEmblem 7s ease-in-out infinite;}
+  @keyframes wcaEmblem{0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}}
+  .hero-kicker{color:var(--au); letter-spacing:5px; font-size:12px;}
+  .hero-title{font-size:clamp(40px,6.5vw,72px); color:#fff; text-shadow:0 3px 34px rgba(0,0,0,.7), 0 0 50px rgba(233,185,73,.14);}
+  .hero-sub{color:#cfcabd; font-size:16px;}
+  .hero-sub em{color:#8a8478;}
+  .hbtn{border-radius:4px; letter-spacing:2px; font-size:13px; border:1px solid var(--au-hair); color:var(--au);}
+  .hbtn:hover{border-color:var(--au); background:rgba(233,185,73,.06); transform:translateY(-2px);}
+  .hbtn.primary{background:linear-gradient(180deg,var(--au-bright),var(--au)); color:#1a1407; border-color:var(--au); font-weight:600;}
+  .hbtn.primary:hover{filter:brightness(1.07);}
+
+  /* ════ SECTION SIGNAGE — engraved label + gold rule + numeral ════ */
+  .section-title{
+    font-family:var(--serif) !important; font-size:24px !important; font-weight:600;
+    letter-spacing:1px; color:#f1ece0; text-transform:none; margin-top:46px;
+    text-shadow:none;
+  }
+  .section-title::after{height:1px; background:linear-gradient(90deg, var(--au-hair), transparent);}
+  .section-title .see-all, .section-title .st-rule{font-family:'Oswald',sans-serif;}
+  .see-all{color:var(--au); font-size:11px; letter-spacing:1.5px;}
+
+  /* ════ CHAMPION PLATES — the centerpiece of a hall of legends ════ */
+  .champ-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px;}
+  .champ-card{
+    border:1px solid var(--au-hair); border-radius:6px; padding:18px;
+    box-shadow:0 20px 44px -34px #000, inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .champ-card::after{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg, var(--au-bright), var(--au-deep)); opacity:.85;
+  }
+  .champ-card .lbl{color:var(--au-deep); letter-spacing:2.5px;}
+  .champ-card .who{font-size:27px; color:#fff;}
+  .champ-card .meta{color:#8d8779; font-family:var(--serif); font-style:italic; font-size:15px;}
+  .champ-card:hover{transform:translateY(-3px); box-shadow:0 26px 54px -30px #000, 0 0 40px -14px rgba(233,185,73,.4);}
+  .champ-card.chat{background-color:#120f1d;} .champ-card.chat::after{background:linear-gradient(180deg,#b89cff,#4b3a8f);}
+  .champ-card.chat .lbl{color:#9c86e0;}
+  .champ-card.vacant::after{opacity:.25; background:#3a3a3a;}
+
+  /* ════ STANDINGS / DIVISIONS — gallery ledger ════ */
+  #page-rankings .division{max-width:1180px; margin-left:auto; margin-right:auto;}
+  .division{border:1px solid var(--au-faint); border-radius:6px; box-shadow:0 20px 46px -36px #000;}
+  .div-head h3{font-size:22px; color:#f1ece0;}
+  .row.champ{background:linear-gradient(90deg, rgba(233,185,73,.12), rgba(233,185,73,.03)); border:1px solid var(--au-hair); box-shadow:inset 0 0 50px -30px rgba(233,185,73,.6);}
+  .row:hover{background:rgba(233,185,73,.045);}
+  .rank{font-family:var(--serif); font-weight:700;}
+  .rank.rk1{color:var(--au); text-shadow:0 0 18px rgba(233,185,73,.5);}
+  .nm-top{font-family:'Barlow Condensed',sans-serif;}
+
+  /* standings preview: ONE full-width column, blocks stacked.
+     Each division gets the entire page width so rows never crowd —
+     the "#1 Contender" tag always has room beside the last-5 area. */
+  #page-dash #contenders{
+    display:flex; flex-direction:column; gap:18px;
+  }
+  /* generous row spacing now that each row owns the full width */
+  #page-dash #contenders .row{gap:18px;}
+  #page-dash #contenders .nm{flex:1;}
+  #page-dash #contenders .row-mid{min-width:120px; margin-left:auto; margin-right:18px;}
+  #page-dash #contenders .wl2{min-width:170px;}
+  #page-dash #contenders .tag.ready{margin-left:8px;}
+  /* the rankings page divisions also span full width on big screens */
+  @media(min-width:1280px){
+    #page-rankings .division{max-width:none;}
+  }
+
+  /* ════ THE BETTING FLOOR ════ */
+  .side-pot,.bet-input{font-family:var(--serif); text-shadow:0 0 14px rgba(233,185,73,.4);}
+  .confirm-bet,.af-submit{background:linear-gradient(180deg,var(--au-bright),var(--au)); color:#1a1407; border-radius:5px;}
+  .pick-btn{border-radius:5px; border-color:var(--au-hair);}
+  .pick-btn:hover{background:var(--au); color:#1a1407;}
+
+  /* ════ EVENTS ════ */
+  .event-hero{border:1px solid var(--au-hair); border-radius:8px;}
+  .ev-name{font-family:var(--serif) !important; font-weight:700; text-transform:none; letter-spacing:1px;}
+  .bout.main{border-color:var(--au-hair); box-shadow:0 20px 50px -34px #000, inset 0 0 70px -36px rgba(233,185,73,.34);}
+  .fname{font-family:var(--serif) !important; text-transform:none;}
+  .bout .vs{font-family:var(--serif); font-style:italic; color:var(--au);}
+
+  /* ════ BACKSTAGE / STORYLINES — dim gallery, gold leaf ════ */
+  .slpost{border:1px solid var(--au-faint); border-radius:6px; box-shadow:0 18px 44px -36px #000;}
+  .slpost:hover{border-color:var(--au-hair);}
+  .slpost .sl-pin{color:var(--au);}
+  #page-storylines .section-title{color:#f1ece0;}
+
+  /* ════ MODAL / PROFILE ════ */
+  .modal-box{border:1px solid var(--au-hair); border-radius:8px;}
+  .pf-photo{border:1px solid var(--au-hair); border-radius:6px;}
+  .pf-name{font-size:30px; color:#fff; text-transform:none;}
+
+  /* ════ COUNTDOWN ════ */
+  .countdown{border:1px solid var(--au-hair); border-radius:8px;}
+  .cd-name{font-family:var(--serif) !important; text-transform:none;}
+  .cd-num{font-family:var(--serif); color:var(--au);}
+
+  /* ════ scrollbar + selection ════ */
+  ::-webkit-scrollbar-thumb{background:var(--au-deep); border-radius:6px;}
+  ::selection{background:var(--au); color:#1a1407;}
+
+  /* sign-in button: gold, not Discord blurple (keeps the icon) */
+  .login-btn{
+    background:linear-gradient(180deg,#181610,#0c0b0d);
+    border:1px solid var(--au-hair); color:var(--au);
+    border-radius:5px; letter-spacing:1.4px;
+  }
+  .login-btn:hover{background:rgba(233,185,73,.08); border-color:var(--au); filter:none;}
+  .login-btn i{color:var(--au);}
+
+  /* hero fills its column and centers content vertically on desktop */
+  @media(min-width:1080px){
+    .dash-floor .hero{display:flex;}
+    .dash-floor .hero .hero-in{width:100%; align-content:center;}
+  }
+  /* give the rail more presence so it doesn't trail off empty */
+  .dash-rail{justify-content:flex-start;}
+  .dash-rail-card{flex:0 0 auto;}
+
+  /* ════════════════════════════════════════════════════════════
+     NEW DASHBOARD LAYOUT — "The Arena Floor"
+     Two-column top: Titantron marquee (hero) + a side rail.
+     Then a full-width TOP STORYLINES gallery (pinned first).
+     ════════════════════════════════════════════════════════════ */
+  .dash-floor{
+    display:grid; grid-template-columns:1fr; gap:18px; margin-top:24px;
+  }
+  @media(min-width:1080px){
+    .dash-floor{grid-template-columns:minmax(0,1.62fr) minmax(300px,.95fr); align-items:stretch;}
+    .dash-floor .hero{margin:0; height:100%;}
+  }
+  .dash-rail{display:flex; flex-direction:column; gap:14px;}
+  .dash-rail-card{
+    border:1px solid var(--au-faint); border-radius:6px; padding:16px 18px;
+    box-shadow:0 18px 44px -36px #000;
+  }
+  .dash-rail-card .drc-lbl{
+    font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2.5px;
+    color:var(--au-deep); text-transform:uppercase; margin-bottom:10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .dash-rail-card .drc-lbl i{color:var(--au); font-size:15px;}
+
+  /* TOP STORYLINES gallery on the dashboard */
+  .dsl-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;}
+  @media(min-width:1100px){ .dsl-grid{grid-template-columns:repeat(4,1fr);} }
+  .dsl-card{
+    border:1px solid var(--au-faint); border-radius:6px; padding:16px 18px;
+    cursor:pointer; transition:.16s; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; gap:8px; min-height:128px;
+  }
+  .dsl-card:hover{transform:translateY(-3px); border-color:var(--au-hair); box-shadow:0 22px 50px -32px #000, 0 0 34px -16px rgba(233,185,73,.36);}
+  .dsl-card.pinned{border-color:var(--au-hair);}
+  .dsl-card.pinned::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--au-bright),var(--au-deep));
+  }
+  .dsl-kind{font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--au-deep); display:flex; align-items:center; gap:7px;}
+  .dsl-pin{color:var(--au); font-size:13px;}
+  .dsl-title{font-family:var(--serif); font-weight:600; font-size:21px; line-height:1.18; color:#f4efe3;}
+  .dsl-excerpt{font-family:'Barlow',sans-serif; font-size:13.5px; line-height:1.5; color:#a39d90; flex:1;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .dsl-foot{display:flex; align-items:center; justify-content:space-between; margin-top:2px;
+    font-family:'Barlow Condensed',sans-serif; font-size:13px; color:#7c766a;}
+  .dsl-foot .dsl-likes{color:var(--au-deep); display:inline-flex; align-items:center; gap:5px;}
+  .dsl-empty{grid-column:1/-1; text-align:center; color:#7c766a; font-family:var(--serif); font-style:italic; font-size:17px; padding:36px 0;}
+
+  /* ════ RESPONSIVE — keep mobile calm & simple ════ */
+  @media(max-width:760px){
+    body::before{opacity:.45;}
+    .wrap,.head-inner{padding-left:16px; padding-right:16px;}
+    .hero-emblem{animation:none; width:130px; height:130px;}
+    .section-title{font-size:20px !important; margin-top:34px;}
+    .dash-floor{gap:14px;}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .hero-emblem{animation:none;}
+    .live-dot,#nav-live-btn.is-live::before{animation:none;}
+    .page.active{animation:none;}
+  }
+
 </style>
 </head>
 <body>
@@ -1411,31 +1731,46 @@
   <!-- LANDING / DASHBOARD -->
   <div class="page active" id="page-dash">
 
-    <!-- HERO -->
-    <section class="hero">
-      <div class="hero-bg"></div>
-      <div class="hero-veil"></div>
-      <div class="hero-in">
-        <img class="hero-emblem" id="hero-emblem"
-             src="https://dmfbhszvrbaknaevdhxh.supabase.co/storage/v1/object/public/wrestler-photos/logos/WCA%20Logo.png"
-             alt="WCA emblem" onerror="this.style.display='none'">
-        <div class="hero-txt">
-          <div class="hero-kicker" id="hero-kicker">World Championship Alliance</div>
-          <h1 class="hero-title" id="hero-title">Welcome to WCA</h1>
-          <p class="hero-sub" id="hero-sub">
-            The home of the World Championship Alliance — live events, championship divisions,
-            and a full roster of competitors. Watch live, follow the rankings, and put your
-            coins on the line. <em>(Placeholder text — editable from the admin panel soon.)</em>
-          </p>
-          <div class="hero-cta">
-            <button class="hbtn primary" onclick="goPage('events')"><i class="ti ti-broadcast"></i> Watch &amp; Bet</button>
-            <button class="hbtn" onclick="goPage('roster')"><i class="ti ti-users-group"></i> Meet the Roster</button>
+    <!-- ARENA FLOOR: Titantron hero + side rail -->
+    <div class="dash-floor">
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-veil"></div>
+        <div class="hero-in">
+          <img class="hero-emblem" id="hero-emblem"
+               src="https://dmfbhszvrbaknaevdhxh.supabase.co/storage/v1/object/public/wrestler-photos/logos/WCA%20Logo.png"
+               alt="WCA emblem" onerror="this.style.display='none'">
+          <div class="hero-txt">
+            <div class="hero-kicker" id="hero-kicker">World Championship Alliance</div>
+            <h1 class="hero-title" id="hero-title">Welcome to WCA</h1>
+            <p class="hero-sub" id="hero-sub">
+              The home of the World Championship Alliance — live events, championship divisions,
+              and a full roster of competitors. Watch live, follow the rankings, and put your
+              coins on the line. <em>(Placeholder text — editable from the admin panel soon.)</em>
+            </p>
+            <div class="hero-cta">
+              <button class="hbtn primary" onclick="goPage('events')"><i class="ti ti-broadcast"></i> Watch &amp; Bet</button>
+              <button class="hbtn" onclick="goPage('roster')"><i class="ti ti-users-group"></i> Meet the Roster</button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <div id="countdown-wrap" style="display:none"></div>
+      </section>
+      <!-- SIDE RAIL: next-event countdown lands here; live status -->
+      <aside class="dash-rail">
+        <div id="countdown-wrap" style="display:none"></div>
+        <div class="dash-rail-card" id="dash-live-card">
+          <div class="drc-lbl"><i class="ti ti-broadcast"></i> Tonight at the Arena</div>
+          <div id="dash-live-body" style="font-family:'Barlow',sans-serif; font-size:14px; color:#a39d90; line-height:1.5;">
+            Head to <b style="color:var(--au)">Live</b> when the show is on, or check the <b style="color:var(--au)">Events</b> card for what's next.
+          </div>
+          <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+            <button class="hbtn" style="padding:9px 14px" onclick="goPage('live')"><i class="ti ti-player-play"></i> Live</button>
+            <button class="hbtn" style="padding:9px 14px" onclick="goPage('events')"><i class="ti ti-calendar-event"></i> Events</button>
+          </div>
+        </div>
+      </aside>
+    </div>
 
     <div class="section-title">Current Champions</div>
     <div class="champ-grid" id="champ-cards"><div class="loading">Loading…</div></div>
@@ -1445,6 +1780,13 @@
       <button class="see-all" onclick="goPage('rankings')">see full standings <i class="ti ti-arrow-right"></i></button>
     </div>
     <div id="contenders"><div class="loading">Loading…</div></div>
+
+    <!-- TOP STORYLINES (1 pinned + 3 recent) — at the bottom -->
+    <div class="section-title st-flex">From Backstage
+      <span class="st-rule"></span>
+      <button class="see-all" onclick="goPage('storylines')">all storylines <i class="ti ti-arrow-right"></i></button>
+    </div>
+    <div class="dsl-grid" id="dash-storylines"><div class="dsl-empty">Loading…</div></div>
   </div>
 
   <!-- LIVE -->
@@ -1650,7 +1992,8 @@ if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // page's CSS variables. If anything fails, the page keeps the colors baked
 // into the stylesheet above — it can never go blank from a theme error.
 const THEME_KEYS = ['bg','panel','panel2','line','gold','gold-dim','gold-deep',
-  'win','loss','teal','txt','muted','accent'];
+  'win','loss','teal','txt','muted','accent',
+  'ink','marble','au','au-bright','au-deep'];
 // Apply admin-managed site layout: merch link, nav button order/visibility,
 // and social icon order/visibility. Falls back to the HTML defaults.
 async function loadMerchLink(){
@@ -1702,6 +2045,13 @@ async function applyTheme(){
     THEME_KEYS.forEach(k=>{
       if(t[k]) root.style.setProperty('--'+k, t[k]);
     });
+    // Bridge: if the admin set the classic "gold" accent but not the new
+    // Hall accent vars, drive the Hall gold (--au family) from it so a
+    // single accent pick recolors the whole redesigned site.
+    if(t.gold && !t.au)        root.style.setProperty('--au', t.gold);
+    if(t.gold && !t['au-deep'])root.style.setProperty('--au-deep', t['gold-dim'] || t.gold);
+    if(t.bg   && !t.ink)       root.style.setProperty('--ink', t.bg);
+    if(t.panel&& !t.marble)    root.style.setProperty('--marble', t.panel);
   }catch(e){ /* keep stylesheet defaults */ }
 }
 
@@ -2043,6 +2393,58 @@ async function loadDashboard(){
     html+='</div>';
   }
   ce.innerHTML=html||'<div class="loading" style="padding:30px">No ranked competitors yet</div>';
+}
+
+// ── Dashboard "From Backstage" — top storylines, pinned first ──
+// Reuses the same storylines table/fields the Storylines page uses.
+// Pure read; no new tables. Clicking a card jumps to the Storylines tab.
+const DSL_KIND_LABEL = {
+  notice:'Announcement', article:'Article', social:'Social', promo:'Promo',
+  interview:'Interview', signing:'Signing', injury:'Report', timeline:'Timeline',
+  rankings:'Rankings', mystery:'Breaking'
+};
+function dslExcerpt(p){
+  let t = p.body || '';
+  if(!t && p.payload){ try{ const x=typeof p.payload==='string'?JSON.parse(p.payload):p.payload; t = x.text || x.excerpt || x.summary || ''; }catch(e){} }
+  t = String(t).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+  return t;
+}
+async function loadDashStorylines(){
+  const el = document.getElementById('dash-storylines');
+  if(!el) return;
+  let rows = [];
+  try{
+    const { data, error } = await sb.from('storylines')
+      .select('id,kind,title,body,payload,story_date,pinned,is_published,seed_likes,seed_dislikes')
+      .eq('is_published', true);
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){ rows = []; }
+
+  if(!rows.length){
+    el.innerHTML = '<div class="dsl-empty">No storylines posted yet — they\'ll appear here as the story unfolds.</div>';
+    return;
+  }
+  // 1 pinned (newest pinned) + 3 most-recent non-pinned = 4 cards
+  const byDate = (a,b)=> new Date(b.story_date||0) - new Date(a.story_date||0);
+  const pinned = rows.filter(p=>p.pinned).sort(byDate);
+  const recent = rows.filter(p=>!p.pinned).sort(byDate);
+  let top = [];
+  if(pinned.length){ top.push(pinned[0]); top = top.concat(recent.slice(0,3)); }
+  else { top = recent.slice(0,4); }   // no pinned post — just show 4 newest
+  el.innerHTML = top.map(p=>{
+    const likes = (typeof slLikeTotal==='function') ? slLikeTotal(p) : (Number(p.seed_likes)||0);
+    const kind = DSL_KIND_LABEL[p.kind] || (p.kind||'Post');
+    const date = (typeof slDate==='function') ? slDate(p.story_date) : '';
+    const exc = dslExcerpt(p);
+    return `<div class="dsl-card ${p.pinned?'pinned':''}" onclick="goPage('storylines')" role="button" tabindex="0"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goPage('storylines');}">
+      <div class="dsl-kind">${p.pinned?'<span class="dsl-pin"><i class="ti ti-pin"></i></span>':''}${esc(kind)}</div>
+      <div class="dsl-title">${esc(p.title||'Untitled')}</div>
+      ${exc?`<div class="dsl-excerpt">${esc(exc)}</div>`:'<div class="dsl-excerpt" style="flex:1"></div>'}
+      <div class="dsl-foot"><span>${esc(date)}</span>${likes>0?`<span class="dsl-likes"><i class="ti ti-heart"></i> ${likes}</span>`:''}</div>
+    </div>`;
+  }).join('');
 }
 
 // Maps built once for the merged roster: division membership, rank positions, factions.
@@ -4522,6 +4924,7 @@ if(!isConfigured){
   loadHiddenNames().then(()=>{
     loadBelts().then(()=>{
       loadDashboard();
+      loadDashStorylines();
       loadEvents();
       loadLive();
       loadDivision('Mens','mens-content');
