@@ -1026,6 +1026,13 @@
   .sl-intro{font-family:'Barlow'; font-size:15px; line-height:1.6; color:var(--muted);
     max-width:680px; margin:2px 0 18px;}
   .sl-feed{display:flex; flex-direction:column; gap:18px;}
+  /* Snafu Facts post type */
+  .sl-snafu{ background: linear-gradient(135deg,#0d0c1f,#14121e); border:1px solid #3a2e5c; }
+  .sl-snafu-head{ display:flex; align-items:center; gap:14px; margin-bottom:10px; }
+  .sl-snafu-logo{ height:52px; width:auto; object-fit:contain; flex-shrink:0; border-radius:6px; }
+  .sl-snafu-eyebrow{ font-size:11px; font-weight:700; letter-spacing:2px; color:#ff5fd0; text-transform:uppercase; margin-bottom:3px; }
+  .sl-snafu-title{ font-size:16px; font-weight:700; color:#ece9e1; }
+  .sl-snafu-fact{ font-size:14px; color:#c0bdb5; margin:8px 0 4px; line-height:1.5; }
   .sl-empty{text-align:center; color:var(--muted); padding:60px 20px; font-family:'Oswald';
     letter-spacing:2px; border:1px dashed var(--line); border-radius:12px;}
 
@@ -1882,16 +1889,17 @@
     <p class="sl-intro">The ongoing story of the WCA — social-media drama, breaking news,
       official announcements, and a dated timeline of how every beat unfolded.</p>
     <div class="roster-filters" id="sl-filters">
-      <button class="rfilter active" data-slfilter="all">All</button>
-      <button class="rfilter" data-slfilter="social">Social</button>
-      <button class="rfilter" data-slfilter="article">Articles</button>
-      <button class="rfilter" data-slfilter="notice">HR</button>
-      <button class="rfilter" data-slfilter="promo">Promos</button>
-      <button class="rfilter" data-slfilter="interview">Interviews</button>
-      <button class="rfilter" data-slfilter="signing">Signings</button>
-      <button class="rfilter" data-slfilter="injury">Injuries</button>
-      <button class="rfilter" data-slfilter="rankings">Rankings</button>
-      <button class="rfilter" data-slfilter="mystery">Mystery</button>
+      <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
+      <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
+      <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
+      <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
+      <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
+      <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
+      <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
+      <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
+      <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
+      <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
+      <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
     </div>
     <div class="sl-feed" id="sl-feed"><div class="loading">Loading…</div></div>
     <div id="sl-pager"></div>
@@ -4163,7 +4171,8 @@ const SL_KIND_META = {
   social:   { label: 'Social',   icon: 'ti-message-circle-2' },
   article:  { label: 'News',     icon: 'ti-news' },
   notice:   { label: 'Official', icon: 'ti-building-bank' },
-  timeline: { label: 'Timeline', icon: 'ti-timeline-event' }
+  timeline: { label: 'Timeline', icon: 'ti-timeline-event' },
+  snafu:    { label: 'Snafu Facts', icon: 'ti-bulb' }
 };
 
 // Format the custom story_date (a plain date) — distinct from posted-at.
@@ -4452,6 +4461,154 @@ function slMedia(text){
   return out.join('');
 }
 
+// ── SNAFU FACTS renderer — re-draws the canvas graphic inline using stored payload ──
+const _slSnafuImgCache = {};
+function _slSnafuLoadImg(url, cb){
+  if(!url){ cb(null); return; }
+  if(_slSnafuImgCache[url] !== undefined){ cb(_slSnafuImgCache[url]); return; }
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  img.onload  = () => { _slSnafuImgCache[url] = img; cb(img); };
+  img.onerror = () => { _slSnafuImgCache[url] = null;  cb(null); };
+  img.src = url;
+}
+// Permanent image URLs — never need to be entered again
+const SNAFU_URL_NOGRID = 'https://dmfbhszvrbaknaevdhxh.supabase.co/storage/v1/object/public/wrestler-photos/Snafu%20facts/Snafu%20Facts%20No%20Grid.png';
+const SNAFU_URL_TOXIC  = 'https://dmfbhszvrbaknaevdhxh.supabase.co/storage/v1/object/public/wrestler-photos/Snafu%20facts/ToxicTrentsTidBitsLogo.png';
+
+function _slSnafuShade(hex, a){
+  hex = (hex||'').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+function _slSnafuWrap(ctx, text, maxW){
+  const words = (text||'').split(' ');
+  const lines = []; let cur = '';
+  for(const w of words){
+    const test = cur ? cur+' '+w : w;
+    if(ctx.measureText(test).width > maxW && cur){ lines.push(cur); cur = w; }
+    else cur = test;
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+function _slSnafuStars(ctx, W, H, accent){
+  ctx.fillStyle = '#0b0b1a';
+  ctx.fillRect(0,0,W,H);
+  const rng = (s) => { let x=Math.sin(s)*79432; return x-Math.floor(x); };
+  for(let i=0;i<320;i++){
+    const x=rng(i*3.7)*W, y=rng(i*7.1)*H, r=rng(i*13.3)*1.4+0.3;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${rng(i*2.9)*0.55+0.15})`; ctx.fill();
+  }
+}
+function _slSnafuBoxStars(ctx,x,y,w,h,accent){
+  for(let i=0;i<40;i++){
+    const bx=x+Math.random()*w, by=y+Math.random()*h;
+    const r=Math.random()*1.2+0.2;
+    ctx.beginPath(); ctx.arc(bx,by,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4+0.1})`; ctx.fill();
+  }
+}
+function _slSnafuDraw(canvas, pl, whenDone){
+  const W=1152, H=864; canvas.width=W; canvas.height=H;
+  const ctx = canvas.getContext('2d');
+  const S = W/1152;
+  const host   = pl.host || 'snafu';
+  const fact   = pl.fact || pl.body || '';
+  const num    = pl.num  || '1';
+  const c2     = pl.color2   || '#ff5fd0';
+  const tcol   = pl.textcol  || '#ffffff';
+  const tsize  = parseInt(pl.textsize)||40;
+  const imgSize= parseInt(pl.size)||100;
+  const imgX   = parseFloat(pl.x)??50;
+  const imgY   = parseFloat(pl.y)??50;
+  const txX    = parseFloat(pl.tx)??50;
+  const txY    = parseFloat(pl.ty)??88;
+  const imgUrl = host==='toxic'
+    ? (pl.url_toxic  || SNAFU_URL_TOXIC)
+    : (pl.url_nogrid || SNAFU_URL_NOGRID);
+  const label  = host==='toxic' ? `TID BIT #${num}` : `SNAFU FACT #${num}`;
+
+  _slSnafuStars(ctx,W,H,c2);
+
+  _slSnafuLoadImg(imgUrl, (img)=>{
+    if(img){
+      const scale = (imgSize/100);
+      const iw = img.naturalWidth*scale*S*1.1, ih = img.naturalHeight*scale*S*1.1;
+      const cx = (imgX/100)*W, cy = (imgY/100)*H;
+      ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
+    }
+
+    // Text box
+    const fs = tsize*S;
+    ctx.font = `bold ${fs}px "Segoe UI",system-ui,sans-serif`;
+    const pad = 36*S;
+    const lines = _slSnafuWrap(ctx, fact, W*0.72 - pad*2);
+    const lineH = fs*1.35;
+    const labelH = fs*0.85;
+    const boxW = W*0.74;
+    const boxH = labelH + lines.length*lineH + pad*2 + 10*S;
+    const bx = (txX/100)*W - boxW/2;
+    const by = (txY/100)*H - boxH/2;
+
+    // box bg + neon border
+    ctx.save();
+    ctx.fillStyle = _slSnafuShade('#0b0b1a', 0.88);
+    const r = 18*S;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by); ctx.arcTo(bx+boxW,by,bx+boxW,by+boxH,r);
+    ctx.arcTo(bx+boxW,by+boxH,bx,by+boxH,r);
+    ctx.arcTo(bx,by+boxH,bx,by,r); ctx.arcTo(bx,by,bx+boxW,by,r);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowColor=c2; ctx.shadowBlur=18*S;
+    ctx.strokeStyle=c2; ctx.lineWidth=3*S; ctx.stroke();
+    ctx.restore();
+    _slSnafuBoxStars(ctx,bx,by,boxW,boxH,c2);
+
+    // label
+    ctx.font = `700 ${fs*0.6}px "Segoe UI",system-ui,sans-serif`;
+    ctx.fillStyle = c2; ctx.textAlign='center';
+    ctx.fillText(label, bx+boxW/2, by+pad+labelH);
+
+    // fact lines
+    ctx.font = `bold ${fs}px "Segoe UI",system-ui,sans-serif`;
+    ctx.fillStyle = tcol;
+    lines.forEach((ln,i)=> ctx.fillText(ln, bx+boxW/2, by+pad+labelH+10*S+(i+1)*lineH));
+
+    if(whenDone) whenDone();
+  });
+}
+function slRenderSnafu(p){
+  const pl = p.payload || {};
+  const host = pl.host || 'snafu';
+  const num  = pl.num  || '1';
+  const pin  = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  const title = host==='toxic' ? `Toxic Trent's Tid Bit #${num}` : `Snafu Fact #${num}`;
+  const eyebrow = host==='toxic' ? 'TOXIC TRENT'S TID BITS' : 'SNAFU FACTS · Santsuo';
+  const logoUrl = host==='toxic' ? SNAFU_URL_TOXIC : SNAFU_URL_NOGRID;
+  const cid = `snafu-canvas-${p.id}`;
+  const html = `<article class="slpost sl-snafu">${pin}
+    <div class="sl-snafu-head">
+      <img class="sl-snafu-logo" src="${esc(logoUrl)}" alt="${esc(eyebrow)}" onerror="this.style.display='none'">
+      <div>
+        <div class="sl-snafu-eyebrow">${esc(eyebrow)}</div>
+        <div class="sl-snafu-title">${esc(title)}</div>
+        <div class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</div>
+      </div>
+    </div>
+    <canvas id="${cid}" width="1152" height="864"
+      style="width:100%;max-width:100%;border-radius:10px;display:block;background:#0b0b1a;margin:10px 0"></canvas>
+    ${p.body ? `<div class="sl-snafu-fact">${slFmt(p.body)}</div>` : ''}
+  ${slEngageBar(p)}</article>`;
+  // Draw after the element is in the DOM
+  setTimeout(()=>{
+    const cv = document.getElementById(cid);
+    if(cv) _slSnafuDraw(cv, pl);
+  }, 50);
+  return html;
+}
+
 function slRenderPost(p){
   switch(p.kind){
     case 'social':    return slRenderSocial(p);
@@ -4464,8 +4621,33 @@ function slRenderPost(p){
     case 'injury':    return slRenderInjury(p);
     case 'rankings':  return slRenderRankings(p);
     case 'mystery':   return slRenderMystery(p);
-    default:          return '';
+    case 'snafu':     return slRenderSnafu(p);
+    default: {
+      // Dynamic segment types (future custom types) — render as a generic card
+      const pl2 = p.payload || {};
+      const pin2 = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+      const logoUrl2 = pl2.logo_url || '';
+      return `<article class="slpost sl-snafu">${pin2}
+        <div class="sl-snafu-head">
+          ${logoUrl2 ? `<img class="sl-snafu-logo" src="${esc(logoUrl2)}" alt="${esc(p.kind)}" onerror="this.style.display='none'">` : ''}
+          <div>
+            <div class="sl-snafu-eyebrow">${esc((pl2.segment_label||p.kind).toUpperCase())}</div>
+            <div class="sl-snafu-title">${esc(p.title||'')}</div>
+            <div class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</div>
+          </div>
+        </div>
+        ${p.body ? `<div class="sl-snafu-fact">${slFmt(p.body)}</div>` : ''}
+      ${slEngageBar(p)}</article>`;
+    }
   }
+}
+
+// ── Filter helper called by filter chips ──────────────────────────────────
+function slSetFilter(kind, btn){
+  SL_FILTER = kind;
+  SL_PAGE = 1;
+  document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===kind));
+  renderStorylines();
 }
 
 // Sort: pinned first, then by story_date newest-first.
@@ -4489,6 +4671,26 @@ let SL_OPEN = {};         // id -> bool (comment thread expanded)
 // Load published storylines from Supabase, then their reaction tallies and
 // comment counts. Falls back to the in-code SL_SEED only if the table has no
 // published rows yet (so the tab is never blank while you're setting it up).
+// Load and inject custom segment type filter chips from the DB
+async function slLoadSegmentTypeFilters(){
+  try{
+    const { data } = await sb.from('segment_types').select('key,name').order('created_at',{ascending:true});
+    if(!data || !data.length) return;
+    const filterBar = document.getElementById('sl-filters');
+    if(!filterBar) return;
+    data.forEach(t=>{
+      // Don't duplicate if already rendered
+      if(filterBar.querySelector(`[data-slfilter="${CSS.escape(t.key)}"]`)) return;
+      const btn = document.createElement('button');
+      btn.className = 'rfilter';
+      btn.dataset.slfilter = t.key;
+      btn.textContent = t.name;
+      btn.onclick = () => slSetFilter(t.key, btn);
+      filterBar.appendChild(btn);
+    });
+  }catch(e){ /* segment_types table may not exist yet */ }
+}
+
 async function loadStorylines(){
   SL_PAGE = 1;
   let rows = [];
@@ -4506,6 +4708,9 @@ async function loadStorylines(){
     // No published posts yet — show a clean empty state (no template/seed posts).
     SL_ALL = [];
   }
+
+  // Load custom segment type filter chips (non-blocking)
+  slLoadSegmentTypeFilters();
 
   await slLoadEngagement();
   renderStorylines();
