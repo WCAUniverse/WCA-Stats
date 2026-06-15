@@ -239,6 +239,14 @@
      and the W/L block's own auto-margin balances it toward center */
   .row-mid{display:flex; align-items:center; justify-content:center; margin-left:auto;
     flex-shrink:0; min-width:120px;}
+  /* match-quality chip in the rankings middle gap */
+  .rk-rating{display:inline-flex; align-items:center; gap:4px; margin-left:auto;
+    font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; color:var(--au,var(--gold));
+    white-space:nowrap; padding:0 6px;}
+  .rk-rating i{font-size:15px;}
+  .rk-rating .rk-rating-n{color:var(--muted,#8597a8); font-size:13px; font-weight:400;}
+  .row-mid{margin-left:18px;}
+  @media(max-width:560px){ .rk-rating{order:2; margin-left:0; font-size:14px;} }
   .wl2{white-space:nowrap;}
   .wl2 .w2{color:var(--win);} .wl2 .l2{color:var(--loss);}
   .wl2 .d2{color:var(--muted);} .wl2 .nw2{color:var(--muted2);}
@@ -276,6 +284,40 @@
 
   /* widen the rankings list so name, last-5, W/L and points all have room */
   #page-rankings .division{max-width:1000px;}
+  /* push the rankings filter buttons down from the top nav */
+  #page-rankings{padding-top:18px;}
+  #rank-filters{margin-top:10px;}
+  /* ===== Champions section (own block on rankings) ===== */
+  .champ-now{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:0 0 18px;}
+  .cn-card{background:linear-gradient(165deg,rgba(233,185,73,.10),rgba(0,0,0,.28));border:1px solid var(--au,var(--gold));border-radius:14px;padding:16px;text-align:center;}
+  .cn-card.vacant{background:linear-gradient(165deg,var(--marble,#141b26),rgba(0,0,0,.25));border-color:var(--line,#22303f);opacity:.85;}
+  .cn-belt,.cn-belt-img{width:42px;height:42px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;}
+  .cn-belt{border-radius:10px;background:rgba(233,185,73,.14);color:var(--au,var(--gold));font-size:22px;}
+  .cn-belt-img{object-fit:contain;}
+  .cn-div{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--au,var(--gold));margin-bottom:6px;line-height:1.2;}
+  .cn-name{font-family:'Oswald',sans-serif;font-size:22px;font-weight:600;color:#fff;line-height:1.15;}
+  .cn-card.vacant .cn-name{color:var(--muted,#8597a8);font-style:italic;font-size:16px;}
+  .cn-since{font-size:12px;color:var(--muted,#8597a8);margin-top:4px;}
+  .cn-def{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--au,var(--gold));background:rgba(233,185,73,.12);border:1px solid rgba(233,185,73,.35);border-radius:20px;padding:3px 10px;}
+  .champ-hist-sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+  .chs-block{background:linear-gradient(160deg,var(--marble,#141b26),rgba(0,0,0,.22));border:1px solid var(--line,#22303f);border-radius:12px;padding:14px 16px;}
+  .chs-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .chs-head .cn-belt,.chs-head .cn-belt-img{width:28px;height:28px;margin:0;font-size:15px;}
+  .chs-title{font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:#d8d4ca;flex:1;}
+  .chs-toggle{background:none;border:1px solid var(--au,var(--gold));color:var(--au,var(--gold));border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:'Barlow',sans-serif;}
+  .chs-toggle:hover{background:rgba(233,185,73,.12);}
+  .chs-list{margin-top:8px;display:flex;flex-direction:column;}
+  .chs-row{display:grid;grid-template-columns:24px 1fr auto auto;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.06);font-size:14px;}
+  .chs-row:last-child{border-bottom:none;}
+  .chs-row.cur{background:rgba(233,185,73,.07);border-radius:8px;padding:8px;margin:2px -8px;}
+  .chs-rk{text-align:center;color:var(--muted,#8597a8);font-size:13px;}
+  .chs-row.cur .chs-rk{color:var(--au,var(--gold));}
+  .chs-nm{font-family:'Oswald',sans-serif;color:#eee;font-size:16px;font-weight:500;}
+  .chs-curtag{display:inline-block;margin-left:8px;font-family:'Barlow',sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--au,var(--gold));background:rgba(233,185,73,.14);border:1px solid rgba(233,185,73,.4);border-radius:10px;padding:1px 7px;vertical-align:middle;}
+  .chs-reign{font-size:12px;color:var(--muted,#8597a8);white-space:nowrap;}
+  .chs-defs{font-size:11px;color:#cfcabd;background:rgba(255,255,255,.05);border-radius:10px;padding:2px 8px;white-space:nowrap;}
+  .chs-empty{color:var(--muted,#8597a8);font-style:italic;font-size:13px;padding:6px 0;}
+  @media(max-width:560px){ .chs-row{grid-template-columns:20px 1fr auto;} .chs-reign{grid-column:2/4;white-space:normal;} }
 
   /* mobile: stack the row pieces so they don't bunch */
   @media(max-width:620px){
@@ -884,6 +926,7 @@
   .rstar-sum b{color:var(--gold); font-size:17px;}
   .rstar-sum.muted{color:var(--muted2);}
   .rstars-hint{font-family:'Barlow'; font-size:11.5px; color:var(--muted); margin-top:5px;}
+  .rstar-manual{font-family:'Barlow'; font-size:11px; color:var(--au,var(--gold)); margin-top:3px; opacity:.85;}
   .rstar-mine.muted{color:var(--muted2);}
 
   /* ============================================================
@@ -1754,11 +1797,11 @@
             <p class="hero-sub" id="hero-sub">
               The home of the World Championship Alliance — live events, championship divisions,
               and a full roster of competitors. Watch live, follow the rankings, and put your
-              coins on the line. <em>(Placeholder text — editable from the admin panel soon.)</em>
+              coins on the line.
             </p>
             <div class="hero-cta">
-              <button class="hbtn primary" onclick="goPage('events')"><i class="ti ti-broadcast"></i> Watch &amp; Bet</button>
-              <button class="hbtn" onclick="goPage('roster')"><i class="ti ti-users-group"></i> Meet the Roster</button>
+              <button class="hbtn primary" id="hero-btn1" data-page="events" onclick="goPage(this.getAttribute('data-page'))"><i class="ti ti-broadcast"></i> <span class="hbtn-label">Watch &amp; Bet</span></button>
+              <button class="hbtn" id="hero-btn2" data-page="roster" onclick="goPage(this.getAttribute('data-page'))"><i class="ti ti-users-group"></i> <span class="hbtn-label">Meet the Roster</span></button>
             </div>
           </div>
         </div>
@@ -1810,6 +1853,7 @@
   <div class="page" id="page-rankings">
     <div class="roster-filters" id="rank-filters">
       <button class="rfilter active" data-rank="all">All</button>
+      <button class="rfilter" data-rank="Champions">Champions</button>
       <button class="rfilter" data-rank="Mens">Mens</button>
       <button class="rfilter" data-rank="Womens">Womens</button>
       <button class="rfilter" data-rank="Undisputed">Undisputed</button>
@@ -1823,6 +1867,7 @@
       <span><b style="color:var(--win)">W</b>–<b style="color:var(--muted)">D</b>–<b style="color:var(--loss)">L</b>–<b style="color:var(--muted2)">NW</b> = total record (Wins–Draws–Losses–No Wins)</span>
       <span><span class="dot on" style="position:static"></span> = contender point (3 = #1 contender)</span>
     </div>
+    <div class="rank-block" data-block="Champions"><div class="section-title">Champions</div><div id="champions-content"><div class="loading">Loading…</div></div></div>
     <div class="rank-block" data-block="Mens"><div class="section-title">Mens Division</div><div id="mens-content"></div></div>
     <div class="rank-block" data-block="Womens"><div class="section-title">Womens Division</div><div id="womens-content"></div></div>
     <div class="rank-block" data-block="Undisputed"><div class="section-title">Undisputed Division</div><div id="undisputed-content"></div></div>
@@ -2063,6 +2108,24 @@ async function applyTheme(){
   }catch(e){ /* keep stylesheet defaults */ }
 }
 
+// Pull the admin-editable hero text + buttons from site_settings.dashboard.
+async function applyDashboard(){
+  if(!sb) return;
+  try{
+    const { data, error } = await sb.from('site_settings').select('dashboard').eq('id',1).single();
+    if(error || !data || !data.dashboard) return;
+    const d = data.dashboard;
+    const setTxt = (id,v)=>{ const el=document.getElementById(id); if(el && v!=null && v!=='') el.textContent = v; };
+    setTxt('hero-kicker', d.kicker);
+    setTxt('hero-title',  d.title);
+    setTxt('hero-sub',    d.sub);
+    const b1 = document.getElementById('hero-btn1');
+    const b2 = document.getElementById('hero-btn2');
+    if(b1 && d.btn1_label){ const l=b1.querySelector('.hbtn-label'); if(l) l.textContent=d.btn1_label; if(d.btn1_page) b1.setAttribute('data-page', d.btn1_page); }
+    if(b2 && d.btn2_label){ const l=b2.querySelector('.hbtn-label'); if(l) l.textContent=d.btn2_label; if(d.btn2_page) b2.setAttribute('data-page', d.btn2_page); }
+  }catch(e){ /* keep HTML defaults */ }
+}
+
 function ringSVG(pct){
   const r=18, c=2*Math.PI*r, off=c*(1-pct);
   return `<div class="ring"><svg width="46" height="46" viewBox="0 0 46 46">
@@ -2100,6 +2163,7 @@ function rowHTML(p, idx, isChamp, div){
       <div class="nm-top">${esc(p.name)}${socs}${tags}</div>
       ${perf?`<div class="nm-sub">${perf}</div>`:''}
     </div>
+    ${ratingChip(p.name)}
     <div class="row-mid">${last5Mini(p.seed_last5)}</div>
     ${wlText(p.wins, p.losses, p.no_wins, p.draws)}
     ${champ?'<span class="dots-end"></span>':dots(p.contender_points||0)}
@@ -2466,6 +2530,188 @@ async function loadHiddenNames(){
     WRESTLER_META = {};
     (data||[]).forEach(w=>{ WRESTLER_META[w.name]={performer:w.performer, socials:w.socials, last5:w.last5}; });
   }catch(e){ HIDDEN_NAMES = new Set(); WRESTLER_META = {}; }
+}
+
+// ===== WRESTLER MATCH-QUALITY RATING (shown in the rankings middle) =====
+// For every rated match, take its EFFECTIVE star value:
+//   - if a manual_match_ratings row exists for that event+slot, use its stars
+//   - else use the live v_match_ratings avg_stars
+// then credit that star value to EVERY wrestler in the match. A wrestler's
+// shown rating = simple average of their rated matches' stars + match count.
+let WRESTLER_RATING = {};   // name -> { avg, count }
+async function loadWrestlerRatings(){
+  WRESTLER_RATING = {};
+  try{
+    const [matchesR, liveR, manualR] = await Promise.all([
+      sb.from('event_matches').select('event_id,slot,sides,side_a,side_b,side_a_extra,side_b_extra'),
+      sb.from('v_match_ratings').select('event_id,slot,avg_stars,votes'),
+      sb.from('manual_match_ratings').select('event_id,slot,stars,votes').then(r=>r, ()=>({data:[]}))
+    ]);
+    const live = {};   // "event|slot" -> {avg,votes}
+    (liveR.data||[]).forEach(r=>{ live[r.event_id+'|'+r.slot]={avg:Number(r.avg_stars)||0, votes:Number(r.votes)||0}; });
+    const manual = {}; // "event|slot" -> {stars,votes}
+    (manualR.data||[]).forEach(r=>{ manual[r.event_id+'|'+r.slot]={stars:Number(r.stars)||0, votes:Number(r.votes)||0}; });
+
+    // accumulate per wrestler
+    const acc = {};  // name -> {sum, n}
+    (matchesR.data||[]).forEach(m=>{
+      const key = m.event_id+'|'+m.slot;
+      const man = manual[key];
+      const lv  = live[key];
+      let stars = null;
+      if(man && man.stars>0) stars = man.stars;
+      else if(lv && lv.votes>0) stars = lv.avg;
+      if(stars==null) return;
+      // collect every participant name in the match
+      const names = new Set();
+      parseSides(m).forEach(s=>{
+        if(s.team_name){ /* team name isn't a wrestler — skip */ }
+        (s.members||[]).filter(Boolean).forEach(n=> names.add(String(n).trim()));
+      });
+      names.forEach(n=>{
+        const a = acc[n] || (acc[n]={sum:0,n:0});
+        a.sum += stars; a.n += 1;
+      });
+    });
+    Object.keys(acc).forEach(n=>{
+      WRESTLER_RATING[n] = { avg: acc[n].sum/acc[n].n, count: acc[n].n };
+    });
+  }catch(e){ WRESTLER_RATING = {}; }
+}
+// Small star-average chip for the rankings middle. Empty string if unrated.
+function ratingChip(name){
+  const r = WRESTLER_RATING[name];
+  if(!r || !r.count) return '';
+  return `<span class="rk-rating" title="Average match quality across ${r.count} rated match${r.count===1?'':'es'}">
+    <i class="ti ti-star-filled"></i> ${r.avg.toFixed(1)} <span class="rk-rating-n">· ${r.count}</span></span>`;
+}
+
+// ===== CHAMPIONS SECTION (its own block on the Rankings page) =====
+// Auto-derives the current champion + lineage from the archive (completed
+// events with a title match + winner). Manual title_history fills older shows.
+// Renders ONLY into #champions-content — never touches the division blocks.
+const CH_DIV_ORDER = ['Undisputed','Mens','Womens','Faction'];
+const CH_DIV_LABEL = { Mens:'Mens Championship', Womens:'Womens Championship', Faction:'Faction (Tag Team) Championship', Undisputed:'Undisputed Championship' };
+
+function chWinnerName(m, winnerIdx){
+  if(winnerIdx==null) return null;
+  const s = parseSides(m)[Number(winnerIdx)];
+  if(!s) return null;
+  if(s.team_name) return s.team_name;
+  const mem = (s.members||[]).filter(Boolean);
+  return mem.length ? mem.join(' & ') : null;
+}
+
+async function chBuildFromArchive(){
+  const out = { Mens:[], Womens:[], Undisputed:[], Faction:[] };
+  const { data: events, error } = await sb.from('events')
+    .select('id,name,event_date,is_complete')
+    .order('event_date',{ascending:true}).order('id',{ascending:true});
+  if(error || !events) return out;
+  const completed = events.filter(e=> e.is_complete !== false);
+  if(!completed.length) return out;
+  const ids = completed.map(e=>e.id);
+  const [mR, bR] = await Promise.all([
+    sb.from('event_matches').select('event_id,slot,championship,sides,side_a,side_b,side_a_extra,side_b_extra').in('event_id', ids),
+    sb.from('match_betting').select('event_id,slot,winner_idx,status').in('event_id', ids)
+  ]);
+  const matches = (mR.data||[]).filter(m=> m.championship && CH_DIV_ORDER.includes(m.championship));
+  const winBy = {};
+  (bR.data||[]).forEach(b=>{ if(b.winner_idx!=null && b.status!=='void') winBy[b.event_id+'|'+b.slot]=b.winner_idx; });
+  const evById = {}; completed.forEach(e=> evById[e.id]=e);
+  CH_DIV_ORDER.forEach(div=>{
+    const rel = matches.filter(m=> m.championship===div)
+      .map(m=>({ m, ev: evById[m.event_id] }))
+      .filter(x=> x.ev && winBy[x.m.event_id+'|'+x.m.slot]!=null)
+      .sort((a,b)=> (Date.parse(a.ev.event_date||'')||0)-(Date.parse(b.ev.event_date||'')||0) || a.ev.id-b.ev.id || a.m.slot-b.m.slot);
+    let cur=null;
+    rel.forEach(({m,ev})=>{
+      const w = chWinnerName(m, winBy[m.event_id+'|'+m.slot]);
+      if(!w) return;
+      if(cur && cur.champion.toLowerCase()===w.toLowerCase()){ cur.defenses++; }
+      else { if(cur){ cur.lostAt=ev.name; cur.lostDate=ev.event_date; } cur={champion:w, wonAt:ev.name, wonDate:ev.event_date, lostAt:'', lostDate:'', defenses:0}; out[div].push(cur); }
+    });
+  });
+  return out;
+}
+
+function chDateShort(s){ const t=Date.parse(s||''); if(isNaN(t)) return esc(s||''); return new Date(t).toLocaleDateString('en-US',{month:'short',year:'numeric'}); }
+
+async function loadChampions(){
+  const wrap = document.getElementById('champions-content');
+  if(!wrap) return;
+  // manual history (older shows)
+  let manual=[];
+  try{ const {data,error}=await sb.from('title_history').select('*'); if(!error&&data) manual=data; }catch(e){}
+  // archive-derived (authoritative)
+  let derived={Mens:[],Womens:[],Undisputed:[],Faction:[]};
+  try{ derived=await chBuildFromArchive(); }catch(e){}
+  const manualByDiv={}; manual.forEach(r=>{const d=r.division||'Mens';(manualByDiv[d]=manualByDiv[d]||[]).push(r);});
+  const lineages={};
+  CH_DIV_ORDER.forEach(div=>{
+    const arch=derived[div]||[];
+    const keys=new Set(arch.map(x=>`${(x.champion||'').toLowerCase()}|${(x.wonAt||'').toLowerCase()}`));
+    const man=(manualByDiv[div]||[]).map(r=>({champion:r.champion||'',wonAt:r.won_at||'',wonDate:r.won_date||'',lostAt:r.lost_at||'',lostDate:r.lost_date||'',defenses:r.defenses!=null?Number(r.defenses):0}))
+      .filter(x=> !keys.has(`${(x.champion||'').toLowerCase()}|${(x.wonAt||'').toLowerCase()}`));
+    man.sort((a,b)=>(Date.parse(a.wonDate||'')||0)-(Date.parse(b.wonDate||'')||0));
+    lineages[div]=[...man,...arch];
+  });
+  const currentOf=div=>{ const l=lineages[div]||[]; for(let i=l.length-1;i>=0;i--){ if(!l[i].lostAt&&!l[i].lostDate) return l[i]; } return null; };
+  const beltMark=div=> (typeof BELTS!=='undefined'&&BELTS[div]&&BELTS[div].image_url)
+    ? `<img class="cn-belt-img" src="${esc(BELTS[div].image_url)}" alt="">`
+    : `<span class="cn-belt"><i class="ti ti-trophy"></i></span>`;
+
+  // CURRENT champions row (cards)
+  let html='<div class="champ-now">';
+  CH_DIV_ORDER.forEach(div=>{
+    const cur=currentOf(div); const label=CH_DIV_LABEL[div]||div;
+    if(!cur){
+      const note=div==='Undisputed'?'Crowned at WCA 50':'Vacant';
+      html+=`<div class="cn-card vacant">${beltMark(div)}<div class="cn-div">${esc(label)}</div><div class="cn-name">${note}</div></div>`;
+      return;
+    }
+    const since=cur.wonAt||chDateShort(cur.wonDate);
+    const defs=cur.defenses>0?`<div class="cn-def">${cur.defenses} defense${cur.defenses===1?'':'s'}</div>`:'';
+    html+=`<div class="cn-card">${beltMark(div)}<div class="cn-div">${esc(label)}</div>
+      <div class="cn-name">${esc(cur.champion)}</div>${since?`<div class="cn-since">since ${esc(since)}</div>`:''}${defs}</div>`;
+  });
+  html+='</div>';
+
+  // Per-division history, each behind a toggle button (collapsed by default)
+  html+='<div class="champ-hist-sections">';
+  CH_DIV_ORDER.forEach(div=>{
+    const list=lineages[div]||[]; const label=CH_DIV_LABEL[div]||div;
+    if(!list.length){
+      if(div==='Undisputed') html+=`<div class="chs-block"><div class="chs-head">${beltMark(div)}<span class="chs-title">${esc(label)}</span></div><div class="chs-empty">No champion yet — crowned at WCA 50.</div></div>`;
+      return;
+    }
+    const newest=[...list].reverse();
+    const rows=newest.map((r,i)=>{
+      const isCur=(!r.lostAt&&!r.lostDate);
+      const reign=isCur?`${esc(r.wonAt||chDateShort(r.wonDate))} – present`:`${esc(r.wonAt||chDateShort(r.wonDate))} – ${esc(r.lostAt||chDateShort(r.lostDate))}`;
+      return `<div class="chs-row${isCur?' cur':''}">
+        <span class="chs-rk">${isCur?'<i class="ti ti-crown"></i>':(newest.length-i)}</span>
+        <span class="chs-nm">${esc(r.champion)}${isCur?'<span class="chs-curtag">CURRENT</span>':''}</span>
+        <span class="chs-reign">${reign}</span>
+        <span class="chs-defs">${r.defenses||0} def${(r.defenses||0)===1?'':'s'}</span>
+      </div>`;
+    }).join('');
+    const bid='chs_'+div;
+    html+=`<div class="chs-block">
+      <div class="chs-head">${beltMark(div)}<span class="chs-title">${esc(label)}</span>
+        <button class="chs-toggle" onclick="chToggle('${bid}',this)">Show history (${list.length})</button></div>
+      <div class="chs-list" id="${bid}" style="display:none">${rows}</div>
+    </div>`;
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+  if(typeof bindNameLinks==='function') bindNameLinks(wrap);
+}
+function chToggle(id, btn){
+  const el=document.getElementById(id); if(!el) return;
+  const show = el.style.display==='none';
+  el.style.display = show?'':'none';
+  if(btn) btn.textContent = show ? btn.textContent.replace('Show','Hide') : btn.textContent.replace('Hide','Show');
 }
 
 // Build clickable social icons from a socials JSON object.
@@ -3543,14 +3789,15 @@ async function openArchiveEvent(id){
   window.scrollTo({top:0,behavior:'smooth'});
 
   // pull matches, statuses (winner), final standings, linked storylines, ratings, and the chat champion
-  const [matchesR, statusR, resultsR, storyR, ratingsR, myRatingsR, chatR] = await Promise.all([
+  const [matchesR, statusR, resultsR, storyR, ratingsR, myRatingsR, chatR, manualR] = await Promise.all([
     sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
     sb.from('match_betting').select('*').eq('event_id', id),
     sb.from('event_results').select('*').eq('event_id', id).order('rank'),
     sb.from('storylines').select('id,kind,title,story_date,is_published,event_id').eq('event_id', id).eq('is_published', true),
     sb.from('v_match_ratings').select('*').eq('event_id', id),
     CURRENT_USER ? sb.from('match_ratings').select('slot,stars').eq('event_id', id).eq('user_id', CURRENT_USER.id) : Promise.resolve({data:[]}),
-    sb.from('events').select('chat_champion').eq('id', id).single()
+    sb.from('events').select('chat_champion').eq('id', id).single(),
+    sb.from('manual_match_ratings').select('*').eq('event_id', id).then(r=>r, ()=>({data:[]}))
   ]);
   const chatChampion = (chatR && chatR.data && chatR.data.chat_champion) ? chatR.data.chat_champion : '';
   const matches = matchesR.data || [];
@@ -3559,9 +3806,24 @@ async function openArchiveEvent(id){
   const stories = (storyR.error ? [] : (storyR.data || []));   // event_id column may be absent → fail soft
   // ratings state for this event, keyed by slot
   RATE_EVENT_ID = id;
-  RATE_AGG = {}; RATE_MINE = {};
+  RATE_AGG = {}; RATE_MINE = {}; RATE_MANUAL = {};
   (ratingsR.data || []).forEach(r=>{ RATE_AGG[r.slot] = { avg:Number(r.avg_stars)||0, votes:Number(r.votes)||0 }; });
   (myRatingsR.data || []).forEach(r=>{ RATE_MINE[r.slot] = Number(r.stars)||0; });
+  // Blend in any manual/historical poll rating (e.g. Discord top-match polls).
+  // The manual stars become part of the displayed average; its label/voters
+  // are shown publicly so people can see where it came from.
+  (manualR.data || []).forEach(r=>{
+    const st = Number(r.stars)||0;
+    const vt = Number(r.votes)||0;
+    if(st<=0) return;
+    RATE_MANUAL[r.slot] = { stars:st, votes:vt, source:r.source||'', voters:r.voters||'' };
+    const cur = RATE_AGG[r.slot] || { avg:0, votes:0 };
+    const liveSum = cur.avg * cur.votes;
+    // treat the manual rating as one aggregate data point weighted by its vote count (min 1)
+    const w = Math.max(1, vt);
+    const total = cur.votes + w;
+    RATE_AGG[r.slot] = { avg: (liveSum + st*w)/total, votes: total, hasManual:true };
+  });
   const statusBySlot = {}; const winBySlot = {};
   statuses.forEach(s=>{ statusBySlot[s.slot]=s.status; if(s.winner_idx!=null) winBySlot[s.slot]=s.winner_idx; });
 
@@ -3667,9 +3929,11 @@ function archBoutHTML(m, isMain, status, winningSide){
 let RATE_EVENT_ID = null;
 let RATE_AGG = {};    // slot -> { avg, votes }
 let RATE_MINE = {};   // slot -> my star value (1–5)
+let RATE_MANUAL = {}; // slot -> { stars, votes, source, voters } historical poll
 function ratingWidget(slot){
   const agg = RATE_AGG[slot] || { avg:0, votes:0 };
   const mine = RATE_MINE[slot] || 0;
+  const man = RATE_MANUAL[slot];
   // render 5 stars: filled up to whichever is greater context — show MY vote if I have one, else the average shape
   const shownTo = mine || Math.round(agg.avg);
   // emit stars 5→1 inside a row-reverse group so the CSS hover lights
@@ -3687,9 +3951,13 @@ function ratingWidget(slot){
   const hint = mine
     ? `<span class="rstar-mine">You rated ${mine}★ · tap again to clear</span>`
     : (CURRENT_USER ? `<span class="rstar-mine muted">Rate this match</span>` : `<span class="rstar-mine muted">Sign in to rate</span>`);
+  const manNote = man
+    ? `<div class="rstar-manual">Includes ${man.source||'community poll'}${man.votes?` · ${man.votes} vote${man.votes===1?'':'s'}`:''}${man.voters?` · ${esc(man.voters)}`:''}</div>`
+    : '';
   return `<div class="rstars" data-slot="${slot}">
     <div class="rstars-row"><span class="rstar-group">${stars}</span>${summary}</div>
     <div class="rstars-hint">${hint}</div>
+    ${manNote}
   </div>`;
 }
 async function rateMatch(slot, value){
@@ -4579,6 +4847,23 @@ function _slSnafuDraw(canvas, pl, whenDone){
     if(whenDone) whenDone();
   });
 }
+// Click-to-zoom: opens the canvas image full-size in a modal overlay
+function slSnafuZoom(canvasId){
+  const cv = document.getElementById(canvasId);
+  if(!cv) return;
+  const dataUrl = cv.toDataURL('image/png');
+  // Build or reuse modal
+  let modal = document.getElementById('sl-snafu-zoom');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'sl-snafu-zoom';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;padding:20px;';
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `<img src="${dataUrl}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;box-shadow:0 0 60px rgba(255,95,208,.3)" alt="Snafu Fact">`;
+}
+
 function slRenderSnafu(p){
   const pl = p.payload || {};
   const host = pl.host || 'snafu';
@@ -4597,8 +4882,9 @@ function slRenderSnafu(p){
         <div class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</div>
       </div>
     </div>
-    <canvas id="${cid}" width="1152" height="864"
-      style="width:100%;max-width:100%;border-radius:10px;display:block;background:#0b0b1a;margin:10px 0"></canvas>
+    <canvas id="${cid}" width="1152" height="864" onclick="slSnafuZoom('${cid}')"
+      style="width:100%;max-width:520px;border-radius:10px;display:block;background:#0b0b1a;margin:10px auto;cursor:zoom-in"
+      title="Click to view full size"></canvas>
     ${p.body ? `<div class="sl-snafu-fact">${slFmt(p.body)}</div>` : ''}
   ${slEngageBar(p)}</article>`;
   // Draw after the element is in the DOM
@@ -5124,6 +5410,7 @@ if(!isConfigured){
 }else{
   const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=signInDiscord;
   applyTheme();
+  applyDashboard();
   refreshUser();
   loadMerchLink();
   loadHiddenNames().then(()=>{
@@ -5132,10 +5419,13 @@ if(!isConfigured){
       loadDashStorylines();
       loadEvents();
       loadLive();
-      loadDivision('Mens','mens-content');
-      loadDivision('Womens','womens-content');
-      loadDivision('Undisputed','undisputed-content');
-      loadFactions();
+      loadWrestlerRatings().then(()=>{
+        loadDivision('Mens','mens-content');
+        loadDivision('Womens','womens-content');
+        loadDivision('Undisputed','undisputed-content');
+        loadFactions();
+      });
+      loadChampions();
     });
   });
   loadRoster().then(()=>{ loadStorylines(); });
