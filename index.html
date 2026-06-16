@@ -23,11 +23,25 @@
   connect-src 'self' https://dmfbhszvrbaknaevdhxh.supabase.co wss://dmfbhszvrbaknaevdhxh.supabase.co;
   frame-src https://www.youtube.com https://youtube.com https://player.vimeo.com https://streamable.com https://player.twitch.tv https://www.twitch.tv;
   object-src 'none';
+  manifest-src 'self';
+  worker-src 'self';
   base-uri 'self';
   form-action 'self';
 ">
 
 <title>WCA — World Championship Alliance</title>
+
+<!-- PWA: lets the site install to the home screen and open fullscreen like an app -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- iOS standalone behaviour (Add to Home Screen on iPhone/iPad) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WCA">
+<meta name="mobile-web-app-capable" content="yes">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
@@ -479,6 +493,11 @@
   .watch-grid{display:grid; grid-template-columns:1fr 340px; gap:12px; align-items:stretch;}
   .watch-grid .stream-frame{padding-top:0; height:480px;}
   .chat-col{display:flex; flex-direction:column; gap:8px;}
+  /* The Twitch chat is wrapped in <details>. On desktop it's always shown and the
+     toggle is hidden (side-by-side layout). On phones it becomes a real collapsible. */
+  .chat-toggle{display:none;}
+  .chat-col[open]>summary{list-style:none;}
+  .chat-col>summary::-webkit-details-marker{display:none;}
   .chat-frame{flex:1; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#18181b; min-height:440px;}
   .chat-frame iframe{width:100%; height:100%; border:0; display:block;}
   .chat-popout{font-family:'Barlow'; font-size:12px; color:var(--muted); text-decoration:none;
@@ -488,7 +507,20 @@
   @media(max-width:820px){
     .watch-grid{grid-template-columns:1fr;}
     .watch-grid .stream-frame{padding-top:56.25%; height:auto;}
-    .chat-frame{height:380px; min-height:0;}
+    /* show the toggle; let the stream chat collapse so it doesn't eat the screen */
+    .chat-toggle{display:flex; align-items:center; gap:8px; cursor:pointer;
+      font-family:'Oswald'; font-size:13px; letter-spacing:1px; color:var(--gold);
+      padding:9px 12px; border:1px solid var(--line); border-radius:10px;
+      background:var(--panel); user-select:none;}
+    .chat-toggle .chat-toggle-hint{margin-left:auto; font-family:'Barlow'; font-size:11px;
+      letter-spacing:0; color:var(--muted); font-weight:400;}
+    /* swap the hint label based on open/closed state */
+    .chat-col[open] .chat-toggle-hint{font-size:0;}
+    .chat-col[open] .chat-toggle-hint::after{content:'tap to hide'; font-size:11px;}
+    .chat-col:not([open]) .chat-toggle-hint{font-size:0;}
+    .chat-col:not([open]) .chat-toggle-hint::after{content:'tap to show'; font-size:11px;}
+    .chat-col[open] .chat-frame{margin-top:8px;}
+    .chat-frame{height:300px; min-height:0;}
   }
 
   .event-empty{text-align:center; color:var(--muted); padding:70px 20px; font-family:'Oswald'; letter-spacing:2px;}
@@ -3208,6 +3240,24 @@ function fmtEventDate(ts){
   return d.toLocaleString(undefined,{weekday:'short',month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 }
 // Build a stream iframe from either a full embed URL or a bare Twitch channel name.
+// On phones, collapse the Twitch stream-chat embed by default so the video +
+// event content stay in view (the site's own Live Chat hub is lower on the page).
+// Desktop keeps it open (side-by-side). Idempotent; safe to call after any render.
+function collapseStreamChatOnMobile(el){
+  try{
+    if(window.matchMedia && window.matchMedia('(max-width:820px)').matches){
+      (el||document).querySelectorAll('details.chat-col').forEach(d=>{
+        if(!d.dataset.userToggled) d.open=false;
+        if(!d._wcaToggleBound){
+          d._wcaToggleBound=true;
+          const sum=d.querySelector('summary');
+          if(sum) sum.addEventListener('click',()=>{ d.dataset.userToggled='1'; });
+        }
+      });
+    }
+  }catch(e){}
+}
+
 function streamEmbed(url){
   if(!url) return '';
   let u=url.trim();
@@ -3226,11 +3276,12 @@ function streamEmbed(url){
     return `<div class="stream-wrap"><div class="section-title">Watch Live</div>
       <div class="watch-grid">
         <div class="stream-frame"><iframe src="${esc(player)}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe></div>
-        <div class="chat-col">
+        <details class="chat-col" open>
+          <summary class="chat-toggle"><i class="ti ti-message-circle"></i> Stream chat <span class="chat-toggle-hint"></span></summary>
           <div class="chat-frame"><iframe src="${esc(chat)}" scrolling="no"></iframe></div>
           <a class="chat-popout" href="${esc(popout)}" target="_blank" rel="noopener noreferrer">
             <i class="ti ti-external-link"></i> Can't type in chat? Pop it out</a>
-        </div>
+        </details>
       </div></div>`;
   }
 
@@ -3467,6 +3518,7 @@ async function loadEvents(){
 
   el.innerHTML = hero + streamEmbed(ev.stream_url) + cardHTML;
   bindNameLinks(el);
+  collapseStreamChatOnMobile(el);
 }
 
 // ===== LIVE PAGE =====
@@ -3543,6 +3595,7 @@ async function loadLive(){
       </section>
     </div>`;
   bindNameLinks(el);
+  collapseStreamChatOnMobile(el);
   loadLiveRail();          // fill the rail now
   startLiveRailPolling();  // and keep it fresh while the Live page is open
   initChatHub();           // load chat + start realtime/polling
@@ -4600,7 +4653,7 @@ function slRenderSocial(p){
     <div class="sl-head">
       ${slAvatar(author)}
       <div class="sl-who">
-        <div class="sl-name">${esc(author)} <i class="ti ti-rosette-discount-check-filled sl-verify" title="Verified"></i></div>
+        <div class="sl-name">${xlinkName(author)} <i class="ti ti-rosette-discount-check-filled sl-verify" title="Verified"></i></div>
         <div class="sl-handle">${slHandle(p)} · <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
       </div>
     </div>
@@ -4619,7 +4672,7 @@ function slRenderSocial(p){
       <div class="sl-reply">
         ${slAvatar(r.name)}
         <div class="sl-rbody">
-          <div class="sl-name">${esc(r.name)}</div>
+          <div class="sl-name">${xlinkName(r.name)}</div>
           <div class="sl-text">${slFmt(r.text)}</div>
         </div>
       </div>`).join('') + `</div>`;
@@ -5609,6 +5662,16 @@ if(!isConfigured){
   // restore the tab from the URL hash so a refresh stays put (defaults to Dashboard)
   restorePageFromHash();
 }
+</script>
+
+<!-- PWA: register the service worker (enables install + offline fallback).
+     Safe to fail silently — the site works exactly the same without it. -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>
