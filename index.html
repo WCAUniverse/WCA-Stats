@@ -63,9 +63,9 @@
   .brand .logo{font-family:'Oswald'; font-weight:700; font-size:28px; color:var(--gold); letter-spacing:2px;}
   .brand .sub{font-size:12px; color:var(--muted); letter-spacing:3px; text-transform:uppercase;}
   nav{display:flex; gap:4px; flex-wrap:wrap;}
-  nav button{background:transparent; border:1px solid transparent; color:var(--muted); font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; cursor:pointer; transition:.15s;}
-  nav button:hover{color:var(--txt);}
-  nav button.active{color:#111; background:var(--gold); font-weight:600;}
+  nav button,nav a{background:transparent; border:1px solid transparent; color:var(--muted); font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; cursor:pointer; transition:.15s; text-decoration:none; display:inline-block;}
+  nav button:hover,nav a:hover{color:var(--txt);}
+  nav button.active,nav a.active{color:#111; background:var(--gold); font-weight:600;}
 .head-right{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
   /* hamburger toggle — hidden on desktop, shown on mobile */
   .nav-toggle{display:none; background:transparent; border:1px solid var(--line); color:var(--gold);
@@ -80,7 +80,7 @@
       margin-top:12px; order:3;}
     .head-right.open{display:flex;}
     nav{flex-direction:column; gap:4px;}
-    nav button{width:100%; text-align:left; font-size:15px; padding:12px 14px;}
+    nav button,nav a{width:100%; text-align:left; font-size:15px; padding:12px 14px;}
     .socials{justify-content:center; gap:22px;}
     .socials a{font-size:22px;}
     .userbox{justify-content:center;}
@@ -242,6 +242,16 @@
   .rank.rk4{font-size:20px; color:var(--muted);}
   .rank.rk5{font-size:18px; color:var(--muted);}
   .nm{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  /* Generic cross-link: any wrestler name that opens their profile on tap. */
+  .xlink{cursor:pointer; text-decoration:underline; text-decoration-color:rgba(233,185,73,.4); text-underline-offset:3px; text-decoration-thickness:1px; border-radius:4px; -webkit-tap-highlight-color:rgba(233,185,73,.25); transition:color .12s, text-decoration-color .12s;}
+  @media(hover:hover){ .xlink:hover{color:var(--gold); text-decoration-color:var(--gold);} }
+  .xlink:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+  /* Cross-link affordance: name area becomes tappable to open the profile. */
+  .nm-link{cursor:pointer; border-radius:6px; transition:background .12s, transform .12s; -webkit-tap-highlight-color:rgba(233,185,73,.25);}
+  .nm-link .nm-top{text-decoration:underline; text-decoration-color:rgba(233,185,73,.35); text-underline-offset:3px; text-decoration-thickness:1px;}
+  @media(hover:hover){ .nm-link:hover{background:rgba(233,185,73,.08);} .nm-link:hover .nm-top{text-decoration-color:var(--gold);} }
+  .nm-link:active{transform:scale(.99);}
+  .nm-link:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
   .nm-top{font-family:'Barlow Condensed'; font-size:20px; font-weight:600; color:#eee; line-height:1.05;}
   .row.champ .nm-top{color:#fff;}
   .nm-sub{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
@@ -613,8 +623,8 @@
   .brand .logo{text-shadow:0 0 22px rgba(233,185,73,.25);}
 
   /* nav active pill: keep gold fill, add lift */
-  nav button{transition:.15s;}
-  nav button.active{box-shadow:0 4px 14px -6px rgba(233,185,73,.6);}
+  nav button,nav a{transition:.15s;}
+  nav button.active,nav a.active{box-shadow:0 4px 14px -6px rgba(233,185,73,.6);}
 
   /* champion cards: gentle hover lift */
   .champ-card{transition:transform .18s ease, box-shadow .18s ease;}
@@ -1067,7 +1077,7 @@
   .cs-icon img{width:100%; height:100%; object-fit:cover; display:block;}
   .cs-icon .cs-icon-init{width:100%; height:100%; display:flex; align-items:center; justify-content:center;
     font-family:'Oswald'; font-weight:700; font-size:18px; color:var(--gold);}
-  .cs-icon:hover{transform:translateY(-2px); border-color:var(--gold-dim);}
+  @media(hover:hover){ .cs-icon:hover{border-color:var(--gold-dim);} }
   .cs-icon.sel{border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset;}
   .cs-icon.inactive{opacity:.45;}
   /* faction grouping in tray */
@@ -1517,22 +1527,22 @@
   .brand .sub{color:#7d7768; letter-spacing:4px;}
 
   /* nav: refined gallery directory — letterspaced caps under a gold underline */
-  nav button{
+  nav button,nav a{
     font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:1.6px;
     color:#9a948a; border:none; border-radius:0; padding:9px 13px 8px;
-    position:relative; background:transparent;
+    position:relative; background:transparent; text-decoration:none; display:inline-block;
   }
-  nav button::after{
+  nav button::after,nav a::after{
     content:''; position:absolute; left:13px; right:13px; bottom:2px; height:1px;
     background:var(--au); transform:scaleX(0); transform-origin:center;
     transition:transform .22s ease; opacity:.9;
   }
-  nav button:hover{color:#f3ede0; background:transparent; box-shadow:none;}
-  nav button:hover::after{transform:scaleX(1);}
-  nav button.active{
+  nav button:hover,nav a:hover{color:#f3ede0; background:transparent; box-shadow:none;}
+  nav button:hover::after,nav a:hover::after{transform:scaleX(1);}
+  nav button.active,nav a.active{
     color:var(--au); background:transparent; font-weight:600; box-shadow:none;
   }
-  nav button.active::after{transform:scaleX(1); height:2px;}
+  nav button.active::after,nav a.active::after{transform:scaleX(1); height:2px;}
   #nav-live-btn.is-live{color:#fff;}
   #nav-live-btn.is-live::after{background:var(--au); transform:scaleX(1);}
   #nav-live-btn.is-live::before{
@@ -1741,6 +1751,12 @@
   .dsl-kind{font-family:'Oswald',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--au-deep); display:flex; align-items:center; gap:7px;}
   .dsl-pin{color:var(--au); font-size:13px;}
   .dsl-title{font-family:var(--serif); font-weight:600; font-size:21px; line-height:1.18; color:#f4efe3;}
+  /* Social posts on the dashboard: show author + @handle instead of a headline. */
+  .dsl-social-id{display:flex; flex-direction:column; gap:1px;}
+  .dsl-social-name{font-family:'Oswald',sans-serif; font-weight:600; font-size:16px; letter-spacing:.3px; color:#f4efe3; display:inline-flex; align-items:center; gap:5px;}
+  .dsl-verify{color:var(--au); font-size:14px;}
+  .dsl-social-handle{font-family:'Barlow',sans-serif; font-size:13px; color:var(--au-deep);}
+  .dsl-social .dsl-excerpt{-webkit-line-clamp:3; color:#bdb6a8; font-size:14px;}
   .dsl-excerpt{font-family:'Barlow',sans-serif; font-size:13.5px; line-height:1.5; color:#a39d90; flex:1;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
   .dsl-foot{display:flex; align-items:center; justify-content:space-between; margin-top:2px;
@@ -1775,15 +1791,15 @@
     <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
     <div class="head-right" id="headRight">
       <nav>
-        <button data-page="dash" class="active">Dashboard</button>
-        <button data-page="live" id="nav-live-btn">Live</button>
-        <button data-page="events">Events</button>
-        <button data-page="rankings">Rankings</button>
-        <button data-page="leaderboard">Leaderboard</button>
-        <button data-page="archive">Archive</button>
-        <button data-page="roster">Roster</button>
-        <button data-page="storylines">Storylines</button>
-        <button data-page="apply">Apply</button>
+        <a href="#dash" data-page="dash" class="active">Dashboard</a>
+        <a href="#live" data-page="live" id="nav-live-btn">Live</a>
+        <a href="#events" data-page="events">Events</a>
+        <a href="#rankings" data-page="rankings">Rankings</a>
+        <a href="#leaderboard" data-page="leaderboard">Leaderboard</a>
+        <a href="#archive" data-page="archive">Archive</a>
+        <a href="#roster" data-page="roster">Roster</a>
+        <a href="#storylines" data-page="storylines">Storylines</a>
+        <a href="#apply" data-page="apply">Apply</a>
       </nav>
       <div class="socials">
         <a href="https://infantryink-shop.fourthwall.com/" id="merchLink" data-social="merch" target="_blank" rel="noopener noreferrer" aria-label="Merch" title="Shop Merch"><i class="ti ti-shopping-bag"></i></a>
@@ -2086,7 +2102,7 @@ async function loadMerchLink(){
   const a = document.getElementById('merchLink');
   if(a && row.merch_url){ a.href = row.merch_url; }
   // nav order + visibility
-  applyLayout(document.querySelector('nav'), 'button[data-page]', 'page', row.nav_layout);
+  applyLayout(document.querySelector('nav'), '[data-page]', 'page', row.nav_layout);
   // social order + visibility
   applyLayout(document.querySelector('.socials'), 'a[data-social]', 'social', row.social_layout);
 }
@@ -2410,10 +2426,19 @@ async function loadDashboard(){
     const lblIco = belt && belt.image_url
       ? `<img class="lbl-belt" src="${esc(belt.image_url)}" alt="">`
       : `<i class="ti ti-trophy"></i>`;
+    // For singles divisions the champ is a roster wrestler — make the name tappable.
+    // Faction champs point to a faction (not a wrestler), so leave those as plain text.
+    const isWrestlerChamp = !vacant && key!=='Faction';
+    const whoInner = vacant ? 'VACANT' : esc(c.champion);
+    const who = isWrestlerChamp
+      ? `<span class="xlink" role="link" tabindex="0" title="View ${escAttr(c.champion)}\u2019s profile"
+            onclick="event.stopPropagation();goWrestler('${escAttr(c.champion)}')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(c.champion)}');}">${whoInner}</span>`
+      : whoInner;
     return `<div class="champ-card${vacant?' vacant':''}">
       ${watermark}
       <div class="lbl">${lblIco} ${label}</div>
-      <div class="who">${vacant?'VACANT':esc(c.champion)}</div>
+      <div class="who">${who}</div>
       <div class="meta">${vacant?'title up for grabs':'since '+esc(c.show_won||'—')}</div></div>`;
   }).join('');
   const ch=(chat&&chat[0]);
@@ -2538,10 +2563,24 @@ async function loadDashStorylines(){
     const kind = DSL_KIND_LABEL[p.kind] || (p.kind||'Post');
     const date = (typeof slDate==='function') ? slDate(p.story_date) : '';
     const exc = dslExcerpt(p);
-    return `<div class="dsl-card ${p.pinned?'pinned':''}" onclick="goPage('storylines')" role="button" tabindex="0"
+    // A social post has no headline — show the author/handle (tweet identity)
+    // the same way the full Storylines page does, instead of a blank "Untitled".
+    let titleBlock;
+    if(p.kind==='social'){
+      const pay = (typeof p.payload==='string') ? (()=>{try{return JSON.parse(p.payload);}catch(e){return {};}})() : (p.payload||{});
+      const author = pay.author || 'WCA';
+      const handle = (typeof slHandle==='function') ? slHandle(p) : ('@'+String(author).toLowerCase().replace(/[^a-z0-9]/g,''));
+      titleBlock = `<div class="dsl-social-id">
+          <span class="dsl-social-name">${esc(author)} <i class="ti ti-rosette-discount-check-filled dsl-verify" title="Verified"></i></span>
+          <span class="dsl-social-handle">${handle}</span>
+        </div>`;
+    } else {
+      titleBlock = `<div class="dsl-title">${esc(p.title||'Untitled')}</div>`;
+    }
+    return `<div class="dsl-card ${p.pinned?'pinned':''} ${p.kind==='social'?'dsl-social':''}" onclick="goPage('storylines')" role="button" tabindex="0"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goPage('storylines');}">
       <div class="dsl-kind">${p.pinned?'<span class="dsl-pin"><i class="ti ti-pin"></i></span>':''}${esc(kind)}</div>
-      <div class="dsl-title">${esc(p.title||'Untitled')}</div>
+      ${titleBlock}
       ${exc?`<div class="dsl-excerpt">${esc(exc)}</div>`:'<div class="dsl-excerpt" style="flex:1"></div>'}
       <div class="dsl-foot"><span>${esc(date)}</span>${likes>0?`<span class="dsl-likes"><i class="ti ti-heart"></i> ${likes}</span>`:''}</div>
     </div>`;
@@ -2672,7 +2711,7 @@ async function loadChampions(){
     const since=cur.won_at||chDateShort(cur.won_date);
     const defs=(cur.defenses>0)?`<div class="cn-def">${cur.defenses} defense${cur.defenses==1?'':'s'}</div>`:'';
     html+=`<div class="cn-card">${beltMark(div)}<div class="cn-div">${esc(label)}</div>
-      <div class="cn-name">${esc(cur.champion)}</div>${since?`<div class="cn-since">since ${esc(since)}</div>`:''}${defs}</div>`;
+      <div class="cn-name">${div==='Faction'?esc(cur.champion):xlinkName(cur.champion)}</div>${since?`<div class="cn-since">since ${esc(since)}</div>`:''}${defs}</div>`;
   });
   html+='</div>';
 
@@ -2699,7 +2738,7 @@ async function loadChampions(){
       const wl=stat.length?`<span class="chs-wl">${stat.join(' · ')}</span>`:'';
       return `<div class="chs-row${isCur?' cur':''}">
         <span class="chs-rk">${isCur?'<i class="ti ti-crown"></i>':(newest.length-i)}</span>
-        <span class="chs-nm">${esc(r.champion)}${isCur?'<span class="chs-curtag">CURRENT</span>':''}</span>
+        <span class="chs-nm">${div==='Faction'?esc(r.champion):xlinkName(r.champion)}${isCur?'<span class="chs-curtag">CURRENT</span>':''}</span>
         <span class="chs-reign">${reign}</span>
         ${wl}
         <span class="chs-defs">${r.defenses||0} def${(r.defenses||0)==1?'':'s'}</span>
@@ -2769,7 +2808,7 @@ let ROSTER_FILTER = 'all';
 async function loadRoster(){
   const grid=document.getElementById('roster-grid');
   const {data,error}=await sb.from('wrestlers')
-    .select('name,gender,is_active,status,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5,performer,socials')
+    .select('name,gender,is_active,status,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5,performer,socials,aliases')
     .order('name');
   if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
   // track hidden names so rankings/dashboard can exclude them too
@@ -2851,7 +2890,16 @@ function wrestlerByName(n){
   // 2) forgiving match: trim + collapse spaces + case-insensitive
   const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
   const key=norm(n);
-  return list.find(x=>norm(x.name)===key);
+  w=list.find(x=>norm(x.name)===key);
+  if(w) return w;
+  // 3) alias match: aliases stored as comma-separated text (or array) on the wrestler.
+  //    e.g. "Stella" finds the wrestler whose aliases include "Stella" (ParallaxStella).
+  return list.find(x=>{
+    const raw=x.aliases;
+    if(!raw) return false;
+    const arr=Array.isArray(raw) ? raw : String(raw).split(',');
+    return arr.some(a=>norm(a)===key);
+  });
 }
 
 function renderRoster(q){
@@ -2985,7 +3033,10 @@ function bindCSTray(){
   const tray=document.getElementById('cs-tray');
   tray.querySelectorAll('.cs-icon').forEach(ic=>{
     const n=ic.dataset.name;
-    ic.addEventListener('mouseenter',()=>csSelect(n));
+    // Click-only: changing the shown wrestler on hover (mouseenter) made the
+    // portrait swap whenever the mouse merely passed over an icon — bad on mobile
+    // and annoying on multi-monitor setups. Now it only changes on a real click,
+    // so the selected wrestler stays put while you alt-tab / move to another screen.
     ic.addEventListener('click',()=>csSelect(n));
   });
 }
@@ -3097,6 +3148,58 @@ function openProfile(w){
 }
 function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
 
+// ===== CROSS-LINK: open a wrestler's profile from anywhere =====
+// Reusable "deep link" target. Any page (rankings, champions, events, factions)
+// can call goWrestler('Some Name') to jump to the Roster tab with that wrestler's
+// profile already open. It reuses the existing wrestlerByName() + openProfile().
+// It also writes the name into the URL hash (#roster?w=Name) so the link is
+// shareable / bookmarkable and survives a refresh.
+function goWrestler(name){
+  if(!name) return;
+  // Show the wrestler on the BIG character-select stage (where CCMamas appears),
+  // not the small modal. Reuses csSelect() — the same thing tray icons use.
+  const showBig=()=>{
+    const w=wrestlerByName(name);
+    if(!w) return false;
+    const realName=w.name;                 // canonical name (matches tray data-name)
+    if(typeof csSelect==='function') csSelect(realName);
+    else if(typeof openProfile==='function') openProfile(w);  // fallback, just in case
+    // bring the stage into view, then scroll the matching tray icon into the row
+    requestAnimationFrame(()=>{
+      const stage=document.getElementById('cs-stage');
+      if(stage) stage.scrollIntoView({behavior:'smooth', block:'start'});
+      const icon=document.querySelector('#cs-tray .cs-icon[data-name="'+(window.CSS&&CSS.escape?CSS.escape(realName):realName)+'"]');
+      if(icon) icon.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    });
+    return true;
+  };
+  const run=()=>{
+    activatePage('roster');
+    if((window._roster||[]).length){ showBig(); }
+    else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(showBig); }
+  };
+  // record it in the URL so refresh / share / back-button all land here
+  const enc=encodeURIComponent(name);
+  if(location.hash!=='#roster?w='+enc){ history.replaceState(null,'','#roster?w='+enc); }
+  run();
+}
+
+// Wrap a name in a tap-to-open link ONLY if it matches a real roster wrestler.
+// Non-matches (faction names, retired/historical names) render as plain text,
+// so nothing looks clickable that wouldn't actually open a profile.
+function xlinkName(name){
+  const safe = esc(name);
+  if(!name) return safe;
+  const hasRoster = (window._roster||[]).length>0;
+  // If roster isn't loaded yet we can't verify — render plain (avoids dead links).
+  if(hasRoster && (typeof wrestlerByName==='function') && wrestlerByName(name)){
+    return `<span class="xlink" role="link" tabindex="0" title="View ${escAttr(name)}\u2019s profile"
+      onclick="event.stopPropagation();goWrestler('${escAttr(name)}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(name)}');}">${safe}</span>`;
+  }
+  return safe;
+}
+
 // ===== EVENTS / FIGHT CARD =====
 function fmtEventDate(ts){
   if(!ts) return '';
@@ -3144,8 +3247,9 @@ function streamEmbed(url){
 // A side may have a main name + an extra (partner) name.
 function nameLink(n){
   if(!n) return '';
-  const known=(window._roster||[]).some(w=>w.name===n);
-  return known ? `<span class="name-link" data-wname="${esc(n)}">${esc(n)}</span>` : esc(n);
+  // alias-aware: matches exact, forgiving, OR alias (so old event spellings link too)
+  const w=(typeof wrestlerByName==='function') ? wrestlerByName(n) : (window._roster||[]).find(x=>x.name===n);
+  return w ? `<span class="name-link" data-wname="${esc(w.name)}">${esc(n)}</span>` : esc(n);
 }
 // One side = optional team name + list of members.
 function sideCell(side, isMain){
@@ -3316,11 +3420,14 @@ async function loadFeaturedData(){
   return {ev, list, ctx:CURRENT_CTX};
 }
 
-// Re-bind wrestler name-link clicks (profile popups) within a container.
+// Re-bind wrestler name-link clicks within a container -> big roster stage.
 function bindNameLinks(el){
   el.querySelectorAll('.name-link').forEach(n=>{
-    n.onclick=()=>{
-      const w=(window._roster||[]).find(x=>x.name===n.dataset.wname);
+    n.onclick=(ev)=>{
+      ev.stopPropagation();
+      const nm=n.dataset.wname;
+      if(typeof goWrestler==='function'){ goWrestler(nm); return; }
+      const w=(window._roster||[]).find(x=>x.name===nm); // fallback
       if(w) openProfile(w);
     };
   });
@@ -5324,8 +5431,11 @@ function slGoPage(n){
 }
 
 // navigation
-document.querySelectorAll('nav button').forEach(b=>{
-  b.onclick=()=>{
+document.querySelectorAll('nav a[data-page], nav button[data-page]').forEach(b=>{
+  b.onclick=(e)=>{
+    // Let the browser do its native thing for new-tab gestures (ctrl/cmd/middle-click).
+    if(e.metaKey||e.ctrlKey||e.shiftKey||e.button===1) return;
+    e.preventDefault();
     const pg=b.dataset.page;
     activatePage(pg);
     // remember the tab in the URL hash so a refresh restores it
@@ -5338,10 +5448,10 @@ function toggleNav(){
 }
 // Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
 function activatePage(pg){
-  const btn=document.querySelector('nav button[data-page="'+pg+'"]');
+  const btn=document.querySelector('nav [data-page="'+pg+'"]');
   if(!btn) return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
-  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
@@ -5357,9 +5467,23 @@ function activatePage(pg){
 }
 // On load (and on back/forward), open whatever tab the hash points to.
 function restorePageFromHash(){
-  const pg=(location.hash||'').slice(1);
-  if(pg && document.querySelector('nav button[data-page="'+pg+'"]')){
+  const raw=(location.hash||'').slice(1);
+  // Split an optional query (e.g. "roster?w=Jay%20Martin") into page + params.
+  const qIdx=raw.indexOf('?');
+  const pg = qIdx>=0 ? raw.slice(0,qIdx) : raw;
+  const qs = qIdx>=0 ? raw.slice(qIdx+1) : '';
+  if(pg && document.querySelector('nav [data-page="'+pg+'"]')){
     activatePage(pg);
+  }
+  // If the hash names a wrestler (?w=Name), show them on the big stage once ready.
+  if(qs){
+    const m=qs.match(/(?:^|&)w=([^&]*)/);
+    if(m){
+      const name=decodeURIComponent(m[1].replace(/\+/g,' '));
+      const openIt=()=>{ const w=wrestlerByName(name); if(w){ if(typeof csSelect==='function') csSelect(w.name); else openProfile(w); return true; } return false; };
+      if((window._roster||[]).length){ openIt(); }
+      else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(openIt); }
+    }
   }
 }
 window.addEventListener('hashchange', restorePageFromHash);
@@ -5410,6 +5534,40 @@ document.querySelectorAll('#lb-filters .rfilter').forEach(b=>{
     loadLeaderboard();
   };
 });
+// ===== CROSS-LINK: make rankings names tap-to-open-profile =====
+// Runs AFTER the protected rankings render (rowHTML/loadDivision are untouched).
+// For each row it reads the wrestler name out of .nm-top and wires the name area
+// to open that profile via the shared goWrestler() helper.
+function bindRankingNames(){
+  document.querySelectorAll('#page-rankings .row, #page-dashboard .row').forEach(row=>{
+    if(row.dataset.xlinked) return;          // don't double-bind on re-render
+    const nmTop=row.querySelector('.nm-top');
+    if(!nmTop) return;
+    // The wrestler name is the leading text of .nm-top (before social icons/tags).
+    const name=(nmTop.childNodes[0] && nmTop.childNodes[0].nodeType===3)
+      ? nmTop.childNodes[0].textContent.trim() : nmTop.textContent.trim();
+    if(!name) return;
+    row.dataset.xlinked='1';
+    const nmCell=row.querySelector('.nm');
+    if(nmCell){
+      nmCell.classList.add('nm-link');
+      nmCell.setAttribute('role','link');
+      nmCell.setAttribute('tabindex','0');
+      nmCell.title='View '+name+'\u2019s profile';
+      nmCell.addEventListener('click',ev=>{
+        // don't hijack clicks on the social icons inside the name area
+        if(ev.target.closest('a')) return;
+        goWrestler(name);
+      });
+      nmCell.addEventListener('keydown',ev=>{
+        if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); goWrestler(name); }
+      });
+    }
+  });
+}
+// Re-bind whenever rankings might have re-rendered (cheap + idempotent).
+setInterval(bindRankingNames, 1500);
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
 
 // boot
@@ -5441,7 +5599,13 @@ if(!isConfigured){
       loadChampions();
     });
   });
-  loadRoster().then(()=>{ loadStorylines(); });
+  loadRoster().then(()=>{
+    loadStorylines();
+    // Roster is now available — re-render the spots that use xlinkName() so champion
+    // names become tappable (on first paint roster wasn't loaded yet, so they were plain).
+    try{ if(typeof loadChampions==='function') loadChampions(); }catch(e){}
+    try{ if(typeof loadDashboard==='function') loadDashboard(); }catch(e){}
+  });
   // restore the tab from the URL hash so a refresh stays put (defaults to Dashboard)
   restorePageFromHash();
 }
