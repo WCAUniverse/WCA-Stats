@@ -307,7 +307,8 @@
   .chs-toggle{background:none;border:1px solid var(--au,var(--gold));color:var(--au,var(--gold));border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:'Barlow',sans-serif;}
   .chs-toggle:hover{background:rgba(233,185,73,.12);}
   .chs-list{margin-top:8px;display:flex;flex-direction:column;}
-  .chs-row{display:grid;grid-template-columns:24px 1fr auto auto;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.06);font-size:14px;}
+  .chs-row{display:grid;grid-template-columns:24px 1fr auto auto auto;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.06);font-size:14px;}
+  .chs-wl{font-size:11px;color:#cfcabd;background:rgba(255,255,255,.05);border-radius:10px;padding:2px 8px;white-space:nowrap;}
   .chs-row:last-child{border-bottom:none;}
   .chs-row.cur{background:rgba(233,185,73,.07);border-radius:8px;padding:8px;margin:2px -8px;}
   .chs-rk{text-align:center;color:var(--muted,#8597a8);font-size:13px;}
@@ -317,7 +318,7 @@
   .chs-reign{font-size:12px;color:var(--muted,#8597a8);white-space:nowrap;}
   .chs-defs{font-size:11px;color:#cfcabd;background:rgba(255,255,255,.05);border-radius:10px;padding:2px 8px;white-space:nowrap;}
   .chs-empty{color:var(--muted,#8597a8);font-style:italic;font-size:13px;padding:6px 0;}
-  @media(max-width:560px){ .chs-row{grid-template-columns:20px 1fr auto;} .chs-reign{grid-column:2/4;white-space:normal;} }
+  @media(max-width:560px){ .chs-row{grid-template-columns:20px 1fr auto;} .chs-reign{grid-column:2/4;white-space:normal;} .chs-wl{grid-column:3/4;} }
 
   /* mobile: stack the row pieces so they don't bunch */
   @media(max-width:620px){
@@ -2587,120 +2588,100 @@ function ratingChip(name){
 }
 
 // ===== CHAMPIONS SECTION (its own block on the Rankings page) =====
-// Auto-derives the current champion + lineage from the archive (completed
-// events with a title match + winner). Manual title_history fills older shows.
-// Renders ONLY into #champions-content — never touches the division blocks.
+// FULLY MANUAL: the current champion + full lineage come from the admin-managed
+// `title_history` table (one row per reign, ordered by sort_order: oldest first).
+// The public view lists the CURRENT champ on top, then most-recent -> oldest below.
+// Undisputed always shows a box even when vacant (empty until a champion is set).
+// NOTE: archive auto-derivation is intentionally DISABLED for now (per admin) —
+// the manual table is the single source of truth. An automatic system can be
+// layered on later once the manual data is verified accurate.
 const CH_DIV_ORDER = ['Undisputed','Mens','Womens','Faction'];
 const CH_DIV_LABEL = { Mens:'Mens Championship', Womens:'Womens Championship', Faction:'Faction (Tag Team) Championship', Undisputed:'Undisputed Championship' };
 
-function chWinnerName(m, winnerIdx){
-  if(winnerIdx==null) return null;
-  const s = parseSides(m)[Number(winnerIdx)];
-  if(!s) return null;
-  if(s.team_name) return s.team_name;
-  const mem = (s.members||[]).filter(Boolean);
-  return mem.length ? mem.join(' & ') : null;
-}
-
-async function chBuildFromArchive(){
-  const out = { Mens:[], Womens:[], Undisputed:[], Faction:[] };
-  const { data: events, error } = await sb.from('events')
-    .select('id,name,event_date,is_complete')
-    .order('event_date',{ascending:true}).order('id',{ascending:true});
-  if(error || !events) return out;
-  const completed = events.filter(e=> e.is_complete !== false);
-  if(!completed.length) return out;
-  const ids = completed.map(e=>e.id);
-  const [mR, bR] = await Promise.all([
-    sb.from('event_matches').select('event_id,slot,championship,sides,side_a,side_b,side_a_extra,side_b_extra').in('event_id', ids),
-    sb.from('match_betting').select('event_id,slot,winner_idx,status').in('event_id', ids)
-  ]);
-  const matches = (mR.data||[]).filter(m=> m.championship && CH_DIV_ORDER.includes(m.championship));
-  const winBy = {};
-  (bR.data||[]).forEach(b=>{ if(b.winner_idx!=null && b.status!=='void') winBy[b.event_id+'|'+b.slot]=b.winner_idx; });
-  const evById = {}; completed.forEach(e=> evById[e.id]=e);
-  CH_DIV_ORDER.forEach(div=>{
-    const rel = matches.filter(m=> m.championship===div)
-      .map(m=>({ m, ev: evById[m.event_id] }))
-      .filter(x=> x.ev && winBy[x.m.event_id+'|'+x.m.slot]!=null)
-      .sort((a,b)=> (Date.parse(a.ev.event_date||'')||0)-(Date.parse(b.ev.event_date||'')||0) || a.ev.id-b.ev.id || a.m.slot-b.m.slot);
-    let cur=null;
-    rel.forEach(({m,ev})=>{
-      const w = chWinnerName(m, winBy[m.event_id+'|'+m.slot]);
-      if(!w) return;
-      if(cur && cur.champion.toLowerCase()===w.toLowerCase()){ cur.defenses++; }
-      else { if(cur){ cur.lostAt=ev.name; cur.lostDate=ev.event_date; } cur={champion:w, wonAt:ev.name, wonDate:ev.event_date, lostAt:'', lostDate:'', defenses:0}; out[div].push(cur); }
-    });
-  });
-  return out;
-}
-
 function chDateShort(s){ const t=Date.parse(s||''); if(isNaN(t)) return esc(s||''); return new Date(t).toLocaleDateString('en-US',{month:'short',year:'numeric'}); }
+
+// A reign is "current" when it has no lost_at / lost_date AND isn't marked vacated.
+function chIsCurrent(r){
+  const lostA=(r.lost_at||'').trim().toLowerCase();
+  const lostD=(r.lost_date||'').trim().toLowerCase();
+  if(lostA==='vacated'||lostD==='vacated') return false;
+  return !lostA && !lostD;
+}
 
 async function loadChampions(){
   const wrap = document.getElementById('champions-content');
   if(!wrap) return;
-  // manual history (older shows)
-  let manual=[];
-  try{ const {data,error}=await sb.from('title_history').select('*'); if(!error&&data) manual=data; }catch(e){}
-  // archive-derived (authoritative)
-  let derived={Mens:[],Womens:[],Undisputed:[],Faction:[]};
-  try{ derived=await chBuildFromArchive(); }catch(e){}
-  const manualByDiv={}; manual.forEach(r=>{const d=r.division||'Mens';(manualByDiv[d]=manualByDiv[d]||[]).push(r);});
-  const lineages={};
-  CH_DIV_ORDER.forEach(div=>{
-    const arch=derived[div]||[];
-    const keys=new Set(arch.map(x=>`${(x.champion||'').toLowerCase()}|${(x.wonAt||'').toLowerCase()}`));
-    const man=(manualByDiv[div]||[]).map(r=>({champion:r.champion||'',wonAt:r.won_at||'',wonDate:r.won_date||'',lostAt:r.lost_at||'',lostDate:r.lost_date||'',defenses:r.defenses!=null?Number(r.defenses):0}))
-      .filter(x=> !keys.has(`${(x.champion||'').toLowerCase()}|${(x.wonAt||'').toLowerCase()}`));
-    man.sort((a,b)=>(Date.parse(a.wonDate||'')||0)-(Date.parse(b.wonDate||'')||0));
-    lineages[div]=[...man,...arch];
-  });
-  const currentOf=div=>{ const l=lineages[div]||[]; for(let i=l.length-1;i>=0;i--){ if(!l[i].lostAt&&!l[i].lostDate) return l[i]; } return null; };
+  // Manual lineage rows only.
+  let rows=[];
+  try{
+    const {data,error}=await sb.from('title_history')
+      .select('*')
+      .order('division',{ascending:true})
+      .order('sort_order',{ascending:true})
+      .order('won_date',{ascending:true});
+    if(!error&&data) rows=data;
+  }catch(e){}
+
+  // Group by division, preserving the ascending (oldest -> newest) sort_order.
+  const byDiv={ Mens:[], Womens:[], Faction:[], Undisputed:[] };
+  rows.forEach(r=>{ const d=r.division||'Mens'; (byDiv[d]=byDiv[d]||[]).push(r); });
+
+  // current champion of a division = the (last) reign with a blank "lost".
+  const currentOf=div=>{ const l=byDiv[div]||[]; for(let i=l.length-1;i>=0;i--){ if(chIsCurrent(l[i])) return l[i]; } return null; };
   const beltMark=div=> (typeof BELTS!=='undefined'&&BELTS[div]&&BELTS[div].image_url)
     ? `<img class="cn-belt-img" src="${esc(BELTS[div].image_url)}" alt="">`
     : `<span class="cn-belt"><i class="ti ti-trophy"></i></span>`;
 
-  // CURRENT champions row (cards)
+  // ---- CURRENT champions row (cards) ----
   let html='<div class="champ-now">';
   CH_DIV_ORDER.forEach(div=>{
     const cur=currentOf(div); const label=CH_DIV_LABEL[div]||div;
     if(!cur){
-      const note=div==='Undisputed'?'Crowned at WCA 50':'Vacant';
+      const note=div==='Undisputed'?'Vacant':'Vacant';
       html+=`<div class="cn-card vacant">${beltMark(div)}<div class="cn-div">${esc(label)}</div><div class="cn-name">${note}</div></div>`;
       return;
     }
-    const since=cur.wonAt||chDateShort(cur.wonDate);
-    const defs=cur.defenses>0?`<div class="cn-def">${cur.defenses} defense${cur.defenses===1?'':'s'}</div>`:'';
+    const since=cur.won_at||chDateShort(cur.won_date);
+    const defs=(cur.defenses>0)?`<div class="cn-def">${cur.defenses} defense${cur.defenses==1?'':'s'}</div>`:'';
     html+=`<div class="cn-card">${beltMark(div)}<div class="cn-div">${esc(label)}</div>
       <div class="cn-name">${esc(cur.champion)}</div>${since?`<div class="cn-since">since ${esc(since)}</div>`:''}${defs}</div>`;
   });
   html+='</div>';
 
-  // Per-division history, each behind a toggle button (collapsed by default)
+  // ---- Per-division history (toggle), CURRENT on top then newest -> oldest ----
   html+='<div class="champ-hist-sections">';
   CH_DIV_ORDER.forEach(div=>{
-    const list=lineages[div]||[]; const label=CH_DIV_LABEL[div]||div;
+    const list=byDiv[div]||[]; const label=CH_DIV_LABEL[div]||div;
     if(!list.length){
-      if(div==='Undisputed') html+=`<div class="chs-block"><div class="chs-head">${beltMark(div)}<span class="chs-title">${esc(label)}</span></div><div class="chs-empty">No champion yet — crowned at WCA 50.</div></div>`;
+      // Always show a box; empty divisions (incl. Undisputed) get an empty note.
+      html+=`<div class="chs-block"><div class="chs-head">${beltMark(div)}<span class="chs-title">${esc(label)}</span></div><div class="chs-empty">No champions on record yet.</div></div>`;
       return;
     }
-    const newest=[...list].reverse();
-    const rows=newest.map((r,i)=>{
-      const isCur=(!r.lostAt&&!r.lostDate);
-      const reign=isCur?`${esc(r.wonAt||chDateShort(r.wonDate))} – present`:`${esc(r.wonAt||chDateShort(r.wonDate))} – ${esc(r.lostAt||chDateShort(r.lostDate))}`;
+    const newest=[...list].reverse(); // newest reign on top
+    const rows2=newest.map((r,i)=>{
+      const isCur=chIsCurrent(r);
+      const reign=isCur
+        ? `${esc(r.won_at||chDateShort(r.won_date))} – present`
+        : `${esc(r.won_at||chDateShort(r.won_date))} – ${esc(r.lost_at||chDateShort(r.lost_date))}`;
+      const won=(r.events_won!=null&&r.events_won!=='')?Number(r.events_won):'';
+      const lost=(r.events_lost!=null&&r.events_lost!=='')?Number(r.events_lost):'';
+      const stat=[];
+      if(won!=='') stat.push(`${won}W`);
+      if(lost!=='') stat.push(`${lost}L`);
+      const wl=stat.length?`<span class="chs-wl">${stat.join(' · ')}</span>`:'';
       return `<div class="chs-row${isCur?' cur':''}">
         <span class="chs-rk">${isCur?'<i class="ti ti-crown"></i>':(newest.length-i)}</span>
         <span class="chs-nm">${esc(r.champion)}${isCur?'<span class="chs-curtag">CURRENT</span>':''}</span>
         <span class="chs-reign">${reign}</span>
-        <span class="chs-defs">${r.defenses||0} def${(r.defenses||0)===1?'':'s'}</span>
+        ${wl}
+        <span class="chs-defs">${r.defenses||0} def${(r.defenses||0)==1?'':'s'}</span>
       </div>`;
     }).join('');
     const bid='chs_'+div;
     html+=`<div class="chs-block">
       <div class="chs-head">${beltMark(div)}<span class="chs-title">${esc(label)}</span>
         <button class="chs-toggle" onclick="chToggle('${bid}',this)">Show history (${list.length})</button></div>
-      <div class="chs-list" id="${bid}" style="display:none">${rows}</div>
+      <div class="chs-list" id="${bid}" style="display:none">${rows2}</div>
     </div>`;
   });
   html+='</div>';
