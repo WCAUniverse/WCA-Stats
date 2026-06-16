@@ -3,6 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  Content-Security-Policy (defense-in-depth). This tells the browser exactly which
+  outside places are allowed to load code, frames, images, fonts, and data connections.
+  Anything not listed here is blocked, which shrinks what an attacker could do if some
+  bad content ever slipped through. Note: inline scripts/styles are allowed because the
+  site uses them heavily — so the source-level fixes (escaping user input) remain the
+  primary protection; this CSP is the backup layer.
+  If you ever add a NEW outside service (a new video host, image host, font, etc.) and it
+  stops loading, add its domain to the matching line below.
+-->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
+  font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:;
+  img-src 'self' data: blob: https:;
+  media-src 'self' blob: https:;
+  connect-src 'self' https://dmfbhszvrbaknaevdhxh.supabase.co wss://dmfbhszvrbaknaevdhxh.supabase.co;
+  frame-src https://www.youtube.com https://youtube.com https://player.vimeo.com https://streamable.com https://player.twitch.tv https://www.twitch.tv;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+">
+
 <title>WCA — World Championship Alliance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2171,6 +2195,10 @@ function rowHTML(p, idx, isChamp, div){
   </div>`;
 }
 function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+// Like esc() but ALSO escapes single quotes and backticks. Use this for any value
+// placed inside an HTML attribute, especially inline event handlers, so a value
+// containing a quote can never "break out" and run as code.
+function escAttr(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));}
 
 // Body formatting via a SAFE whitelist of HTML tags. Everything is escaped first
 // (so no injection is possible), then ONLY these approved tags are turned back into
@@ -4689,8 +4717,12 @@ function slMedia(text){
       // These are GIF "view" pages; the simplest reliable embed is the page's media.
       // Tenor/Giphy share-links usually resolve to a .gif when given to <img>; if not,
       // we link out gracefully.
+      // The fallback link URL is stored in a fully-escaped data-attribute (escAttr handles
+      // single quotes/backticks too) and read by the handler — the URL is never concatenated
+      // into runnable JS, so a URL containing a quote can't break out and inject code.
       html = `<div class="sl-embed sl-embed-gif"><img src="${esc(url)}.gif" alt="GIF"
-        loading="lazy" onerror="this.parentNode.innerHTML='<a href=\\'${esc(url)}\\' target=\\'_blank\\' rel=\\'noopener\\'>View GIF ↗</a>'"></div>`;
+        loading="lazy" data-gifurl="${escAttr(url)}"
+        onerror="var u=this.getAttribute('data-gifurl');var a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';a.textContent='View GIF \u2197';this.parentNode.innerHTML='';this.parentNode.appendChild(a);"></div>`;
     }
     // --- Direct video files ---
     else if(/\.(mp4|webm|mov)(\?|$)/i.test(u)){
