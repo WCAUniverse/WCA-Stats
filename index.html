@@ -68,11 +68,11 @@
     color:var(--txt); font-family:'Barlow',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;}
   h1,h2,h3,.disp{font-family:'Oswald',sans-serif; font-weight:600; letter-spacing:.5px; text-transform:uppercase;}
   .cond{font-family:'Barlow Condensed',sans-serif;}
-  .wrap{max-width:1080px; margin:0 auto; padding:0 20px 80px;}
+  .wrap{margin:0 auto; padding:0 20px 80px;}
 
   /* header */
   header{border-bottom:1px solid var(--line); background:linear-gradient(180deg,#111 0%,var(--bg) 100%);}
-  .head-inner{max-width:1080px; margin:0 auto; padding:22px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
+  .head-inner{margin:0 auto; padding:22px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;}
   .brand{display:flex; align-items:baseline; gap:10px;}
   .brand .logo{font-family:'Oswald'; font-weight:700; font-size:28px; color:var(--gold); letter-spacing:2px;}
   .brand .sub{font-size:12px; color:var(--muted); letter-spacing:3px; text-transform:uppercase;}
@@ -1136,6 +1136,26 @@
   .sl-intro{font-family:'Barlow'; font-size:15px; line-height:1.6; color:var(--muted);
     max-width:680px; margin:2px 0 18px;}
   .sl-feed{display:flex; flex-direction:column; gap:18px;}
+  /* Keep the Storylines page a narrow, centered "social feed" column even though
+     the rest of the site is full-width. Reads like a social-media timeline. */
+  #page-storylines{ max-width:720px; margin-left:auto; margin-right:auto; }
+  /* On PC, widen the feed so comments can slide out to the RIGHT of each post
+     without cramping the post. Mobile stays narrow (comments open downward). */
+  @media(min-width:901px){
+    #page-storylines{ max-width:1340px; }
+    /* posts without open comments sit at a readable width, centered, so the
+       feed doesn't look stretched until you open a thread */
+    #page-storylines .sl-feed > .slpost:not(.sl-commenting){
+      max-width:920px; margin-left:auto; margin-right:auto; width:100%;
+    }
+    /* Slightly larger, more readable type on the wider PC feed. */
+    #page-storylines .sl-social .sl-text,
+    #page-storylines .sl-article .sl-body,
+    #page-storylines .sl-snafu-fact,
+    #page-storylines .sl-comment .sl-cbody{ font-size:16px; line-height:1.6; }
+    #page-storylines .sl-snafu-fact{ font-size:15px; }
+    #page-storylines .sl-comment .sl-cname{ font-size:16px; }
+  }
   /* Snafu Facts post type */
   .sl-snafu{ background: linear-gradient(135deg,#0d0c1f,#14121e); border:1px solid #3a2e5c; }
   .sl-snafu-head{ display:flex; align-items:center; gap:14px; margin-bottom:10px; }
@@ -1148,6 +1168,11 @@
 
   /* shared post shell */
   .slpost{position:relative; border-radius:14px; overflow:hidden;}
+  /* Consistent inner breathing room for EVERY post type so nothing runs to the
+     edges (fixes Snafu/promo/interview/rankings/timeline sitting flush). The
+     "document" types (HR / signing / injury) manage their own full-bleed
+     letterhead framing, so they're excluded here. */
+  .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury){ padding:18px 20px; }
   .slpost .sl-pin{position:absolute; top:12px; right:12px; z-index:3;
     font-family:'Oswald'; font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
     color:var(--gold); background:var(--gold-deep); border:1px solid var(--gold-dim);
@@ -1161,7 +1186,7 @@
     border:1px solid var(--line);}
 
   /* ---- SOCIAL post (our own card design — no real platform branding) ---- */
-  .sl-social{background:var(--panel); border:1px solid var(--line); padding:16px 18px;}
+  .sl-social{background:var(--panel); border:1px solid var(--line);}
   .sl-social .sl-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
   .sl-social .sl-av{width:46px; height:46px; border-radius:50%; object-fit:cover;
     border:1px solid var(--gold-dim); flex-shrink:0; background:var(--panel2);}
@@ -1202,7 +1227,8 @@
 
   /* ---- ARTICLE — headline-first, news style, text-only ---- */
   .sl-article{background:linear-gradient(180deg,var(--panel),var(--bg2,#100f12));
-    border:1px solid var(--line); padding:22px 24px;}
+    border:1px solid var(--line);}
+  .slpost.sl-article:not(.sl-hr){ padding:22px 24px; }
   .sl-article .sl-eyebrow{display:flex; align-items:center; gap:12px; margin-bottom:12px;
     flex-wrap:wrap;}
   .sl-article .sl-pub{font-family:'Oswald'; font-size:11px; letter-spacing:3px;
@@ -1350,8 +1376,9 @@
   .sl-rankings .sl-rk-new{color:var(--gold);}
 
   /* ---- MYSTERY — stark, anonymous, ominous ---- */
-  .sl-mystery{background:#08080a; border:1px solid #2a2a30; padding:34px 26px;
+  .sl-mystery{background:#08080a; border:1px solid #2a2a30;
     text-align:center; box-shadow:inset 0 0 70px rgba(0,0,0,.65);}
+  .slpost.sl-mystery:not(.sl-hr){ padding:34px 26px; }   /* keep its dramatic roomy padding */
   .sl-mystery .sl-my-text{font-family:'Oswald'; font-size:clamp(18px,3.4vw,23px);
     line-height:1.75; color:#cfcfd4; letter-spacing:1px; white-space:pre-wrap;
     text-shadow:0 0 14px rgba(120,120,170,.4);}
@@ -1399,7 +1426,7 @@
     color:var(--muted);}
 
   @media(max-width:560px){
-    .sl-article{padding:18px 16px;}
+    .slpost.sl-article:not(.sl-hr){padding:18px 16px;}
     .sl-hr .sl-memo{padding:16px 16px;}
     .sl-hr .sl-letterhead{padding:14px 16px;}
   }
@@ -1424,12 +1451,85 @@
     padding:7px 14px; transition:.15s;}
   .sl-cbtn:hover{border-color:var(--gold-dim); color:var(--gold);}
   .sl-cbtn i{font-size:17px;}
+  /* share button in the engage bar */
+  .sl-sharebtn{display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    font-family:'Oswald'; font-size:13px; letter-spacing:.5px; color:var(--muted);
+    background:transparent; border:1px solid var(--line); border-radius:30px;
+    padding:7px 14px; transition:.15s;}
+  .sl-sharebtn:hover{border-color:var(--gold-dim); color:var(--gold);}
+  .sl-sharebtn i{font-size:17px;}
+  /* share popup */
+  .sl-share-pop{position:fixed; inset:0; z-index:120; display:none;
+    align-items:center; justify-content:center; background:rgba(0,0,0,.55);}
+  .sl-share-pop.show{display:flex;}
+  .sl-share-pop .ssp-card{position:relative; background:var(--panel); border:1px solid var(--gold-dim);
+    border-radius:14px; padding:22px 22px 18px; width:min(440px,92vw); box-shadow:0 24px 70px rgba(0,0,0,.6);}
+  .sl-share-pop .ssp-x{position:absolute; top:10px; right:10px; background:transparent; border:none;
+    color:var(--muted); font-size:22px; line-height:1; cursor:pointer; padding:4px;}
+  .sl-share-pop .ssp-x:hover{color:var(--txt);}
+  .sl-share-pop .ssp-h{font-family:'Oswald'; font-size:16px; letter-spacing:.5px; color:var(--gold);
+    display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .sl-share-pop .ssp-id{font-family:'Barlow'; font-size:13px; color:var(--muted); margin-bottom:14px;}
+  .sl-share-pop .ssp-id b{color:var(--txt);}
+  .sl-share-pop .ssp-linkrow{display:flex; gap:8px;}
+  .sl-share-pop .ssp-link{flex:1; min-width:0; background:var(--panel2); border:1px solid var(--line);
+    color:var(--txt); font-family:'Barlow'; font-size:14px; padding:9px 12px; border-radius:8px;}
+  .sl-share-pop .ssp-link:focus{outline:none; border-color:var(--gold);}
+  .sl-share-pop .ssp-copy{background:var(--gold); color:#15120a; border:none; cursor:pointer;
+    font-family:'Oswald'; font-size:13px; letter-spacing:1px; text-transform:uppercase; font-weight:600;
+    padding:9px 16px; border-radius:8px; white-space:nowrap;}
+  .sl-share-pop .ssp-copy:hover{filter:brightness(1.08);}
+  .sl-share-pop .ssp-hint{font-family:'Barlow'; font-size:12px; color:var(--muted); margin-top:8px;}
+  /* brief highlight when arriving via a shared link */
+  .sl-shared-flash{animation:slSharedFlash 2.2s ease;}
+  @keyframes slSharedFlash{
+    0%,100%{box-shadow:0 18px 44px -36px #000;}
+    15%,60%{box-shadow:0 0 0 2px var(--gold), 0 18px 44px -30px #000;}
+  }
 
   /* comment thread (expandable) */
   .sl-comments{position:relative; z-index:2; margin-top:2px; padding:0 0 0 0; display:none;}
   .sl-comments.open{display:block; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
   .sl-hr .sl-comments{padding:0 24px 18px;}
   .sl-hr .sl-comments.open{margin-top:0; border-top:none;}
+
+  /* ===== PC: comments open as an equal-height column to the RIGHT of the post =====
+     When a thread is open the <article> becomes a flex row: [ .sl-postmain | .sl-comments ].
+     Flexbox makes both columns the SAME height automatically (whichever side is
+     taller sets the height), and each side scrolls on its own. Mobile keeps the
+     classic open-downward behavior. */
+  @media(min-width:901px){
+    .slpost.sl-commenting{
+      display:flex; align-items:stretch; gap:0;
+      padding:0 !important;                 /* padding moves onto the columns */
+      overflow:hidden;                      /* keep rounded corners clean */
+      max-height:78vh;                      /* cap very tall posts so the row fits the screen */
+    }
+    .slpost.sl-commenting > .sl-postmain{
+      flex:1 1 auto; min-width:0;
+      padding:18px 20px;
+      overflow-y:auto;                      /* the post scrolls on its own if tall */
+      overscroll-behavior:contain;
+    }
+    .slpost.sl-commenting > .sl-comments.open{
+      flex:0 0 380px; width:380px;
+      margin:0; padding:18px 20px;
+      border-top:none; border-left:1px solid var(--line);
+      background:rgba(0,0,0,.22);
+      overflow-y:auto;                      /* comments scroll independently */
+      overscroll-behavior:contain;
+    }
+    .slpost.sl-commenting > .sl-postmain::-webkit-scrollbar,
+    .slpost.sl-commenting > .sl-comments.open::-webkit-scrollbar{ width:8px; }
+    .slpost.sl-commenting > .sl-postmain::-webkit-scrollbar-thumb,
+    .slpost.sl-commenting > .sl-comments.open::-webkit-scrollbar-thumb{ background:var(--line); border-radius:8px; }
+    /* HR / signing / injury posts have their own full-bleed framing; their main
+       column shouldn't add the standard padding. */
+    .sl-hr.sl-commenting > .sl-postmain,
+    .sl-signing.sl-commenting > .sl-postmain,
+    .sl-injury.sl-commenting > .sl-postmain{ padding:0; }
+  }
+  }
   .sl-cform{display:flex; flex-direction:column; gap:8px; margin-bottom:16px;}
   .sl-cform textarea{width:100%; background:var(--panel2); border:1px solid var(--line);
     color:var(--txt); font-family:'Barlow'; font-size:15px; line-height:1.5;
@@ -1504,7 +1604,7 @@
     --au-hair:rgba(233,185,73,.34);   /* hairline gold rule */
     --au-faint:rgba(233,185,73,.13);
     --serif:'Cormorant Garamond', Georgia, serif;
-    --content-max:1760px;
+    --content-max:none;
   }
 
   /* ---- the room: deep marble hall, gold light from above ---- */
@@ -1541,8 +1641,8 @@
   .champ-card .who{font-weight:600; text-transform:none; letter-spacing:.5px;}
 
   /* widen the hall */
-  .wrap{max-width:var(--content-max); padding-left:clamp(18px,2.5vw,40px); padding-right:clamp(18px,2.5vw,40px);}
-  .head-inner{max-width:var(--content-max); padding-left:clamp(18px,2.5vw,40px); padding-right:clamp(18px,2.5vw,40px);}
+  .wrap{max-width:var(--content-max); padding-left:clamp(18px,3vw,48px); padding-right:clamp(18px,3vw,48px);}
+  .head-inner{max-width:var(--content-max); padding-left:clamp(18px,3vw,48px); padding-right:clamp(18px,3vw,48px);}
 
   /* ════ THE ENTRANCE — gallery header ════ */
   header{
@@ -5069,6 +5169,25 @@ function slRenderSnafu(p){
 }
 
 function slRenderPost(p){
+  // Inject the post id onto the <article> (all types) so share-links can find it.
+  let html = slRenderPostInner(p);
+  html = html.replace('<article class="slpost',
+    `<article id="slpost-${p.id}" data-postid="${p.id}" class="slpost`);
+  // Wrap everything BEFORE the comments in .sl-postmain so the article can be a
+  // flex row [ post-main | comments ] — flex makes both columns equal height,
+  // each scrolling on its own. The comments div is always the last child.
+  const marker = '<div class="sl-comments';
+  const cut = html.indexOf(marker);
+  if(cut !== -1){
+    const open = html.indexOf('>', html.indexOf('<article')) + 1;  // just after <article ...>
+    const head = html.slice(0, open);
+    const main = html.slice(open, cut);
+    const rest = html.slice(cut);
+    html = head + '<div class="sl-postmain">' + main + '</div>' + rest;
+  }
+  return html;
+}
+function slRenderPostInner(p){
   switch(p.kind){
     case 'social':    return slRenderSocial(p);
     case 'article':   return slRenderArticle(p);
@@ -5222,6 +5341,9 @@ function slEngageBar(p){
       <span class="sl-cbtn" onclick="slToggleComments(${p.id})">
         <i class="ti ti-message-2"></i> ${cc} ${cc===1?'Comment':'Comments'}
       </span>
+      <span class="sl-sharebtn" onclick="slShare(${p.id})" title="Share this post">
+        <i class="ti ti-share-3"></i> Share
+      </span>
     </div>
     <div class="sl-comments${SL_OPEN[p.id]?' open':''}" id="sl-comments-${p.id}"></div>`;
 }
@@ -5274,11 +5396,94 @@ function slRefreshEngage(id){
 
 // ---- COMMENTS ----
 async function slToggleComments(id){
-  SL_OPEN[id] = !SL_OPEN[id];
+  const opening = !SL_OPEN[id];
+  // One open at a time: close any other open thread first (cleaner side-panel layout).
+  if(opening){
+    Object.keys(SL_OPEN).forEach(k=>{
+      if(k!==String(id) && SL_OPEN[k]){
+        SL_OPEN[k] = false;
+        const ob = document.getElementById('sl-comments-'+k);
+        if(ob){ ob.classList.remove('open'); ob.closest('.slpost')?.classList.remove('sl-commenting'); }
+      }
+    });
+  }
+  SL_OPEN[id] = opening;
   const box = document.getElementById('sl-comments-'+id);
   if(!box) return;
   box.classList.toggle('open', SL_OPEN[id]);
+  // Tag the post article so CSS can switch to the side-by-side layout on PC.
+  box.closest('.slpost')?.classList.toggle('sl-commenting', SL_OPEN[id]);
   if(SL_OPEN[id]) await slRenderComments(id);
+}
+
+// ---- SHARE ----
+// Builds a direct link to a single post (#storylines?post=ID), copies it to the
+// clipboard, and shows a small popup with the link + the post's ID number.
+function slShareLink(id){
+  const base = location.origin + location.pathname;
+  return base + '#storylines?post=' + id;
+}
+async function slShare(id){
+  const url = slShareLink(id);
+  let copied = false;
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    }
+  }catch(e){ copied = false; }
+  slShowSharePopup(id, url, copied);
+}
+function slShowSharePopup(id, url, copied){
+  // reuse one popup element
+  let pop = document.getElementById('sl-share-pop');
+  if(!pop){
+    pop = document.createElement('div');
+    pop.id = 'sl-share-pop';
+    pop.className = 'sl-share-pop';
+    pop.addEventListener('click', e=>{ if(e.target===pop) slCloseSharePopup(); });
+    document.body.appendChild(pop);
+  }
+  pop.innerHTML = `
+    <div class="ssp-card">
+      <button class="ssp-x" onclick="slCloseSharePopup()" aria-label="Close"><i class="ti ti-x"></i></button>
+      <div class="ssp-h"><i class="ti ti-share-3"></i> Share this post</div>
+      <div class="ssp-id">Post ID <b>#${id}</b></div>
+      <div class="ssp-linkrow">
+        <input class="ssp-link" id="ssp-link-input" readonly value="${esc(url)}" onclick="this.select()">
+        <button class="ssp-copy" onclick="slCopyShare()">${copied?'Copied':'Copy'}</button>
+      </div>
+      <div class="ssp-hint">${copied?'Link copied to your clipboard.':'Tap the link, then copy it.'}</div>
+    </div>`;
+  pop.classList.add('show');
+}
+function slCloseSharePopup(){
+  document.getElementById('sl-share-pop')?.classList.remove('show');
+}
+async function slCopyShare(){
+  const inp = document.getElementById('ssp-link-input');
+  if(!inp) return;
+  inp.select();
+  try{
+    await navigator.clipboard.writeText(inp.value);
+    const btn = document.querySelector('#sl-share-pop .ssp-copy');
+    if(btn) btn.textContent = 'Copied';
+  }catch(e){
+    try{ document.execCommand('copy'); }catch(_){}
+  }
+}
+// Open a shared post: scroll to it and briefly highlight it.
+function slFocusSharedPost(id){
+  const el = document.getElementById('slpost-'+id);
+  if(!el){
+    // The post may be on another pagination page — jump to page 1 where newest live,
+    // or just flash a toast if not found in the current list.
+    return false;
+  }
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  el.classList.add('sl-shared-flash');
+  setTimeout(()=>el.classList.remove('sl-shared-flash'), 2200);
+  return true;
 }
 async function slLoadComments(id){
   try{
@@ -5536,6 +5741,15 @@ function restorePageFromHash(){
       const openIt=()=>{ const w=wrestlerByName(name); if(w){ if(typeof csSelect==='function') csSelect(w.name); else openProfile(w); return true; } return false; };
       if((window._roster||[]).length){ openIt(); }
       else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(openIt); }
+    }
+    // If the hash names a storyline post (?post=ID), scroll to & flash it once loaded.
+    const mp=qs.match(/(?:^|&)post=([^&]*)/);
+    if(mp){
+      const pid=decodeURIComponent(mp[1]);
+      const tryFocus=()=>{ if(typeof slFocusSharedPost==='function') return slFocusSharedPost(pid); return false; };
+      // the feed may still be loading — retry a few times then give up quietly
+      let tries=0;
+      const iv=setInterval(()=>{ tries++; if(tryFocus()||tries>20) clearInterval(iv); }, 250);
     }
   }
 }
