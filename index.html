@@ -117,6 +117,29 @@
     .socials{margin-top:4px; gap:10px;}
     .socials a{font-size:22px;}
   }
+
+  /* ===== DESKTOP HEADER LAYOUT (brand left | nav centered | userbox | socials right) =====
+     Desktop only (>=761px) so the mobile hamburger dropdown above is untouched.
+     .head-right spans the space next to the brand; inside it the NAV is centered,
+     the USERBOX sits to its right (made slightly bigger so name + points read),
+     and the SOCIALS are pushed to the far right. Layout only — no DOM/JS change. */
+  @media(min-width:761px){
+    .head-right{ flex:1; flex-wrap:nowrap; gap:14px; }
+    /* center the menu in the remaining space */
+    .head-right > nav{ flex:1 1 auto; justify-content:center; gap:6px; }
+    /* visual order: nav (1) → userbox (2) → socials (3, far right) */
+    .head-right > nav{ order:1; }
+    .head-right > .userbox{ order:2; flex:0 0 auto; }
+    .head-right > .socials{ order:3; flex:0 0 auto; margin-left:4px; }
+
+    /* USERBOX a touch bigger so the username + balance are easy to read */
+    .userbox .login-btn{ font-size:14px; padding:11px 18px; }
+    .user-chip{ padding:7px 9px 7px 13px; gap:11px; }
+    .user-chip .uava,
+    .user-chip .uava-init{ width:34px; height:34px; }
+    .user-chip .ubal{ font-size:18px; }
+    .user-chip .uname{ font-size:13px; }
+  }
   .section-title{font-size:13px; color:var(--gold); letter-spacing:3px; margin:36px 0 14px; display:flex; align-items:center; gap:10px;}
   .section-title::after{content:''; flex:1; height:1px; background:var(--line);}
 
@@ -5420,7 +5443,16 @@ async function slToggleComments(id){
 // Builds a direct link to a single post (#storylines?post=ID), copies it to the
 // clipboard, and shows a small popup with the link + the post's ID number.
 function slShareLink(id){
-  const base = location.origin + location.pathname;
+  // Build the base from the directory only — strip any filename (index.html,
+  // index_Test.html, etc.) so the link is clean and works regardless of which
+  // file generated it. Falls back to origin '/' if served from the root.
+  let base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  // If opened as a local file (file://), there's no shareable origin — leave the
+  // path as-is but the link still won't work off-machine; warn-free fallback.
+  if(location.protocol !== 'http:' && location.protocol !== 'https:'){
+    base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  }
+  if(!base.endsWith('/')) base += '/';
   return base + '#storylines?post=' + id;
 }
 async function slShare(id){
