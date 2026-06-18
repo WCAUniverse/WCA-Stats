@@ -2157,8 +2157,8 @@
          onerror="this.style.display='none';document.getElementById('fp-logo-fallback').style.display='block';">
     <div class="fp-logo-fallback" id="fp-logo-fallback" style="display:none">WORLD<br>CHAMPIONSHIP<br>ALLIANCE</div>
     <div class="fp-soon">WCA FIRE PRO — COMING SOON</div>
-    <div class="fp-sub">A 16-bit spin-off built in Fire Pro Wrestling World. Its own roster, its own rules, its own chaos. Under construction.</div>
-    <div class="fp-press">► PRESS &laquo;BACK TO WCA&raquo; TO RETURN ◄</div>
+    <div class="fp-sub" id="fp-sub-text">A 16-bit spin-off built in Fire Pro Wrestling World. Its own roster, its own rules, its own chaos. Under construction.</div>
+    <div class="fp-press" id="fp-press-text">► PRESS &laquo;BACK TO WCA&raquo; TO RETURN ◄</div>
   </div>
 </div>
 <!-- =================== END FIRE PRO =================== -->
@@ -2563,6 +2563,13 @@ async function loadFirePro(){
     if(error || !data || !data.firepro) return;        // not set up yet → stay hidden
     const fp = data.firepro;
     if(fp.label && String(fp.label).trim()) btn.textContent = fp.label;
+    // editable coming-soon copy (falls back to the HTML defaults if blank)
+    if(fp.sub && String(fp.sub).trim()){
+      const s=document.getElementById('fp-sub-text'); if(s) s.textContent = fp.sub;
+    }
+    if(fp.press && String(fp.press).trim()){
+      const p=document.getElementById('fp-press-text'); if(p) p.textContent = fp.press;
+    }
     if(fp.enabled === true) btn.style.display = 'inline-block';
   }catch(e){ /* stay hidden */ }
 }
