@@ -517,9 +517,9 @@
   .stream-frame{position:relative; padding-top:56.25%; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000;}
   .stream-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
   /* player + chat side by side */
-  .watch-grid{display:grid; grid-template-columns:1fr 340px; gap:12px; align-items:stretch;}
-  /* keep the player a true 16:9 box; the grid row stretches the chat to match */
-  .watch-grid .stream-frame{padding-top:0; aspect-ratio:16/9; height:auto;}
+  .watch-grid{display:grid; grid-template-columns:minmax(0,1280px) 340px; gap:12px; align-items:stretch; justify-content:center;}
+  /* player is a true 16:9 box capped at 1280x720; chat stretches to its full height */
+  .watch-grid .stream-frame{padding-top:0; aspect-ratio:16/9; max-height:720px; height:auto; margin:0 auto; width:100%;}
   .chat-col{display:flex; flex-direction:column; gap:8px; min-height:0;}
   /* The Twitch chat is wrapped in <details>. On desktop it's always shown and the
      toggle is hidden (side-by-side layout). On phones it becomes a real collapsible. */
