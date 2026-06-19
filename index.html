@@ -2205,6 +2205,12 @@
   <div class="fp-label">ENTERING&nbsp;FIRE&nbsp;PRO…</div>
 </div>
 
+<!-- WARP SOUND EFFECT (silent until you add a file):
+       1. Put an MP3 here:  audio/fire-pro/sfx/warp.mp3
+       2. Set the src on the tag below to that path.
+     Plays automatically when the portal fires. -->
+<audio id="fp-warp-sfx" preload="none"></audio>
+
 <div id="fp-zone" aria-hidden="true">
   <div class="fp-bg"></div>
   <div class="fp-top">
@@ -2644,26 +2650,27 @@ async function loadFirePro(){
   }catch(e){ /* stay hidden */ }
 }
 
-// Click handler for the nav button: run the portal warp, then show the zone.
+// Click handler for the nav button: run the portal warp, then send the visitor
+// to the SEPARATE Fire Pro page. The bright flash hides the page load, so it
+// feels like one smooth trip through the portal. Login carries over because the
+// Fire Pro page uses the same Supabase project.
 function fpEnter(ev){
   if(ev){ ev.preventDefault(); }
   const portal = document.getElementById('fp-portal');
-  const zone   = document.getElementById('fp-zone');
-  if(!portal || !zone) return;
+  if(!portal) return;
   // close the mobile menu if it's open
   document.getElementById('headRight')?.classList.remove('open');
+  // play the warp sound effect IF a file has been added (silent otherwise)
+  const sfx = document.getElementById('fp-warp-sfx');
+  if(sfx && sfx.getAttribute('src')){ try{ sfx.currentTime=0; sfx.play().catch(()=>{}); }catch(e){} }
   portal.classList.remove('warpback');
   portal.classList.add('on');
   // force reflow so the animation restarts cleanly, then warp
   void portal.offsetWidth;
   portal.classList.add('warp');
   document.body.style.overflow = 'hidden';
-  // midway through the warp, reveal the Fire Pro zone behind the flash
-  setTimeout(()=>{ zone.classList.add('on'); zone.setAttribute('aria-hidden','false'); }, 850);
-  // end of warp: tear down the portal overlay
-  setTimeout(()=>{
-    portal.classList.remove('on','warp');
-  }, 1200);
+  // at the bright flash, jump to the Fire Pro page (its own folder)
+  setTimeout(()=>{ window.location.href = 'firepro/index.html'; }, 850);
 }
 
 // Back button: reverse warp out of the zone to the main site.
