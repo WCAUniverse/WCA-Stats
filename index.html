@@ -2124,10 +2124,10 @@
     opacity:0;
   }
   /* play state: kick the keyframes */
-  #fp-portal.warp .fp-stars{animation:fpStarRush .9s ease-in forwards;}
-  #fp-portal.warp .fp-warp{animation:fpWarpGrow 1.1s ease-in forwards;}
-  #fp-portal.warp .fp-label{animation:fpLabelIn 1.1s ease-out forwards;}
-  #fp-portal.warp .fp-flash{animation:fpFlash 1.15s ease-in forwards;}
+  #fp-portal.warp .fp-stars{animation:fpStarRush 1.3s ease-in forwards;}
+  #fp-portal.warp .fp-warp{animation:fpWarpGrow 1.5s ease-in forwards;}
+  #fp-portal.warp .fp-label{animation:fpLabelIn 1.5s ease-out forwards;}
+  #fp-portal.warp .fp-flash{animation:fpFlash 1.55s ease-in forwards;}
   @keyframes fpStarRush{
     0%{opacity:0; transform:scale(1);}
     20%{opacity:1;}
@@ -2718,7 +2718,14 @@ function fpEnter(ev){
   document.getElementById('headRight')?.classList.remove('open');
   // play the warp sound effect IF a file has been added (silent otherwise)
   const sfx = document.getElementById('fp-warp-sfx');
-  if(sfx && sfx.getAttribute('src')){ try{ sfx.currentTime=0; sfx.play().catch(()=>{}); }catch(e){} }
+  if(sfx && sfx.getAttribute('src')){
+    try{
+      sfx.currentTime=0; sfx.play().catch(()=>{});
+      // remember WHEN the sound started so the Fire Pro page can resume it
+      // from the same point — makes a 4s fade play seamlessly across the jump.
+      sessionStorage.setItem('fpSfxStart', String(Date.now()));
+    }catch(e){}
+  }
   portal.classList.remove('warpback');
   portal.classList.add('on');
   // force reflow so the animation restarts cleanly, then warp
@@ -2726,7 +2733,7 @@ function fpEnter(ev){
   portal.classList.add('warp');
   document.body.style.overflow = 'hidden';
   // at the bright flash, jump to the Fire Pro page (its own folder)
-  setTimeout(()=>{ window.location.href = 'firepro/index.html'; }, 850);
+  setTimeout(()=>{ window.location.href = 'firepro/index.html'; }, 1500);
 }
 
 // Back button: reverse warp out of the zone to the main site.
