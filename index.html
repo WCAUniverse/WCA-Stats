@@ -2520,7 +2520,18 @@ function wcaToast(title, sub, isErr){
 
 let sb = null;
 const isConfigured = SUPABASE_URL.startsWith("http") && SUPABASE_KEY.length > 20;
-if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    // Keep the login saved between visits, refresh it automatically, and
+    // (the important one) read the login token Discord puts in the URL when
+    // it sends the user back. Without detectSessionInUrl the user bounces
+    // back signed-OUT — that was the "sign-in loop" bug.
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  }
+});
 
 // ===== THEME LOADER =====
 // Reads the single site_settings row and applies admin-chosen colors to the
@@ -2758,15 +2769,23 @@ let IS_ADMIN = false;      // true when the signed-in user passes the DB is_admi
 function fmtMoney(n){ return '$' + (Number(n)||0).toLocaleString('en-US'); }
 
 async function signInDiscord(){
+  // IMPORTANT: redirect to the clean page URL (no #storylines hash on the end).
+  // If the hash is left on, Discord's login token collides with it and Supabase
+  // can't read it — that's what caused the sign-in loop. origin+pathname is the
+  // page with no hash and no query.
+  const cleanUrl = window.location.origin + window.location.pathname;
   await sb.auth.signInWithOAuth({
     provider: 'discord',
-    options: { redirectTo: window.location.href }
+    options: { redirectTo: cleanUrl }
   });
 }
 async function signOut(){ await sb.auth.signOut(); location.reload(); }
 
 async function refreshUser(){
-  const { data:{ user } } = await sb.auth.getUser();
+  // getSession() is the reliable one to call right after an OAuth redirect —
+  // it reads the freshly-saved login. getUser() can race and come back empty.
+  const { data:{ session } } = await sb.auth.getSession();
+  const user = session ? session.user : null;
   CURRENT_USER = user || null;
   const box = document.getElementById('userbox');
   if(!CURRENT_USER){
@@ -6292,6 +6311,17 @@ if(!isConfigured){
   applyTheme();
   applyDashboard();
   refreshUser();
+  // When login finishes (token read from the URL), re-render the user chip
+  // automatically — no manual page reload needed. Also clean the leftover
+  // token text off the URL so it looks tidy and can't be re-triggered.
+  sb.auth.onAuthStateChange((event)=>{
+    if(event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED'){
+      if(window.location.hash && /access_token|code=/.test(window.location.hash)){
+        history.replaceState(null, '', window.location.origin + window.location.pathname);
+      }
+      refreshUser();
+    }
+  });
   loadMerchLink();
   loadFirePro();
   loadHiddenNames().then(()=>{
