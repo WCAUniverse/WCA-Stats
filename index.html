@@ -518,14 +518,15 @@
   .stream-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
   /* player + chat side by side */
   .watch-grid{display:grid; grid-template-columns:1fr 340px; gap:12px; align-items:stretch;}
-  .watch-grid .stream-frame{padding-top:0; height:480px;}
-  .chat-col{display:flex; flex-direction:column; gap:8px;}
+  /* keep the player a true 16:9 box; the grid row stretches the chat to match */
+  .watch-grid .stream-frame{padding-top:0; aspect-ratio:16/9; height:auto;}
+  .chat-col{display:flex; flex-direction:column; gap:8px; min-height:0;}
   /* The Twitch chat is wrapped in <details>. On desktop it's always shown and the
      toggle is hidden (side-by-side layout). On phones it becomes a real collapsible. */
   .chat-toggle{display:none;}
   .chat-col[open]>summary{list-style:none;}
   .chat-col>summary::-webkit-details-marker{display:none;}
-  .chat-frame{flex:1; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#18181b; min-height:440px;}
+  .chat-frame{flex:1; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#18181b; min-height:0;}
   .chat-frame iframe{width:100%; height:100%; border:0; display:block;}
   .chat-popout{font-family:'Barlow'; font-size:12px; color:var(--muted); text-decoration:none;
     display:inline-flex; align-items:center; gap:6px; justify-content:center; padding:6px;
@@ -533,7 +534,7 @@
   .chat-popout:hover{color:var(--gold); border-color:var(--gold-dim);}
   @media(max-width:820px){
     .watch-grid{grid-template-columns:1fr;}
-    .watch-grid .stream-frame{padding-top:56.25%; height:auto;}
+    .watch-grid .stream-frame{padding-top:56.25%; aspect-ratio:auto; height:auto;}
     /* show the toggle; let the stream chat collapse so it doesn't eat the screen */
     .chat-toggle{display:flex; align-items:center; gap:8px; cursor:pointer;
       font-family:'Oswald'; font-size:13px; letter-spacing:1px; color:var(--gold);
