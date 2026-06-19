@@ -1,1 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WCA · Fire Pro</title>
 
+<!-- Same fonts + icons + Supabase as the main site, so this page matches and shares the login -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* base reset so this standalone page looks right on its own */
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:#0a0608;color:#fff;
+    font-family:'Barlow',system-ui,sans-serif;overflow:hidden;}
+
+  :root{ --loss:#E24B4A; --gold:#E9B949; }
+
+  /* ============================================================
+     FIRE PRO — additive. A toggleable nav button that "transports"
+     the visitor through a hyperspace portal into a retro 16-bit
+     themed "coming soon" section, with a way back. None of this
+     renders unless site_settings.firepro.enabled is true (the
+     button is created hidden and only revealed by JS).
+     ============================================================ */
+
+  /* The special nav button. Hidden by default; JS shows it only
+     when the admin has the section enabled. Arcade look so it
+     stands apart from the gold gallery nav. */
+  #nav-firepro{
+    display:none; position:relative;
+    font-family:'Press Start 2P',monospace !important;
+    font-size:9px !important; letter-spacing:1px !important;
+    color:#ffd23f !important; text-transform:uppercase;
+    padding:9px 14px !important;
+    border:2px solid #ff3b3b !important; border-radius:4px !important;
+    background:linear-gradient(180deg,#2a0a0a,#120406) !important;
+    box-shadow:0 0 0 1px #000, 0 0 12px -2px #ff3b3b, inset 0 0 14px -8px #ffd23f;
+    text-shadow:1px 1px 0 #b3001b;
+    image-rendering:pixelated;
+    animation:fpPulse 1.6s ease-in-out infinite;
+  }
+  #nav-firepro:hover{
+    color:#fff !important; border-color:#ffd23f !important;
+    box-shadow:0 0 0 1px #000, 0 0 18px 0 #ff3b3b, inset 0 0 14px -6px #ffd23f;
+  }
+  #nav-firepro::after{display:none !important;} /* kill the gallery underline */
+  @keyframes fpPulse{
+    0%,100%{box-shadow:0 0 0 1px #000, 0 0 10px -3px #ff3b3b, inset 0 0 14px -8px #ffd23f;}
+    50%    {box-shadow:0 0 0 1px #000, 0 0 20px  0px #ff3b3b, inset 0 0 14px -5px #ffd23f;}
+  }
+
+  /* ---------- The portal / hyperspace transition overlay ---------- */
+  #fp-portal{
+    position:fixed; inset:0; z-index:99999; display:none;
+    background:#000; overflow:hidden;
+    opacity:0; pointer-events:none;
+  }
+  #fp-portal.on{display:block; opacity:1; pointer-events:auto;}
+  /* the warp tunnel: concentric rings rushing the viewer */
+  #fp-portal .fp-warp{
+    position:absolute; left:50%; top:50%; width:2px; height:2px;
+    transform:translate(-50%,-50%);
+    background:
+      radial-gradient(circle, #ffd23f 0%, transparent 60%);
+  }
+  #fp-portal .fp-ring{
+    position:absolute; left:50%; top:50%; border-radius:50%;
+    border:2px solid #ff3b3b;
+    transform:translate(-50%,-50%) scale(0);
+    box-shadow:0 0 24px 2px rgba(255,59,59,.7);
+    opacity:0;
+  }
+  /* starfield streaks */
+  #fp-portal .fp-stars{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+      radial-gradient(2px 2px at 70% 60%, #ffd23f, transparent),
+      radial-gradient(1px 1px at 40% 80%, #fff, transparent),
+      radial-gradient(2px 2px at 85% 20%, #ff8a3b, transparent),
+      radial-gradient(1px 1px at 55% 45%, #fff, transparent),
+      radial-gradient(2px 2px at 10% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 90% 85%, #ffd23f, transparent),
+      radial-gradient(2px 2px at 30% 15%, #fff, transparent);
+    opacity:0;
+  }
+  #fp-portal .fp-flash{
+    position:absolute; inset:0; background:#fff; opacity:0;
+  }
+  #fp-portal .fp-label{
+    position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+    text-align:center; font-family:'Press Start 2P',monospace;
+    font-size:14px; letter-spacing:2px; color:#ffd23f;
+    text-shadow:2px 2px 0 #b3001b, 0 0 18px rgba(255,59,59,.8);
+    opacity:0;
+  }
+  /* play state: kick the keyframes */
+  #fp-portal.warp .fp-stars{animation:fpStarRush .9s ease-in forwards;}
+  #fp-portal.warp .fp-warp{animation:fpWarpGrow 1.1s ease-in forwards;}
+  #fp-portal.warp .fp-label{animation:fpLabelIn 1.1s ease-out forwards;}
+  #fp-portal.warp .fp-flash{animation:fpFlash 1.15s ease-in forwards;}
+  @keyframes fpStarRush{
+    0%{opacity:0; transform:scale(1);}
+    20%{opacity:1;}
+    100%{opacity:1; transform:scale(2.4);}
+  }
+  @keyframes fpWarpGrow{
+    0%{opacity:0; width:2px; height:2px; box-shadow:0 0 0 0 #ffd23f;}
+    30%{opacity:1;}
+    100%{opacity:1; width:140vmax; height:140vmax;
+         box-shadow:0 0 120px 40px #ff3b3b, inset 0 0 200px 60px #120406;}
+  }
+  @keyframes fpLabelIn{
+    0%,30%{opacity:0; transform:translateY(-50%) scale(.7);}
+    55%{opacity:1; transform:translateY(-50%) scale(1);}
+    85%{opacity:1;}
+    100%{opacity:0; transform:translateY(-50%) scale(1.1);}
+  }
+  @keyframes fpFlash{
+    0%,80%{opacity:0;} 92%{opacity:1;} 100%{opacity:0;}
+  }
+  /* reverse warp (going back to the main site) */
+  #fp-portal.warpback .fp-stars{animation:fpStarRush .8s ease-out reverse forwards;}
+  #fp-portal.warpback .fp-warp{animation:fpWarpGrow .9s ease-out reverse forwards;}
+  #fp-portal.warpback .fp-flash{animation:fpFlash .9s ease-in forwards;}
+
+  /* ---------- The Fire Pro "coming soon" fullscreen view ---------- */
+  #fp-zone{
+    position:fixed; inset:0; z-index:9000; display:none;
+    overflow-y:auto; background:#0a0506;
+    font-family:'Press Start 2P',monospace; color:#ffe9b0;
+    image-rendering:pixelated;
+  }
+  #fp-zone.on{display:block;}
+  /* CRT scanline + arena vibe background */
+  #fp-zone .fp-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px),
+      radial-gradient(120% 80% at 50% 0%, #3a0d0d 0%, #160505 45%, #0a0506 100%);
+  }
+  #fp-zone .fp-bg::after{ /* fiery floor band, echoing the FPW menus */
+    content:''; position:absolute; left:0; right:0; bottom:0; height:34%;
+    background:
+      radial-gradient(80% 120% at 50% 120%, rgba(255,120,30,.45), transparent 70%),
+      linear-gradient(0deg, rgba(255,59,59,.25), transparent);
+    mix-blend-mode:screen;
+  }
+  #fp-zone .fp-inner{
+    position:relative; z-index:1; min-height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:48px 20px 60px; gap:26px;
+  }
+  /* top bar: red FPW-style header strip with a back button */
+  #fp-zone .fp-top{
+    position:fixed; top:0; left:0; right:0; z-index:2;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px;
+    background:linear-gradient(180deg,#b3001b,#6e0010);
+    border-bottom:3px solid #ffd23f;
+    box-shadow:0 4px 18px -6px #000;
+  }
+  #fp-zone .fp-top .fp-tag{
+    font-size:10px; letter-spacing:2px; color:#ffd23f;
+    text-shadow:1px 1px 0 #000;
+  }
+  #fp-back{
+    font-family:'Press Start 2P',monospace; cursor:pointer;
+    font-size:9px; letter-spacing:1px; color:#0a0506;
+    background:#ffd23f; border:2px solid #fff; border-radius:4px;
+    padding:9px 12px; text-transform:uppercase;
+    box-shadow:0 0 12px -2px #ffd23f;
+    transition:.12s;
+  }
+  #fp-back:hover{background:#fff; box-shadow:0 0 16px 0 #ffd23f;}
+  #fp-zone .fp-logo{
+    max-width:min(560px,86vw); width:100%; height:auto;
+    filter:drop-shadow(0 0 30px rgba(255,80,30,.55));
+    image-rendering:auto;
+  }
+  /* text fallback if the logo PNG isn't in the repo yet */
+  #fp-zone .fp-logo-fallback{
+    font-size:clamp(16px,5vw,30px); line-height:1.5; color:#ffd23f;
+    text-shadow:3px 3px 0 #b3001b, 0 0 22px rgba(255,59,59,.7);
+  }
+  #fp-zone .fp-soon{
+    font-size:clamp(14px,4.5vw,26px); color:#fff;
+    text-shadow:2px 2px 0 #b3001b; letter-spacing:1px;
+    animation:fpBlink 1.2s steps(2,end) infinite;
+  }
+  @keyframes fpBlink{50%{opacity:.25;}}
+  #fp-zone .fp-sub{
+    font-size:9px; line-height:2; color:#ffb37a; max-width:520px;
+    letter-spacing:1px;
+  }
+  #fp-zone .fp-press{
+    margin-top:6px; font-size:8px; color:#9be0ff; letter-spacing:1px;
+    animation:fpBlink 1.4s steps(2,end) infinite;
+  }
+  @media(max-width:600px){
+    #fp-zone .fp-top .fp-tag{font-size:8px;}
+    #fp-zone .fp-inner{padding-top:64px; gap:20px;}
+  }
+  @media(prefers-reduced-motion:reduce){
+    #nav-firepro{animation:none;}
+    #fp-portal *{animation-duration:.01s !important;}
+    #fp-zone .fp-soon,#fp-zone .fp-press{animation:none;}
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ===== ARRIVAL WARP (plays the tail end of the portal as you land here) ===== -->
+<div id="fp-portal" class="on warpback" aria-hidden="true">
+  <div class="fp-stars"></div>
+  <div class="fp-warp"></div>
+  <div class="fp-ring"></div>
+  <div class="fp-flash"></div>
+  <div class="fp-label">ENTERING&nbsp;FIRE&nbsp;PRO…</div>
+</div>
+
+<!-- ===== THE FIRE PRO ZONE (the coming-soon screen, now its own page) ===== -->
+<div id="fp-zone" class="on" aria-hidden="false">
+  <div class="fp-bg"></div>
+  <div class="fp-top">
+    <span class="fp-tag">WCA · FIRE PRO WRESTLING WORLD</span>
+
+    <!-- background-music toggle (hidden until you add a track; see AUDIO note below) -->
+    <button id="fp-music-btn" onclick="fpToggleMusic()" style="display:none">♪ MUSIC: OFF</button>
+
+    <button id="fp-back" onclick="fpExit()">◄ BACK TO WCA</button>
+  </div>
+  <div class="fp-inner">
+    <img class="fp-logo" src="../icons/firepro-logo.png" alt="WCA Fire Pro"
+         onerror="this.style.display='none';document.getElementById('fp-logo-fallback').style.display='block';">
+    <div class="fp-logo-fallback" id="fp-logo-fallback" style="display:none">WORLD<br>CHAMPIONSHIP<br>ALLIANCE</div>
+    <div class="fp-soon">WCA FIRE PRO — COMING SOON</div>
+    <div class="fp-sub" id="fp-sub-text">A 16-bit spin-off built in Fire Pro Wrestling World. Its own roster, its own rules, its own chaos. Under construction.</div>
+    <div class="fp-press" id="fp-press-text">► PRESS &laquo;BACK TO WCA&raquo; TO RETURN ◄</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     AUDIO HOOKS  (silent for now — just add files later)
+     ------------------------------------------------------------
+     BACKGROUND MUSIC for this Fire Pro page:
+       1. Put an MP3 here:  audio/fire-pro/bg-music/theme.mp3
+       2. On the <audio id="fp-bg-music"> tag below, set the src to that file.
+       3. The ♪ MUSIC button appears automatically and the fan can play/loop it.
+     (Music never auto-blasts — the visitor taps the button. That is on purpose.)
+     ============================================================ -->
+<audio id="fp-bg-music" loop preload="none"></audio>
+<!-- Example once you have a file:
+     <audio id="fp-bg-music" loop preload="none" src="audio/fire-pro/bg-music/theme.mp3"></audio> -->
+
+<!-- WARP SOUND EFFECT (plays on arrival + on exit):
+       1. Put an MP3 here:  audio/fire-pro/sfx/warp.mp3
+       2. Set the src on the <audio id="fp-warp-sfx"> tag below.            -->
+<audio id="fp-warp-sfx" preload="none"></audio>
+<!-- Example once you have a file:
+     <audio id="fp-warp-sfx" preload="none" src="audio/fire-pro/sfx/warp.mp3"></audio> -->
+
+<script>
+// ===== SAME SUPABASE PROJECT AS THE MAIN SITE → login carries over automatically =====
+const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+let sb = null;
+try{
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' }
+  });
+}catch(e){ /* page still shows fine without the DB */ }
+
+// Pull the admin-editable coming-soon copy (same site_settings.firepro row the main site uses).
+async function fpLoadCopy(){
+  if(!sb) return;
+  try{
+    const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single();
+    const fp = data && data.firepro;
+    if(!fp) return;
+    if(fp.sub  && String(fp.sub).trim()){  const s=document.getElementById('fp-sub-text');   if(s) s.textContent = fp.sub; }
+    if(fp.press&& String(fp.press).trim()){ const p=document.getElementById('fp-press-text'); if(p) p.textContent = fp.press; }
+  }catch(e){}
+}
+
+// ===== ARRIVAL: play the warp tail, then settle on the zone =====
+window.addEventListener('load', ()=>{
+  fpLoadCopy();
+  const portal = document.getElementById('fp-portal');
+  // play the warp sound effect IF a file has been added (silent otherwise)
+  fpPlaySfx();
+  // let the reverse-warp animation finish, then clear the overlay
+  setTimeout(()=>{ if(portal){ portal.classList.remove('on','warpback'); } }, 950);
+  // reveal the music button only if a real track has been set
+  fpSetupMusicButton();
+});
+
+// ===== BACK BUTTON: warp out, then go to the main site =====
+function fpExit(){
+  const portal = document.getElementById('fp-portal');
+  fpPlaySfx();
+  if(portal){
+    portal.classList.remove('warp','warpback');
+    portal.classList.add('on');
+    void portal.offsetWidth;
+    portal.classList.add('warp');   // forward warp = "leaving into the flash"
+  }
+  // at the bright flash, jump back to the main site
+  setTimeout(()=>{ window.location.href = '../index.html'; }, 700);
+}
+
+// ===== AUDIO HELPERS (do nothing until you add files) =====
+function fpPlaySfx(){
+  const a = document.getElementById('fp-warp-sfx');
+  if(a && a.getAttribute('src')){ try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e){} }
+}
+function fpSetupMusicButton(){
+  const a = document.getElementById('fp-bg-music');
+  const btn = document.getElementById('fp-music-btn');
+  if(a && a.getAttribute('src') && btn){ btn.style.display='inline-block'; }
+}
+let _fpMusicOn = false;
+function fpToggleMusic(){
+  const a = document.getElementById('fp-bg-music');
+  const btn = document.getElementById('fp-music-btn');
+  if(!a || !a.getAttribute('src')) return;
+  if(_fpMusicOn){ a.pause(); _fpMusicOn=false; if(btn) btn.textContent='♪ MUSIC: OFF'; }
+  else { a.play().catch(()=>{}); _fpMusicOn=true; if(btn) btn.textContent='♪ MUSIC: ON'; }
+}
+</script>
+</body>
+</html>
