@@ -648,6 +648,54 @@
   .logout-x:hover{color:var(--loss);}
   @media(max-width:560px){ .userbox{margin-top:6px;} }
 
+  /* single Sign-in button + provider dropdown */
+  .login-wrap{position:relative;}
+  .login-menu{position:absolute; top:calc(100% + 8px); right:0; background:var(--panel);
+    border:1px solid var(--line); border-radius:10px; padding:6px; min-width:170px; z-index:60;
+    display:none; box-shadow:0 12px 30px rgba(0,0,0,.45);}
+  .login-menu.open{display:block;}
+  .login-menu button{display:flex; align-items:center; gap:10px; width:100%; background:transparent;
+    border:none; color:var(--txt); font-family:'Oswald'; font-size:14px; letter-spacing:.5px;
+    padding:10px 12px; border-radius:7px; cursor:pointer; text-align:left;}
+  .login-menu button:hover{background:rgba(233,185,73,.08);}
+  .login-menu button i{font-size:18px;}
+  .acc-welcome{font-family:'Barlow'; font-size:14px; color:var(--txt); background:rgba(233,185,73,.07);
+    border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:16px; line-height:1.5;}
+
+  /* My Account modal */
+  .acc-h{font-family:'Cormorant Garamond','Oswald',serif; color:var(--gold); font-size:26px;
+    margin:0 0 16px; font-weight:600;}
+  .acc-sec{border-top:1px solid var(--line); padding:16px 0;}
+  .acc-sec:first-of-type{border-top:none; padding-top:0;}
+  .acc-sec-title{font-family:'Oswald'; text-transform:uppercase; letter-spacing:1.5px; font-size:12px;
+    color:var(--muted); margin-bottom:10px;}
+  .acc-hint{font-family:'Barlow'; font-size:12.5px; color:var(--muted); margin-top:8px;}
+  .acc-name-row{display:flex; gap:8px;}
+  .acc-name-row input{flex:1; background:var(--bg); border:1px solid var(--line); border-radius:8px;
+    color:var(--txt); padding:10px 12px; font-family:'Barlow'; font-size:14px;}
+  .acc-name-row input:focus{outline:none; border-color:var(--gold);}
+  .acc-save-btn,.acc-link-btn,.acc-toggle{font-family:'Oswald'; cursor:pointer; border-radius:8px;
+    letter-spacing:.5px; transition:.15s;}
+  .acc-save-btn{background:linear-gradient(180deg,var(--gold),var(--gold-dim)); color:#1a1206; border:none;
+    padding:10px 16px; font-weight:700; text-transform:uppercase; font-size:13px;}
+  .acc-save-btn:hover{filter:brightness(1.07);}
+  .acc-prov{display:flex; justify-content:space-between; align-items:center; padding:9px 0;}
+  .acc-prov-name{font-family:'Barlow'; font-size:14.5px; color:var(--txt); display:flex; align-items:center; gap:9px;}
+  .acc-prov-name i{font-size:18px;}
+  .acc-prov-on{font-family:'Oswald'; font-size:12px; color:var(--win); display:flex; align-items:center; gap:5px;
+    letter-spacing:.5px;}
+  .acc-link-btn{background:transparent; border:1px solid var(--gold); color:var(--gold); padding:6px 14px; font-size:12px;
+    text-transform:uppercase;}
+  .acc-link-btn:hover{background:rgba(233,185,73,.1);}
+  .acc-toggle-row{display:flex; gap:8px;}
+  .acc-toggle{flex:1; background:var(--bg); border:1px solid var(--line); color:var(--muted); padding:10px 8px;
+    font-size:13px; text-align:center;}
+  .acc-toggle.on{border-color:var(--gold); color:var(--gold); background:rgba(233,185,73,.08);}
+  #account-body .msg{margin-top:10px; font-size:13px; display:none;}
+  #account-body .msg.show{display:block;}
+  #account-body .msg.ok{color:var(--win);}
+  #account-body .msg.err{color:var(--loss);}
+
   /* ============================================================
      PHASE 2 — reference-inspired aesthetic layer
      Purely visual. No logic, data, or layout structure changed.
@@ -2471,6 +2519,14 @@
   </div>
 </div>
 
+<!-- MY ACCOUNT MODAL (username + connected logins + admin post-as) -->
+<div class="modal-overlay" id="account-modal" onclick="if(event.target===this)closeAccount()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAccount()" aria-label="Close"><i class="ti ti-x"></i></button>
+    <div id="account-body"></div>
+  </div>
+</div>
+
 <!-- BET MODAL -->
 <div class="modal-overlay" id="bet-modal" onclick="if(event.target===this)closeBet()">
   <div class="modal-box" style="max-width:420px">
@@ -2773,6 +2829,7 @@ function beltIcon(div, cls){
 let CURRENT_USER = null;   // { id, ... } from auth
 let MY_PROFILE = null;     // row from profiles
 let IS_ADMIN = false;      // true when the signed-in user passes the DB is_admin() check
+let POST_AS_ADMIN = false; // admin-only: post in chat as "Admin" instead of your own name
 function fmtMoney(n){ return '$' + (Number(n)||0).toLocaleString('en-US'); }
 
 async function signInDiscord(){
@@ -2786,6 +2843,43 @@ async function signInDiscord(){
     options: { redirectTo: cleanUrl }
   });
 }
+// Generic sign-in for any provider (discord / google / twitch). Same clean
+// redirect so no sign-in loop. New providers must be enabled in the Supabase
+// dashboard (Authentication → Sign In / Providers) or they'll error.
+async function signInProvider(provider){
+  const cleanUrl = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: cleanUrl }
+  });
+  if(error){ wcaToast('Sign-in failed', error.message || ('Could not start '+provider), true); }
+}
+// Open/close the little provider menu under the "Sign in" button.
+function toggleLoginMenu(ev){
+  if(ev){ ev.stopPropagation(); }
+  const m = document.getElementById('loginMenu');
+  if(m){ m.classList.toggle('open'); }
+}
+// Click anywhere else closes the menu.
+document.addEventListener('click', (e)=>{
+  const wrap = e.target.closest && e.target.closest('.login-wrap');
+  if(!wrap){ const m=document.getElementById('loginMenu'); if(m) m.classList.remove('open'); }
+});
+// Attach ANOTHER login (google/twitch/discord) to the SAME account, so one
+// person can sign in multiple ways without making duplicate accounts.
+// Requires "Manual linking" enabled in the Supabase dashboard.
+async function linkProvider(provider){
+  const cleanUrl = window.location.origin + window.location.pathname;
+  try{
+    const { error } = await sb.auth.linkIdentity({
+      provider,
+      options: { redirectTo: cleanUrl }
+    });
+    if(error){ wcaToast('Link failed', error.message || ('Could not link '+provider), true); }
+  }catch(e){
+    wcaToast('Link failed', 'Linking is not enabled yet (turn on Manual Linking in Supabase).', true);
+  }
+}
 async function signOut(){ await sb.auth.signOut(); location.reload(); }
 
 async function refreshUser(){
@@ -2796,8 +2890,14 @@ async function refreshUser(){
   CURRENT_USER = user || null;
   const box = document.getElementById('userbox');
   if(!CURRENT_USER){
-    box.innerHTML = `<button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>`;
-    document.getElementById('loginBtn').onclick = signInDiscord;
+    box.innerHTML = `<div class="login-wrap">
+        <button class="login-btn" id="loginBtn" onclick="toggleLoginMenu(event)"><i class="ti ti-login-2"></i> Sign in</button>
+        <div class="login-menu" id="loginMenu">
+          <button onclick="signInProvider('discord')"><i class="ti ti-brand-discord" style="color:#5865F2"></i> Discord</button>
+          <button onclick="signInProvider('google')"><i class="ti ti-brand-google" style="color:#EA4335"></i> Google</button>
+          <button onclick="signInProvider('twitch')"><i class="ti ti-brand-twitch" style="color:#9146FF"></i> Twitch</button>
+        </div>
+      </div>`;
     MY_PROFILE = null;
     IS_ADMIN = false;
     return;
@@ -2811,6 +2911,12 @@ async function refreshUser(){
   try{ const { data:adm } = await sb.rpc('is_admin'); IS_ADMIN = adm===true; }
   catch(e){ IS_ADMIN = false; }
   renderUserChip();
+  // First-time sign-in: if they've never set their own display name, open the
+  // account page so they pick a username. It pre-fills with the name their
+  // login provider gave (Discord/Google/Twitch), which they can keep or change.
+  if(MY_PROFILE && !MY_PROFILE.username_set){
+    setTimeout(()=>{ openAccount(true); }, 400);
+  }
 }
 function renderUserChip(){
   const box = document.getElementById('userbox');
@@ -2822,10 +2928,12 @@ function renderUserChip(){
     ? `<img class="uava" src="${esc(avaSrc)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
     : `<div class="uava-init">${init}</div>`;
   box.innerHTML = `<div class="user-chip">
-      ${ava}
-      <div class="ucol">
-        <span class="ubal">${fmtMoney(MY_PROFILE.balance)}</span>
-        <span class="uname">${esc(name)}</span>
+      <div class="uchip-main" onclick="openAccount()" title="My account" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        ${ava}
+        <div class="ucol">
+          <span class="ubal">${fmtMoney(MY_PROFILE.balance)}</span>
+          <span class="uname">${esc(name)}</span>
+        </div>
       </div>
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
     </div>`;
@@ -3685,6 +3793,86 @@ function openProfile(w){
 }
 function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
 
+// ===== MY ACCOUNT =====
+const PROVIDER_META = {
+  discord: { name:'Discord', icon:'ti-brand-discord', color:'#5865F2' },
+  google:  { name:'Google',  icon:'ti-brand-google',  color:'#EA4335' },
+  twitch:  { name:'Twitch',  icon:'ti-brand-twitch',  color:'#9146FF' }
+};
+async function openAccount(firstTime){
+  if(!CURRENT_USER){ return; }
+  const body = document.getElementById('account-body');
+  // best name we have: their saved name, else whatever the login provider gave.
+  const meta = (CURRENT_USER && CURRENT_USER.user_metadata) || {};
+  const providerName = meta.full_name || meta.name || meta.user_name
+    || meta.preferred_username || meta.nickname || '';
+  const name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || providerName || '';
+  // which providers are already linked to this one account
+  let linked = [];
+  try{
+    const ids = (CURRENT_USER.identities || []);
+    linked = ids.map(i => i.provider);
+  }catch(e){ linked = []; }
+  const allProviders = ['discord','google','twitch'];
+  const connectedRows = allProviders.map(p=>{
+    const meta = PROVIDER_META[p];
+    const on = linked.indexOf(p) !== -1;
+    return `<div class="acc-prov">
+        <span class="acc-prov-name"><i class="ti ${meta.icon}" style="color:${meta.color}"></i> ${meta.name}</span>
+        ${ on
+          ? `<span class="acc-prov-on"><i class="ti ti-check"></i> Connected</span>`
+          : `<button class="acc-link-btn" onclick="linkProvider('${p}')">Link</button>` }
+      </div>`;
+  }).join('');
+
+  // admin-only "post as" toggle
+  const adminBlock = IS_ADMIN ? `
+    <div class="acc-sec">
+      <div class="acc-sec-title">Admin — post in chat as</div>
+      <div class="acc-toggle-row">
+        <button class="acc-toggle ${!POST_AS_ADMIN?'on':''}" onclick="setPostAs(false)">My name (${esc(name||'Member')})</button>
+        <button class="acc-toggle ${POST_AS_ADMIN?'on':''}" onclick="setPostAs(true)">Admin</button>
+      </div>
+      <div class="acc-hint">Choose how your live-chat messages are signed. Your admin powers never change either way.</div>
+    </div>` : '';
+
+  body.innerHTML = `
+    <h2 class="acc-h">${firstTime ? 'Welcome! Pick your username' : 'My Account'}</h2>
+    ${firstTime ? '<div class="acc-welcome">You\u2019re signed in. Choose the name you\u2019ll show on the leaderboard and in chat. We started it with your login name \u2014 keep it or change it.</div>' : ''}
+    <div class="acc-sec">
+      <div class="acc-sec-title">Display name</div>
+      <div class="acc-name-row">
+        <input id="acc-name-input" maxlength="32" value="${esc(name)}" placeholder="Your username">
+        <button class="acc-save-btn" onclick="saveAccountName()">Save</button>
+      </div>
+      <div class="acc-hint">This is the name shown on the leaderboard, in chat, and on your bets.</div>
+      <div class="msg" id="acc-msg"></div>
+    </div>
+    <div class="acc-sec">
+      <div class="acc-sec-title">Connected logins</div>
+      <div class="acc-hint" style="margin-bottom:10px">Link more ways to sign in — they all open this same account, so your points and history stay together.</div>
+      ${connectedRows}
+    </div>
+    ${adminBlock}`;
+  document.getElementById('account-modal').classList.add('open');
+}
+function closeAccount(){ document.getElementById('account-modal').classList.remove('open'); }
+async function saveAccountName(){
+  const inp = document.getElementById('acc-name-input');
+  const msg = document.getElementById('acc-msg');
+  const v = (inp.value||'').trim();
+  if(!v){ if(msg){ msg.className='msg err show'; msg.textContent='Name cannot be empty.'; } return; }
+  const { error } = await sb.from('profiles').update({ display_name: v, username_set: true }).eq('id', CURRENT_USER.id);
+  if(error){ if(msg){ msg.className='msg err show'; msg.textContent='Save failed: '+error.message; } return; }
+  if(MY_PROFILE){ MY_PROFILE.display_name = v; MY_PROFILE.username_set = true; }
+  if(msg){ msg.className='msg ok show'; msg.textContent='Saved ✓'; }
+  renderUserChip();
+}
+function setPostAs(asAdmin){
+  POST_AS_ADMIN = !!asAdmin;
+  openAccount(); // re-render the toggle highlight
+}
+
 // ===== CROSS-LINK: open a wrestler's profile from anywhere =====
 // Reusable "deep link" target. Any page (rankings, champions, events, factions)
 // can call goWrestler('Some Name') to jump to the Roster tab with that wrestler's
@@ -4303,8 +4491,12 @@ async function sendChat(){
   const body = input.value.trim();
   if(!body) return;
   if(btn) btn.disabled = true;
-  const name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member';
-  const avatar = (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || null;
+  const name = (IS_ADMIN && POST_AS_ADMIN)
+    ? 'Admin'
+    : ((MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member');
+  const avatar = (IS_ADMIN && POST_AS_ADMIN)
+    ? null
+    : ((MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || null);
   try{
     const { error } = await sb.from('chat_messages').insert({
       user_id: CURRENT_USER.id,
@@ -6303,7 +6495,7 @@ function bindRankingNames(){
 // Re-bind whenever rankings might have re-rendered (cheap + idempotent).
 setInterval(bindRankingNames, 1500);
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeProfile();closeAccount();}});
 
 // boot
 if(!isConfigured){
