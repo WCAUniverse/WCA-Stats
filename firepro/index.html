@@ -293,8 +293,8 @@ async function fpLoadCopy(){
 window.addEventListener('load', ()=>{
   fpLoadCopy();
   const portal = document.getElementById('fp-portal');
-  // play the warp sound effect IF a file has been added (silent otherwise)
-  fpPlaySfx();
+  // resume the warp sound from where the previous page left off (seamless fade)
+  fpResumeSfx();
   // let the reverse-warp animation finish, then clear the overlay
   setTimeout(()=>{ if(portal){ portal.classList.remove('on','warpback'); } }, 950);
   // reveal the music button only if a real track has been set
@@ -319,6 +319,23 @@ function fpExit(){
 function fpPlaySfx(){
   const a = document.getElementById('fp-warp-sfx');
   if(a && a.getAttribute('src')){ try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e){} }
+}
+// Resume the warp sound from where it was on the previous page, so a long
+// fade plays out seamlessly across the page jump. Falls back to playing from
+// the start if we don't have a timestamp.
+function fpResumeSfx(){
+  const a = document.getElementById('fp-warp-sfx');
+  if(!(a && a.getAttribute('src'))) return;
+  let offset = 0;
+  try{
+    const started = parseInt(sessionStorage.getItem('fpSfxStart')||'0', 10);
+    if(started){ offset = (Date.now() - started) / 1000; }   // seconds elapsed
+    sessionStorage.removeItem('fpSfxStart');
+  }catch(e){}
+  try{
+    a.currentTime = (offset > 0 && offset < 30) ? offset : 0;
+    a.play().catch(()=>{});
+  }catch(e){ try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e2){} }
 }
 function fpSetupMusicButton(){
   const a = document.getElementById('fp-bg-music');
