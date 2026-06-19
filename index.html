@@ -828,6 +828,24 @@
      then a full-width horizontal standings strip, then the chat hub. */
   .live-layout{display:flex; flex-direction:column; gap:18px; margin-top:6px;}
   .live-main{min-width:0;}
+
+  /* ---- Live stage: current-match tab above, then player + side chat ---- */
+  .live-stage{display:flex; flex-direction:column; gap:14px;}
+  /* player on the left (true 16:9, capped at 1280x720), chat fixed-width on the right */
+  .stage-grid{display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:14px; align-items:stretch;}
+  .stage-player{min-width:0;}
+  .stage-player .stream-wrap{margin:0;}
+  .stage-player .stream-frame{position:relative; padding-top:0; aspect-ratio:16/9;
+    max-height:720px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#000;}
+  .stage-player .stream-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  /* the side chat matches the player's height via the stretched grid row */
+  .stage-grid .chat-hub{margin:0; min-height:0;}
+  @media(max-width:980px){
+    .stage-grid{grid-template-columns:1fr;}
+    .stage-player .stream-frame{aspect-ratio:16/9; max-height:none;}
+    .stage-grid .ch-feed{height:340px; flex:none;}
+  }
+
   /* Standings as a full-width horizontal strip (no longer a side rail) */
   .live-rail{background:var(--panel); border:1px solid var(--line);
     border-radius:14px; padding:14px 16px 10px;}
@@ -867,9 +885,24 @@
     line-height:1.4; margin-bottom:12px;}
   .ch-feed{display:flex; flex-direction:column; gap:9px; height:340px; overflow-y:auto;
     padding:4px 6px 4px 2px; margin-bottom:12px;}
+  /* in the side-by-side stage, the feed grows to fill the panel (matched to player height) and scrolls */
+  .stage-grid .chat-hub{display:flex; flex-direction:column;}
+  .stage-grid .ch-feed{height:auto; flex:1 1 auto; min-height:0;}
   .ch-feed::-webkit-scrollbar{width:8px;}
   .ch-feed::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
-  .ch-msg{display:flex; gap:10px; align-items:flex-start;}
+  .ch-msg{display:flex; gap:10px; align-items:flex-start; position:relative;}
+  /* admin: per-message delete (shows on hover) */
+  .ch-del{flex-shrink:0; align-self:center; background:transparent; border:1px solid var(--line);
+    color:var(--muted); border-radius:6px; width:24px; height:24px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; opacity:0; transition:.12s; padding:0;}
+  .ch-msg:hover .ch-del{opacity:1;}
+  .ch-del:hover{color:var(--loss); border-color:var(--loss);}
+  /* admin: clear-all button sits in the chat header */
+  .ch-clear-all{margin-left:auto; background:transparent; border:1px solid var(--line);
+    color:var(--muted); font-family:'Barlow'; font-size:11px; letter-spacing:.5px;
+    border-radius:7px; padding:3px 9px; cursor:pointer; display:inline-flex; align-items:center;
+    gap:5px; transition:.14s; text-transform:none;}
+  .ch-clear-all:hover{color:var(--loss); border-color:var(--loss);}
   .ch-ava{width:30px; height:30px; border-radius:50%; flex-shrink:0; object-fit:cover;
     background:var(--gold-deep); border:1px solid var(--line);}
   .ch-ava-init{width:30px; height:30px; border-radius:50%; flex-shrink:0;
@@ -2697,6 +2730,7 @@ function beltIcon(div, cls){
 // ===== AUTH + POINTS =====
 let CURRENT_USER = null;   // { id, ... } from auth
 let MY_PROFILE = null;     // row from profiles
+let IS_ADMIN = false;      // true when the signed-in user passes the DB is_admin() check
 function fmtMoney(n){ return '$' + (Number(n)||0).toLocaleString('en-US'); }
 
 async function signInDiscord(){
@@ -2715,12 +2749,17 @@ async function refreshUser(){
     box.innerHTML = `<button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>`;
     document.getElementById('loginBtn').onclick = signInDiscord;
     MY_PROFILE = null;
+    IS_ADMIN = false;
     return;
   }
   // claim any idle points, then load profile
   try{ await sb.rpc('claim_idle_points'); }catch(e){}
   const { data:prof } = await sb.from('profiles').select('*').eq('id', CURRENT_USER.id).single();
   MY_PROFILE = prof || null;
+  // ask the DB whether this user is the admin (gates chat moderation UI;
+  // the actual delete is still enforced by RLS server-side).
+  try{ const { data:adm } = await sb.rpc('is_admin'); IS_ADMIN = adm===true; }
+  catch(e){ IS_ADMIN = false; }
   renderUserChip();
 }
 function renderUserChip(){
@@ -3687,18 +3726,11 @@ function streamEmbed(url){
 
   if(twitchChannel){
     const player=`https://player.twitch.tv/?channel=${encodeURIComponent(twitchChannel)}&parent=${parent}`;
-    const chat=`https://www.twitch.tv/embed/${encodeURIComponent(twitchChannel)}/chat?parent=${parent}&darkpopout`;
-    const popout=`https://www.twitch.tv/popout/${encodeURIComponent(twitchChannel)}/chat`;
-    return `<div class="stream-wrap"><div class="section-title">Watch Live</div>
-      <div class="watch-grid">
-        <div class="stream-frame"><iframe src="${esc(player)}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe></div>
-        <details class="chat-col" open>
-          <summary class="chat-toggle"><i class="ti ti-message-circle"></i> Stream chat <span class="chat-toggle-hint"></span></summary>
-          <div class="chat-frame"><iframe src="${esc(chat)}" scrolling="no"></iframe></div>
-          <a class="chat-popout" href="${esc(popout)}" target="_blank" rel="noopener noreferrer">
-            <i class="ti ti-external-link"></i> Can't type in chat? Pop it out</a>
-        </details>
-      </div></div>`;
+    // Player only — the site's own Live Chat now sits beside it, so we no
+    // longer embed Twitch's chat (it couldn't be sized cleanly).
+    return `<div class="stream-wrap">
+      <div class="stream-frame"><iframe src="${esc(player)}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe></div>
+    </div>`;
   }
 
   // --- YouTube (watch link or youtu.be -> embed) : player only ---
@@ -3707,7 +3739,7 @@ function streamEmbed(url){
 
   // any other full URL: player only
   const src = /^https?:\/\//i.test(u) ? u : `https://player.twitch.tv/?channel=${encodeURIComponent(u)}&parent=${parent}`;
-  return `<div class="stream-wrap"><div class="section-title">Watch Live</div>
+  return `<div class="stream-wrap">
     <div class="stream-frame"><iframe src="${esc(src)}" allowfullscreen scrolling="no"
       allow="autoplay; fullscreen"></iframe></div></div>`;
 }
@@ -3994,24 +4026,36 @@ async function loadLive(){
     liveBlock=`<div class="live-between">No match is live right now — the full card is below.</div>`;
   }
 
-  // stream + match on top; full-width standings strip below; chat hub last.
+  // NEW LAYOUT:
+  //   1) event banner (name + tagline) on top, Events-style
+  //   2) current-match tab above the player
+  //   3) row: player on the left, the site's own Live Chat on the right
+  //   4) Live Standings (bets) full-width below
+  const clearBtn = IS_ADMIN
+    ? `<button class="ch-clear-all" onclick="clearAllChat()" title="Delete every message"><i class="ti ti-trash"></i> Clear chat</button>`
+    : '';
   el.innerHTML = `<div class="live-layout">
-      <div class="live-main">${(stream||'') + eventBar + liveBlock}</div>
+      ${eventBar}
+      <div class="live-stage">
+        ${liveBlock}
+        <div class="stage-grid">
+          <div class="stage-player">${stream||'<div class="live-between">Stream link coming soon.</div>'}</div>
+          <section class="chat-hub" id="chat-hub">
+            <h3><i class="ti ti-messages" style="color:var(--gold)"></i> Live Chat${clearBtn}</h3>
+            <div class="ch-sub">Signed-in members can talk here — everyone can read along. Keep it clean.</div>
+            <div class="ch-feed" id="ch-feed"><div class="ch-empty">Loading chat…</div></div>
+            <div id="ch-composer-slot"></div>
+          </section>
+        </div>
+      </div>
       <section class="live-rail" id="live-rail">
         <h3><span class="live-dot"></span> Live Standings</h3>
         <div class="lr-sub">Everyone betting tonight, ranked by how much they're up or down. Final totals stay a surprise.</div>
         <div class="lr-list" id="lr-list"><div class="lr-empty">Loading…</div></div>
         <div class="lr-foot" id="lr-foot"></div>
       </section>
-      <section class="chat-hub" id="chat-hub">
-        <h3><i class="ti ti-brand-discord" style="color:var(--gold)"></i> Live Chat</h3>
-        <div class="ch-sub">Signed-in members can talk here — everyone can read along. Keep it clean.</div>
-        <div class="ch-feed" id="ch-feed"><div class="ch-empty">Loading chat…</div></div>
-        <div id="ch-composer-slot"></div>
-      </section>
     </div>`;
   bindNameLinks(el);
-  collapseStreamChatOnMobile(el);
   loadLiveRail();          // fill the rail now
   startLiveRailPolling();  // and keep it fresh while the Live page is open
   initChatHub();           // load chat + start realtime/polling
@@ -4091,6 +4135,9 @@ function chatMsgHTML(m){
   const ava = m.author_avatar
     ? `<img class="ch-ava" src="${esc(m.author_avatar)}" alt="" onerror="this.outerHTML='<div class=\\'ch-ava-init\\'>${init}</div>'">`
     : `<div class="ch-ava-init">${init}</div>`;
+  const del = IS_ADMIN
+    ? `<button class="ch-del" title="Delete message" onclick="deleteChatMessage('${esc(String(m.id))}')"><i class="ti ti-x"></i></button>`
+    : '';
   return `<div class="ch-msg">
       ${ava}
       <div class="ch-body">
@@ -4100,6 +4147,7 @@ function chatMsgHTML(m){
         </div>
         <div class="ch-text">${esc(m.body)}</div>
       </div>
+      ${del}
     </div>`;
 }
 function renderChatComposer(){
@@ -4168,12 +4216,15 @@ async function initChatHub(){
 }
 function startChatRealtime(){
   stopChatRealtime();
-  // realtime insert stream
+  // realtime insert + delete stream
   try{
     CHAT_CHANNEL = sb.channel('chat_messages_live')
       .on('postgres_changes',
         { event:'INSERT', schema:'public', table:'chat_messages' },
         payload => { if(payload && payload.new) chatAppend(payload.new); })
+      .on('postgres_changes',
+        { event:'DELETE', schema:'public', table:'chat_messages' },
+        payload => { if(payload && payload.old) chatRemoveNode(payload.old.id); })
       .subscribe();
   }catch(e){}
   // backup poll every 20s in case realtime isn't enabled
@@ -4217,6 +4268,47 @@ async function sendChat(){
   }finally{
     if(btn) btn.disabled = false;
     input.focus();
+  }
+}
+
+// ----- admin moderation -----
+// Remove a single message node from the feed (used by realtime DELETE + local delete).
+function chatRemoveNode(id){
+  const feed = document.getElementById('ch-feed');
+  if(!feed || id==null) return;
+  const node = feed.querySelector(`[data-mid="${id}"]`);
+  if(node) node.remove();
+  if(!feed.querySelector('.ch-msg')){
+    feed.innerHTML = `<div class="ch-empty">No messages yet — say hi.</div>`;
+  }
+}
+// Admin: delete one message. RLS allows the delete only for the admin user.
+async function deleteChatMessage(id){
+  if(!IS_ADMIN) return;
+  // optimistic removal; realtime DELETE will also fire for other viewers
+  chatRemoveNode(id);
+  try{
+    const { error } = await sb.from('chat_messages').delete().eq('id', id);
+    if(error) throw error;
+  }catch(e){
+    wcaToast('Delete failed','Could not remove that message — refresh and try again.',true);
+    initChatHub(); // resync so the message reappears if it wasn't actually deleted
+  }
+}
+// Admin: clear the entire chat.
+async function clearAllChat(){
+  if(!IS_ADMIN) return;
+  if(!confirm('Delete EVERY message in the live chat? This cannot be undone.')) return;
+  try{
+    // delete all rows (id is never null, so this matches everything)
+    const { error } = await sb.from('chat_messages').delete().not('id','is',null);
+    if(error) throw error;
+    const feed = document.getElementById('ch-feed');
+    if(feed) feed.innerHTML = `<div class="ch-empty">Chat cleared.</div>`;
+    CHAT_LAST_TS = null;
+    wcaToast('Chat cleared','All messages removed.');
+  }catch(e){
+    wcaToast('Clear failed','Could not clear the chat — check your admin access.',true);
   }
 }
 
