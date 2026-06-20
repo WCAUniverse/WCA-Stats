@@ -3223,10 +3223,10 @@ async function loadDashboard(){
   const bsk=(bstreak&&bstreak[0]);
   const streakN = bsk && Number(bsk.streak)>1 ? Number(bsk.streak) : 0;
   const streakBadge = streakN ? ` <span class="streak-x">×${streakN}</span>` : '';
-  cards += `<div class="champ-card bet${bnow?'':' vacant'}"><i class="ti ti-coins belt"></i>
+  cards += `<div class="champ-card bet"><i class="ti ti-coins belt"></i>
     <div class="lbl"><i class="ti ti-coins"></i> Betting Champion</div>
-    <div class="who">${bnow?esc(bnow.username):'VACANT'}${streakBadge}</div>
-    <div class="meta">${bnow?'since '+esc(bnow.show_won||''):'title currently vacant'}</div></div>`;
+    <div class="who">${bnow?esc(bnow.username)+streakBadge:'\u2014'}</div>
+    <div class="meta">${bnow?'since '+esc(bnow.show_won||''):'none yet'}</div></div>`;
   // all-time most chat championships (show all tied leaders)
   const {data:lb}=await sb.from('v_chat_champion_leaderboard').select('*');
   let topNames='—', topMeta='none yet';
