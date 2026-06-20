@@ -1066,6 +1066,36 @@
   .lb-net.up{color:var(--win);} .lb-net.down{color:var(--loss);} .lb-net.even{color:var(--muted);}
   .lb-empty{text-align:center; color:var(--muted); padding:50px 20px; font-family:'Oswald';
     letter-spacing:2px; border:1px dashed var(--line); border-radius:12px;}
+
+  /* ---- Champion history tabs (chat / betting) ---- */
+  .lb-hhead{display:flex; align-items:center; gap:10px; font-family:'Oswald';
+    font-size:18px; letter-spacing:1px; text-transform:uppercase; color:var(--gold);
+    margin:4px 0 10px;}
+  .lb-hhead i{font-size:22px;}
+  .lb-hnote{font-family:'Barlow'; font-size:13px; color:var(--muted); line-height:1.5;
+    margin:0 0 14px; max-width:760px;}
+  .lb-htable{margin-top:0;}
+  .lb-hrow{display:flex; align-items:center; gap:14px; padding:11px 16px;
+    border-bottom:1px solid var(--line);}
+  .lb-hrow:last-child{border-bottom:none;}
+  .lb-hcur{width:26px; text-align:center; color:var(--gold); flex-shrink:0; font-size:16px;}
+  .lb-hname{flex:1; min-width:0; font-family:'Barlow Condensed'; font-size:20px; color:#eee;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .lb-hdates{font-family:'Barlow'; font-size:12.5px; color:var(--muted); flex-shrink:0;
+    white-space:nowrap;}
+  .lb-hcurrent{background:var(--gold-deep);}
+  .lb-hcurrent .lb-hname{color:#fff; font-weight:600;}
+  .lb-hbadge{font-family:'Oswald'; font-size:9px; letter-spacing:1px; color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:4px; padding:1px 6px; margin-left:9px;
+    vertical-align:middle;}
+  .lb-hvacant{background:rgba(224,104,59,.10);}
+  .lb-hvacant .lb-hcur{color:var(--loss,#e0683b);}
+  .lb-hvacant .lb-hname{font-family:'Oswald'; font-size:14px; letter-spacing:1px;
+    color:var(--muted); text-transform:uppercase;}
+  @media(max-width:620px){
+    .lb-hdates{font-size:11px;}
+    .lb-hname{font-size:18px;}
+  }
   @media(max-width:620px){
     .lb-meta{display:none;}
     .lb-net{min-width:72px; font-size:17px;}
@@ -1467,6 +1497,34 @@
   .sl-promo .sl-pr-q{color:var(--gold); font-size:1.4em; line-height:0; vertical-align:-.12em;}
   .sl-promo .sl-pr-speaker{margin-top:20px; font-family:'Oswald'; letter-spacing:2px;
     text-transform:uppercase; color:var(--gold); font-size:clamp(15px,2.6vw,18px);}
+
+  /* ---- SPOTLIGHT — highlight a wrestler / viewer / anything ---- */
+  .sl-spotlight{background:radial-gradient(130% 100% at 0 0,rgba(233,185,73,.14),transparent 55%),var(--panel);
+    border:1px solid var(--gold-dim); padding:22px 24px;}
+  .sl-spotlight .sl-sp-eyebrow{display:flex; align-items:center; gap:8px;
+    font-family:'Oswald'; font-size:12px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--gold); margin-bottom:14px;}
+  .sl-spotlight .sl-sp-eyebrow i{font-size:16px;}
+  .sl-spotlight .sl-sp-eyebrow .sl-date{margin-left:auto; color:var(--muted); letter-spacing:1px;
+    display:flex; align-items:center; gap:5px; font-size:11px;}
+  .sl-spotlight .sl-sp-body{display:flex; gap:20px; align-items:flex-start;}
+  .sl-spotlight .sl-sp-photo{flex-shrink:0; width:120px; height:120px; border-radius:12px;
+    overflow:hidden; border:2px solid var(--gold-dim); background:var(--panel2);}
+  .sl-spotlight .sl-sp-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+  .sl-spotlight .sl-sp-main{flex:1; min-width:0;}
+  .sl-spotlight .sl-sp-subject{font-family:'Oswald'; font-weight:700; font-size:clamp(20px,3.4vw,26px);
+    color:#fff; line-height:1.1; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .sl-spotlight .sl-sp-role{font-family:'Barlow Condensed'; font-weight:600; font-size:13px;
+    letter-spacing:1px; text-transform:uppercase; color:var(--gold-dim);
+    border:1px solid var(--gold-dim); border-radius:5px; padding:1px 8px;}
+  .sl-spotlight .sl-sp-title{font-family:'Barlow Condensed'; font-weight:600;
+    font-size:clamp(17px,2.6vw,20px); color:var(--gold); margin:6px 0 0;}
+  .sl-spotlight .sl-sp-text{font-family:'Barlow'; font-size:15.5px; line-height:1.6;
+    color:#cfcdc6; margin-top:10px; white-space:pre-wrap; word-break:break-word;}
+  @media(max-width:560px){
+    .sl-spotlight .sl-sp-body{flex-direction:column; gap:14px;}
+    .sl-spotlight .sl-sp-photo{width:90px; height:90px;}
+  }
 
   /* ---- INTERVIEW / PRESS Q&A — blog-style transcript ---- */
   .sl-interview{background:linear-gradient(180deg,var(--panel),var(--bg2,#100f12));
@@ -2335,7 +2393,7 @@
         <a href="#roster" data-page="roster">Roster</a>
         <a href="#storylines" data-page="storylines">Storylines</a>
         <a href="#apply" data-page="apply">Apply</a>
-        <a href="#firepro" id="nav-firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
+        <a href="#firepro" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
       </nav>
       <div class="socials">
         <a href="https://infantryink-shop.fourthwall.com/" id="merchLink" data-social="merch" target="_blank" rel="noopener noreferrer" aria-label="Merch" title="Shop Merch"><i class="ti ti-shopping-bag"></i></a>
@@ -2459,6 +2517,8 @@
     <div class="roster-filters" id="lb-filters">
       <button class="rfilter active" data-lbview="recent">Most Recent Event</button>
       <button class="rfilter" data-lbview="alltime">All-Time</button>
+      <button class="rfilter" data-lbview="chatchamp">Chat Champion History</button>
+      <button class="rfilter" data-lbview="betchamp">Betting Champion History</button>
     </div>
     <div id="lb-content"><div class="loading">Loading…</div></div>
   </div>
@@ -2521,6 +2581,7 @@
       <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
       <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
       <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
+      <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
       <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
     </div>
     <div class="sl-feed" id="sl-feed"><div class="loading">Loading…</div></div>
@@ -2675,13 +2736,19 @@ function applyLayout(container, selector, attr, layout){
     const el = byKey[entry && entry.key];
     if(!el) return;
     used.add(entry.key);
-    el.style.display = entry.hidden ? 'none' : '';
+    // Fire Pro's visibility is owned by loadFirePro() (enabled toggle) — only
+    // honor a "hidden" layout choice here; never force it visible.
+    if(el.id==='nav-firepro'){
+      if(entry.hidden) el.style.display='none';
+    } else {
+      el.style.display = entry.hidden ? 'none' : '';
+    }
     container.appendChild(el);   // re-append in saved order
   });
   // anything not mentioned in the layout: leave visible, push to the end
   items.forEach(el=>{
     const k = el.getAttribute('data-'+attr);
-    if(!used.has(k)){ el.style.display=''; container.appendChild(el); }
+    if(!used.has(k)){ if(el.id!=='nav-firepro') el.style.display=''; container.appendChild(el); }
   });
 }
 
@@ -3136,10 +3203,10 @@ async function loadDashboard(){
       <div class="meta">${vacant?'title up for grabs':'since '+esc(c.show_won||'—')}</div></div>`;
   }).join('');
   const ch=(chat&&chat[0]);
-  cards += `<div class="champ-card chat"><i class="ti ti-device-gamepad-2 belt"></i>
+  cards += `<div class="champ-card chat${ch?'':' vacant'}"><i class="ti ti-device-gamepad-2 belt"></i>
     <div class="lbl"><i class="ti ti-device-gamepad-2"></i> Chat Champion</div>
-    <div class="who">${ch?esc(ch.username):'—'}</div>
-    <div class="meta">${ch?'since '+esc(ch.show_won||''):'none yet'}</div></div>`;
+    <div class="who">${ch?esc(ch.username):'VACANT'}</div>
+    <div class="meta">${ch?'since '+esc(ch.show_won||''):'title currently vacant'}</div></div>`;
 
   // ---- Betting Champion (website betting winner) + consecutive-win streak ----
   const {data:bc}=await sb.from('v_betting_champion_now').select('*').limit(1);
@@ -3148,10 +3215,10 @@ async function loadDashboard(){
   const bsk=(bstreak&&bstreak[0]);
   const streakN = bsk && Number(bsk.streak)>1 ? Number(bsk.streak) : 0;
   const streakBadge = streakN ? ` <span class="streak-x">×${streakN}</span>` : '';
-  cards += `<div class="champ-card bet"><i class="ti ti-coins belt"></i>
+  cards += `<div class="champ-card bet${bnow?'':' vacant'}"><i class="ti ti-coins belt"></i>
     <div class="lbl"><i class="ti ti-coins"></i> Betting Champion</div>
-    <div class="who">${bnow?esc(bnow.username):'—'}${streakBadge}</div>
-    <div class="meta">${bnow?'since '+esc(bnow.show_won||''):'none yet'}</div></div>`;
+    <div class="who">${bnow?esc(bnow.username):'VACANT'}${streakBadge}</div>
+    <div class="meta">${bnow?'since '+esc(bnow.show_won||''):'title currently vacant'}</div></div>`;
   // all-time most chat championships (show all tied leaders)
   const {data:lb}=await sb.from('v_chat_champion_leaderboard').select('*');
   let topNames='—', topMeta='none yet';
@@ -4769,6 +4836,41 @@ async function loadLeaderboard(){
     return;
   }
 
+  // ===== Chat Champion History (newest reign on top; Vacant line if open) =====
+  if(LB_VIEW==='chatchamp'){
+    let rows, note='';
+    try{
+      const { data, error } = await sb.from('v_chat_champion_history_desc').select('*');
+      if(error) throw error;
+      rows = data || [];
+      if(rows.length && rows[0].section_note) note = rows[0].section_note;
+    }catch(e){ box.innerHTML = `<div class="lb-empty">Couldn't load Chat Champion history.</div>`; return; }
+    box.innerHTML = lbChampHistory(rows, {
+      title:'Chat Champion — Twitch Exclusive Betting',
+      icon:'ti-device-gamepad-2',
+      note,
+      emptyMsg:'No Chat Champions recorded yet.'
+    });
+    return;
+  }
+
+  // ===== Betting Champion History (website betting; empty-ready) =====
+  if(LB_VIEW==='betchamp'){
+    let rows;
+    try{
+      const { data, error } = await sb.from('v_betting_champion_history').select('*');
+      if(error) throw error;
+      rows = data || [];
+    }catch(e){ box.innerHTML = `<div class="lb-empty">Couldn't load Betting Champion history.</div>`; return; }
+    box.innerHTML = lbChampHistory(rows, {
+      title:'Betting Champion — WCA Website',
+      icon:'ti-coins',
+      note:'Website betting champions. History begins here and fills in as events crown a champion.',
+      emptyMsg:'No Betting Champions yet — the first reign will appear here.'
+    });
+    return;
+  }
+
   // all-time
   let rows;
   try{
@@ -4800,7 +4902,62 @@ async function loadLeaderboard(){
   }).join('') + `</div>`;
 }
 
-// ===== EVENT ARCHIVE =====
+// Render a champion-reign history list (newest on top). Adds a "Vacant" line
+// at the very top when the most recent reign has ENDED and nobody is current.
+function lbChampHistory(rows, opts){
+  const o = opts||{};
+  const head = `<div class="lb-hhead">
+    <i class="ti ${esc(o.icon||'ti-crown')}"></i>
+    <span>${esc(o.title||'Champion History')}</span>
+  </div>`;
+  if(!rows || !rows.length){
+    return head + `<div class="lb-empty">${esc(o.emptyMsg||'No champions yet.')}</div>`;
+  }
+  // Is anyone currently champion?
+  const anyCurrent = rows.some(r=>r.is_current===true);
+  // newest reign = first row (views already sort newest-first)
+  const newest = rows[0];
+  const newestEnded = !!(newest.date_lost || newest.show_lost) && !newest.is_current;
+
+  let out = head;
+  if(o.note) out += `<div class="lb-hnote">${esc(o.note)}</div>`;
+
+  out += `<div class="lb-table lb-htable">`;
+
+  // VACANT banner row when the title is currently open
+  if(!anyCurrent && newestEnded){
+    out += `<div class="lb-hrow lb-hvacant">
+      <span class="lb-hcur"><i class="ti ti-shield-off"></i> VACANT</span>
+      <span class="lb-hname">— title currently vacant —</span>
+      <span class="lb-hdates"></span>
+    </div>`;
+  }
+
+  out += rows.map(r=>{
+    const current = r.is_current===true;
+    const won  = esc(r.show_won || fmtDate(r.date_won) || '—');
+    const lost = current ? 'present'
+               : esc(r.show_lost || fmtDate(r.date_lost) || '—');
+    const span = `${won} → ${lost}`;
+    const curTag = current ? `<span class="lb-hbadge">CURRENT</span>` : '';
+    return `<div class="lb-hrow${current?' lb-hcurrent':''}">
+      <span class="lb-hcur">${current?'<i class="ti ti-crown"></i>':''}</span>
+      <span class="lb-hname">${esc(r.username||'—')}${curTag}</span>
+      <span class="lb-hdates">${span}</span>
+    </div>`;
+  }).join('');
+
+  out += `</div>`;
+  return out;
+}
+// Small date formatter (YYYY-MM-DD -> "Mon D, YYYY"); passthrough if not a date.
+function fmtDate(d){
+  if(!d) return '';
+  const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return String(d);
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[+m[2]-1]} ${+m[3]}, ${m[1]}`;
+}
 // Convert any common YouTube URL into an embedded player + a fallback link.
 function youtubeEmbed(url){
   if(!url) return '';
@@ -5649,6 +5806,30 @@ function slRenderTimeline(p){
     </div>
   ${slEngageBar(p)}</article>`;
 }
+function slRenderSpotlight(p){
+  const pl = p.payload || {};
+  const subject = pl.subject || p.title || '';
+  const eyebrow = (pl.label || 'SPOTLIGHT').toUpperCase();
+  const role = pl.role || '';
+  const img = pl.image_url || '';
+  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  const subjEsc = esc(subject);
+  const subjHtml = (pl.is_wrestler && subject)
+    ? `<span class="xlink" role="link" tabindex="0" onclick="event.stopPropagation();goWrestler('${escAttr(subject)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(subject)}');}">${subjEsc}</span>`
+    : subjEsc;
+  return `<article class="slpost sl-spotlight">${pin}
+    <div class="sl-sp-eyebrow"><i class="ti ti-star-filled"></i> ${esc(eyebrow)}
+      <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
+    <div class="sl-sp-body">
+      ${img?`<div class="sl-sp-photo"><img src="${esc(img)}" alt="${subjEsc}" onerror="this.parentNode.style.display='none'"></div>`:''}
+      <div class="sl-sp-main">
+        ${subject?`<div class="sl-sp-subject">${subjHtml}${role?`<span class="sl-sp-role">${esc(role)}</span>`:''}</div>`:''}
+        ${p.title && p.title!==subject ? `<h2 class="sl-sp-title">${esc(p.title)}</h2>`:''}
+        ${p.body?`<div class="sl-sp-text">${slFmt(p.body)}</div>`:''}
+      </div>
+    </div>
+  ${slEngageBar(p)}</article>`;
+}
 function slRenderPromo(p){
   const pl = p.payload || {};
   const author = pl.author || p.title || 'WCA Superstar';
@@ -6016,6 +6197,7 @@ function slRenderPostInner(p){
     case 'rankings':  return slRenderRankings(p);
     case 'mystery':   return slRenderMystery(p);
     case 'snafu':     return slRenderSnafu(p);
+    case 'spotlight': return slRenderSpotlight(p);
     default: {
       // Dynamic segment types (future custom types) — render as a generic card
       const pl2 = p.payload || {};
@@ -6515,6 +6697,7 @@ function slGoPage(n){
 
 // navigation
 document.querySelectorAll('nav a[data-page], nav button[data-page]').forEach(b=>{
+  if(b.id==='nav-firepro') return;   // Fire Pro keeps its own fpEnter() warp handler
   b.onclick=(e)=>{
     // Let the browser do its native thing for new-tab gestures (ctrl/cmd/middle-click).
     if(e.metaKey||e.ctrlKey||e.shiftKey||e.button===1) return;
