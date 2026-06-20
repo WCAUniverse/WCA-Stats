@@ -359,7 +359,7 @@ try{
   });
 }catch(e){ /* page still shows fine without the DB */ }
 
-// Pull the admin-editable coming-soon copy (same site_settings.firepro row the main site uses).
+// Pull the admin-editable copy + music settings (same site_settings.firepro row).
 async function fpLoadCopy(){
   if(!sb) return;
   try{
@@ -368,19 +368,32 @@ async function fpLoadCopy(){
     if(!fp) return;
     if(fp.sub  && String(fp.sub).trim()){  const s=document.getElementById('fp-sub-text');   if(s) s.textContent = fp.sub; }
     if(fp.press&& String(fp.press).trim()){ const p=document.getElementById('fp-press-text'); if(p) p.textContent = fp.press; }
+    // ----- music settings from the Fire Pro admin -----
+    if(fp.music){
+      const m = fp.music;
+      // build the playlist from the admin track count
+      const n = (typeof m.count === 'number' && m.count > 0) ? Math.min(m.count, 50) : 0;
+      if(n > 0){
+        FP_TRACKS = [];
+        for(let i=1;i<=n;i++){ FP_TRACKS.push('audio/bg-music-'+i+'.mp3'); }
+      }
+      // custom track names (optional)
+      _fpNames = Array.isArray(m.names) ? m.names.slice() : [];
+      // default starting volume (only used if the visitor has no saved volume yet)
+      if(typeof m.defaultVol === 'number') _fpDefaultVol = Math.max(0, Math.min(100, m.defaultVol));
+    }
   }catch(e){}
 }
 
 // ===== ARRIVAL: play the warp tail, then settle on the zone =====
 window.addEventListener('load', ()=>{
-  fpLoadCopy();
   const portal = document.getElementById('fp-portal');
   // resume the warp sound from where the previous page left off (seamless fade)
   fpResumeSfx();
   // let the reverse-warp animation finish, then clear the overlay
   setTimeout(()=>{ if(portal){ portal.classList.remove('on','warpback'); } }, 950);
-  // boot the persistent bottom music player (restores track/position across pages)
-  fpPlayerInit();
+  // load admin copy + music settings FIRST, then boot the player so it uses them
+  fpLoadCopy().then(fpPlayerInit).catch(fpPlayerInit);
 });
 
 // ===== BACK BUTTON: warp out, then go to the main site =====
@@ -436,14 +449,18 @@ function fpSetupMusicButton(){
      spot) as the visitor moves between Fire Pro pages.
    • Never autoplays on the very first load (browsers block it) — the
      visitor taps ► once; from then on it resumes across pages.
-   To add tracks later: add the filenames to FP_TRACKS.
+   The track count, names, and default volume all come from the Fire Pro
+   ADMIN (firepro-admin.html → 🎵 Background music). This list is just a
+   fallback if the admin settings haven't loaded yet.
    ===================================================================== */
-const FP_TRACKS = [
+let FP_TRACKS = [
   'audio/bg-music-1.mp3',
   'audio/bg-music-2.mp3',
   'audio/bg-music-3.mp3',
   'audio/bg-music-4.mp3'
 ];
+let _fpNames = [];          // custom track names from admin (optional)
+let _fpDefaultVol = 10;     // admin-set starting volume for new visitors
 const FP_MUSIC_KEY = 'fpMusicState';   // sessionStorage blob
 
 let _fpIdx = 0;          // current track index
@@ -482,16 +499,21 @@ function fpPlayerInit(){
   bar.classList.add('show');
   if(zone) zone.classList.add('has-player');
 
-  // restore saved state (carried over from the previous Fire Pro page)
+  // restore saved state (carried over from the previous Fire Pro page).
+  // first-time visitor (no saved state) → use the admin-set default volume.
   const st = _fpLoadState();
   let resumeAt = 0;
   if(st){
-    _fpIdx   = (typeof st.idx === 'number' && st.idx >= 0 && st.idx < FP_TRACKS.length) ? st.idx : 0;
-    _fpVol   = (typeof st.vol === 'number') ? st.vol : 10;
+    _fpIdx   = (typeof st.idx === 'number' && st.idx >= 0) ? st.idx : 0;
+    _fpVol   = (typeof st.vol === 'number') ? st.vol : _fpDefaultVol;
     _fpMuted = !!st.muted;
     _fpWantPlay = !!st.playing;
     resumeAt = (typeof st.t === 'number') ? st.t : 0;
+  } else {
+    _fpVol = _fpDefaultVol;   // first visit → admin default (e.g. 10%)
   }
+  // keep the track index valid even if the admin changed the track count
+  if(_fpIdx >= FP_TRACKS.length) _fpIdx = 0;
 
   // load the current track + apply volume/position
   a.src = FP_TRACKS[_fpIdx];
@@ -500,8 +522,9 @@ function fpPlayerInit(){
 
   // auto-advance when a track finishes
   a.addEventListener('ended', fpNext);
-  // keep position saved as it plays + when leaving the page
-  a.addEventListener('timeupdate', ()=>{ /* light touch */ });
+  // if a track fails to load (bad filename etc.), skip to the next one
+  // instead of stalling the whole playlist — but only while we're trying to play
+  a.addEventListener('error', ()=>{ if(_fpWantPlay) setTimeout(fpNext, 400); });
   window.addEventListener('pagehide', _fpSaveState);
   window.addEventListener('beforeunload', _fpSaveState);
 
@@ -525,7 +548,10 @@ function fpRenderPlayer(){
   if(muteBtn){ muteBtn.textContent = _fpMuted ? 'MUTED' : 'VOL'; muteBtn.classList.toggle('muted', _fpMuted); }
   if(vol) vol.value = _fpVol;
   if(pct) pct.textContent = _fpVol + '%';
-  if(now) now.innerHTML = '♪ <b>Track ' + (_fpIdx+1) + '</b>';
+  if(now){
+    const nm = (_fpNames && _fpNames[_fpIdx] && String(_fpNames[_fpIdx]).trim());
+    now.innerHTML = '♪ <b>' + (nm ? nm.replace(/</g,'&lt;') : ('Track ' + (_fpIdx+1))) + '</b>';
+  }
 }
 
 function fpTogglePlay(){
