@@ -3030,8 +3030,16 @@ async function refreshUser(){
   // First-time sign-in: if they've never set their own display name, open the
   // account page so they pick a username. It pre-fills with the name their
   // login provider gave (Discord/Google/Twitch), which they can keep or change.
-  if(MY_PROFILE && !MY_PROFILE.username_set){
-    setTimeout(()=>{ openAccount(true); }, 400);
+  // Only do this ONCE per page session — otherwise every refresh / token refresh
+  // yanks the user to the account page and overrides the tab they were on.
+  if(MY_PROFILE && !MY_PROFILE.username_set && !window._usernamePromptShown){
+    window._usernamePromptShown = true;
+    // Don't steal navigation if the user deep-linked to a specific page on load
+    // (e.g. #roster, #live). Only auto-open when they're on the default/dashboard.
+    const curHash = (location.hash||'').slice(1).split('?')[0];
+    if(!curHash || curHash==='dashboard' || curHash==='account'){
+      setTimeout(()=>{ openAccount(true); }, 400);
+    }
   }
 }
 function renderUserChip(){
