@@ -212,6 +212,76 @@
     #fp-zone .fp-soon,#fp-zone .fp-press{animation:none;}
   }
 
+  /* ---------- Persistent FIRE PRO music player (pinned to the bottom) ----------
+     This bar will live on EVERY Fire Pro page. Track + position + volume + play
+     state carry over between pages via sessionStorage, so the music keeps going
+     as the visitor moves around. Hidden until the playlist files exist. */
+  #fp-player{
+    position:fixed; left:0; right:0; bottom:0; z-index:9500;
+    display:none; align-items:center; gap:12px;
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg,#6e0010,#3a0008);
+    border-top:3px solid #ffd23f;
+    box-shadow:0 -4px 22px -6px #000;
+    font-family:'Press Start 2P',monospace;
+  }
+  #fp-player.show{display:flex;}
+  /* transport buttons (prev / play / skip) */
+  .fp-pbtn{
+    font-family:'Press Start 2P',monospace; cursor:pointer;
+    font-size:11px; line-height:1; color:#0a0506;
+    background:#ffd23f; border:2px solid #fff; border-radius:4px;
+    padding:9px 11px; text-transform:uppercase;
+    box-shadow:0 0 10px -2px #ffd23f; transition:.12s; white-space:nowrap;
+  }
+  .fp-pbtn:hover{background:#fff; box-shadow:0 0 14px 0 #ffd23f;}
+  .fp-pbtn:active{transform:translateY(1px);}
+  #fp-play{min-width:42px;}
+  /* now-playing label */
+  #fp-now{
+    flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap;
+    text-overflow:ellipsis;
+    font-size:9px; letter-spacing:1px; color:#ffd23f;
+    text-shadow:1px 1px 0 #000;
+  }
+  #fp-now b{color:#fff;}
+  /* volume cluster */
+  .fp-volwrap{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
+  #fp-mute{
+    font-family:'Press Start 2P',monospace; cursor:pointer; font-size:10px;
+    color:#ffd23f; background:transparent; border:2px solid #ffd23f;
+    border-radius:4px; padding:8px 9px; transition:.12s; white-space:nowrap;
+  }
+  #fp-mute:hover{background:rgba(255,210,63,.15);}
+  #fp-mute.muted{color:#0a0506; background:#ffd23f;}
+  #fp-vol{
+    -webkit-appearance:none; appearance:none; width:110px; height:6px;
+    background:linear-gradient(90deg,#ff3b3b,#ffd23f); border-radius:6px;
+    outline:none; cursor:pointer;
+  }
+  #fp-vol::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:15px; height:15px;
+    border-radius:50%; background:#fff; border:2px solid #ffd23f;
+    box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;
+  }
+  #fp-vol::-moz-range-thumb{
+    width:15px; height:15px; border-radius:50%; background:#fff;
+    border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;
+  }
+  #fp-vol-pct{
+    font-size:8px; color:#ffd23f; min-width:30px; text-align:right;
+    text-shadow:1px 1px 0 #000;
+  }
+  /* keep the coming-soon content clear of the bottom bar */
+  #fp-zone.has-player .fp-inner{ padding-bottom:96px; }
+  @media(max-width:600px){
+    #fp-player{gap:8px; padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap;}
+    .fp-pbtn{font-size:9px; padding:8px 8px;}
+    #fp-now{flex-basis:100%; order:-1; font-size:8px; text-align:center;}
+    #fp-vol{width:78px;}
+    #fp-mute{font-size:8px; padding:7px 7px;}
+  }
+
 </style>
 </head>
 <body>
@@ -231,9 +301,6 @@
   <div class="fp-top">
     <span class="fp-tag">WCA · FIRE PRO WRESTLING WORLD</span>
 
-    <!-- background-music toggle (hidden until you add a track; see AUDIO note below) -->
-    <button id="fp-music-btn" onclick="fpToggleMusic()" style="display:none">♪ MUSIC: OFF</button>
-
     <button id="fp-back" onclick="fpExit()">◄ BACK TO WCA</button>
   </div>
   <div class="fp-inner">
@@ -247,24 +314,39 @@
 </div>
 
 <!-- ============================================================
-     AUDIO HOOKS  (silent for now — just add files later)
+     AUDIO  (live — files live in firepro/audio/)
      ------------------------------------------------------------
-     BACKGROUND MUSIC for this Fire Pro page:
-       1. Put an MP3 here:  audio/fire-pro/bg-music/theme.mp3
-       2. On the <audio id="fp-bg-music"> tag below, set the src to that file.
-       3. The ♪ MUSIC button appears automatically and the fan can play/loop it.
-     (Music never auto-blasts — the visitor taps the button. That is on purpose.)
+     BACKGROUND MUSIC playlist (4 tracks, auto-advancing):
+       audio/bg-music-1.mp3 … audio/bg-music-4.mp3
+     The persistent player bar at the BOTTOM controls it
+     (previous / play / skip / volume + mute). The track, playhead
+     position, volume and play state CARRY OVER between Fire Pro
+     pages via sessionStorage, so the music keeps going as visitors
+     move around. Volume starts at 10% on a first visit. Music never
+     auto-blasts on the very first load — the visitor taps PLAY once
+     (browsers block autoplay); after that it persists across pages.
+     To add more tracks later: drop bg-music-5.mp3 in the folder and
+     bump FP_TRACKS in the script below.
      ============================================================ -->
 <audio id="fp-bg-music" loop preload="none"></audio>
-<!-- Example once you have a file:
-     <audio id="fp-bg-music" loop preload="none" src="audio/fire-pro/bg-music/theme.mp3"></audio> -->
 
 <!-- WARP SOUND EFFECT (plays on arrival + on exit):
-       1. Put an MP3 here:  audio/fire-pro/sfx/warp.mp3
-       2. Set the src on the <audio id="fp-warp-sfx"> tag below.            -->
-<audio id="fp-warp-sfx" preload="none"></audio>
-<!-- Example once you have a file:
-     <audio id="fp-warp-sfx" preload="none" src="audio/fire-pro/sfx/warp.mp3"></audio> -->
+       File:  audio/Warp.mp3                                          -->
+<audio id="fp-warp-sfx" preload="none" src="audio/Warp.mp3"></audio>
+
+<!-- ===== PERSISTENT FIRE PRO MUSIC PLAYER (pinned bottom, lives on every FP page) ===== -->
+<div id="fp-player" aria-label="Fire Pro music player">
+  <button class="fp-pbtn" id="fp-prev" onclick="fpPrev()" title="Previous track" aria-label="Previous track">◄◄</button>
+  <button class="fp-pbtn" id="fp-play" onclick="fpTogglePlay()" title="Play / pause" aria-label="Play or pause">►</button>
+  <button class="fp-pbtn" id="fp-next" onclick="fpNext()" title="Next track" aria-label="Next track">►►</button>
+  <div id="fp-now">♪ <b>Track 1</b></div>
+  <div class="fp-volwrap">
+    <button id="fp-mute" onclick="fpToggleMute()" title="Mute / unmute" aria-label="Mute or unmute">VOL</button>
+    <input id="fp-vol" type="range" min="0" max="100" value="10"
+           oninput="fpSetVolume(this.value)" aria-label="Music volume">
+    <span id="fp-vol-pct">10%</span>
+  </div>
+</div>
 
 <script>
 // ===== SAME SUPABASE PROJECT AS THE MAIN SITE → login carries over automatically =====
@@ -297,13 +379,14 @@ window.addEventListener('load', ()=>{
   fpResumeSfx();
   // let the reverse-warp animation finish, then clear the overlay
   setTimeout(()=>{ if(portal){ portal.classList.remove('on','warpback'); } }, 950);
-  // reveal the music button only if a real track has been set
-  fpSetupMusicButton();
+  // boot the persistent bottom music player (restores track/position across pages)
+  fpPlayerInit();
 });
 
 // ===== BACK BUTTON: warp out, then go to the main site =====
 function fpExit(){
   const portal = document.getElementById('fp-portal');
+  _fpSaveState();   // capture music position/track before we leave
   fpPlaySfx();
   if(portal){
     portal.classList.remove('warp','warpback');
@@ -338,18 +421,164 @@ function fpResumeSfx(){
   }catch(e){ try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e2){} }
 }
 function fpSetupMusicButton(){
-  const a = document.getElementById('fp-bg-music');
-  const btn = document.getElementById('fp-music-btn');
-  if(a && a.getAttribute('src') && btn){ btn.style.display='inline-block'; }
+  // kept as a no-op shim so any older call sites don't error; the new
+  // bottom player handles its own setup in fpPlayerInit().
 }
-let _fpMusicOn = false;
-function fpToggleMusic(){
-  const a = document.getElementById('fp-bg-music');
-  const btn = document.getElementById('fp-music-btn');
-  if(!a || !a.getAttribute('src')) return;
-  if(_fpMusicOn){ a.pause(); _fpMusicOn=false; if(btn) btn.textContent='♪ MUSIC: OFF'; }
-  else { a.play().catch(()=>{}); _fpMusicOn=true; if(btn) btn.textContent='♪ MUSIC: ON'; }
+
+/* =====================================================================
+   FIRE PRO MUSIC PLAYER  (persistent across Fire Pro pages)
+   ---------------------------------------------------------------------
+   • 4-track playlist, auto-advances when a track ends.
+   • Prev / Play-Pause / Next + volume slider + mute.
+   • Volume starts at 10% on a first visit; remembered after that.
+   • Track index, playhead position, play state, volume and mute all
+     persist in sessionStorage so the music keeps going (from the same
+     spot) as the visitor moves between Fire Pro pages.
+   • Never autoplays on the very first load (browsers block it) — the
+     visitor taps ► once; from then on it resumes across pages.
+   To add tracks later: add the filenames to FP_TRACKS.
+   ===================================================================== */
+const FP_TRACKS = [
+  'audio/bg-music-1.mp3',
+  'audio/bg-music-2.mp3',
+  'audio/bg-music-3.mp3',
+  'audio/bg-music-4.mp3'
+];
+const FP_MUSIC_KEY = 'fpMusicState';   // sessionStorage blob
+
+let _fpIdx = 0;          // current track index
+let _fpVol = 10;         // 0–100
+let _fpMuted = false;
+let _fpWantPlay = false;  // should music be playing?
+
+function _fpLoadState(){
+  try{
+    const raw = sessionStorage.getItem(FP_MUSIC_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
 }
+function _fpSaveState(){
+  const a = document.getElementById('fp-bg-music');
+  const blob = {
+    idx: _fpIdx,
+    vol: _fpVol,
+    muted: _fpMuted,
+    playing: _fpWantPlay,
+    t: (a && !isNaN(a.currentTime)) ? a.currentTime : 0,
+    ts: Date.now()
+  };
+  try{ sessionStorage.setItem(FP_MUSIC_KEY, JSON.stringify(blob)); }catch(e){}
+}
+
+function fpPlayerInit(){
+  const a = document.getElementById('fp-bg-music');
+  const bar = document.getElementById('fp-player');
+  const zone = document.getElementById('fp-zone');
+  if(!a || !bar) return;
+  if(!FP_TRACKS.length) return;
+
+  // reveal the bar + give the content room above it
+  bar.classList.add('show');
+  if(zone) zone.classList.add('has-player');
+
+  // restore saved state (carried over from the previous Fire Pro page)
+  const st = _fpLoadState();
+  let resumeAt = 0;
+  if(st){
+    _fpIdx   = (typeof st.idx === 'number' && st.idx >= 0 && st.idx < FP_TRACKS.length) ? st.idx : 0;
+    _fpVol   = (typeof st.vol === 'number') ? st.vol : 10;
+    _fpMuted = !!st.muted;
+    _fpWantPlay = !!st.playing;
+    resumeAt = (typeof st.t === 'number') ? st.t : 0;
+  }
+
+  // load the current track + apply volume/position
+  a.src = FP_TRACKS[_fpIdx];
+  a.volume = _fpMuted ? 0 : (_fpVol/100);
+  try{ a.currentTime = resumeAt > 0 ? resumeAt : 0; }catch(e){}
+
+  // auto-advance when a track finishes
+  a.addEventListener('ended', fpNext);
+  // keep position saved as it plays + when leaving the page
+  a.addEventListener('timeupdate', ()=>{ /* light touch */ });
+  window.addEventListener('pagehide', _fpSaveState);
+  window.addEventListener('beforeunload', _fpSaveState);
+
+  fpRenderPlayer();
+
+  // if music was already playing on the previous page, try to resume.
+  // (works because the visitor already interacted earlier in the session)
+  if(_fpWantPlay){
+    a.play().then(()=>{ _fpWantPlay = true; fpRenderPlayer(); })
+            .catch(()=>{ _fpWantPlay = false; fpRenderPlayer(); }); // blocked → wait for a tap
+  }
+}
+
+function fpRenderPlayer(){
+  const playBtn = document.getElementById('fp-play');
+  const muteBtn = document.getElementById('fp-mute');
+  const vol     = document.getElementById('fp-vol');
+  const pct     = document.getElementById('fp-vol-pct');
+  const now     = document.getElementById('fp-now');
+  if(playBtn) playBtn.textContent = _fpWantPlay ? '❚❚' : '►';
+  if(muteBtn){ muteBtn.textContent = _fpMuted ? 'MUTED' : 'VOL'; muteBtn.classList.toggle('muted', _fpMuted); }
+  if(vol) vol.value = _fpVol;
+  if(pct) pct.textContent = _fpVol + '%';
+  if(now) now.innerHTML = '♪ <b>Track ' + (_fpIdx+1) + '</b>';
+}
+
+function fpTogglePlay(){
+  const a = document.getElementById('fp-bg-music');
+  if(!a) return;
+  if(_fpWantPlay){
+    a.pause(); _fpWantPlay = false;
+  } else {
+    a.play().then(()=>{ _fpWantPlay = true; fpRenderPlayer(); _fpSaveState(); })
+            .catch(()=>{ _fpWantPlay = false; fpRenderPlayer(); });
+    _fpWantPlay = true;
+  }
+  fpRenderPlayer(); _fpSaveState();
+}
+
+function fpLoadTrack(i, autoplay){
+  const a = document.getElementById('fp-bg-music');
+  if(!a || !FP_TRACKS.length) return;
+  _fpIdx = (i + FP_TRACKS.length) % FP_TRACKS.length;   // wrap around
+  a.src = FP_TRACKS[_fpIdx];
+  try{ a.currentTime = 0; }catch(e){}
+  a.volume = _fpMuted ? 0 : (_fpVol/100);
+  if(autoplay){
+    a.play().then(()=>{ _fpWantPlay = true; fpRenderPlayer(); _fpSaveState(); })
+            .catch(()=>{ _fpWantPlay = false; fpRenderPlayer(); });
+  }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpNext(){ fpLoadTrack(_fpIdx + 1, true); }
+function fpPrev(){
+  const a = document.getElementById('fp-bg-music');
+  // if more than 3s into a track, ◄◄ restarts it; otherwise go to previous
+  if(a && a.currentTime > 3){ try{ a.currentTime = 0; }catch(e){} _fpSaveState(); return; }
+  fpLoadTrack(_fpIdx - 1, true);
+}
+
+function fpSetVolume(v){
+  _fpVol = Math.max(0, Math.min(100, parseInt(v,10)||0));
+  const a = document.getElementById('fp-bg-music');
+  // moving the slider above 0 also un-mutes
+  if(_fpVol > 0 && _fpMuted){ _fpMuted = false; }
+  if(a) a.volume = _fpMuted ? 0 : (_fpVol/100);
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpToggleMute(){
+  const a = document.getElementById('fp-bg-music');
+  _fpMuted = !_fpMuted;
+  if(a) a.volume = _fpMuted ? 0 : (_fpVol/100);
+  fpRenderPlayer(); _fpSaveState();
+}
+
+// legacy name kept so nothing else breaks
+function fpToggleMusic(){ fpTogglePlay(); }
 </script>
 </body>
 </html>
