@@ -3180,7 +3180,19 @@ function renderCountdown(){
 async function loadDashboard(){
   // ---- champion cards: always show all divisions, VACANT if none ----
   const {data:champs,error:e1}=await sb.from('v_current_champions').select('*');
-  const {data:chat}=await sb.from('v_chat_champion_now').select('*').limit(1);
+  // Read the raw reigns table so the ADMIN is the source of truth: the current
+  // champion is the row with NO lost date. If every row has a lost date, the title
+  // is vacant — regardless of what the v_chat_champion_now view computes.
+  let chat=null;
+  {
+    const {data:chatRows}=await sb.from('chat_champion_reigns')
+      .select('username,show_won,date_won,date_lost,sort_order')
+      .is('date_lost', null)
+      .order('sort_order',{ascending:true,nullsFirst:false})
+      .order('date_won',{ascending:false,nullsFirst:false})
+      .limit(1);
+    chat = (chatRows && chatRows.length) ? chatRows : null;
+  }
   const cc=document.getElementById('champ-cards');
   const champMap={};
   (champs||[]).forEach(c=>{champMap[c.division]=c;});
@@ -3217,7 +3229,17 @@ async function loadDashboard(){
     <div class="meta">${ch?'since '+esc(ch.show_won||''):'title currently vacant'}</div></div>`;
 
   // ---- Betting Champion (website betting winner) + consecutive-win streak ----
-  const {data:bc}=await sb.from('v_betting_champion_now').select('*').limit(1);
+  // Admin is the source of truth: betting has a real is_current flag. Read it raw.
+  let bc=null;
+  {
+    const {data:betRows}=await sb.from('betting_champion_reigns')
+      .select('username,show_won,date_won,is_current,sort_order')
+      .eq('is_current', true)
+      .order('sort_order',{ascending:true,nullsFirst:false})
+      .order('date_won',{ascending:false,nullsFirst:false})
+      .limit(1);
+    bc = (betRows && betRows.length) ? betRows : null;
+  }
   const {data:bstreak}=await sb.from('v_betting_champion_streak').select('*').limit(1);
   const bnow=(bc&&bc[0]);
   const bsk=(bstreak&&bstreak[0]);
@@ -4844,14 +4866,22 @@ async function loadLeaderboard(){
     return;
   }
 
-  // ===== Chat Champion History (newest reign on top; Vacant line if open) =====
+  // ===== Chat Champion History (admin table is the source of truth) =====
   if(LB_VIEW==='chatchamp'){
     let rows, note='';
     try{
-      const { data, error } = await sb.from('v_chat_champion_history_desc').select('*');
+      // Read the raw reigns table in the SAME order the admin shows (sort_order,
+      // newest on top). Derive "current" from the admin rule: no lost date = current.
+      const { data, error } = await sb.from('chat_champion_reigns')
+        .select('username,show_won,date_won,show_lost,date_lost,sort_order,exclude_from_leaderboard')
+        .order('sort_order',{ascending:true,nullsFirst:false})
+        .order('date_won',{ascending:false,nullsFirst:false});
       if(error) throw error;
-      rows = data || [];
-      if(rows.length && rows[0].section_note) note = rows[0].section_note;
+      rows = (data || []).map(r=>Object.assign({}, r, { is_current: !r.date_lost }));
+      try{
+        const { data:m } = await sb.from('champ_meta').select('note').eq('title','chat').single();
+        if(m && m.note) note = m.note;
+      }catch(e){}
     }catch(e){ box.innerHTML = `<div class="lb-empty">Couldn't load Chat Champion history.</div>`; return; }
     box.innerHTML = lbChampHistory(rows, {
       title:'Chat Champion — Twitch Exclusive Betting',
@@ -4862,13 +4892,16 @@ async function loadLeaderboard(){
     return;
   }
 
-  // ===== Betting Champion History (website betting; empty-ready) =====
+  // ===== Betting Champion History (admin table is the source of truth) =====
   if(LB_VIEW==='betchamp'){
     let rows;
     try{
-      const { data, error } = await sb.from('v_betting_champion_history').select('*');
+      const { data, error } = await sb.from('betting_champion_reigns')
+        .select('username,show_won,date_won,show_lost,date_lost,is_current,sort_order,exclude_from_leaderboard')
+        .order('sort_order',{ascending:true,nullsFirst:false})
+        .order('date_won',{ascending:false,nullsFirst:false});
       if(error) throw error;
-      rows = data || [];
+      rows = (data || []).map(r=>Object.assign({}, r, { is_current: r.is_current===true }));
     }catch(e){ box.innerHTML = `<div class="lb-empty">Couldn't load Betting Champion history.</div>`; return; }
     box.innerHTML = lbChampHistory(rows, {
       title:'Betting Champion — WCA Website',
