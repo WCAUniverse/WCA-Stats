@@ -659,16 +659,26 @@
     padding:10px 12px; border-radius:7px; cursor:pointer; text-align:left;}
   .login-menu button:hover{background:rgba(233,185,73,.08);}
   .login-menu button i{font-size:18px;}
+  /* My Account — full page */
+  #page-account{max-width:1080px; margin:0 auto;}
+  .acc-empty{padding:60px 20px; text-align:center; color:var(--muted); font-family:'Barlow'; font-size:16px;}
+  .acc-empty-sm{padding:24px 12px; text-align:center; color:var(--muted); font-family:'Barlow'; font-size:13.5px;}
+  .acc-loading{padding:20px; text-align:center; color:var(--muted); font-family:'Barlow'; font-size:13px;}
   .acc-welcome{font-family:'Barlow'; font-size:14px; color:var(--txt); background:rgba(233,185,73,.07);
-    border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:16px; line-height:1.5;}
-
-  /* My Account modal */
-  .acc-h{font-family:'Cormorant Garamond','Oswald',serif; color:var(--gold); font-size:26px;
-    margin:0 0 16px; font-weight:600;}
-  .acc-sec{border-top:1px solid var(--line); padding:16px 0;}
-  .acc-sec:first-of-type{border-top:none; padding-top:0;}
-  .acc-sec-title{font-family:'Oswald'; text-transform:uppercase; letter-spacing:1.5px; font-size:12px;
-    color:var(--muted); margin-bottom:10px;}
+    border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:20px; line-height:1.5;}
+  .acc-top{display:grid; grid-template-columns:240px 1fr; gap:22px; align-items:start;}
+  .acc-id{display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px 16px;}
+  .acc-ava{width:104px; height:104px; border-radius:50%; object-fit:cover; border:2px solid var(--gold);}
+  .acc-ava-init{display:flex; align-items:center; justify-content:center; background:var(--gold-deep);
+    color:var(--gold); font-family:'Oswald'; font-size:38px; font-weight:700;}
+  .acc-id-name{font-family:'Cormorant Garamond','Oswald',serif; color:var(--txt); font-size:22px; font-weight:600;
+    margin-top:4px; word-break:break-word;}
+  .acc-bal{font-family:'Oswald'; color:var(--gold); font-size:18px; font-weight:600;}
+  .acc-fields{display:flex; flex-direction:column; gap:16px;}
+  .acc-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;}
+  .acc-card-title{font-family:'Oswald'; text-transform:uppercase; letter-spacing:1.5px; font-size:12px;
+    color:var(--muted); margin-bottom:12px;}
   .acc-hint{font-family:'Barlow'; font-size:12.5px; color:var(--muted); margin-top:8px;}
   .acc-name-row{display:flex; gap:8px;}
   .acc-name-row input{flex:1; background:var(--bg); border:1px solid var(--line); border-radius:8px;
@@ -691,10 +701,39 @@
   .acc-toggle{flex:1; background:var(--bg); border:1px solid var(--line); color:var(--muted); padding:10px 8px;
     font-size:13px; text-align:center;}
   .acc-toggle.on{border-color:var(--gold); color:var(--gold); background:rgba(233,185,73,.08);}
-  #account-body .msg{margin-top:10px; font-size:13px; display:none;}
-  #account-body .msg.show{display:block;}
-  #account-body .msg.ok{color:var(--win);}
-  #account-body .msg.err{color:var(--loss);}
+  #account-page-body .msg{margin-top:10px; font-size:13px; display:none;}
+  #account-page-body .msg.show{display:block;}
+  #account-page-body .msg.ok{color:var(--win);}
+  #account-page-body .msg.err{color:var(--loss);}
+  .acc-divider{height:1px; background:linear-gradient(90deg,transparent,var(--line),transparent); margin:26px 0;}
+  /* history: two columns of scroll lists */
+  .acc-history{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+  .acc-col{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; display:flex; flex-direction:column;}
+  .acc-scroll{max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:4px;}
+  .acc-row{display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:10px 12px;}
+  .acc-row-main{min-width:0;}
+  .acc-row-match{font-family:'Barlow'; font-weight:600; font-size:14px; color:var(--txt);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .acc-row-event{font-family:'Barlow Condensed'; font-size:12.5px; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .acc-row-side{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+  .acc-row-amt{font-family:'Oswald'; font-size:14px; color:var(--gold);}
+  .acc-row-net{font-family:'Oswald'; font-size:15px; font-weight:600; flex-shrink:0;}
+  .acc-row-net.pos{color:var(--win);} .acc-row-net.neg{color:var(--loss);} .acc-row-net.even{color:var(--muted);}
+  .acc-pill{font-family:'Oswald'; font-size:11px; letter-spacing:.5px; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px; border:1px solid var(--line);}
+  .acc-pill.win{color:var(--win); border-color:var(--win);}
+  .acc-pill.loss{color:var(--loss); border-color:var(--loss);}
+  .acc-pill.pend{color:var(--muted);}
+  .acc-total{display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:14px;
+    border-top:1px solid var(--line); font-family:'Oswald'; text-transform:uppercase; letter-spacing:1px; font-size:13px; color:var(--muted);}
+  .acc-total b{font-size:22px;}
+  .acc-total b.pos{color:var(--win);} .acc-total b.neg{color:var(--loss);} .acc-total b.even{color:var(--muted);}
+  @media(max-width:760px){
+    .acc-top{grid-template-columns:1fr;}
+    .acc-history{grid-template-columns:1fr;}
+  }
 
   /* ============================================================
      PHASE 2 — reference-inspired aesthetic layer
@@ -1760,7 +1799,8 @@
       repeating-linear-gradient(60deg, rgba(255,255,255,.01) 0 1px, transparent 1px 120px);
     opacity:.7;
   }
-  .wrap,.toast,.modal-overlay{position:relative; z-index:1;}
+  .wrap,.toast{position:relative; z-index:1;}
+  .modal-overlay{z-index:600;}
   header{position:sticky; top:0; z-index:50;}
 
   /* ════ TYPOGRAPHY — engraved nameplates ════
@@ -2510,6 +2550,13 @@
     <div id="apply-gate"></div>
     <div id="apply-body" style="display:none"></div>
   </div>
+
+  <!-- ===== MY ACCOUNT (full page; reached by clicking the user chip) ===== -->
+  <div class="page" id="page-account">
+    <div id="account-page-body">
+      <div class="acc-empty">Sign in to view your account.</div>
+    </div>
+  </div>
 </div>
 
 <!-- WRESTLER PROFILE MODAL -->
@@ -2520,13 +2567,7 @@
   </div>
 </div>
 
-<!-- MY ACCOUNT MODAL (username + connected logins + admin post-as) -->
-<div class="modal-overlay" id="account-modal" onclick="if(event.target===this)closeAccount()">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeAccount()" aria-label="Close"><i class="ti ti-x"></i></button>
-    <div id="account-body"></div>
-  </div>
-</div>
+<!-- MY ACCOUNT is now a full page (#page-account), not a modal -->
 
 <!-- BET MODAL -->
 <div class="modal-overlay" id="bet-modal" onclick="if(event.target===this)closeBet()">
@@ -3801,42 +3842,54 @@ function openProfile(w){
 }
 function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
 
-// ===== MY ACCOUNT =====
+// ===== MY ACCOUNT (full page) =====
 const PROVIDER_META = {
   discord: { name:'Discord', icon:'ti-brand-discord', color:'#5865F2' },
   google:  { name:'Google',  icon:'ti-brand-google',  color:'#EA4335' },
   twitch:  { name:'Twitch',  icon:'ti-brand-twitch',  color:'#9146FF' }
 };
-async function openAccount(firstTime){
-  if(!CURRENT_USER){ return; }
-  const body = document.getElementById('account-body');
-  // best name we have: their saved name, else whatever the login provider gave.
+// Open the account PAGE (not a modal). firstTime=true shows the welcome banner.
+function openAccount(firstTime){
+  if(typeof activatePage==='function') activatePage('account');
+  if(location.hash.slice(1)!=='account'){ history.replaceState(null,'','#account'); }
+  window.scrollTo({top:0,behavior:'smooth'});
+  renderAccountPage(!!firstTime);
+}
+function closeAccount(){ if(typeof goPage==='function') goPage('dashboard'); }
+// Page-activate hook calls this too (so a refresh on #account rebuilds it).
+async function loadAccount(){ renderAccountPage(false); }
+
+async function renderAccountPage(firstTime){
+  const host = document.getElementById('account-page-body');
+  if(!host) return;
+  if(!CURRENT_USER){
+    host.innerHTML = `<div class="acc-empty">Sign in to view your account.</div>`;
+    return;
+  }
   const meta = (CURRENT_USER && CURRENT_USER.user_metadata) || {};
   const providerName = meta.full_name || meta.name || meta.user_name
     || meta.preferred_username || meta.nickname || '';
   const name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || providerName || '';
-  // which providers are already linked to this one account
+  const avatarUrl = (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || meta.avatar_url || meta.picture || '';
+  const init = (name||'WCA').slice(0,2).toUpperCase();
+
+  // linked providers
   let linked = [];
-  try{
-    const ids = (CURRENT_USER.identities || []);
-    linked = ids.map(i => i.provider);
-  }catch(e){ linked = []; }
+  try{ linked = (CURRENT_USER.identities||[]).map(i=>i.provider); }catch(e){ linked=[]; }
   const allProviders = ['discord','google','twitch'];
-  const connectedRows = allProviders.map(p=>{
-    const meta = PROVIDER_META[p];
-    const on = linked.indexOf(p) !== -1;
+  const provRows = allProviders.map(p=>{
+    const pm = PROVIDER_META[p];
+    const on = linked.indexOf(p)!==-1;
     return `<div class="acc-prov">
-        <span class="acc-prov-name"><i class="ti ${meta.icon}" style="color:${meta.color}"></i> ${meta.name}</span>
-        ${ on
-          ? `<span class="acc-prov-on"><i class="ti ti-check"></i> Connected</span>`
-          : `<button class="acc-link-btn" onclick="linkProvider('${p}')">Link</button>` }
+        <span class="acc-prov-name"><i class="ti ${pm.icon}" style="color:${pm.color}"></i> ${pm.name}</span>
+        ${ on ? `<span class="acc-prov-on"><i class="ti ti-check"></i> Connected</span>`
+              : `<button class="acc-link-btn" onclick="linkProvider('${p}')">Link</button>` }
       </div>`;
   }).join('');
 
-  // admin-only "post as" toggle
   const adminBlock = IS_ADMIN ? `
-    <div class="acc-sec">
-      <div class="acc-sec-title">Admin — post in chat as</div>
+    <div class="acc-card">
+      <div class="acc-card-title">Admin — post in chat as</div>
       <div class="acc-toggle-row">
         <button class="acc-toggle ${!POST_AS_ADMIN?'on':''}" onclick="setPostAs(false)">My name (${esc(name||'Member')})</button>
         <button class="acc-toggle ${POST_AS_ADMIN?'on':''}" onclick="setPostAs(true)">Admin</button>
@@ -3844,42 +3897,146 @@ async function openAccount(firstTime){
       <div class="acc-hint">Choose how your live-chat messages are signed. Your admin powers never change either way.</div>
     </div>` : '';
 
-  body.innerHTML = `
-    <h2 class="acc-h">${firstTime ? 'Welcome! Pick your username' : 'My Account'}</h2>
-    ${firstTime ? '<div class="acc-welcome">You\u2019re signed in. Choose the name you\u2019ll show on the leaderboard and in chat. We started it with your login name \u2014 keep it or change it.</div>' : ''}
-    <div class="acc-sec">
-      <div class="acc-sec-title">Display name</div>
-      <div class="acc-name-row">
-        <input id="acc-name-input" maxlength="32" value="${esc(name)}" placeholder="Your username">
-        <button class="acc-save-btn" onclick="saveAccountName()">Save</button>
+  const ava = avatarUrl
+    ? `<img class="acc-ava" src="${esc(avatarUrl)}" alt="">`
+    : `<div class="acc-ava acc-ava-init">${esc(init)}</div>`;
+
+  host.innerHTML = `
+    ${firstTime ? `<div class="acc-welcome">Welcome! You\u2019re signed in. Pick the username you\u2019ll show on the leaderboard and in chat \u2014 we started it with your login name.</div>` : ''}
+    <div class="acc-top">
+      <div class="acc-id">
+        ${ava}
+        <div class="acc-id-name" id="acc-id-name">${esc(name||'Member')}</div>
+        <div class="acc-bal">${fmtMoney(MY_PROFILE ? MY_PROFILE.balance : 0)}</div>
       </div>
-      <div class="acc-hint">This is the name shown on the leaderboard, in chat, and on your bets.</div>
-      <div class="msg" id="acc-msg"></div>
+      <div class="acc-fields">
+        <div class="acc-card">
+          <div class="acc-card-title">Username</div>
+          <div class="acc-name-row">
+            <input id="acc-name-input" maxlength="32" value="${esc(name)}" placeholder="Your username">
+            <button class="acc-save-btn" onclick="saveAccountName()">Save</button>
+          </div>
+          <div class="acc-hint">Shown on the leaderboard, in chat, and on your bets.</div>
+          <div class="msg" id="acc-msg"></div>
+        </div>
+        <div class="acc-card">
+          <div class="acc-card-title">Connected logins</div>
+          <div class="acc-hint" style="margin-bottom:10px">Link more ways to sign in \u2014 they all open this same account, so your points and history stay together.</div>
+          ${provRows}
+        </div>
+        ${adminBlock}
+      </div>
     </div>
-    <div class="acc-sec">
-      <div class="acc-sec-title">Connected logins</div>
-      <div class="acc-hint" style="margin-bottom:10px">Link more ways to sign in — they all open this same account, so your points and history stay together.</div>
-      ${connectedRows}
-    </div>
-    ${adminBlock}`;
-  document.getElementById('account-modal').classList.add('open');
+
+    <div class="acc-divider"></div>
+
+    <div class="acc-history">
+      <div class="acc-col">
+        <div class="acc-card-title">Recent bets</div>
+        <div class="acc-scroll" id="acc-bets"><div class="acc-loading">Loading\u2026</div></div>
+      </div>
+      <div class="acc-col">
+        <div class="acc-card-title">Winnings &amp; profit</div>
+        <div class="acc-scroll" id="acc-profit"><div class="acc-loading">Loading\u2026</div></div>
+        <div class="acc-total" id="acc-total"></div>
+      </div>
+    </div>`;
+
+  loadBetHistory();
 }
-function closeAccount(){ document.getElementById('account-modal').classList.remove('open'); }
+
 async function saveAccountName(){
-  const inp = document.getElementById('acc-name-input');
-  const msg = document.getElementById('acc-msg');
-  const v = (inp.value||'').trim();
+  const inp=document.getElementById('acc-name-input');
+  const msg=document.getElementById('acc-msg');
+  const v=(inp.value||'').trim();
   if(!v){ if(msg){ msg.className='msg err show'; msg.textContent='Name cannot be empty.'; } return; }
-  const { error } = await sb.from('profiles').update({ display_name: v, username_set: true }).eq('id', CURRENT_USER.id);
+  const { error } = await sb.from('profiles').update({ display_name:v, username_set:true }).eq('id', CURRENT_USER.id);
   if(error){ if(msg){ msg.className='msg err show'; msg.textContent='Save failed: '+error.message; } return; }
-  if(MY_PROFILE){ MY_PROFILE.display_name = v; MY_PROFILE.username_set = true; }
-  if(msg){ msg.className='msg ok show'; msg.textContent='Saved ✓'; }
+  if(MY_PROFILE){ MY_PROFILE.display_name=v; MY_PROFILE.username_set=true; }
+  if(msg){ msg.className='msg ok show'; msg.textContent='Saved \u2713'; }
+  const idn=document.getElementById('acc-id-name'); if(idn) idn.textContent=v;
   renderUserChip();
 }
 function setPostAs(asAdmin){
-  POST_AS_ADMIN = !!asAdmin;
-  openAccount(); // re-render the toggle highlight
+  POST_AS_ADMIN=!!asAdmin;
+  renderAccountPage(false);
 }
+
+// Pull this user's bet history from the v_my_bet_history view and fill both lists.
+async function loadBetHistory(){
+  const betsEl=document.getElementById('acc-bets');
+  const profitEl=document.getElementById('acc-profit');
+  const totalEl=document.getElementById('acc-total');
+  if(!betsEl||!profitEl) return;
+  let rows=[];
+  try{
+    const { data, error } = await sb.from('v_my_bet_history')
+      .select('*').eq('user_id', CURRENT_USER.id);
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){
+    betsEl.innerHTML = `<div class="acc-empty-sm">Bet history isn\u2019t set up yet.</div>`;
+    profitEl.innerHTML = ''; if(totalEl) totalEl.innerHTML='';
+    return;
+  }
+  // newest first by event date then slot
+  rows.sort((a,b)=>{
+    const da=new Date(a.event_date||0)-new Date(b.event_date||0);
+    if(da!==0) return -da;
+    return (a.slot||0)-(b.slot||0);
+  });
+
+  if(!rows.length){
+    betsEl.innerHTML = `<div class="acc-empty-sm">No bets yet. Place one on an event!</div>`;
+    profitEl.innerHTML = `<div class="acc-empty-sm">No settled matches yet.</div>`;
+    if(totalEl) totalEl.innerHTML = `<span>Total profit</span><b class="even">${fmtMoney(0)}</b>`;
+    return;
+  }
+
+  // RECENT BETS list (everything they placed)
+  betsEl.innerHTML = rows.map(r=>{
+    const matchName = r.match_title || ('Match '+(r.slot||''));
+    const status = r.settled ? (r.won ? '<span class="acc-pill win">Won</span>' : '<span class="acc-pill loss">Lost</span>')
+                             : '<span class="acc-pill pend">Pending</span>';
+    return `<div class="acc-row">
+        <div class="acc-row-main">
+          <div class="acc-row-match">${esc(matchName)}</div>
+          <div class="acc-row-event">${esc(r.event_name||'')}</div>
+        </div>
+        <div class="acc-row-side">
+          <div class="acc-row-amt">${fmtMoney(r.amount)}</div>
+          ${status}
+        </div>
+      </div>`;
+  }).join('');
+
+  // WINNINGS / PROFIT list (settled matches only) + running total
+  const settled = rows.filter(r=>r.settled);
+  let total = 0;
+  if(!settled.length){
+    profitEl.innerHTML = `<div class="acc-empty-sm">No settled matches yet.</div>`;
+  } else {
+    profitEl.innerHTML = settled.map(r=>{
+      const net = Number(r.net_profit)||0; total += net;
+      const cls = net>0?'pos':(net<0?'neg':'even');
+      const sign = net>0?'+':'';
+      const matchName = r.match_title || ('Match '+(r.slot||''));
+      return `<div class="acc-row">
+          <div class="acc-row-main">
+            <div class="acc-row-match">${esc(matchName)}</div>
+            <div class="acc-row-event">${esc(r.event_name||'')}</div>
+          </div>
+          <div class="acc-row-net ${cls}">${sign}${fmtMoney(net)}</div>
+        </div>`;
+    }).join('');
+  }
+  if(totalEl){
+    const tcls = total>0?'pos':(total<0?'neg':'even');
+    const tsign = total>0?'+':'';
+    totalEl.innerHTML = `<span>Total profit</span><b class="${tcls}">${tsign}${fmtMoney(total)}</b>`;
+  }
+}
+
 
 // ===== CROSS-LINK: open a wrestler's profile from anywhere =====
 // Reusable "deep link" target. Any page (rankings, champions, events, factions)
@@ -6375,10 +6532,11 @@ function toggleNav(){
 // Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
 function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
-  if(!btn) return false;
+  // 'account' has no nav button (reached via the user chip) — allow it through.
+  if(!btn && pg!=='account') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
@@ -6389,6 +6547,7 @@ function activatePage(pg){
   if(pg==='leaderboard') loadLeaderboard();
   if(pg==='archive') loadArchive();
   if(pg==='apply') loadApply();
+  if(pg==='account') loadAccount();
   return true;
 }
 // On load (and on back/forward), open whatever tab the hash points to.
@@ -6400,6 +6559,8 @@ function restorePageFromHash(){
   const qs = qIdx>=0 ? raw.slice(qIdx+1) : '';
   if(pg && document.querySelector('nav [data-page="'+pg+'"]')){
     activatePage(pg);
+  } else if(pg==='account'){
+    activatePage('account');
   }
   // If the hash names a wrestler (?w=Name), show them on the big stage once ready.
   if(qs){
@@ -6503,7 +6664,7 @@ function bindRankingNames(){
 // Re-bind whenever rankings might have re-rendered (cheap + idempotent).
 setInterval(bindRankingNames, 1500);
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeProfile();closeAccount();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeProfile();}});
 
 // boot
 if(!isConfigured){
