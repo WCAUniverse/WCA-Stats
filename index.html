@@ -3032,12 +3032,18 @@ async function refreshUser(){
   // login provider gave (Discord/Google/Twitch), which they can keep or change.
   // Only do this ONCE per page session — otherwise every refresh / token refresh
   // yanks the user to the account page and overrides the tab they were on.
-  if(MY_PROFILE && !MY_PROFILE.username_set && !window._usernamePromptShown){
+  //
+  // NOTE: we treat the prompt as "already done" if EITHER username_set is true
+  // OR the profile already has a display_name/username. This guards against the
+  // username_set column being missing/undefined, which previously made this fire
+  // on every single load and dump everyone onto the account page.
+  const _alreadyNamed = !!(MY_PROFILE && (MY_PROFILE.username_set || MY_PROFILE.display_name || MY_PROFILE.username));
+  if(MY_PROFILE && !_alreadyNamed && !window._usernamePromptShown){
     window._usernamePromptShown = true;
     // Don't steal navigation if the user deep-linked to a specific page on load
     // (e.g. #roster, #live). Only auto-open when they're on the default/dashboard.
     const curHash = (location.hash||'').slice(1).split('?')[0];
-    if(!curHash || curHash==='dashboard' || curHash==='account'){
+    if(!curHash || curHash==='dashboard'){
       setTimeout(()=>{ openAccount(true); }, 400);
     }
   }
