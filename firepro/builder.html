@@ -358,11 +358,12 @@
 
   <div class="col-side">
     <div class="meter" id="meter">
-      <div class="row"><span>Budget</span><b id="mBudget">$0</b></div>
+      <div class="row"><span id="mBudgetLbl">Budget</span><b id="mBudget">$0</b></div>
       <div class="bar"><i id="mBar"></i></div>
       <div class="row"><span>Spent</span><b id="mSpent">$0</b></div>
       <div class="row remain"><span>Remaining</span><b id="mRemain">$0</b></div>
       <div class="overmsg">⚠ Over budget — trim the card before you can submit.</div>
+      <div id="walletNote" style="font-size:11px;color:#9be0ff;margin-top:8px;line-height:1.4"></div>
     </div>
 
     <div class="roster">
@@ -422,6 +423,9 @@ let OWNER = '';                  // booker's owner/handle name
 let EVENT = null;                // the currently OPEN event row (or null)
 let MY_CARD_ID = null;           // id of this booker's existing card for EVENT (if any)
 let READONLY = false;            // true when submissions are closed
+let SEASON = null;               // active season row (id,name,bankroll) or null
+let WALLET = null;               // my fp_season_bookers row for SEASON, or null
+let SPEND_CAP = 2500000;         // effective cap: wallet balance if joined, else SETTINGS.budget
 
 /* =====================================================================
    HELPERS
@@ -519,13 +523,16 @@ async function checkAuth(){
   await Promise.all([ loadTypes(), loadRoster() ]);
   await loadMyCard();          // refills CARD from their saved submission, or makes a blank one
 
+  // active season + my wallet → the spend cap is the wallet balance when a season is live
+  await loadWallet();
+
   // header / event label
   byId('eventLabel').textContent = EVENT.name + (EVENT.subtitle ? ' — '+EVENT.subtitle : '');
   byId('eventLabel').style.display='inline-block';
 
   byId('builder').style.display='grid';
   byId('introText').textContent = SETTINGS.intro || '';
-  byId('mBudget').textContent = money(SETTINGS.budget);
+  byId('mBudget').textContent = money(SPEND_CAP);
 
   if(READONLY) applyReadonly();
   renderMatches(); recalc(); renderRoster();
@@ -853,22 +860,67 @@ function renderRoster(){
 }
 
 /* =====================================================================
+   WALLET — the spend cap is the booker's live season balance.
+   No active season / not joined → falls back to the flat SETTINGS.budget
+   so casual (no-season) play still works.
+   ===================================================================== */
+async function loadWallet(){
+  SEASON=null; WALLET=null; SPEND_CAP=SETTINGS.budget||0;
+  if(!sb||!USER) return;
+  try{
+    const { data:sid } = await sb.rpc('fp_active_season');
+    if(!sid) return;                      // no season → flat budget
+    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,status').eq('id',sid).maybeSingle();
+    SEASON = srow || { id:sid };
+    const { data:w } = await sb.rpc('fp_my_wallet');
+    WALLET = w || null;
+    if(WALLET && !WALLET.eliminated){
+      SPEND_CAP = WALLET.balance;         // <-- the real cap
+    } else if(WALLET && WALLET.eliminated){
+      SPEND_CAP = 0;                      // eliminated → can't spend
+    } else {
+      SPEND_CAP = SETTINGS.budget||0;     // season live but not joined yet
+    }
+  }catch(e){ /* leave flat-budget fallback */ }
+}
+
+/* =====================================================================
    BUDGET METER + SUBMIT GATE
    ===================================================================== */
 function recalc(){
   let spent=0;
   for(const m of CARD){ spent+=matchCost(m).total; }
-  const budget=SETTINGS.budget||0;
+  const budget=SPEND_CAP||0;
   const remain=budget-spent;
   byId('mSpent').textContent=money(spent);
   byId('mRemain').textContent=money(remain);
-  const pct = budget>0 ? Math.min(100,(spent/budget)*100) : 0;
+  const pct = budget>0 ? Math.min(100,(spent/budget)*100) : (spent>0?100:0);
   byId('mBar').style.width=pct+'%';
   const over = spent>budget;
   byId('meter').classList.toggle('over',over);
 
-  // submit allowed only if: not over budget AND every match has at least the minimum bodies
-  const ready = !over && cardIsValid() && !READONLY;
+  // label + wallet note reflect whether they're spending a real season wallet
+  const lbl=byId('mBudgetLbl'); const note=byId('walletNote');
+  const eliminated = !!(WALLET && WALLET.eliminated);
+  if(lbl) lbl.textContent = (WALLET && !eliminated) ? 'Wallet' : 'Budget';
+  byId('mBudget').textContent = money(budget);
+  if(note){
+    if(eliminated){
+      note.style.color='#ff6b6b';
+      note.innerHTML='💀 Eliminated from '+esc(SEASON&&SEASON.name||'this season')+' — you can\'t submit until next season.';
+    } else if(WALLET){
+      note.style.color='#9be0ff';
+      note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet. Stay under it — go broke and you\'re out for the season.';
+    } else if(SEASON){
+      note.style.color='#7fe0a0';
+      note.innerHTML='A season is live — <b>join it in the hub Settings</b> to book with your real wallet. (Showing the practice budget for now.)';
+    } else {
+      note.innerHTML='';
+    }
+  }
+
+  // submit allowed only if: not eliminated, not over budget, valid card, editable
+  const ready = !eliminated && !over && cardIsValid() && !READONLY;
   const btn=byId('submitBtn');
   btn.disabled=!ready;
 }
@@ -906,6 +958,18 @@ async function submitCard(){
 
   let totalCost=0;
   for(const m of CARD) totalCost+=matchCost(m).total;
+
+  // server-truth wallet re-check (guards against a stale/over-budget client)
+  await loadWallet();
+  if(WALLET && WALLET.eliminated){
+    toast('You\'ve been eliminated this season — can\'t submit.', true);
+    SUBMITTING=false; recalc(); return;
+  }
+  if(totalCost > (SPEND_CAP||0)){
+    toast('Card costs '+money(totalCost)+' but your '+((WALLET&&!WALLET.eliminated)?'wallet':'budget')+' is '+money(SPEND_CAP)+'. Trim it.', true);
+    SUBMITTING=false; byId('submitBtn').textContent = MY_CARD_ID ? 'UPDATE CARD' : 'SUBMIT CARD';
+    recalc(); return;
+  }
 
   try{
     // make sure their identity is on file (company + owner) for the review screen

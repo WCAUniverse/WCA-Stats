@@ -603,6 +603,11 @@
       </div>
 
       <div class="fp-card">
+        <h3>Season Wallet</h3>
+        <div id="set-wallet"><p class="fp-cardsub">—</p></div>
+      </div>
+
+      <div class="fp-card">
         <h3>My Submissions</h3>
         <div id="set-subs"><p class="fp-cardsub">Loading…</p></div>
       </div>
@@ -679,7 +684,7 @@ try{
 // ===== HUB STATE =====
 let FP = {};                 // the whole site_settings.firepro blob
 let LANDING = {};            // FP.landing (admin-editable hub copy)
-let ME = { user:null, username:null, promo:null, owner:null, hasPromo:false };
+let ME = { user:null, username:null, promo:null, owner:null, hasPromo:false, wallet:null, season:null };
 let OPEN_EVENT = null;       // currently-open event (or null)
 let HAS_ARCHIVE = false;     // any completed events?
 
@@ -720,6 +725,16 @@ async function fpLoadCopy(){
     try{
       const { data } = await sb.from('fp_bookers').select('promotion_name,owner_name').eq('auth_id', ME.user.id).maybeSingle();
       if(data){ ME.promo=data.promotion_name||null; ME.owner=data.owner_name||null; ME.hasPromo=!!data.promotion_name; }
+    }catch(e){}
+    // active season + my wallet for it (null if no active season / not joined)
+    try{
+      const { data:sid } = await sb.rpc('fp_active_season');
+      if(sid){
+        const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,status').eq('id',sid).maybeSingle();
+        ME.season = srow || { id:sid };
+        const { data:w } = await sb.rpc('fp_my_wallet');
+        ME.wallet = w || null;
+      }
     }catch(e){}
   }
   // open event + archive availability (for PLAY button state)
@@ -838,9 +853,21 @@ function renderMenu(){
 
   const who=document.getElementById('fp-who');
   if(who){
-    who.innerHTML = ME.user
+    let line = ME.user
       ? ('Signed in: <b>'+esc(ME.username||'Player')+'</b>'+(ME.hasPromo?(' · '+esc(ME.promo)):''))
       : 'Not signed in — some options need a WCA login.';
+    if(ME.user && ME.season){
+      if(ME.wallet){
+        if(ME.wallet.eliminated){
+          line += '<br><span style="color:#ff6b6b">💀 ELIMINATED — '+esc(ME.season.name||'this season')+' (back next season)</span>';
+        } else {
+          line += '<br><span style="color:#ffd23f">💰 '+money(ME.wallet.balance)+'</span> <span style="color:#9be0ff">· '+esc(ME.season.name||'Season')+'</span>';
+        }
+      } else {
+        line += '<br><span style="color:#7fe0a0">● '+esc(ME.season.name||'A season')+' is live — join in SETTINGS</span>';
+      }
+    }
+    who.innerHTML = line;
   }
 }
 
@@ -1066,6 +1093,8 @@ async function renderSettings(){
   if(g) g.textContent = LANDING.settingsGuide || 'Manage your promotion, review your submissions, and sign out.';
   document.getElementById('set-promo-current').textContent = ME.hasPromo ? (ME.promo+(ME.owner?(' · '+ME.owner):'')) : 'You haven\'t created a promotion yet.';
   document.getElementById('set-account').textContent = ME.user ? ('Signed in as '+(ME.username||'Player')) : 'Not signed in.';
+  // --- season wallet ---
+  fpRenderWallet();
   // my submissions
   const host=document.getElementById('set-subs');
   if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to see your submissions.</p>'; return; }
@@ -1085,9 +1114,56 @@ async function renderSettings(){
     }).join('');
   }catch(e){ host.innerHTML='<p class="fp-cardsub">Could not load submissions.</p>'; }
 }
+function fpRenderWallet(){
+  const host=document.getElementById('set-wallet'); if(!host) return;
+  if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to join the season.</p>'; return; }
+  if(!ME.season){ host.innerHTML='<p class="fp-cardsub">No season is active right now. Check back when the next one opens.</p>'; return; }
+  const sName=esc(ME.season.name||'Current season');
+  if(ME.wallet){
+    if(ME.wallet.eliminated){
+      host.innerHTML='<p class="fp-cardsub" style="color:#ff6b6b">💀 You were eliminated from '+sName+'.</p>'+
+        '<p class="fp-cardsub">You\'re out for the rest of this season — no buy-back. You\'ll be able to join again next season.</p>';
+      return;
+    }
+    const bal=ME.wallet.balance, start=ME.wallet.starting_balance||0;
+    const pct = start>0 ? Math.max(0,Math.min(100,Math.round(bal/start*100))) : 0;
+    host.innerHTML =
+      '<p class="fp-cardsub">'+sName+'</p>'+
+      '<div style="font-family:\'Press Start 2P\',monospace;font-size:18px;color:#ffd23f;margin:6px 0">'+money(bal)+'</div>'+
+      '<div style="height:8px;background:#2a1010;border:1px solid #5a2020;border-radius:4px;overflow:hidden;margin:8px 0">'+
+        '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#E24B4A,#ffd23f)"></div></div>'+
+      '<p class="fp-cardsub">Started with '+money(start)+' · '+pct+'% left. Go broke and you\'re eliminated for the season — book smart.</p>';
+    return;
+  }
+  // not joined yet
+  const bank = ME.season.bankroll||0;
+  host.innerHTML =
+    '<p class="fp-cardsub">'+sName+' is live. Join to get your starting bankroll of <b style="color:#ffd23f">'+money(bank)+'</b> and start booking.</p>'+
+    '<button class="fp-btn primary" id="fp-join-btn" onclick="fpJoinSeason()">JOIN SEASON ►</button>'+
+    '<p class="fp-cardsub" id="fp-join-msg" style="margin-top:8px"></p>';
+}
+async function fpJoinSeason(){
+  const btn=document.getElementById('fp-join-btn'); const msg=document.getElementById('fp-join-msg');
+  if(btn){ btn.disabled=true; btn.textContent='JOINING…'; }
+  try{
+    const { data, error } = await sb.rpc('fp_join_season', { p_promotion: ME.promo||null });
+    if(error) throw error;
+    ME.wallet = data || null;
+    if(msg) msg.textContent='';
+    fpRenderWallet(); renderMenu();
+  }catch(e){
+    const m=(e&&e.message)||String(e);
+    let nice='Could not join: '+m;
+    if(m.indexOf('ELIMINATED_NO_REJOIN')>=0) nice='You were eliminated this season and can\'t buy back in. Catch the next one.';
+    else if(m.indexOf('NO_ACTIVE_SEASON')>=0) nice='No season is active right now.';
+    else if(m.indexOf('NOT_SIGNED_IN')>=0) nice='You need to be signed in (on the main WCA site) first.';
+    if(msg){ msg.style.color='#ff6b6b'; msg.textContent=nice; }
+    if(btn){ btn.disabled=false; btn.textContent='JOIN SEASON ►'; }
+  }
+}
 async function fpSignOut(){
   try{ await sb.auth.signOut(); }catch(e){}
-  ME={ user:null, promo:null, owner:null, hasPromo:false };
+  ME={ user:null, username:null, promo:null, owner:null, hasPromo:false, wallet:null, season:null };
   renderMenu(); fpToMenu();
 }
 
