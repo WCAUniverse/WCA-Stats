@@ -669,7 +669,7 @@ try{
 // ===== HUB STATE =====
 let FP = {};                 // the whole site_settings.firepro blob
 let LANDING = {};            // FP.landing (admin-editable hub copy)
-let ME = { user:null, promo:null, owner:null, hasPromo:false };
+let ME = { user:null, username:null, promo:null, owner:null, hasPromo:false };
 let OPEN_EVENT = null;       // currently-open event (or null)
 let HAS_ARCHIVE = false;     // any completed events?
 
@@ -701,6 +701,12 @@ async function fpLoadCopy(){
     ME.user = data && data.user;
   }catch(e){}
   if(ME.user){
+    // pull the WCA username/display name from profiles so we NEVER show the email
+    try{
+      const { data } = await sb.from('profiles').select('username,display_name').eq('id', ME.user.id).maybeSingle();
+      if(data){ ME.username = data.display_name || data.username || null; }
+    }catch(e){}
+    if(!ME.username){ ME.username = (ME.user.email||'Player').split('@')[0]; } // safe fallback, never the full email
     try{
       const { data } = await sb.from('fp_bookers').select('promotion_name,owner_name').eq('auth_id', ME.user.id).maybeSingle();
       if(data){ ME.promo=data.promotion_name||null; ME.owner=data.owner_name||null; ME.hasPromo=!!data.promotion_name; }
@@ -823,7 +829,7 @@ function renderMenu(){
   const who=document.getElementById('fp-who');
   if(who){
     who.innerHTML = ME.user
-      ? ('Signed in: <b>'+esc(ME.user.email||'you')+'</b>'+(ME.hasPromo?(' · '+esc(ME.promo)):''))
+      ? ('Signed in: <b>'+esc(ME.username||'Player')+'</b>'+(ME.hasPromo?(' · '+esc(ME.promo)):''))
       : 'Not signed in — some options need a WCA login.';
   }
 }
@@ -1035,7 +1041,7 @@ async function renderSettings(){
   const g=document.getElementById('settings-guide');
   if(g) g.textContent = LANDING.settingsGuide || 'Manage your promotion, review your submissions, and sign out.';
   document.getElementById('set-promo-current').textContent = ME.hasPromo ? (ME.promo+(ME.owner?(' · '+ME.owner):'')) : 'You haven\'t created a promotion yet.';
-  document.getElementById('set-account').textContent = ME.user ? ('Signed in as '+(ME.user.email||'you')) : 'Not signed in.';
+  document.getElementById('set-account').textContent = ME.user ? ('Signed in as '+(ME.username||'Player')) : 'Not signed in.';
   // my submissions
   const host=document.getElementById('set-subs');
   if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to see your submissions.</p>'; return; }

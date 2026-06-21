@@ -487,8 +487,15 @@ async function checkAuth(){
   if(!SETTINGS.enabled){ showClosedNotice('The card builder isn\'t open right now. Check back when the next show opens.'); return; }
   if(!USER){ showGate(); return; }
 
-  byId('bookerEmail').textContent = USER.email || 'you';
-  byId('who').innerHTML = 'Signed in: <b>'+esc(USER.email||'you')+'</b>';
+  // pull the WCA username so we display that, never the email
+  let uname=null;
+  try{
+    const { data } = await sb.from('profiles').select('username,display_name').eq('id', USER.id).maybeSingle();
+    if(data){ uname = data.display_name || data.username || null; }
+  }catch(e){}
+  if(!uname){ uname = (USER.email||'Player').split('@')[0]; }
+  byId('bookerEmail').textContent = uname;
+  byId('who').innerHTML = 'Signed in: <b>'+esc(uname)+'</b>';
 
   // load the one open event
   await loadOpenEvent();
