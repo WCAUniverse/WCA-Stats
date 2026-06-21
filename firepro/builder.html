@@ -426,6 +426,7 @@ let READONLY = false;            // true when submissions are closed
 let SEASON = null;               // active season row (id,name,bankroll) or null
 let WALLET = null;               // my fp_season_bookers row for SEASON, or null
 let SPEND_CAP = 2500000;         // effective cap: wallet balance if joined, else SETTINGS.budget
+let CARD_CAP = 0;                // per-card budget cap (fp_seasons.budget_cap); 0 = no cap
 
 /* =====================================================================
    HELPERS
@@ -865,22 +866,26 @@ function renderRoster(){
    so casual (no-season) play still works.
    ===================================================================== */
 async function loadWallet(){
-  SEASON=null; WALLET=null; SPEND_CAP=SETTINGS.budget||0;
+  SEASON=null; WALLET=null; SPEND_CAP=SETTINGS.budget||0; CARD_CAP=0;
   if(!sb||!USER) return;
   try{
     const { data:sid } = await sb.rpc('fp_active_season');
     if(!sid) return;                      // no season → flat budget
-    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,status').eq('id',sid).maybeSingle();
+    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,budget_cap,status').eq('id',sid).maybeSingle();
     SEASON = srow || { id:sid };
+    CARD_CAP = (srow && srow.budget_cap>0) ? srow.budget_cap : 0;   // 0 = no per-card cap
     const { data:w } = await sb.rpc('fp_my_wallet');
     WALLET = w || null;
+    let walletCap;
     if(WALLET && !WALLET.eliminated){
-      SPEND_CAP = WALLET.balance;         // <-- the real cap
+      walletCap = WALLET.balance;         // your money
     } else if(WALLET && WALLET.eliminated){
-      SPEND_CAP = 0;                      // eliminated → can't spend
+      walletCap = 0;                      // eliminated → can't spend
     } else {
-      SPEND_CAP = SETTINGS.budget||0;     // season live but not joined yet
+      walletCap = SETTINGS.budget||0;     // season live but not joined yet
     }
+    // a card must satisfy BOTH the wallet and the per-card cap (when a cap is set)
+    SPEND_CAP = (CARD_CAP>0) ? Math.min(walletCap, CARD_CAP) : walletCap;
   }catch(e){ /* leave flat-budget fallback */ }
 }
 
@@ -903,6 +908,9 @@ function recalc(){
   const lbl=byId('mBudgetLbl'); const note=byId('walletNote');
   const eliminated = !!(WALLET && WALLET.eliminated);
   if(lbl) lbl.textContent = (WALLET && !eliminated) ? 'Wallet' : 'Budget';
+  // when a per-card cap is set AND it's lower than the wallet, the cap is what's limiting this card
+  const capBinds = (CARD_CAP>0 && WALLET && !eliminated && CARD_CAP < WALLET.balance);
+  if(lbl && capBinds) lbl.textContent = 'Card cap';
   byId('mBudget').textContent = money(budget);
   if(note){
     if(eliminated){
@@ -910,7 +918,9 @@ function recalc(){
       note.innerHTML='💀 Eliminated from '+esc(SEASON&&SEASON.name||'this season')+' — you can\'t submit until next season.';
     } else if(WALLET){
       note.style.color='#9be0ff';
-      note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet. Stay under it — go broke and you\'re out for the season.';
+      note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet ('+money(WALLET.balance)+').'+
+        (capBinds ? ' This card is capped at <b style="color:#ffd23f">'+money(CARD_CAP)+'</b> per show.' : '')+
+        ' Go broke and you\'re out for the season.';
     } else if(SEASON){
       note.style.color='#7fe0a0';
       note.innerHTML='A season is live — <b>join it in the hub Settings</b> to book with your real wallet. (Showing the practice budget for now.)';

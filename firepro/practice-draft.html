@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WCA · Fire Pro — Practice Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --gold:#E9B949; --gold2:#ffd23f; --red:#E24B4A; --ink:#0a0506;
+    --panel:#140a0b; --panel2:#1c0f10; --line:#3a2020; --txt:#ffe9b0; --muted:#9a7a6a;
+  }
+  html,body{margin:0;height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #2a1112 0%, transparent 60%),
+      linear-gradient(#0a0506,#0a0506);
+    color:var(--txt); font-family:'Barlow',sans-serif; min-height:100vh;
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:14px 14px 90px;}
+  h1,h2,h3{font-family:'Press Start 2P',monospace;letter-spacing:1px;}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .topbar h1{font-size:15px;color:var(--gold2);margin:0;text-shadow:0 2px 0 #5a1a1a;}
+  .btn{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;
+       background:linear-gradient(#2a1516,#1a0d0e);color:var(--txt);border:1px solid var(--line);
+       border-radius:8px;padding:11px 14px;transition:.15s;}
+  .btn:hover{border-color:var(--gold);color:#fff;transform:translateY(-1px);}
+  .btn.primary{background:linear-gradient(#E24B4A,#a82f2f);border-color:#ff7a6a;color:#fff;}
+  .btn.gold{background:linear-gradient(#E9B949,#b8902f);border-color:#ffe08a;color:#1a0d0e;}
+  .btn.sm{padding:7px 10px;font-size:9px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .btn.ghost{background:transparent;}
+  .muted{color:var(--muted);}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .card h3{font-size:11px;color:var(--gold2);margin:0 0 12px;}
+  label{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
+  input,select{font-family:'Barlow',sans-serif;font-size:15px;background:#0c0506;color:var(--txt);
+    border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row > *{flex:1;min-width:120px;}
+  /* lobby seats */
+  .seats{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+  .seat{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+        border-radius:9px;padding:8px 10px;}
+  .seat .num{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);width:24px;text-align:center;}
+  .seat .nm{flex:1;font-weight:600;}
+  .seat .kind{font-family:'Press Start 2P',monospace;font-size:7px;padding:3px 7px;border-radius:5px;letter-spacing:1px;}
+  .seat .kind.human{background:#15331f;color:#7fe0a0;border:1px solid #2a6a40;}
+  .seat .kind.ai{background:#331515;color:#ff9a8a;border:1px solid #6a2a2a;}
+  .seat input{width:auto;flex:1;}
+  /* draft layout */
+  .draft{display:grid;grid-template-columns:260px 1fr 320px;gap:12px;align-items:start;}
+  @media(max-width:1000px){ .draft{grid-template-columns:1fr;} }
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;}
+  .nowbox{display:flex;align-items:center;gap:10px;background:linear-gradient(#2a1516,#180c0d);
+    border:1px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:10px;}
+  .nowbox .pic{width:46px;height:46px;border-radius:8px;background:#0c0506 center/cover;border:1px solid var(--line);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2);}
+  .nowbox .who{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);}
+  .nowbox .sub{font-size:12px;color:var(--muted);margin-top:3px;}
+  .ord{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+  .ord .o{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px 7px;border-radius:6px;}
+  .ord .o.on{background:#2a1516;border:1px solid var(--gold);}
+  .ord .o .b{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);}
+  .ord .o.on .b{color:var(--gold2);}
+  .ord .o .bal{margin-left:auto;font-size:11px;color:var(--gold2);}
+  .stable{margin-top:6px;display:flex;flex-direction:column;gap:4px;}
+  .stable .s{display:flex;gap:6px;font-size:13px;padding:3px 0;border-bottom:1px solid #251515;}
+  .stable .s .c{margin-left:auto;color:var(--gold2);}
+  /* center detail */
+  .cs-detail{display:flex;gap:16px;align-items:flex-start;}
+  .cs-photo{width:200px;flex:0 0 auto;aspect-ratio:3/4;object-fit:cover;display:block;border-radius:10px;border:1px solid var(--line);background:#0c0506;}
+  .cs-meta{flex:1;min-width:0;}
+  .cs-name{font-family:'Press Start 2P',monospace;font-size:14px;color:#fff;line-height:1.5;}
+  .cs-nick{color:var(--gold2);font-style:italic;margin:4px 0 10px;}
+  .cs-info{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px;align-content:start;}
+  .cs-info .k{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
+  .cs-info .v{color:var(--txt);word-break:break-word;}
+  .cs-cost{margin-top:14px;font-family:'Press Start 2P',monospace;font-size:13px;color:var(--gold2);
+    background:#180c0d;border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;}
+  .cs-empty{font-family:'Press Start 2P',monospace;font-size:11px;color:#7a5a5a;text-align:center;padding:80px 10px;line-height:1.8;}
+  .confirm-row{display:flex;gap:10px;margin-top:12px;}
+  .confirm-row .btn{flex:1;}
+  @media(max-width:560px){ .cs-detail{flex-direction:column;align-items:center;} .cs-photo{width:100%;max-width:200px;} }
+  /* right roster list */
+  .filterbar{display:flex;gap:6px;margin-bottom:8px;}
+  .filterbar button{flex:1;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:1px;
+    background:#180c0d;color:var(--gold2);border:1px solid var(--line);border-radius:6px;padding:7px 4px;cursor:pointer;}
+  .filterbar .lbl{flex:2;text-align:center;align-self:center;font-size:10px;color:var(--txt);}
+  .rsearch input{margin-bottom:8px;}
+  .rlist{max-height:62vh;overflow:auto;display:flex;flex-direction:column;gap:4px;}
+  .ritem{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:7px;padding:7px 9px;cursor:pointer;transition:.1s;}
+  .ritem:hover{border-color:var(--gold);}
+  .ritem.sel{border-color:var(--gold2);background:#2a1516;}
+  .ritem.taken{opacity:.32;pointer-events:none;text-decoration:line-through;}
+  .ritem .rn{flex:1;font-weight:600;font-size:14px;}
+  .ritem .rg{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);}
+  .ritem .rc{font-size:12px;color:var(--gold2);white-space:nowrap;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:#1a0d0e;border:1px solid var(--gold);color:var(--txt);padding:11px 16px;border-radius:9px;
+    font-size:14px;pointer-events:none;transition:.25s;z-index:50;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{border-color:var(--red);}
+  .hidden{display:none!important;}
+  /* results */
+  .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .res-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .res-card h3{font-size:11px;margin:0 0 4px;}
+  .res-card .tot{font-size:12px;color:var(--gold2);margin-bottom:10px;}
+  .res-card .rosrow{display:flex;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid #251515;}
+  .res-card .rosrow .c{margin-left:auto;color:var(--gold2);}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid #5a2020;border-top-color:var(--gold2);
+    border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <button class="btn sm ghost" onclick="goHub()">◄ HUB</button>
+    <h1>PRACTICE DRAFT</h1>
+  </div>
+
+  <!-- ============ LOBBY ============ -->
+  <div id="lobby">
+    <div class="card">
+      <h3>Set up your practice draft</h3>
+      <p class="muted" style="font-size:14px;margin:0 0 6px">No stakes — draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster.</p>
+      <div class="row">
+        <div>
+          <label>Seats (2–8)</label>
+          <select id="lobSeats" onchange="lobBuildSeats()">
+            <option>2</option><option selected>4</option><option>3</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+          </select>
+        </div>
+        <div>
+          <label>Rounds (picks each)</label>
+          <select id="lobRounds">
+            <option>3</option><option selected>5</option><option>6</option><option>7</option><option>8</option>
+          </select>
+        </div>
+        <div>
+          <label>Budget each</label>
+          <select id="lobBudget">
+            <option value="2500000">$2,500,000</option>
+            <option value="4000000" selected>$4,000,000</option>
+            <option value="6000000">$6,000,000</option>
+            <option value="10000000">$10,000,000</option>
+          </select>
+        </div>
+        <div>
+          <label>Order</label>
+          <select id="lobFormat">
+            <option value="snake" selected>Snake (1‑2‑3‑3‑2‑1)</option>
+            <option value="linear">Linear (1‑2‑3‑1‑2‑3)</option>
+          </select>
+        </div>
+      </div>
+      <label style="margin-top:14px">Seats — name each, set Human or AI</label>
+      <div class="seats" id="lobSeatList"></div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn primary" onclick="lobStart()" id="lobStartBtn">START DRAFT ►</button>
+        <button class="btn sm" onclick="lobShuffle()">🎲 Shuffle order</button>
+      </div>
+      <p class="muted" id="lobMsg" style="font-size:13px;margin-top:8px"></p>
+    </div>
+  </div>
+
+  <!-- ============ DRAFT ============ -->
+  <div id="draftView" class="hidden">
+    <div class="draft">
+      <!-- LEFT: on the clock + order + your stable -->
+      <div class="panel">
+        <div class="nowbox" id="nowBox"><div class="pic">?</div><div><div class="who">—</div><div class="sub"></div></div></div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;margin:6px 0 2px">DRAFT ORDER</div>
+        <div class="ord" id="ordList"></div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;margin:12px 0 2px" id="stableHdr">YOUR STABLE</div>
+        <div class="stable" id="stableList"></div>
+      </div>
+
+      <!-- CENTER: character detail + confirm -->
+      <div class="panel">
+        <div id="centerDetail"><div class="cs-empty">CLICK A WRESTLER<br>ON THE RIGHT TO<br>SEE THEIR INFO</div></div>
+        <div class="confirm-row" id="confirmRow" style="display:none">
+          <button class="btn primary" id="confirmBtn" onclick="confirmPick()">CONFIRM PICK ►</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: roster list -->
+      <div class="panel">
+        <div class="filterbar">
+          <button onclick="rosCycle('promo',-1)">◄</button>
+          <div class="lbl" id="fPromo">ALL PROMOTIONS</div>
+          <button onclick="rosCycle('promo',1)">►</button>
+        </div>
+        <div class="filterbar">
+          <button onclick="rosCycle('fac',-1)">◄</button>
+          <div class="lbl" id="fFac">ALL</div>
+          <button onclick="rosCycle('fac',1)">►</button>
+        </div>
+        <div class="rsearch"><input id="rSearch" placeholder="Search wrestlers…" oninput="rosRender()"></div>
+        <div class="rlist" id="rList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div id="resultsView" class="hidden">
+    <div class="card">
+      <h3>Draft complete — here's everyone's stable</h3>
+      <p class="muted" style="font-size:14px;margin:0 0 12px">Download any single stable, or grab one image of the whole lobby to share and compare.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn gold" onclick="dlAll()" id="dlAllBtn">📸 Download ALL rosters (PNG)</button>
+        <button class="btn sm" onclick="location.reload()">↺ New practice draft</button>
+        <button class="btn sm ghost" onclick="goHub()">◄ Back to hub</button>
+      </div>
+      <div class="res-grid" id="resGrid"></div>
+    </div>
+  </div>
+</div>
+
+<canvas id="pngCanvas" class="hidden"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Supabase (same project → roster read works for anyone) =====
+const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+let sb=null; try{ sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }catch(e){}
+
+// ===== state =====
+let ROSTER=[], PROMOS=[], FACTIONS=[];
+let SEATS=[];          // {name, ai, order, budget, picks:[wrestler...]}
+let CFG={ rounds:5, format:'snake', budget:4000000 };
+let DRAFT={ round:1, pickInRound:0, order:[], onClock:0, totalPicks:0, made:0 };
+let SEL=null;          // selected wrestler in center
+let PF=0, FF=0;        // filter indices
+let AI_THINKING=false;
+
+function byId(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function money(n){n=parseInt(n,10);if(isNaN(n))n=0;return '$'+n.toLocaleString('en-US');}
+function toast(m,err){const t=byId('toast');t.textContent=m;t.className='show'+(err?' err':'');setTimeout(()=>t.className=t.className.replace('show','').trim(),3000);}
+function goHub(){ window.location.href='index.html'; }
+
+// ===== boot =====
+window.addEventListener('load', async ()=>{
+  await loadRoster();
+  lobBuildSeats();
+});
+
+async function loadRoster(){
+  try{
+    const { data } = await sb.from('fp_wrestlers')
+      .select('id,name,nickname,origin,image_url,cost,cost_override,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
+      .order('name',{ascending:true});
+    ROSTER = (data||[]).map(w=>({...w, _cost:(w.cost_override!=null&&w.cost_override!=='')?w.cost_override:(w.cost||0)}));
+  }catch(e){ ROSTER=[]; }
+  try{ const { data } = await sb.from('fp_promotions').select('id,name').order('name'); PROMOS=data||[]; }catch(e){ PROMOS=[]; }
+  try{ const { data } = await sb.from('fp_factions').select('id,name,promotion_id').order('name'); FACTIONS=data||[]; }catch(e){ FACTIONS=[]; }
+  if(!ROSTER.length) byId('lobMsg').textContent='Could not load the roster. Make sure wrestlers exist in the admin.';
+}
+
+// ===== LOBBY =====
+function lobBuildSeats(){
+  const n=parseInt(byId('lobSeats').value,10)||4;
+  const host=byId('lobSeatList'); let html='';
+  for(let i=0;i<n;i++){
+    const defName = i===0 ? 'You' : ('Player '+(i+1));
+    const defAI = i!==0;  // seat 1 human by default, rest AI
+    html+='<div class="seat">'+
+      '<span class="num">'+(i+1)+'</span>'+
+      '<input id="seatName'+i+'" value="'+esc(defName)+'" maxlength="22">'+
+      '<button class="btn sm" id="seatKind'+i+'" data-ai="'+(defAI?1:0)+'" onclick="lobToggleKind('+i+')">'+(defAI?'🤖 AI':'🧑 HUMAN')+'</button>'+
+      '</div>';
+  }
+  host.innerHTML=html;
+}
+function lobToggleKind(i){
+  const b=byId('seatKind'+i); const ai=b.getAttribute('data-ai')==='1';
+  b.setAttribute('data-ai', ai?'0':'1');
+  b.textContent = ai?'🧑 HUMAN':'🤖 AI';
+}
+function lobShuffle(){
+  const n=parseInt(byId('lobSeats').value,10)||4;
+  const names=[],kinds=[];
+  for(let i=0;i<n;i++){ names.push(byId('seatName'+i).value); kinds.push(byId('seatKind'+i).getAttribute('data-ai')); }
+  for(let i=n-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; [kinds[i],kinds[j]]=[kinds[j],kinds[i]]; }
+  for(let i=0;i<n;i++){ byId('seatName'+i).value=names[i]; const b=byId('seatKind'+i); b.setAttribute('data-ai',kinds[i]); b.textContent=(kinds[i]==='1')?'🤖 AI':'🧑 HUMAN'; }
+  toast('Order shuffled');
+}
+function lobStart(){
+  if(!ROSTER.length){ toast('Roster is empty — nothing to draft.',true); return; }
+  const n=parseInt(byId('lobSeats').value,10)||4;
+  CFG.rounds=parseInt(byId('lobRounds').value,10)||5;
+  CFG.format=byId('lobFormat').value;
+  CFG.budget=parseInt(byId('lobBudget').value,10)||4000000;
+  // need enough wrestlers for everyone to fill their rounds
+  if(ROSTER.length < n*CFG.rounds){
+    toast('Not enough wrestlers ('+ROSTER.length+') for '+n+' seats × '+CFG.rounds+' rounds.',true); return;
+  }
+  SEATS=[];
+  for(let i=0;i<n;i++){
+    const nm=(byId('seatName'+i).value||('Player '+(i+1))).slice(0,22);
+    const ai=byId('seatKind'+i).getAttribute('data-ai')==='1';
+    SEATS.push({ name:nm, ai, order:i, budget:CFG.budget, picks:[] });
+  }
+  // build the pick order across all rounds
+  DRAFT.order=[]; DRAFT.round=1; DRAFT.made=0;
+  DRAFT.totalPicks=n*CFG.rounds;
+  byId('lobby').classList.add('hidden');
+  byId('draftView').classList.remove('hidden');
+  PF=0;FF=0; rosRenderFilters();
+  advanceClock(true);
+}
+
+// ===== DRAFT FLOW =====
+function seatIndexForPick(globalPickIdx){
+  // globalPickIdx is 0-based across the whole draft
+  const n=SEATS.length;
+  const round=Math.floor(globalPickIdx/n);       // 0-based
+  const within=globalPickIdx%n;
+  if(CFG.format==='snake' && (round%2===1)) return (n-1-within);
+  return within;
+}
+function advanceClock(first){
+  if(DRAFT.made >= DRAFT.totalPicks){ return finishDraft(); }
+  const seatIdx=seatIndexForPick(DRAFT.made);
+  DRAFT.onClock=seatIdx;
+  DRAFT.round=Math.floor(DRAFT.made/SEATS.length)+1;
+  SEL=null;
+  renderNow(); renderOrder(); renderStable(); renderCenter(); rosRender();
+  const seat=SEATS[seatIdx];
+  if(seat.ai){ runAiPick(seat,seatIdx); }
+}
+function renderNow(){
+  const seat=SEATS[DRAFT.onClock];
+  const box=byId('nowBox');
+  const initial=(seat.name||'?').trim().charAt(0).toUpperCase();
+  box.innerHTML='<div class="pic">'+esc(initial)+'</div>'+
+    '<div><div class="who">'+esc(seat.name)+(seat.ai?' 🤖':'')+'</div>'+
+    '<div class="sub">Round '+DRAFT.round+' of '+CFG.rounds+' · '+money(seat.budget)+' left'+
+    (seat.ai&&AI_THINKING?' · <span class="spinner"></span> thinking…':'')+'</div></div>';
+}
+function renderOrder(){
+  byId('ordList').innerHTML=SEATS.map((s,i)=>
+    '<div class="o'+(i===DRAFT.onClock?' on':'')+'"><span class="b">'+(i+1)+'</span>'+
+    '<span>'+esc(s.name)+(s.ai?' 🤖':'')+'</span>'+
+    '<span class="bal">'+money(s.budget)+'</span></div>'
+  ).join('');
+}
+function renderStable(){
+  const seat=SEATS[DRAFT.onClock];
+  byId('stableHdr').textContent = (seat.ai?esc(seat.name).toUpperCase():'YOUR')+' STABLE';
+  if(!seat.picks.length){ byId('stableList').innerHTML='<div class="muted" style="font-size:13px">No picks yet.</div>'; return; }
+  byId('stableList').innerHTML=seat.picks.map(w=>
+    '<div class="s"><span>'+esc(w.name)+'</span><span class="c">'+money(w._cost)+'</span></div>'
+  ).join('');
+}
+function taken(){ const t=new Set(); SEATS.forEach(s=>s.picks.forEach(w=>t.add(w.id))); return t; }
+
+// ----- center detail (reuses the roster-viewer layout) -----
+function renderCenter(){
+  const host=byId('centerDetail'); const cr=byId('confirmRow');
+  if(!SEL){ host.innerHTML='<div class="cs-empty">CLICK A WRESTLER<br>ON THE RIGHT TO<br>SEE THEIR INFO</div>'; cr.style.display='none'; return; }
+  const w=SEL;
+  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="266"><rect width="200" height="266" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
+  const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
+  const ff=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
+  const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+  const rows=[
+    ['FRANCHISE', w.origin||'—'],
+    ['PROMOTION', pf?(ff?pf+' · '+ff:pf):'Free Agent'],
+    ['RANK / CHA', (w.rank_grade||'?')+' / '+(w.charisma_grade||'?')],
+    ['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')||'—'],
+    ['COUNTRY', w.country||'—'],
+    ['DOB', w.dob||'—'],
+    ['FINISHER', w.finisher||'—'],
+    ['SIGNATURE', sigs[0]||'—'],
+    ['SIGNATURE 2', sigs[1]||'—'],
+  ];
+  const seat=SEATS[DRAFT.onClock];
+  const afford = w._cost<=seat.budget;
+  host.innerHTML=
+    '<div class="cs-detail">'+
+      '<img class="cs-photo" src="'+esc(w.image_url||'')+'" onerror="this.src=\''+ph+'\'">'+
+      '<div class="cs-meta">'+
+        '<div class="cs-name">'+esc(w.name)+'</div>'+
+        (w.nickname?'<div class="cs-nick">"'+esc(w.nickname)+'"</div>':'')+
+        '<div class="cs-info">'+rows.map(r=>'<div class="k">'+esc(r[0])+'</div><div class="v">'+esc(r[1])+'</div>').join('')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="cs-cost">COST: '+money(w._cost)+(afford?'':' — TOO EXPENSIVE')+'</div>';
+  cr.style.display='flex';
+  const btn=byId('confirmBtn');
+  const seatIsAI=seat.ai;
+  btn.disabled = !afford || seatIsAI;
+  btn.textContent = seatIsAI ? 'AI IS PICKING…' : (afford?'CONFIRM PICK ►':'CAN\'T AFFORD');
+}
+function selectWrestler(id){
+  const t=taken(); if(t.has(id)) return;
+  SEL=ROSTER.find(w=>w.id===id)||null;
+  renderCenter(); rosRender();
+}
+function confirmPick(){
+  const seat=SEATS[DRAFT.onClock];
+  if(seat.ai) return;
+  if(!SEL){ toast('Pick a wrestler first.',true); return; }
+  if(SEL._cost>seat.budget){ toast('You can\'t afford that.',true); return; }
+  if(taken().has(SEL.id)){ toast('Already drafted.',true); return; }
+  commitPick(SEL);
+}
+function commitPick(w){
+  const seat=SEATS[DRAFT.onClock];
+  seat.picks.push(w); seat.budget-=w._cost;
+  DRAFT.made++; SEL=null;
+  advanceClock();
+}
+
+// ----- AI opponent: calls the edge function (firepro_draft), with web search on -----
+async function runAiPick(seat, seatIdx){
+  AI_THINKING=true; renderNow();
+  const t=taken();
+  const available=ROSTER.filter(w=>!t.has(w.id) && w._cost<=seat.budget)
+    .map(w=>({ id:w.id, name:w.name, cost:w._cost, rank:w.rank_grade||'?', cha:w.charisma_grade||'?',
+              notes:[w.origin, (w.country||'')].filter(Boolean).join(' · ') }));
+  const roundsLeft = CFG.rounds - seat.picks.length;
+  let pickedId=null, line='';
+  if(available.length){
+    try{
+      const { data, error } = await sb.functions.invoke('swift-api', { body:{
+        postType:'firepro_draft', webSearch:true,
+        context:{ draft:{
+          budgetLeft:seat.budget, roundsLeft,
+          available: available.slice(0,120),  // cap payload size
+          stable: seat.picks.map(w=>({name:w.name,cost:w._cost})),
+          otherStables: SEATS.filter((s,i)=>i!==seatIdx).map(s=>({name:s.name,picks:s.picks.map(w=>({name:w.name,cost:w._cost}))}))
+        }}
+      }});
+      if(!error && data && data.draftPick){
+        pickedId=data.draftPick.pick_id;
+        line=data.draftPick.trash_talk||'';
+      }
+    }catch(e){ /* fall through to local fallback */ }
+  }
+  // validate / fallback locally so the draft NEVER stalls
+  let w = pickedId!=null ? ROSTER.find(x=>x.id===pickedId && !t.has(x.id) && x._cost<=seat.budget) : null;
+  if(!w){
+    const pool=ROSTER.filter(x=>!t.has(x.id) && x._cost<=seat.budget)
+      .sort((a,b)=>a._cost-b._cost);   // cheapest affordable keeps it solvent
+    w=pool[0]||null;
+  }
+  AI_THINKING=false;
+  if(!w){ // genuinely nothing affordable — skip this seat's pick
+    DRAFT.made++; advanceClock(); return;
+  }
+  if(line) toast(esc(seat.name)+': "'+line+'"');
+  // tiny pause so it feels like a turn, then commit
+  setTimeout(()=>commitPick(w), 550);
+}
+
+// ----- right-side roster list + filters -----
+function promoList(){ return [{id:null,name:'ALL PROMOTIONS'},{id:'__FA__',name:'FREE AGENTS'}].concat(PROMOS); }
+function facList(){
+  const pf=promoList()[PF];
+  if(pf && pf.id==='__FA__') return [{id:null,name:'ALL'}];
+  let f=FACTIONS; if(pf && pf.id!=null) f=FACTIONS.filter(x=>x.promotion_id===pf.id);
+  return [{id:null,name:'ALL'}].concat(f);
+}
+function rosCycle(which,dir){
+  if(which==='promo'){ const l=promoList(); PF=(PF+dir+l.length)%l.length; FF=0; }
+  else{ const l=facList(); FF=(FF+dir+l.length)%l.length; }
+  rosRenderFilters(); rosRender();
+}
+function rosRenderFilters(){
+  byId('fPromo').textContent=(promoList()[PF]||{}).name||'ALL PROMOTIONS';
+  byId('fFac').textContent=(facList()[FF]||{}).name||'ALL';
+}
+function rosFiltered(){
+  const pf=promoList()[PF], fl=facList()[FF];
+  const q=(byId('rSearch').value||'').toLowerCase().trim();
+  return ROSTER.filter(w=>{
+    if(pf && pf.id==='__FA__'){ if(w.promotion_id!=null) return false; }
+    else if(pf && pf.id!=null && w.promotion_id!==pf.id) return false;
+    if(fl && fl.id!=null && w.faction_id!==fl.id) return false;
+    if(q && !((w.name||'').toLowerCase().includes(q) || (w.nickname||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function rosRender(){
+  const host=byId('rList'); const list=rosFiltered(); const t=taken();
+  const seat=SEATS[DRAFT.onClock]||{budget:0};
+  if(!list.length){ host.innerHTML='<div class="muted" style="text-align:center;padding:20px">No wrestlers match.</div>'; return; }
+  host.innerHTML=list.map(w=>{
+    const isTaken=t.has(w.id);
+    const unaff = !isTaken && w._cost>seat.budget;
+    return '<div class="ritem'+(isTaken?' taken':'')+(SEL&&SEL.id===w.id?' sel':'')+'" '+
+      (isTaken?'':'onclick="selectWrestler('+w.id+')"')+'>'+
+      '<span class="rn">'+esc(w.name)+'</span>'+
+      '<span class="rg">'+(w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+'</span>'+
+      '<span class="rc" style="'+(unaff?'color:#a85a5a':'')+'">'+money(w._cost)+'</span>'+
+      '</div>';
+  }).join('');
+}
+
+// ===== RESULTS =====
+function finishDraft(){
+  byId('draftView').classList.add('hidden');
+  byId('resultsView').classList.remove('hidden');
+  renderResults();
+}
+function renderResults(){
+  byId('resGrid').innerHTML=SEATS.map((s,i)=>{
+    const spent=s.picks.reduce((a,w)=>a+w._cost,0);
+    return '<div class="res-card" id="resCard'+i+'">'+
+      '<h3 style="color:'+(s.ai?'#ff9a8a':'#7fe0a0')+'">'+esc(s.name)+(s.ai?' 🤖':'')+'</h3>'+
+      '<div class="tot">'+s.picks.length+' wrestlers · '+money(spent)+' spent · '+money(s.budget)+' left</div>'+
+      s.picks.map(w=>'<div class="rosrow"><span>'+esc(w.name)+'</span><span class="c">'+money(w._cost)+'</span></div>').join('')+
+      '<button class="btn sm gold" style="margin-top:10px;width:100%" onclick="dlOne('+i+')">📸 Download PNG</button>'+
+      '</div>';
+  }).join('');
+}
+
+// ===== PNG EXPORT (canvas — no external libs) =====
+function drawStableCard(ctx, x, y, w, seat, title){
+  // returns the height used
+  const pad=18, lh=30;
+  const spent=seat.picks.reduce((a,p)=>a+p._cost,0);
+  const rows=seat.picks.length;
+  const h=pad*2 + 64 + rows*lh + 6;
+  // panel
+  ctx.fillStyle='#140a0b'; roundRect(ctx,x,y,w,h,14); ctx.fill();
+  ctx.strokeStyle='#3a2020'; ctx.lineWidth=2; roundRect(ctx,x,y,w,h,14); ctx.stroke();
+  // title
+  ctx.fillStyle= seat.ai ? '#ff9a8a' : '#7fe0a0';
+  ctx.font='bold 20px Oswald, sans-serif';
+  ctx.fillText((title||seat.name)+(seat.ai?'  [AI]':''), x+pad, y+pad+20);
+  // subtotal
+  ctx.fillStyle='#ffd23f'; ctx.font='14px Barlow, sans-serif';
+  ctx.fillText(seat.picks.length+' wrestlers · '+money(spent)+' spent · '+money(seat.budget)+' left', x+pad, y+pad+44);
+  // rows
+  ctx.font='16px Barlow, sans-serif';
+  seat.picks.forEach((p,idx)=>{
+    const ry=y+pad+64+idx*lh;
+    ctx.fillStyle='#ffe9b0'; ctx.textAlign='left';
+    ctx.fillText(p.name, x+pad, ry);
+    ctx.fillStyle='#ffd23f'; ctx.textAlign='right';
+    ctx.fillText(money(p._cost), x+w-pad, ry);
+    ctx.textAlign='left';
+    ctx.strokeStyle='#251515'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x+pad,ry+8); ctx.lineTo(x+w-pad,ry+8); ctx.stroke();
+  });
+  return h;
+}
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function headerBar(ctx,W,title){
+  ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,90);
+  ctx.fillStyle='#E9B949'; ctx.font='bold 26px "Press Start 2P", Oswald, monospace';
+  ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
+  ctx.fillText('WCA FIRE PRO — PRACTICE DRAFT', 24, 40);
+  ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
+  ctx.fillText(title||('Snake/Linear · '+CFG.rounds+' rounds · '+money(CFG.budget)+' each'), 24, 66);
+}
+function downloadCanvas(canvas,name){
+  canvas.toBlob(b=>{
+    const u=URL.createObjectURL(b); const a=document.createElement('a');
+    a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1000);
+  },'image/png');
+}
+function dlOne(i){
+  const seat=SEATS[i];
+  const c=byId('pngCanvas'); const ctx=c.getContext('2d');
+  const W=520, pad=20;
+  // measure
+  const tmpH = 90 + drawStableCard(ctx, -9999, -9999, W-pad*2, seat); // draws offscreen to get h
+  c.width=W; c.height=tmpH+pad;
+  ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,c.width,c.height);
+  headerBar(ctx,W,seat.name+'\u2019s stable');
+  drawStableCard(ctx, pad, 100, W-pad*2, seat);
+  downloadCanvas(c,'wca-firepro-draft-'+seat.name.replace(/[^a-z0-9]/gi,'_')+'.png');
+  toast('Saved '+seat.name+'\u2019s roster PNG');
+}
+function dlAll(){
+  const c=byId('pngCanvas'); const ctx=c.getContext('2d');
+  const cols = SEATS.length<=2?1:2;
+  const colW=520, gap=18, pad=20;
+  const W = pad*2 + cols*colW + (cols-1)*gap;
+  // measure each card height
+  const heights=SEATS.map(s=>drawStableCard(ctx,-9999,-9999,colW,s));
+  // lay out in columns, tracking running y per column
+  const colY=new Array(cols).fill(100);
+  const place=[];
+  SEATS.forEach((s,i)=>{
+    const col=i%cols;
+    place.push({s, x:pad+col*(colW+gap), y:colY[col], h:heights[i]});
+    colY[col]+=heights[i]+gap;
+  });
+  const H=Math.max(...colY)+pad;
+  c.width=W; c.height=H;
+  ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,H);
+  headerBar(ctx,W,'All stables · '+SEATS.length+' drafters');
+  place.forEach(p=>drawStableCard(ctx,p.x,p.y,colW,p.s));
+  downloadCanvas(c,'wca-firepro-draft-ALL.png');
+  toast('Saved the full lobby PNG');
+}
+</script>
+</body>
+</html>

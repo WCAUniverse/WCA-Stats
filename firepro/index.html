@@ -537,7 +537,25 @@
     </div>
   </section>
 
-  <!-- ---------- SCREEN: TUTORIAL ---------- -->
+  <!-- ---------- SCREEN: PLAY (choose event vs practice) ---------- -->
+  <section class="fp-screen" id="scr-play">
+    <div class="fp-inner wide">
+      <h2 class="fp-h">PLAY</h2>
+      <p class="fp-guide" id="play-guide">Jump into a scheduled show, or run a practice draft.</p>
+      <div class="fp-card" id="play-event-card">
+        <h3>Scheduled Event</h3>
+        <p class="fp-cardsub" id="play-event-sub">Checking for an open show…</p>
+        <button class="fp-btn primary" id="play-event-btn" onclick="goBuilder()" style="display:none">ENTER EVENT ►</button>
+      </div>
+      <div class="fp-card">
+        <h3>Practice Draft</h3>
+        <p class="fp-cardsub">Party up to draft against other players, or go solo against the AI. No stakes — just for fun and bragging rights.</p>
+        <button class="fp-btn primary" onclick="goPractice()">PRACTICE DRAFT ►</button>
+      </div>
+      <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
+    </div>
+  </section>
+
   <section class="fp-screen" id="scr-tutorial">
     <div class="fp-inner wide">
       <h2 class="fp-h">TUTORIAL</h2>
@@ -650,7 +668,7 @@
      To add more tracks later: drop bg-music-5.mp3 in the folder and
      bump FP_TRACKS in the script below.
      ============================================================ -->
-<audio id="fp-bg-music" loop preload="none"></audio>
+<audio id="fp-bg-music" preload="none"></audio>
 
 <!-- WARP SOUND EFFECT (plays on arrival + on exit):
        File:  audio/Warp.mp3                                          -->
@@ -753,7 +771,7 @@ async function fpLoadCopy(){
 /* ============================================================
    SCREEN SWITCHING  (cross-fade + remember-where-you-were)
    ============================================================ */
-const FP_SCREENS = ['start','menu','tutorial','promo','roster','settings'];
+const FP_SCREENS = ['start','menu','play','tutorial','promo','roster','settings'];
 const FP_SCREEN_KEY = 'fpHubScreen';
 let _fpCurScreen = 'start';
 let _fpFading = false;
@@ -766,6 +784,7 @@ function _fpPrepScreen(name){
   // load each screen's content + set BACK label, then run lazy loaders
   const back=document.getElementById('fp-back');
   if(back) back.textContent = (name==='start'||name==='menu') ? '◄ BACK' : '◄ MENU';
+  if(name==='play')    renderPlayScreen();
   if(name==='tutorial') renderTutorial();
   if(name==='promo')    fillPromoForm();
   if(name==='roster')   csInit();
@@ -833,11 +852,10 @@ function renderMenu(){
   const playLabel = m.play || 'PLAY';
   const items = [];
 
-  // PLAY — primary; sublabel reflects state
-  let playSub='';
-  if(!ME.hasPromo) playSub='Create a promotion first';
-  else if(OPEN_EVENT) playSub='Booking open: '+ (OPEN_EVENT.name||'now');
-  else playSub='No event open right now';
+  // PLAY — primary; opens the event-vs-practice choice
+  let playSub='Scheduled event or practice draft';
+  if(!ME.hasPromo) playSub='Practice now, or make a promotion to play events';
+  else if(OPEN_EVENT) playSub='Event open: '+(OPEN_EVENT.name||'now')+' · or practice';
   items.push({ key:'play', label:playLabel, sub:playSub, cls:'primary', fn:'fpPlay()' });
 
   items.push({ key:'tutorial', label:(m.tutorial||'TUTORIAL'), sub:'How to play', fn:"fpShow('tutorial')" });
@@ -873,14 +891,28 @@ function renderMenu(){
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-/* PLAY gate */
+/* PLAY gate → opens the PLAY screen (event vs practice). Practice never needs a
+   promotion; only the Scheduled-Event option does, so gate that inside the screen. */
 function fpPlay(){
-  if(!ME.user){ openNeedPromo('You need to sign in on the WCA site first, then create a promotion to play.'); return; }
-  if(!ME.hasPromo){ openNeedPromo(LANDING.needPromo || 'You need to create a promotion before you can play.'); return; }
-  if(OPEN_EVENT){ goBuilder(); return; }
-  // no open event — tell them when (inline modal reuse)
-  openNeedPromo('No event is open for booking right now. Check back when the next show is announced!');
+  if(!ME.user){ openNeedPromo('You need to sign in on the WCA site first to play.'); return; }
+  fpShow('play');
 }
+function renderPlayScreen(){
+  const sub=document.getElementById('play-event-sub');
+  const btn=document.getElementById('play-event-btn');
+  if(!sub||!btn) return;
+  if(!ME.hasPromo){
+    sub.innerHTML='Create a promotion first (in the menu) to enter scheduled events.';
+    btn.style.display='none';
+  } else if(OPEN_EVENT){
+    sub.innerHTML='<b style="color:#ffd23f">'+esc(OPEN_EVENT.name||'A show')+'</b> is open for booking — get your card in and be ready for the season.';
+    btn.style.display='';
+  } else {
+    sub.innerHTML='No event is scheduled right now. Check back when the next show is announced!';
+    btn.style.display='none';
+  }
+}
+function goPractice(){ _fpSaveState(); window.location.href='practice-draft.html'; }
 function openNeedPromo(msg){
   const t=document.getElementById('needpromo-text'); if(t) t.textContent=msg;
   document.getElementById('fp-needpromo').classList.add('on');
