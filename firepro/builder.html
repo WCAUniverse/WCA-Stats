@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WCA · Fire Pro — Book a Show</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;background:#0a0608;color:#fff;
+    font-family:'Barlow',system-ui,sans-serif;}
+  body{overflow-x:hidden;}
+
+  :root{
+    --loss:#E24B4A; --red:#E24B4A; --gold:#E9B949; --gold2:#ffd23f;
+    --blue:#2f6fe0; --blue2:#4f8dff;
+    --ok:#3ECF8E; --ink:#0a0506;
+    --panel:#11161d; --panel2:#161d27; --line:#26303d;
+  }
+
+  /* concrete + chains + ember backdrop, same family as the admin/zone */
+  .bg{
+    position:fixed; inset:0; z-index:-2;
+    background:
+      radial-gradient(900px 500px at 80% -10%, rgba(226,75,74,.10), transparent 60%),
+      radial-gradient(700px 480px at 0% 110%, rgba(233,185,73,.08), transparent 60%),
+      repeating-linear-gradient(135deg,#0c0a0d 0 22px,#0a0809 22px 44px),
+      #08070a;
+  }
+  .bg::after{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:4px 4px; opacity:.5;
+  }
+
+  /* ============ TOP BAR ============ */
+  .top{
+    position:sticky; top:0; z-index:60;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:10px 16px;
+    background:linear-gradient(180deg,#1a0d10,#100608);
+    border-bottom:3px solid var(--gold2);
+    box-shadow:0 6px 22px -10px #000;
+  }
+  .top .tag{
+    font-family:'Press Start 2P',monospace; font-size:10px; letter-spacing:1px;
+    color:var(--gold2); text-shadow:1px 1px 0 #b3001b; white-space:nowrap;
+  }
+  .top .spacer{flex:1 1 auto;}
+  .btn{
+    font-family:'Press Start 2P',monospace; cursor:pointer;
+    font-size:9px; line-height:1; color:var(--ink); white-space:nowrap;
+    background:var(--gold2); border:2px solid #fff; border-radius:4px;
+    padding:9px 11px; text-transform:uppercase; box-shadow:0 0 10px -2px var(--gold2);
+    transition:.12s;
+  }
+  .btn:hover{background:#fff; box-shadow:0 0 14px 0 var(--gold2);}
+  .btn:active{transform:translateY(1px);}
+  .btn.ghost{background:transparent; color:var(--gold2); border-color:var(--gold2); box-shadow:none;}
+  .btn.ghost:hover{background:rgba(255,210,63,.15); color:#fff;}
+  .btn.red{background:linear-gradient(180deg,#e24b4a,#b3001b); color:#fff; border-color:#fff;}
+  .btn.red:hover{filter:brightness(1.1);}
+  .btn:disabled{opacity:.45; cursor:not-allowed; filter:grayscale(.4);}
+  .who{font-family:'Press Start 2P',monospace; font-size:8px; color:#cdd6e2; letter-spacing:.5px;}
+  .who b{color:var(--ok);}
+  .evlabel{
+    font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:.5px;
+    color:var(--ink); background:var(--gold2); border:2px solid #fff; border-radius:4px;
+    padding:7px 10px; white-space:nowrap; box-shadow:0 0 10px -3px var(--gold2);
+  }
+
+  /* read-only banner when submissions are closed */
+  .robanner{
+    position:sticky; top:0; z-index:55;
+    background:linear-gradient(180deg,#b3001b,#7a0012);
+    color:#fff; font-family:'Press Start 2P',monospace; font-size:10px; line-height:1.6;
+    letter-spacing:.5px; text-align:center; padding:11px 14px;
+    border-bottom:3px solid var(--gold2); text-shadow:1px 1px 0 #000;
+  }
+  /* in read-only mode, kill all the editing affordances */
+  body.readonly .rcard{ pointer-events:none; opacity:.5; cursor:default; }
+  body.readonly .slot{ pointer-events:none; }
+  body.readonly .slot .x{ display:none; }
+  body.readonly .mtype{ pointer-events:none; opacity:.7; }
+  body.readonly .rsearch{ display:none; }
+
+  /* ============ LAYOUT ============ */
+  .wrap{
+    max-width:1280px; margin:0 auto; padding:16px;
+    display:grid; grid-template-columns:1fr 360px; gap:16px;
+    align-items:start;
+  }
+  @media(max-width:980px){ .wrap{grid-template-columns:1fr;} }
+
+  .col-card{min-width:0;}
+  .col-side{
+    position:sticky; top:74px; align-self:start;
+    max-height:calc(100vh - 92px); display:flex; flex-direction:column; gap:12px;
+  }
+  @media(max-width:980px){
+    .col-side{position:static; max-height:none;}
+  }
+
+  /* ---- promotion header ---- */
+  .promo{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-left:5px solid var(--gold);
+    border-radius:12px; padding:14px 16px; margin-bottom:14px;
+  }
+  .promo h1{
+    margin:0 0 2px; font-family:'Oswald',sans-serif; font-weight:700;
+    font-size:22px; letter-spacing:.5px; color:#fff;
+  }
+  .promo .you{font-size:13px; color:#9fb0c2;}
+  .promo .you b{color:var(--gold2);}
+  .promo .intro{margin:8px 0 0; font-size:13.5px; color:#b9c6d4; line-height:1.5;}
+
+  /* ---- budget meter ---- */
+  .meter{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  }
+  .meter .row{display:flex; justify-content:space-between; font-size:13px; margin:2px 0;}
+  .meter .row span:first-child{color:#9fb0c2;}
+  .meter .row b{font-family:'Oswald',sans-serif; font-size:15px;}
+  .meter .remain b{color:var(--ok);}
+  .meter.over .remain b{color:var(--red);}
+  .bar{height:10px; border-radius:6px; background:#0c1118; border:1px solid var(--line);
+       overflow:hidden; margin:8px 0 4px;}
+  .bar i{display:block; height:100%; width:0;
+         background:linear-gradient(90deg,var(--ok),var(--gold2)); transition:width .25s, background .25s;}
+  .meter.over .bar i{background:linear-gradient(90deg,#e24b4a,#b3001b);}
+  .overmsg{display:none; font-size:12px; color:var(--red); margin-top:4px;}
+  .meter.over .overmsg{display:block;}
+
+  /* ============ MATCH SLOTS ============ */
+  .match{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:14px; margin-bottom:14px;
+    overflow:hidden;
+  }
+  .match-head{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:10px 12px; background:rgba(255,255,255,.02);
+    border-bottom:1px solid var(--line);
+  }
+  .mnum{
+    font-family:'Press Start 2P',monospace; font-size:11px; color:var(--ink);
+    background:var(--gold2); border-radius:6px; padding:7px 9px; white-space:nowrap;
+    box-shadow:0 0 10px -3px var(--gold2);
+  }
+  .mtype{
+    font-family:'Oswald',sans-serif; font-weight:600; font-size:14px;
+    color:#0a0506; background:#cdd6e2; border:1px solid #aab6c4;
+    border-radius:7px; padding:7px 10px; cursor:pointer; min-width:150px;
+  }
+  .mhint{font-size:11.5px; color:#8a98a8;}
+  .mspacer{flex:1 1 auto;}
+  .mcost{font-family:'Oswald',sans-serif; font-size:14px; color:var(--gold2);}
+  .mcost small{color:#8a98a8; font-weight:400;}
+
+  /* the blue-vs-red plates */
+  .sides{display:flex; align-items:stretch; gap:0;}
+  .sides.multi{flex-wrap:wrap;}
+  .side{flex:1 1 0; min-width:0; padding:12px;}
+  .side.A{background:linear-gradient(180deg,rgba(47,111,224,.16),rgba(47,111,224,.05));}
+  .side.B{background:linear-gradient(180deg,rgba(226,75,74,.16),rgba(226,75,74,.05));}
+  .vs{
+    flex:0 0 auto; align-self:center; padding:0 6px;
+    font-family:'Press Start 2P',monospace; font-size:12px; color:var(--gold2);
+    text-shadow:1px 1px 0 #000;
+  }
+  .side-label{
+    font-family:'Press Start 2P',monospace; font-size:8px; letter-spacing:1px;
+    margin-bottom:8px; opacity:.9;
+  }
+  .side.A .side-label{color:var(--blue2);}
+  .side.B .side-label{color:#ff8a89;}
+  .side.rumble{flex:1 1 100%; background:linear-gradient(180deg,rgba(233,185,73,.12),rgba(233,185,73,.03));}
+  .side.rumble .side-label{color:var(--gold2);}
+
+  /* a single drop slot */
+  .slot{
+    display:flex; align-items:center; gap:8px;
+    min-height:46px; margin:6px 0; padding:6px 8px;
+    border:1.5px dashed #3a4a5c; border-radius:9px;
+    background:rgba(0,0,0,.18); transition:.12s;
+  }
+  .slot.filled{border-style:solid; border-color:#4a5d72; background:rgba(0,0,0,.30);}
+  .slot.drop{border-color:var(--gold2); background:rgba(255,210,63,.10); box-shadow:0 0 12px -4px var(--gold2);}
+  .slot .empty{font-size:12px; color:#6f7d8c; font-style:italic;}
+  .slot img{width:34px; height:34px; border-radius:6px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
+  .slot .nm{flex:1 1 auto; min-width:0; font-family:'Oswald',sans-serif; font-size:14px;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .slot .pc{font-size:12px; color:var(--gold2); white-space:nowrap;}
+  .slot .x{
+    cursor:pointer; color:#ff8a89; font-weight:700; font-size:15px; line-height:1;
+    padding:2px 6px; border-radius:5px;
+  }
+  .slot .x:hover{background:rgba(226,75,74,.18);}
+  .rumble .slot{display:inline-flex; width:calc(50% - 8px); margin:4px;}
+  @media(max-width:560px){ .rumble .slot{width:100%;} }
+
+  /* ============ ROSTER PANEL ============ */
+  .roster{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:12px;
+    display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden;
+  }
+  .roster h2{
+    margin:0; padding:11px 14px; font-family:'Oswald',sans-serif; font-weight:700;
+    font-size:15px; letter-spacing:.5px; color:var(--gold2);
+    border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px;
+  }
+  .roster h2 .cnt{font-size:11px; color:#8a98a8; font-weight:400;}
+  .rsearch{padding:10px 12px; border-bottom:1px solid var(--line);}
+  .rsearch input{
+    width:100%; padding:9px 11px; font-size:14px; color:#fff;
+    background:#0c1118; border:1px solid var(--line); border-radius:8px; outline:none;
+  }
+  .rsearch input:focus{border-color:var(--gold);}
+  .rlist{overflow-y:auto; padding:8px; flex:1 1 auto; min-height:120px;}
+  @media(max-width:980px){ .rlist{max-height:50vh;} }
+  .rcard{
+    display:flex; align-items:center; gap:9px; padding:7px 9px; margin:5px 0;
+    background:#0e141c; border:1px solid var(--line); border-radius:9px;
+    cursor:grab; transition:.1s; user-select:none;
+  }
+  .rcard:hover{border-color:var(--gold); background:#121b25;}
+  .rcard:active{cursor:grabbing;}
+  .rcard.dragging{opacity:.45;}
+  .rcard.used{opacity:.4;}
+  .rcard img{width:38px; height:38px; border-radius:7px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
+  .rcard .meta{flex:1 1 auto; min-width:0;}
+  .rcard .meta .n{font-family:'Oswald',sans-serif; font-size:14px; white-space:nowrap;
+                  overflow:hidden; text-overflow:ellipsis;}
+  .rcard .meta .s{font-size:11px; color:#8a98a8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rcard .cost{font-family:'Oswald',sans-serif; font-size:13px; color:var(--gold2); white-space:nowrap;}
+  .rempty{padding:18px; text-align:center; color:#8a98a8; font-size:13px;}
+
+  /* gate / login screen */
+  .gate{
+    max-width:520px; margin:8vh auto; padding:26px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-top:4px solid var(--gold2);
+    border-radius:14px; text-align:center;
+  }
+  .gate h1{font-family:'Press Start 2P',monospace; font-size:15px; color:var(--gold2);
+           line-height:1.6; margin:0 0 12px;}
+  .gate p{color:#b9c6d4; font-size:14px; line-height:1.6;}
+  .gate .btn{font-size:11px; padding:12px 16px; margin-top:8px;}
+
+  /* toast */
+  #toast{
+    position:fixed; left:50%; bottom:84px; transform:translateX(-50%) translateY(20px);
+    background:#11161d; border:1px solid var(--line); border-left:4px solid var(--ok);
+    color:#fff; padding:12px 16px; border-radius:10px; font-size:14px;
+    box-shadow:0 10px 30px -10px #000; opacity:0; pointer-events:none; transition:.2s; z-index:9999;
+    max-width:90vw;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  #toast.err{border-left-color:var(--red);}
+
+  .footpad{height:90px;}
+
+  /* ===== music player (verbatim from the zone page) ===== */
+  #fp-player{
+    position:fixed; left:0; right:0; bottom:0; z-index:9500;
+    display:none; align-items:center; gap:12px;
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg,#6e0010,#3a0008);
+    border-top:3px solid #ffd23f; box-shadow:0 -4px 22px -6px #000;
+    font-family:'Press Start 2P',monospace;
+  }
+  #fp-player.show{display:flex;}
+  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; line-height:1;
+    color:#0a0506; background:#ffd23f; border:2px solid #fff; border-radius:4px;
+    padding:9px 11px; text-transform:uppercase; box-shadow:0 0 10px -2px #ffd23f; transition:.12s; white-space:nowrap;}
+  .fp-pbtn:hover{background:#fff; box-shadow:0 0 14px 0 #ffd23f;}
+  .fp-pbtn:active{transform:translateY(1px);}
+  #fp-play{min-width:42px;}
+  #fp-now{flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    font-size:9px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
+  #fp-now b{color:#fff;}
+  .fp-volwrap{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
+  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:10px; color:#ffd23f;
+    background:transparent; border:2px solid #ffd23f; border-radius:4px; padding:8px 9px; transition:.12s; white-space:nowrap;}
+  #fp-mute:hover{background:rgba(255,210,63,.15);}
+  #fp-mute.muted{color:#0a0506; background:#ffd23f;}
+  #fp-vol{-webkit-appearance:none; appearance:none; width:110px; height:6px;
+    background:linear-gradient(90deg,#ff3b3b,#ffd23f); border-radius:6px; outline:none; cursor:pointer;}
+  #fp-vol::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:15px; height:15px;
+    border-radius:50%; background:#fff; border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
+  #fp-vol::-moz-range-thumb{width:15px; height:15px; border-radius:50%; background:#fff;
+    border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
+  #fp-vol-pct{font-size:8px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
+  @media(max-width:600px){
+    #fp-player{gap:8px; padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap;}
+    .fp-pbtn{font-size:9px; padding:8px 8px;}
+    #fp-now{flex-basis:100%; order:-1; font-size:8px; text-align:center;}
+    #fp-vol{width:78px;}
+    #fp-mute{font-size:8px; padding:7px 7px;}
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<!-- ===== TOP BAR ===== -->
+<div class="top">
+  <span class="tag">WCA · FIRE PRO — BOOK A SHOW</span>
+  <span class="evlabel" id="eventLabel" style="display:none"></span>
+  <span class="spacer"></span>
+  <span class="who" id="who"></span>
+  <button class="btn ghost" id="backBtn" onclick="goZone()">◄ FIRE PRO</button>
+  <button class="btn red" id="submitBtn" onclick="submitCard()" disabled>SUBMIT CARD</button>
+</div>
+
+<!-- ===== READ-ONLY BANNER (submissions closed) ===== -->
+<div id="roBanner" class="robanner" style="display:none">
+  🔒 SUBMISSIONS HAVE BEEN CLOSED — this is your final card, shown read-only. No more edits can be made.
+</div>
+
+<!-- ===== LOGIN GATE (shown if not signed in) ===== -->
+<div id="gate" class="gate" style="display:none">
+  <h1>BOOKERS ONLY</h1>
+  <p>You need to be signed in with your WCA account to book a show. Head back to the main site, log in, then come back through the Fire Pro portal.</p>
+  <button class="btn" onclick="goMain()">► GO TO WCA TO SIGN IN ◄</button>
+</div>
+
+<!-- ===== DISABLED / NO-EVENT NOTICE ===== -->
+<div id="closed" class="gate" style="display:none">
+  <h1>BOOKING CLOSED</h1>
+  <p id="closedMsg">The card builder isn't open right now. Check back when the next show opens.</p>
+  <button class="btn ghost" onclick="goZone()">◄ BACK TO FIRE PRO</button>
+</div>
+
+<!-- ===== BUILDER ===== -->
+<div id="builder" class="wrap" style="display:none">
+  <div class="col-card">
+    <div class="promo">
+      <h1 id="promoName">Your Promotion</h1>
+      <div class="you">Booking as <b id="bookerEmail">…</b></div>
+      <p class="intro" id="introText"></p>
+    </div>
+    <div id="matches"></div>
+  </div>
+
+  <div class="col-side">
+    <div class="meter" id="meter">
+      <div class="row"><span>Budget</span><b id="mBudget">$0</b></div>
+      <div class="bar"><i id="mBar"></i></div>
+      <div class="row"><span>Spent</span><b id="mSpent">$0</b></div>
+      <div class="row remain"><span>Remaining</span><b id="mRemain">$0</b></div>
+      <div class="overmsg">⚠ Over budget — trim the card before you can submit.</div>
+    </div>
+
+    <div class="roster">
+      <h2><i class="ti ti-users"></i> Roster <span class="cnt" id="rCnt"></span></h2>
+      <div class="rsearch"><input id="rSearch" type="text" placeholder="Search wrestlers…" oninput="renderRoster()"></div>
+      <div class="rlist" id="rList"><div class="rempty">Loading roster…</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footpad"></div>
+
+<!-- music player -->
+<audio id="fp-bg-music" loop preload="none"></audio>
+<audio id="fp-warp-sfx" preload="none" src="audio/Warp.mp3"></audio>
+<div id="fp-player" aria-label="Fire Pro music player">
+  <button class="fp-pbtn" id="fp-prev" onclick="fpPrev()" title="Previous track">◄◄</button>
+  <button class="fp-pbtn" id="fp-play" onclick="fpTogglePlay()" title="Play / pause">►</button>
+  <button class="fp-pbtn" id="fp-next" onclick="fpNext()" title="Next track">►►</button>
+  <div id="fp-now">♪ <b>Track 1</b></div>
+  <div class="fp-volwrap">
+    <button id="fp-mute" onclick="fpToggleMute()" title="Mute / unmute">VOL</button>
+    <input id="fp-vol" type="range" min="0" max="100" value="10" oninput="fpSetVolume(this.value)">
+    <span id="fp-vol-pct">10%</span>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   SUPABASE — same project as the main site, so login carries over.
+   ===================================================================== */
+const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+let sb = null;
+try{
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' }
+  });
+}catch(e){}
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+let USER = null;                 // signed-in user
+let SETTINGS = {                 // builder knobs (from site_settings.firepro.builder)
+  enabled:true, cardSize:6, budget:2500000, allowDupes:false,
+  intro:'', navLabel:'BOOK A SHOW'
+};
+let TYPES = [];                  // fp_match_types rows
+let TYPE_BY_KEY = {};            // key -> type
+let ROSTER = [];                 // fp_wrestlers (id,name,nickname,image_url,cost,...)
+let CARD = [];                   // array of matches: { typeKey, sides:[[id,...],[id,...]] }
+let PROMO = 'Your Promotion';    // booker's promotion name
+let OWNER = '';                  // booker's owner/handle name
+let EVENT = null;                // the currently OPEN event row (or null)
+let MY_CARD_ID = null;           // id of this booker's existing card for EVENT (if any)
+let READONLY = false;            // true when submissions are closed
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+function money(n){ n=parseInt(n,10); if(isNaN(n)) n=0; return '$'+n.toLocaleString('en-US'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function byId(id){ return document.getElementById(id); }
+function toast(msg, isErr){
+  const t=byId('toast'); t.textContent=msg; t.className='show'+(isErr?' err':'');
+  setTimeout(()=>t.className=t.className.replace('show','').trim(),3200);
+}
+function wrestlerById(id){ for(const w of ROSTER){ if(w.id===id) return w; } return null; }
+function PLACEHOLDER(name){
+  // tiny inline avatar fallback (initial on a dark tile)
+  const ltr = (name||'?').trim().charAt(0).toUpperCase() || '?';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="7" fill="#0c1118"/><text x="50%" y="56%" font-family="Oswald,sans-serif" font-size="18" fill="#5b6b7c" text-anchor="middle" dominant-baseline="middle">'+ltr+'</text></svg>';
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+
+/* =====================================================================
+   NAV
+   ===================================================================== */
+function goZone(){ _fpSaveState(); window.location.href='index.html'; }
+function goMain(){ _fpSaveState(); window.location.href='../index.html'; }
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+window.addEventListener('load', async ()=>{
+  await loadSettings();
+  await checkAuth();
+  // music player (carries over from the zone page)
+  fpPlayerInit();
+});
+
+async function loadSettings(){
+  if(!sb) return;
+  try{
+    const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single();
+    const fp = data && data.firepro;
+    if(fp && fp.builder){
+      const b = fp.builder;
+      SETTINGS.enabled    = b.enabled !== false;
+      SETTINGS.cardSize   = (typeof b.cardSize==='number' && b.cardSize>0) ? Math.min(b.cardSize,12) : 6;
+      SETTINGS.budget     = (typeof b.budget==='number'  && b.budget>=0)  ? b.budget : 2500000;
+      SETTINGS.allowDupes = !!b.allowDupes;
+      SETTINGS.intro      = b.intro || '';
+      SETTINGS.navLabel   = b.navLabel || 'BOOK A SHOW';
+    }
+    // music settings (so this page's player matches the zone)
+    if(fp && fp.music){
+      const m=fp.music;
+      const n=(typeof m.count==='number'&&m.count>0)?Math.min(m.count,50):0;
+      if(n>0){ FP_TRACKS=[]; for(let i=1;i<=n;i++) FP_TRACKS.push('audio/bg-music-'+i+'.mp3'); }
+      _fpNames = Array.isArray(m.names)?m.names.slice():[];
+      if(typeof m.defaultVol==='number') _fpDefaultVol=Math.max(0,Math.min(100,m.defaultVol));
+    }
+  }catch(e){}
+}
+
+async function checkAuth(){
+  if(!sb){ showGate(); return; }
+  let user=null;
+  try{ const { data } = await sb.auth.getUser(); user = data && data.user; }catch(e){}
+  USER = user;
+
+  if(!SETTINGS.enabled){ showClosedNotice('The card builder isn\'t open right now. Check back when the next show opens.'); return; }
+  if(!USER){ showGate(); return; }
+
+  byId('bookerEmail').textContent = USER.email || 'you';
+  byId('who').innerHTML = 'Signed in: <b>'+esc(USER.email||'you')+'</b>';
+
+  // load the one open event
+  await loadOpenEvent();
+
+  // no open event at all → nothing to book
+  if(!EVENT){
+    showClosedNotice('There\'s no event open for booking right now. Check back when the next show is announced.');
+    return;
+  }
+
+  // event found — figure out if it's actually still accepting edits
+  READONLY = !eventIsOpen(EVENT);
+
+  // load supporting data + this booker's existing card (if any)
+  const okPromo = await loadPromotion();
+  if(okPromo===false) return;   // redirecting to the hub to create a promotion
+  await Promise.all([ loadTypes(), loadRoster() ]);
+  await loadMyCard();          // refills CARD from their saved submission, or makes a blank one
+
+  // header / event label
+  byId('eventLabel').textContent = EVENT.name + (EVENT.subtitle ? ' — '+EVENT.subtitle : '');
+  byId('eventLabel').style.display='inline-block';
+
+  byId('builder').style.display='grid';
+  byId('introText').textContent = SETTINGS.intro || '';
+  byId('mBudget').textContent = money(SETTINGS.budget);
+
+  if(READONLY) applyReadonly();
+  renderMatches(); recalc(); renderRoster();
+}
+
+/* an event is open for edits if status==open AND not manually closed AND deadline not passed */
+function eventIsOpen(ev){
+  if(!ev) return false;
+  if(ev.status !== 'open') return false;
+  if(ev.manual_close) return false;
+  if(ev.deadline){ try{ if(Date.now() > new Date(ev.deadline).getTime()) return false; }catch(e){} }
+  return true;
+}
+
+async function loadOpenEvent(){
+  EVENT=null;
+  try{
+    // newest open event (DB guarantees only one is 'open', but order to be safe)
+    const { data } = await sb.from('fp_events').select('*')
+      .eq('status','open').order('id',{ascending:false}).limit(1);
+    if(data && data.length) EVENT=data[0];
+  }catch(e){}
+}
+
+function showClosedNotice(msg){
+  byId('closedMsg').textContent = msg || 'Booking is closed right now.';
+  byId('closed').style.display='block';
+  lockTop();
+}
+function showGate(){ byId('gate').style.display='block'; lockTop(); }
+function lockTop(){ byId('submitBtn').style.display='none'; }
+
+/* read-only: banner on, submit hidden, inputs disabled, drag off */
+function applyReadonly(){
+  byId('roBanner').style.display='block';
+  byId('submitBtn').style.display='none';
+  document.body.classList.add('readonly');
+}
+
+/* a booker's identity (company + owner). The hub creates promotions now;
+   if they somehow reach the builder without one, we bounce them to the hub. */
+async function loadPromotion(){
+  PROMO = (USER.email||'Your Promotion').split('@')[0];
+  OWNER = '';
+  let PROMO_SET = false;
+  try{
+    const { data } = await sb.from('fp_bookers')
+      .select('promotion_name,owner_name').eq('auth_id', USER.id).maybeSingle();
+    if(data){
+      if(data.promotion_name){ PROMO = data.promotion_name; PROMO_SET = true; }
+      if(data.owner_name) OWNER = data.owner_name;
+    }
+  }catch(e){ /* table may not exist yet — fine */ }
+
+  // No promotion yet? The hub owns promotion creation now — send them there
+  // (covers someone deep-linking straight to the builder).
+  if(!PROMO_SET){
+    try{
+      const { data } = await sb.from('fp_bookers').select('promotion_name').eq('auth_id',USER.id).maybeSingle();
+      if(!data || !data.promotion_name){
+        toast('Create your promotion first — taking you there…');
+        setTimeout(()=>{ _fpSaveState(); window.location.href='index.html'; }, 1400);
+        return false;
+      }
+    }catch(e){}
+  }
+  byId('promoName').textContent = PROMO;
+  return true;
+}
+
+/* Load this booker's existing card for the open EVENT and refill the UI.
+   If they have none yet, start a blank card. */
+async function loadMyCard(){
+  MY_CARD_ID=null; CARD=[];
+  try{
+    const { data:cards } = await sb.from('fp_cards').select('id')
+      .eq('event_id', EVENT.id).eq('booker_id', USER.id).limit(1);
+    if(cards && cards.length){
+      MY_CARD_ID = cards[0].id;
+      const { data:matches } = await sb.from('fp_matches').select('*')
+        .eq('card_id', MY_CARD_ID).order('position',{ascending:true});
+      if(matches && matches.length){
+        CARD = matches.map(m=>({
+          typeKey: m.type_key,
+          sides: Array.isArray(m.sides) ? m.sides.map(s=>Array.isArray(s)?s.slice():[]) : []
+        }));
+      }
+    }
+  }catch(e){}
+  // pad / trim to the configured card size with blanks
+  const n = SETTINGS.cardSize||6;
+  while(CARD.length < n) CARD.push(blankMatch(defaultTypeKey()));
+  if(CARD.length > n) CARD = CARD.slice(0,n);
+  if(MY_CARD_ID){ byId('submitBtn').textContent='UPDATE CARD'; }
+}
+
+async function loadTypes(){
+  TYPES=[]; TYPE_BY_KEY={};
+  try{
+    const { data, error } = await sb.from('fp_match_types')
+      .select('*').eq('enabled',true).order('sort',{ascending:true});
+    if(error) throw error;
+    TYPES = data||[];
+  }catch(e){
+    // hard fallback so the page still works if the table isn't there yet
+    TYPES = [
+      {key:'1v1',name:'Singles (1v1)',side_count:2,per_side:1,is_rumble:false,max_total:2,surcharge:5000,sort:10}
+    ];
+  }
+  TYPES.sort((a,b)=>(a.sort-b.sort)||a.name.localeCompare(b.name));
+  for(const t of TYPES) TYPE_BY_KEY[t.key]=t;
+}
+
+async function loadRoster(){
+  ROSTER=[];
+  try{
+    const { data, error } = await sb.from('fp_wrestlers')
+      .select('id,name,nickname,image_url,cost,rank_grade,charisma_grade')
+      .order('name',{ascending:true});
+    if(error) throw error;
+    ROSTER = (data||[]).map(w=>({ ...w, cost: (w.cost!=null?w.cost:0) }));
+  }catch(e){ ROSTER=[]; }
+  ROSTER.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  renderRoster();
+}
+
+/* =====================================================================
+   CARD MODEL
+   ===================================================================== */
+function defaultTypeKey(){ return (TYPES[0] && TYPES[0].key) || '1v1'; }
+
+function blankMatch(typeKey){
+  const t = TYPE_BY_KEY[typeKey] || TYPES[0];
+  const sides=[];
+  if(t.is_rumble){ sides.push([]); }              // one big pool
+  else { for(let s=0;s<t.side_count;s++) sides.push([]); }
+  return { typeKey:t.key, sides };
+}
+
+function initCard(){
+  CARD=[];
+  const n = SETTINGS.cardSize||6;
+  for(let i=0;i<n;i++) CARD.push(blankMatch(defaultTypeKey()));
+  renderMatches();
+}
+
+/* cost of one match = sum of wrestler costs in it + the type surcharge */
+function matchCost(m){
+  const t=TYPE_BY_KEY[m.typeKey]; const sur=t?t.surcharge:0;
+  let w=0;
+  for(const side of m.sides){ for(const id of side){ const ww=wrestlerById(id); if(ww) w+=ww.cost; } }
+  return { wrestler:w, surcharge:sur, total:w+sur };
+}
+
+function usedIds(){
+  // ids currently placed anywhere on the card (for the "used" dim + dupe rule)
+  const set=new Set();
+  for(const m of CARD){ for(const side of m.sides){ for(const id of side){ set.add(id); } } }
+  return set;
+}
+
+/* =====================================================================
+   RENDER — matches
+   ===================================================================== */
+function renderMatches(){
+  const host=byId('matches'); host.innerHTML='';
+  CARD.forEach((m,mi)=>{
+    const t=TYPE_BY_KEY[m.typeKey]||TYPES[0];
+    const c=matchCost(m);
+
+    const card=document.createElement('div'); card.className='match';
+
+    // head: number, type picker, cost
+    const head=document.createElement('div'); head.className='match-head';
+    let opts='';
+    for(const ty of TYPES){ opts+='<option value="'+esc(ty.key)+'"'+(ty.key===m.typeKey?' selected':'')+'>'+esc(ty.name)+'</option>'; }
+    head.innerHTML =
+      '<span class="mnum">MATCH '+(mi+1)+'</span>'+
+      '<select class="mtype" onchange="changeType('+mi+',this.value)">'+opts+'</select>'+
+      '<span class="mhint">'+esc(typeHint(t))+'</span>'+
+      '<span class="mspacer"></span>'+
+      '<span class="mcost">'+money(c.total)+' <small>('+money(c.wrestler)+' + '+money(c.surcharge)+' risk)</small></span>';
+    card.appendChild(head);
+
+    // sides
+    const sidesWrap=document.createElement('div');
+    sidesWrap.className='sides'+(t.is_rumble?' multi':(t.side_count>2?' multi':''));
+
+    if(t.is_rumble){
+      const sd=renderSide(m,mi,0,t,'rumble','RUMBLE FIELD (up to '+t.max_total+')');
+      sidesWrap.appendChild(sd);
+    } else {
+      for(let si=0; si<t.side_count; si++){
+        const cls = si===0?'A':(si===1?'B':'A');
+        const lbl = t.side_count===2 ? (si===0?'BLUE CORNER':'RED CORNER') : ('CORNER '+(si+1));
+        sidesWrap.appendChild(renderSide(m,mi,si,t,cls,lbl));
+        if(t.side_count===2 && si===0){
+          const vs=document.createElement('div'); vs.className='vs'; vs.textContent='VS'; sidesWrap.appendChild(vs);
+        }
+      }
+    }
+    card.appendChild(sidesWrap);
+    host.appendChild(card);
+  });
+}
+
+function typeHint(t){
+  if(t.is_rumble) return 'one big field, no fixed teams';
+  if(t.side_count>2) return t.side_count+' corners · 1 each';
+  return (t.per_side===1?'1 vs 1':(t.per_side+' vs '+t.per_side));
+}
+
+function renderSide(m, mi, si, t, cls, label){
+  const side=document.createElement('div'); side.className='side '+cls;
+  const cap = t.is_rumble ? t.max_total : t.per_side;
+  let html='<div class="side-label">'+esc(label)+'</div>';
+  const arr=m.sides[si]||[];
+  for(let k=0;k<cap;k++){
+    const id=arr[k];
+    html+=slotHTML(mi,si,k,id);
+  }
+  side.innerHTML=html;
+  return side;
+}
+
+function slotHTML(mi,si,k,id){
+  const w=id?wrestlerById(id):null;
+  const dataAttrs='data-mi="'+mi+'" data-si="'+si+'" data-k="'+k+'"';
+  if(w){
+    return '<div class="slot filled" '+dataAttrs+
+      ' ondragover="slotOver(event)" ondragleave="slotLeave(event)" ondrop="slotDrop(event)">'+
+      '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
+      '<span class="nm">'+esc(w.name)+'</span>'+
+      '<span class="pc">'+money(w.cost)+'</span>'+
+      '<span class="x" onclick="removeFromSlot('+mi+','+si+','+k+')" title="Remove">✕</span></div>';
+  }
+  return '<div class="slot" '+dataAttrs+
+    ' ondragover="slotOver(event)" ondragleave="slotLeave(event)" ondrop="slotDrop(event)">'+
+    '<span class="empty">drop a wrestler…</span></div>';
+}
+
+/* change a match's type — keep wrestlers that still fit, drop overflow */
+function changeType(mi, key){
+  const old=CARD[mi]; const t=TYPE_BY_KEY[key]; if(!t) return;
+  // flatten current wrestlers in order
+  const flat=[]; for(const side of old.sides){ for(const id of side){ flat.push(id); } }
+  const nm=blankMatch(key);
+  // refill greedily into the new shape
+  let idx=0;
+  if(t.is_rumble){
+    for(let i=0;i<flat.length && i<t.max_total;i++) nm.sides[0].push(flat[i]);
+  } else {
+    for(let s=0;s<nm.sides.length;s++){
+      for(let p=0;p<t.per_side;p++){ if(idx<flat.length) nm.sides[s].push(flat[idx++]); }
+    }
+  }
+  CARD[mi]=nm;
+  renderMatches(); recalc(); renderRoster();
+}
+
+function removeFromSlot(mi,si,k){
+  const arr=CARD[mi].sides[si]; if(!arr) return;
+  arr.splice(k,1);
+  renderMatches(); recalc(); renderRoster();
+}
+
+/* =====================================================================
+   DRAG & DROP
+   ===================================================================== */
+let DRAG_ID=null;
+function rosterDragStart(ev,id){ DRAG_ID=id; ev.dataTransfer.effectAllowed='copy';
+  try{ev.dataTransfer.setData('text/plain',String(id));}catch(e){}
+  ev.currentTarget.classList.add('dragging'); }
+function rosterDragEnd(ev){ ev.currentTarget.classList.remove('dragging'); DRAG_ID=null; }
+function slotOver(ev){ ev.preventDefault(); ev.dataTransfer.dropEffect='copy'; ev.currentTarget.classList.add('drop'); }
+function slotLeave(ev){ ev.currentTarget.classList.remove('drop'); }
+function slotDrop(ev){
+  ev.preventDefault(); ev.currentTarget.classList.remove('drop');
+  let id=DRAG_ID;
+  if(id==null){ try{ id=parseInt(ev.dataTransfer.getData('text/plain'),10); }catch(e){} }
+  if(id==null||isNaN(id)) return;
+  const el=ev.currentTarget;
+  const mi=+el.getAttribute('data-mi'), si=+el.getAttribute('data-si'), k=+el.getAttribute('data-k');
+  placeWrestler(id, mi, si, k);
+}
+
+function placeWrestler(id, mi, si, k){
+  const w=wrestlerById(id); if(!w) return;
+  // dupe rule (within one CARD) unless admin allows
+  if(!SETTINGS.allowDupes){
+    const used=usedIds();
+    // allow if it's already in THIS exact slot (no-op), else block if used elsewhere
+    const here = CARD[mi].sides[si][k]===id;
+    if(!here && used.has(id)){ toast(w.name+' is already on this card.', true); return; }
+  }
+  const arr=CARD[mi].sides[si];
+  arr[k]=id;
+  renderMatches(); recalc(); renderRoster();
+}
+
+/* =====================================================================
+   RENDER — roster
+   ===================================================================== */
+function renderRoster(){
+  const host=byId('rList'); const q=(byId('rSearch').value||'').trim().toLowerCase();
+  const used=usedIds();
+  let list=ROSTER;
+  if(q){ list=ROSTER.filter(w=> String(w.name).toLowerCase().includes(q)
+      || String(w.nickname||'').toLowerCase().includes(q)); }
+  byId('rCnt').textContent='('+list.length+')';
+  if(!list.length){ host.innerHTML='<div class="rempty">'+(ROSTER.length?'No matches for that search.':'No wrestlers in the roster yet.')+'</div>'; return; }
+  let html='';
+  for(const w of list){
+    const isUsed = !SETTINGS.allowDupes && used.has(w.id);
+    html+='<div class="rcard'+(isUsed?' used':'')+'" draggable="true"'+
+      ' ondragstart="rosterDragStart(event,'+w.id+')" ondragend="rosterDragEnd(event)"'+
+      ' title="'+esc(w.name)+(isUsed?' — already on the card':'')+'">'+
+      '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
+      '<div class="meta"><div class="n">'+esc(w.name)+'</div>'+
+        '<div class="s">'+esc(w.nickname||((w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+' grade'))+'</div></div>'+
+      '<div class="cost">'+money(w.cost)+'</div></div>';
+  }
+  host.innerHTML=html;
+}
+
+/* =====================================================================
+   BUDGET METER + SUBMIT GATE
+   ===================================================================== */
+function recalc(){
+  let spent=0;
+  for(const m of CARD){ spent+=matchCost(m).total; }
+  const budget=SETTINGS.budget||0;
+  const remain=budget-spent;
+  byId('mSpent').textContent=money(spent);
+  byId('mRemain').textContent=money(remain);
+  const pct = budget>0 ? Math.min(100,(spent/budget)*100) : 0;
+  byId('mBar').style.width=pct+'%';
+  const over = spent>budget;
+  byId('meter').classList.toggle('over',over);
+
+  // submit allowed only if: not over budget AND every match has at least the minimum bodies
+  const ready = !over && cardIsValid() && !READONLY;
+  const btn=byId('submitBtn');
+  btn.disabled=!ready;
+}
+
+/* a match is valid if each non-rumble side has >=1, rumble has >=2 */
+function cardIsValid(){
+  for(const m of CARD){
+    const t=TYPE_BY_KEY[m.typeKey]; if(!t) return false;
+    if(t.is_rumble){ if((m.sides[0]||[]).length<2) return false; }
+    else{ for(const side of m.sides){ if(side.length<1) return false; } }
+  }
+  return true;
+}
+
+/* =====================================================================
+   SUBMIT
+   ===================================================================== */
+let SUBMITTING=false;
+async function submitCard(){
+  if(SUBMITTING) return;
+  if(!USER){ showGate(); return; }
+  if(READONLY){ toast('Submissions are closed — this card is read-only.', true); return; }
+  if(byId('submitBtn').disabled) return;
+
+  // re-verify the event is still open right now (it may have closed while they worked)
+  await loadOpenEvent();
+  if(!EVENT || !eventIsOpen(EVENT)){
+    toast('Submissions just closed — your changes can\'t be saved.', true);
+    READONLY=true; applyReadonly(); return;
+  }
+
+  SUBMITTING=true; byId('submitBtn').disabled=true;
+  const verb = MY_CARD_ID ? 'UPDATING…' : 'SAVING…';
+  byId('submitBtn').textContent=verb;
+
+  let totalCost=0;
+  for(const m of CARD) totalCost+=matchCost(m).total;
+
+  try{
+    // make sure their identity is on file (company + owner) for the review screen
+    try{
+      await sb.from('fp_bookers').upsert(
+        { auth_id:USER.id, promotion_name:PROMO, owner_name:OWNER, email:USER.email, updated_at:new Date().toISOString() },
+        { onConflict:'auth_id' });
+    }catch(e){}
+
+    let cardId = MY_CARD_ID;
+    const baseRow = {
+      booker_id:USER.id, promotion_name:PROMO, event_id:EVENT.id,
+      status:'submitted', total_cost:totalCost, match_count:CARD.length,
+      submitted_at:new Date().toISOString()
+    };
+
+    if(cardId){
+      // UPDATE existing card, then replace its matches
+      const { error:eu } = await sb.from('fp_cards').update(baseRow).eq('id', cardId);
+      if(eu) throw eu;
+      const { error:ed } = await sb.from('fp_matches').delete().eq('card_id', cardId);
+      if(ed) throw ed;
+    } else {
+      const { data:card, error:e1 } = await sb.from('fp_cards').insert(baseRow).select().single();
+      if(e1) throw e1;
+      cardId = card.id; MY_CARD_ID = cardId;
+    }
+
+    // (re)create the matches
+    const rows=CARD.map((m,i)=>{
+      const t=TYPE_BY_KEY[m.typeKey]; const c=matchCost(m);
+      return {
+        card_id:cardId, position:i, type_key:m.typeKey,
+        type_name:t?t.name:m.typeKey, surcharge:c.surcharge,
+        sides:m.sides, wrestler_cost:c.wrestler, match_cost:c.total
+      };
+    });
+    const { error:e2 } = await sb.from('fp_matches').insert(rows);
+    if(e2) throw e2;
+
+    toast(MY_CARD_ID ? ('Card updated ✓ — you can keep editing until '+EVENT.name+' closes.')
+                     : ('Card submitted ✓ — good luck, '+PROMO+'!'));
+    byId('submitBtn').textContent='UPDATE CARD';
+    byId('submitBtn').disabled=true;   // recalc re-enables if still valid
+    recalc();
+  }catch(err){
+    toast('Save failed: '+(err.message||err), true);
+    byId('submitBtn').textContent = MY_CARD_ID ? 'UPDATE CARD' : 'SUBMIT CARD';
+    byId('submitBtn').disabled=false;
+  }
+  SUBMITTING=false;
+}
+
+/* =====================================================================
+   MUSIC PLAYER  (verbatim behavior from the zone page)
+   ===================================================================== */
+let FP_TRACKS=['audio/bg-music-1.mp3','audio/bg-music-2.mp3','audio/bg-music-3.mp3','audio/bg-music-4.mp3'];
+let _fpNames=[]; let _fpDefaultVol=10;
+const FP_MUSIC_KEY='fpMusicState';
+let _fpIdx=0,_fpVol=10,_fpMuted=false,_fpWantPlay=false;
+
+function _fpLoadState(){ try{ const r=sessionStorage.getItem(FP_MUSIC_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
+function _fpSaveState(){
+  const a=byId('fp-bg-music');
+  const blob={ idx:_fpIdx,vol:_fpVol,muted:_fpMuted,playing:_fpWantPlay,
+    t:(a&&!isNaN(a.currentTime))?a.currentTime:0, ts:Date.now() };
+  try{ sessionStorage.setItem(FP_MUSIC_KEY,JSON.stringify(blob)); }catch(e){}
+}
+function fpPlayerInit(){
+  const a=byId('fp-bg-music'), bar=byId('fp-player'); if(!a||!bar||!FP_TRACKS.length) return;
+  bar.classList.add('show');
+  const st=_fpLoadState(); let resumeAt=0;
+  if(st){ _fpIdx=(typeof st.idx==='number'&&st.idx>=0)?st.idx:0; _fpVol=(typeof st.vol==='number')?st.vol:_fpDefaultVol;
+    _fpMuted=!!st.muted; _fpWantPlay=!!st.playing; resumeAt=(typeof st.t==='number')?st.t:0;
+  } else { _fpVol=_fpDefaultVol; }
+  if(_fpIdx>=FP_TRACKS.length) _fpIdx=0;
+  a.src=FP_TRACKS[_fpIdx]; a.volume=_fpMuted?0:(_fpVol/100);
+  try{ a.currentTime=resumeAt>0?resumeAt:0; }catch(e){}
+  a.addEventListener('ended',fpNext);
+  a.addEventListener('error',()=>{ if(_fpWantPlay) setTimeout(fpNext,400); });
+  window.addEventListener('pagehide',_fpSaveState);
+  window.addEventListener('beforeunload',_fpSaveState);
+  fpRenderPlayer();
+  if(_fpWantPlay){ a.play().then(()=>{_fpWantPlay=true;fpRenderPlayer();}).catch(()=>{_fpWantPlay=false;fpRenderPlayer();}); }
+}
+function fpRenderPlayer(){
+  const playBtn=byId('fp-play'),muteBtn=byId('fp-mute'),vol=byId('fp-vol'),pct=byId('fp-vol-pct'),now=byId('fp-now');
+  if(playBtn) playBtn.textContent=_fpWantPlay?'❚❚':'►';
+  if(muteBtn){ muteBtn.textContent=_fpMuted?'MUTED':'VOL'; muteBtn.classList.toggle('muted',_fpMuted); }
+  if(vol) vol.value=_fpVol; if(pct) pct.textContent=_fpVol+'%';
+  if(now){ const nm=(_fpNames&&_fpNames[_fpIdx]&&String(_fpNames[_fpIdx]).trim());
+    now.innerHTML='♪ <b>'+(nm?nm.replace(/</g,'&lt;'):('Track '+(_fpIdx+1)))+'</b>'; }
+}
+function fpTogglePlay(){
+  const a=byId('fp-bg-music'); if(!a) return;
+  if(_fpWantPlay){ a.pause(); _fpWantPlay=false; }
+  else{ a.play().then(()=>{_fpWantPlay=true;fpRenderPlayer();_fpSaveState();}).catch(()=>{_fpWantPlay=false;fpRenderPlayer();}); _fpWantPlay=true; }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpLoadTrack(i,autoplay){
+  const a=byId('fp-bg-music'); if(!a||!FP_TRACKS.length) return;
+  _fpIdx=(i+FP_TRACKS.length)%FP_TRACKS.length; a.src=FP_TRACKS[_fpIdx];
+  try{ a.currentTime=0; }catch(e){} a.volume=_fpMuted?0:(_fpVol/100);
+  if(autoplay){ a.play().then(()=>{_fpWantPlay=true;fpRenderPlayer();_fpSaveState();}).catch(()=>{_fpWantPlay=false;fpRenderPlayer();}); }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpNext(){ fpLoadTrack(_fpIdx+1,true); }
+function fpPrev(){ const a=byId('fp-bg-music');
+  if(a&&a.currentTime>3){ try{a.currentTime=0;}catch(e){} _fpSaveState(); return; } fpLoadTrack(_fpIdx-1,true); }
+function fpSetVolume(v){ _fpVol=Math.max(0,Math.min(100,parseInt(v,10)||0));
+  const a=byId('fp-bg-music'); if(_fpVol>0&&_fpMuted) _fpMuted=false;
+  if(a) a.volume=_fpMuted?0:(_fpVol/100); fpRenderPlayer(); _fpSaveState(); }
+function fpToggleMute(){ const a=byId('fp-bg-music'); _fpMuted=!_fpMuted;
+  if(a) a.volume=_fpMuted?0:(_fpVol/100); fpRenderPlayer(); _fpSaveState(); }
+</script>
+</body>
+</html>

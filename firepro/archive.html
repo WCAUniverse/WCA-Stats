@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WCA · Fire Pro — Event Archive</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;min-height:100%;background:#0a0608;color:#fff;font-family:'Barlow',system-ui,sans-serif;}
+  body{overflow-x:hidden;}
+  :root{ --loss:#E24B4A; --red:#E24B4A; --gold:#E9B949; --gold2:#ffd23f; --blue2:#4f8dff;
+         --ok:#3ECF8E; --ink:#0a0506; --panel:#11161d; --panel2:#161d27; --line:#26303d; }
+  .bg{position:fixed;inset:0;z-index:-2;
+    background:
+      radial-gradient(900px 500px at 80% -10%, rgba(226,75,74,.10), transparent 60%),
+      radial-gradient(700px 480px at 0% 110%, rgba(233,185,73,.08), transparent 60%),
+      repeating-linear-gradient(135deg,#0c0a0d 0 22px,#0a0809 22px 44px), #08070a;}
+  .bg::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:4px 4px;opacity:.5;}
+
+  .top{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:10px 16px;background:linear-gradient(180deg,#1a0d10,#100608);
+    border-bottom:3px solid var(--gold2);box-shadow:0 6px 22px -10px #000;}
+  .top .tag{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;
+    color:var(--gold2);text-shadow:1px 1px 0 #b3001b;white-space:nowrap;}
+  .top .spacer{flex:1 1 auto;}
+  .btn{font-family:'Press Start 2P',monospace;cursor:pointer;font-size:9px;line-height:1;color:var(--ink);
+    white-space:nowrap;background:var(--gold2);border:2px solid #fff;border-radius:4px;padding:9px 11px;
+    text-transform:uppercase;box-shadow:0 0 10px -2px var(--gold2);transition:.12s;}
+  .btn:hover{background:#fff;box-shadow:0 0 14px 0 var(--gold2);}
+  .btn.ghost{background:transparent;color:var(--gold2);border-color:var(--gold2);box-shadow:none;}
+  .btn.ghost:hover{background:rgba(255,210,63,.15);color:#fff;}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 110px;}
+  .lead{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2);
+    text-shadow:1px 1px 0 #b3001b;margin:6px 2px 18px;line-height:1.6;}
+
+  /* event block */
+  .event{margin:0 0 26px;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));}
+  .event-head{padding:14px 16px;background:linear-gradient(180deg,#2a0a0a,#150406);
+    border-bottom:3px solid var(--gold2);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  .event-head h2{margin:0;font-family:'Press Start 2P',monospace;font-size:16px;color:var(--gold2);
+    text-shadow:2px 2px 0 #b3001b;letter-spacing:1px;}
+  .event-head .sub{font-family:'Oswald';font-size:15px;color:#cdd6e2;}
+  .event-head .date{margin-left:auto;font-size:12px;color:#8a98a8;}
+
+  .promos{padding:12px 14px;display:flex;flex-direction:column;gap:12px;}
+  .promo-card{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0e141c;}
+  .promo-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 14px;cursor:pointer;
+    background:rgba(255,255,255,.02);border-bottom:1px solid transparent;transition:.12s;}
+  .promo-head:hover{background:rgba(255,210,63,.06);}
+  .promo-card.open .promo-head{border-bottom-color:var(--line);}
+  .promo-head .pn{font-family:'Oswald';font-weight:700;font-size:18px;color:#fff;}
+  .promo-head .ow{font-size:13px;color:#9fb0c2;}
+  .promo-head .chev{margin-left:auto;font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);transition:.2s;}
+  .promo-card.open .promo-head .chev{transform:rotate(90deg);}
+  .promo-head .stat{font-family:'Oswald';font-size:14px;white-space:nowrap;}
+  .promo-head .stat.r{color:var(--gold2);} .promo-head .stat.p{color:var(--ok);}
+  .promo-head .stat b{font-weight:700;}
+
+  .promo-body{display:none;padding:10px 14px 14px;}
+  .promo-card.open .promo-body{display:block;}
+
+  .amatch{border:1px solid var(--line);border-radius:9px;margin:8px 0;overflow:hidden;}
+  .amatch .ah{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 11px;
+    background:rgba(255,255,255,.02);border-bottom:1px solid var(--line);}
+  .amatch .anum{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--ink);
+    background:var(--gold2);border-radius:5px;padding:6px 8px;}
+  .amatch .atype{font-family:'Oswald';font-weight:600;font-size:14px;color:#fff;}
+  .amatch .arate{margin-left:auto;font-family:'Oswald';font-size:14px;color:var(--gold2);}
+  .amatch .apay{font-family:'Oswald';font-size:13px;color:var(--ok);}
+  .amatch .ab{display:flex;gap:14px;flex-wrap:wrap;padding:10px 11px;}
+  .aside{flex:1 1 200px;min-width:150px;}
+  .aside .sl{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;margin-bottom:4px;}
+  .aside.A .sl{color:var(--blue2);} .aside.B .sl{color:#ff8a89;} .aside.R .sl{color:var(--gold2);}
+  .aside .wn{font-family:'Oswald';font-size:14px;color:#e8eef5;}
+  .aside .wn.win{color:var(--ok);} .aside .wn.win::after{content:" ★";color:var(--ok);}
+  .ptot{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px;padding:10px 12px;border-top:1px dashed var(--line);}
+  .ptot span{font-size:11px;color:#8a98a8;text-transform:uppercase;letter-spacing:.5px;}
+  .ptot b{font-family:'Oswald';font-size:17px;}
+  .ptot .r b{color:var(--gold2);} .ptot .p b{color:var(--ok);}
+
+  .empty{text-align:center;padding:50px 20px;color:#8a98a8;}
+  .empty .big{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2);margin-bottom:12px;line-height:1.6;}
+
+  /* music player (verbatim) */
+  #fp-player{position:fixed;left:0;right:0;bottom:0;z-index:9500;display:none;align-items:center;gap:12px;
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,#6e0010,#3a0008);
+    border-top:3px solid #ffd23f;box-shadow:0 -4px 22px -6px #000;font-family:'Press Start 2P',monospace;}
+  #fp-player.show{display:flex;}
+  .fp-pbtn{font-family:'Press Start 2P',monospace;cursor:pointer;font-size:11px;line-height:1;color:#0a0506;
+    background:#ffd23f;border:2px solid #fff;border-radius:4px;padding:9px 11px;text-transform:uppercase;
+    box-shadow:0 0 10px -2px #ffd23f;transition:.12s;white-space:nowrap;}
+  .fp-pbtn:hover{background:#fff;box-shadow:0 0 14px 0 #ffd23f;} .fp-pbtn:active{transform:translateY(1px);}
+  #fp-play{min-width:42px;}
+  #fp-now{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+    font-size:9px;letter-spacing:1px;color:#ffd23f;text-shadow:1px 1px 0 #000;}
+  #fp-now b{color:#fff;}
+  .fp-volwrap{display:flex;align-items:center;gap:9px;flex:0 0 auto;}
+  #fp-mute{font-family:'Press Start 2P',monospace;cursor:pointer;font-size:10px;color:#ffd23f;background:transparent;
+    border:2px solid #ffd23f;border-radius:4px;padding:8px 9px;transition:.12s;white-space:nowrap;}
+  #fp-mute:hover{background:rgba(255,210,63,.15);} #fp-mute.muted{color:#0a0506;background:#ffd23f;}
+  #fp-vol{-webkit-appearance:none;appearance:none;width:110px;height:6px;
+    background:linear-gradient(90deg,#ff3b3b,#ffd23f);border-radius:6px;outline:none;cursor:pointer;}
+  #fp-vol::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#fff;border:2px solid #ffd23f;box-shadow:0 0 8px 0 #ffd23f;cursor:pointer;}
+  #fp-vol::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid #ffd23f;
+    box-shadow:0 0 8px 0 #ffd23f;cursor:pointer;}
+  #fp-vol-pct{font-size:8px;color:#ffd23f;min-width:30px;text-align:right;text-shadow:1px 1px 0 #000;}
+  @media(max-width:600px){
+    #fp-player{gap:8px;padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px));flex-wrap:wrap;}
+    .fp-pbtn{font-size:9px;padding:8px 8px;} #fp-now{flex-basis:100%;order:-1;font-size:8px;text-align:center;}
+    #fp-vol{width:78px;} #fp-mute{font-size:8px;padding:7px 7px;}
+    .event-head h2{font-size:13px;}
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="top">
+  <span class="tag">WCA · FIRE PRO — EVENT ARCHIVE</span>
+  <span class="spacer"></span>
+  <button class="btn ghost" onclick="goZone()">◄ FIRE PRO</button>
+  <button class="btn" onclick="goBuilder()">BOOK A SHOW ►</button>
+</div>
+
+<div class="wrap">
+  <div class="lead">★ PAST EVENTS ★</div>
+  <div id="list"><div class="empty"><div class="big">LOADING…</div></div></div>
+</div>
+
+<audio id="fp-bg-music" loop preload="none"></audio>
+<div id="fp-player">
+  <button class="fp-pbtn" id="fp-prev" onclick="fpPrev()">◄◄</button>
+  <button class="fp-pbtn" id="fp-play" onclick="fpTogglePlay()">►</button>
+  <button class="fp-pbtn" id="fp-next" onclick="fpNext()">►►</button>
+  <div id="fp-now">♪ <b>Track 1</b></div>
+  <div class="fp-volwrap">
+    <button id="fp-mute" onclick="fpToggleMute()">VOL</button>
+    <input id="fp-vol" type="range" min="0" max="100" value="10" oninput="fpSetVolume(this.value)">
+    <span id="fp-vol-pct">10%</span>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL="https://dmfbhszvrbaknaevdhxh.supabase.co";
+const SUPABASE_KEY="sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+let sb=null; try{ sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}}); }catch(e){}
+
+let WMAP={}, TMAP={}, STARS=false;
+function byId(id){ return document.getElementById(id); }
+function money(n){ n=parseInt(n,10); if(isNaN(n)) n=0; return '$'+n.toLocaleString('en-US'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function rateLabel(pct){ if(pct==null) return '—'; return STARS ? (Math.round((pct/20)*10)/10)+'★' : pct+'%'; }
+function goZone(){ _fpSaveState(); location.href='index.html'; }
+function goBuilder(){ _fpSaveState(); location.href='builder.html'; }
+
+window.addEventListener('load', async ()=>{
+  await loadMaps();
+  await loadArchive();
+  fpPlayerInit();
+});
+
+async function loadMaps(){
+  try{ const {data}=await sb.from('fp_wrestlers').select('id,name'); (data||[]).forEach(w=>WMAP[w.id]=w.name); }catch(e){}
+  try{ const {data}=await sb.from('fp_match_types').select('key,name'); (data||[]).forEach(t=>TMAP[t.key]=t.name); }catch(e){}
+  try{
+    const {data}=await sb.from('site_settings').select('firepro').eq('id',1).single();
+    const fp=data&&data.firepro;
+    if(fp&&fp.options&&fp.options.ratingStars) STARS=true;
+    if(fp&&fp.music){ const m=fp.music; const n=(typeof m.count==='number'&&m.count>0)?Math.min(m.count,50):0;
+      if(n>0){ FP_TRACKS=[]; for(let i=1;i<=n;i++) FP_TRACKS.push('audio/bg-music-'+i+'.mp3'); }
+      _fpNames=Array.isArray(m.names)?m.names.slice():[]; if(typeof m.defaultVol==='number') _fpDefaultVol=m.defaultVol; }
+  }catch(e){}
+}
+
+async function loadArchive(){
+  let events=[];
+  try{
+    const {data}=await sb.from('fp_events').select('*').eq('status','completed').order('id',{ascending:false});
+    events=data||[];
+  }catch(e){}
+  if(!events.length){
+    byId('list').innerHTML='<div class="empty"><div class="big">NO EVENTS YET</div><p>Completed shows will appear here once they\'re published. Check back after the next event wraps.</p></div>';
+    return;
+  }
+  // fetch all cards for these events, then matches
+  const eids=events.map(e=>e.id);
+  let cards=[], owners={};
+  try{ const {data}=await sb.from('fp_cards').select('*').in('event_id',eids); cards=data||[]; }catch(e){}
+  try{
+    const ids=[...new Set(cards.map(c=>c.booker_id))];
+    if(ids.length){ const {data}=await sb.from('fp_bookers').select('auth_id,owner_name,promotion_name').in('auth_id',ids);
+      (data||[]).forEach(b=>owners[b.auth_id]={owner:b.owner_name,promo:b.promotion_name}); }
+  }catch(e){}
+  const cids=cards.map(c=>c.id);
+  let matches=[];
+  if(cids.length){ try{ const {data}=await sb.from('fp_matches').select('*').in('card_id',cids).order('position',{ascending:true}); matches=data||[]; }catch(e){} }
+  const byCard={}; matches.forEach(m=>{ (byCard[m.card_id]=byCard[m.card_id]||[]).push(m); });
+
+  let html='';
+  events.forEach(ev=>{
+    const evCards=cards.filter(c=>c.event_id===ev.id)
+      .sort((a,b)=>String(a.promotion_name||'').localeCompare(String(b.promotion_name||'')));
+    html+='<div class="event"><div class="event-head">'+
+      '<h2>'+esc(ev.name)+'</h2>'+
+      (ev.subtitle?'<span class="sub">'+esc(ev.subtitle)+'</span>':'')+
+      '<span class="date">'+(ev.completed_at?new Date(ev.completed_at).toLocaleDateString():'')+'</span>'+
+      '</div><div class="promos">';
+    if(!evCards.length){
+      html+='<p class="empty" style="padding:20px">No cards were submitted for this event.</p>';
+    } else {
+      evCards.forEach((c,ci)=>{
+        const o=owners[c.booker_id]||{};
+        const ms=byCard[c.id]||[];
+        html+=promoCardHtml(c,o,ms,ev.id+'_'+ci);
+      });
+    }
+    html+='</div></div>';
+  });
+  byId('list').innerHTML=html;
+}
+
+function sideName(side, win, idx){
+  if(!Array.isArray(side)) return '';
+  return side.map(id=>esc(WMAP[id]||('#'+id))).join(' & ');
+}
+function promoCardHtml(c,o,ms,uid){
+  const promo=c.promotion_name||o.promo||'—';
+  const owner=o.owner||'';
+  let payTot=0, rsum=0, rn=0;
+  let matchesHtml='';
+  ms.forEach((m,i)=>{
+    const tname=TMAP[m.type_key]||m.type_name||m.type_key;
+    const sides=Array.isArray(m.sides)?m.sides:[];
+    const isRumble=sides.length===1;
+    if(m.rating_pct!=null){ rsum+=m.rating_pct; rn++; }
+    const mpay=(m.payout||0)+(m.bonus||0); payTot+=mpay;
+    let sidesHtml='';
+    sides.forEach((s,si)=>{
+      const cls=isRumble?'R':(si===0?'A':(si===1?'B':'A'));
+      const lbl=isRumble?'RUMBLE FIELD':(sides.length===2?(si===0?'BLUE':'RED'):('CORNER '+(si+1)));
+      const won=(m.winner_side===si);
+      sidesHtml+='<div class="aside '+cls+'"><div class="sl">'+lbl+'</div>'+
+        '<div class="wn'+(won?' win':'')+'">'+(sideName(s)||'—')+'</div></div>';
+    });
+    matchesHtml+='<div class="amatch"><div class="ah">'+
+      '<span class="anum">M'+(i+1)+'</span><span class="atype">'+esc(tname)+'</span>'+
+      '<span class="arate">'+rateLabel(m.rating_pct)+'</span>'+
+      (mpay?'<span class="apay">'+money(mpay)+'</span>':'')+
+      '</div><div class="ab">'+sidesHtml+'</div></div>';
+  });
+  const avg = rn?Math.round(rsum/rn):null;
+  const cardPay = (c.payout!=null)?c.payout:payTot;
+  return '<div class="promo-card" id="pc_'+uid+'">'+
+    '<div class="promo-head" onclick="togglePromo(\''+uid+'\')">'+
+      '<div><div class="pn">'+esc(promo)+'</div>'+(owner?'<div class="ow">'+esc(owner)+'</div>':'')+'</div>'+
+      '<span class="stat r">'+ (avg!=null?'<b>'+rateLabel(avg)+'</b> avg':'') +'</span>'+
+      '<span class="stat p"><b>'+money(cardPay)+'</b> payout</span>'+
+      '<span class="chev">▸</span>'+
+    '</div>'+
+    '<div class="promo-body">'+matchesHtml+
+      '<div class="ptot"><div class="r"><span>Avg rating</span><b>'+(avg!=null?rateLabel(avg):'—')+'</b></div>'+
+        '<div class="p"><span>Total payout</span><b>'+money(cardPay)+'</b></div>'+
+        '<div><span>Booked cost</span><b>'+money(c.total_cost)+'</b></div></div>'+
+    '</div></div>';
+}
+function togglePromo(uid){ const el=byId('pc_'+uid); if(el) el.classList.toggle('open'); }
+
+/* ===== music player (verbatim) ===== */
+let FP_TRACKS=['audio/bg-music-1.mp3','audio/bg-music-2.mp3','audio/bg-music-3.mp3','audio/bg-music-4.mp3'];
+let _fpNames=[]; let _fpDefaultVol=10; const FP_MUSIC_KEY='fpMusicState';
+let _fpIdx=0,_fpVol=10,_fpMuted=false,_fpWantPlay=false;
+function _fpLoadState(){ try{ const r=sessionStorage.getItem(FP_MUSIC_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
+function _fpSaveState(){ const a=byId('fp-bg-music'); const blob={idx:_fpIdx,vol:_fpVol,muted:_fpMuted,playing:_fpWantPlay,t:(a&&!isNaN(a.currentTime))?a.currentTime:0,ts:Date.now()};
+  try{ sessionStorage.setItem(FP_MUSIC_KEY,JSON.stringify(blob)); }catch(e){} }
+function fpPlayerInit(){ const a=byId('fp-bg-music'),bar=byId('fp-player'); if(!a||!bar||!FP_TRACKS.length) return;
+  bar.classList.add('show'); const st=_fpLoadState(); let resumeAt=0;
+  if(st){ _fpIdx=(typeof st.idx==='number'&&st.idx>=0)?st.idx:0; _fpVol=(typeof st.vol==='number')?st.vol:_fpDefaultVol; _fpMuted=!!st.muted; _fpWantPlay=!!st.playing; resumeAt=(typeof st.t==='number')?st.t:0; }
+  else { _fpVol=_fpDefaultVol; }
+  if(_fpIdx>=FP_TRACKS.length) _fpIdx=0; a.src=FP_TRACKS[_fpIdx]; a.volume=_fpMuted?0:(_fpVol/100);
+  try{ a.currentTime=resumeAt>0?resumeAt:0; }catch(e){}
+  a.addEventListener('ended',fpNext); a.addEventListener('error',()=>{ if(_fpWantPlay) setTimeout(fpNext,400); });
+  window.addEventListener('pagehide',_fpSaveState); window.addEventListener('beforeunload',_fpSaveState);
+  fpRenderPlayer();
+  if(_fpWantPlay){ a.play().then(()=>{_fpWantPlay=true;fpRenderPlayer();}).catch(()=>{_fpWantPlay=false;fpRenderPlayer();}); }
+}
+function fpRenderPlayer(){ const pb=byId('fp-play'),mb=byId('fp-mute'),v=byId('fp-vol'),pc=byId('fp-vol-pct'),nw=byId('fp-now');
+  if(pb) pb.textContent=_fpWantPlay?'❚❚':'►'; if(mb){ mb.textContent=_fpMuted?'MUTED':'VOL'; mb.classList.toggle('muted',_fpMuted); }
+  if(v) v.value=_fpVol; if(pc) pc.textContent=_fpVol+'%';
+  if(nw){ const nm=(_fpNames&&_fpNames[_fpIdx]&&String(_fpNames[_fpIdx]).trim()); nw.innerHTML='♪ <b>'+(nm?nm.replace(/</g,'&lt;'):('Track '+(_fpIdx+1)))+'</b>'; } }
+function fpTogglePlay(){ const a=byId('fp-bg-music'); if(!a) return;
+  if(_fpWantPlay){ a.pause(); _fpWantPlay=false; } else { a.play().then(()=>{_fpWantPlay=true;fpRenderPlayer();_fpSaveState();}).catch(()=>{_fpWantPlay=false;fpRenderPlayer();}); _fpWantPlay=true; }
+  fpRenderPlayer(); _fpSaveState(); }
+function fpLoadTrack(i,auto){ const a=byId('fp-bg-music'); if(!a||!FP_TRACKS.length) return; _fpIdx=(i+FP_TRACKS.length)%FP_TRACKS.length;
+  a.src=FP_TRACKS[_fpIdx]; try{ a.currentTime=0; }catch(e){} a.volume=_fpMuted?0:(_fpVol/100);
+  if(auto){ a.play().then(()=>{_fpWantPlay=true;fpRenderPlayer();_fpSaveState();}).catch(()=>{_fpWantPlay=false;fpRenderPlayer();}); } fpRenderPlayer(); _fpSaveState(); }
+function fpNext(){ fpLoadTrack(_fpIdx+1,true); }
+function fpPrev(){ const a=byId('fp-bg-music'); if(a&&a.currentTime>3){ try{a.currentTime=0;}catch(e){} _fpSaveState(); return; } fpLoadTrack(_fpIdx-1,true); }
+function fpSetVolume(v){ _fpVol=Math.max(0,Math.min(100,parseInt(v,10)||0)); const a=byId('fp-bg-music'); if(_fpVol>0&&_fpMuted) _fpMuted=false; if(a) a.volume=_fpMuted?0:(_fpVol/100); fpRenderPlayer(); _fpSaveState(); }
+function fpToggleMute(){ const a=byId('fp-bg-music'); _fpMuted=!_fpMuted; if(a) a.volume=_fpMuted?0:(_fpVol/100); fpRenderPlayer(); _fpSaveState(); }
+</script>
+</body>
+</html>
