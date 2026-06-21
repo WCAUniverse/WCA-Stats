@@ -195,9 +195,10 @@
   .slot.filled{border-style:solid; border-color:#4a5d72; background:rgba(0,0,0,.30);}
   .slot.drop{border-color:var(--gold2); background:rgba(255,210,63,.10); box-shadow:0 0 12px -4px var(--gold2);}
   .slot .empty{font-size:12px; color:#6f7d8c; font-style:italic;}
-  .slot img{width:34px; height:34px; border-radius:6px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
+  .slot img{width:38px; height:38px; border-radius:7px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
   .slot .nm{flex:1 1 auto; min-width:0; font-family:'Oswald',sans-serif; font-size:14px;
             white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .slot .nm small{display:block; font-size:10px; font-weight:400; color:#8a98a8; letter-spacing:.4px;}
   .slot .pc{font-size:12px; color:var(--gold2); white-space:nowrap;}
   .slot .x{
     cursor:pointer; color:#ff8a89; font-weight:700; font-size:15px; line-height:1;
@@ -236,11 +237,14 @@
   .rcard:active{cursor:grabbing;}
   .rcard.dragging{opacity:.45;}
   .rcard.used{opacity:.4;}
-  .rcard img{width:38px; height:38px; border-radius:7px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
+  .rcard img{width:42px; height:42px; border-radius:8px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
   .rcard .meta{flex:1 1 auto; min-width:0;}
   .rcard .meta .n{font-family:'Oswald',sans-serif; font-size:14px; white-space:nowrap;
                   overflow:hidden; text-overflow:ellipsis;}
-  .rcard .meta .s{font-size:11px; color:#8a98a8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .rcard .meta .s{font-size:11px; color:#8a98a8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                  display:flex; align-items:center; gap:6px;}
+  .rcard .meta .s .gr{font-family:'Oswald',sans-serif; font-size:10px; color:#0b0f15; background:var(--gold2);
+                  border-radius:4px; padding:1px 5px; letter-spacing:.5px; flex:0 0 auto;}
   .rcard .cost{font-family:'Oswald',sans-serif; font-size:13px; color:var(--gold2); white-space:nowrap;}
   .rempty{padding:18px; text-align:center; color:#8a98a8; font-size:13px;}
 
@@ -639,7 +643,7 @@ async function loadRoster(){
   ROSTER=[];
   try{
     const { data, error } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,image_url,cost,rank_grade,charisma_grade')
+      .select('id,name,nickname,origin,image_url,cost,rank_grade,charisma_grade')
       .order('name',{ascending:true});
     if(error) throw error;
     ROSTER = (data||[]).map(w=>({ ...w, cost: (w.cost!=null?w.cost:0) }));
@@ -754,7 +758,7 @@ function slotHTML(mi,si,k,id){
     return '<div class="slot filled" '+dataAttrs+
       ' ondragover="slotOver(event)" ondragleave="slotLeave(event)" ondrop="slotDrop(event)">'+
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
-      '<span class="nm">'+esc(w.name)+'</span>'+
+      '<span class="nm">'+esc(w.name)+'<small>'+esc([w.origin,(w.rank_grade||'?')+'/'+(w.charisma_grade||'?')].filter(Boolean).join(' · '))+'</small></span>'+
       '<span class="pc">'+money(w.cost)+'</span>'+
       '<span class="x" onclick="removeFromSlot('+mi+','+si+','+k+')" title="Remove">✕</span></div>';
   }
@@ -841,7 +845,8 @@ function renderRoster(){
       ' title="'+esc(w.name)+(isUsed?' — already on the card':'')+'">'+
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
       '<div class="meta"><div class="n">'+esc(w.name)+'</div>'+
-        '<div class="s">'+esc(w.nickname||((w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+' grade'))+'</div></div>'+
+        '<div class="s">'+esc(w.origin||w.nickname||'')+
+          '<span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span></div></div>'+
       '<div class="cost">'+money(w.cost)+'</div></div>';
   }
   host.innerHTML=html;

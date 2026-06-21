@@ -392,11 +392,14 @@
     background:rgba(0,0,0,.3); border:1px solid #3a1414; border-radius:8px; padding:8px; max-height:72vh;
   }
   .cs-cell{
-    font-family:'Barlow Condensed',sans-serif; font-size:16px; line-height:1.2; letter-spacing:.4px; cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif; font-size:16px; line-height:1.15; letter-spacing:.4px; cursor:pointer;
     color:#ffe9b0; background:rgba(255,255,255,.03); border:1px solid #3a1414; border-radius:6px;
-    padding:13px 12px; min-height:48px; display:flex; align-items:center; transition:.1s;
-    overflow:hidden; text-overflow:ellipsis;
+    padding:11px 12px; min-height:48px; display:flex; flex-direction:column; justify-content:center; gap:2px; transition:.1s;
+    overflow:hidden;
   }
+  .cs-cell .cs-cell-n{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cs-cell .cs-cell-o{ font-size:11px; letter-spacing:.5px; color:#c98a3a; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cs-cell.sel .cs-cell-o{ color:#ffe0c0; }
   .cs-cell:hover{ background:rgba(255,210,63,.12); border-color:#ffd23f; }
   .cs-cell.sel{ background:linear-gradient(180deg,#ff8a3c,#b3001b); color:#fff; border-color:#fff; }
   .cs-gridempty{ grid-column:1/-1; text-align:center; color:#7a5a5a; padding:30px; font-family:'Press Start 2P',monospace; font-size:9px; }
@@ -968,7 +971,7 @@ async function csInit(){
   if(CS_LOADED){ csRenderGrid(); return; }
   try{
     const { data } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,image_url,cost,country,dob,height,weight,finisher,signatures,promotion_id,faction_id')
+      .select('id,name,nickname,origin,image_url,cost,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
       .order('name',{ascending:true});
     CS_ALL = data||[];
   }catch(e){ CS_ALL=[]; }
@@ -978,9 +981,10 @@ async function csInit(){
   CS_LOADED=true; CS_PFILTER=0; CS_FFILTER=0;
   csRenderFilters(); csRenderGrid();
 }
-function csPromoList(){ return [{id:null,name:'ALL PROMOTIONS'}].concat(CS_PROMOS); }
+function csPromoList(){ return [{id:null,name:'ALL PROMOTIONS'},{id:'__FA__',name:'FREE AGENTS'}].concat(CS_PROMOS); }
 function csFactionList(){
   const pf=csPromoList()[CS_PFILTER];
+  if(pf && pf.id==='__FA__') return [{id:null,name:'ALL'}];
   let facs = CS_FACTIONS;
   if(pf && pf.id!=null) facs = CS_FACTIONS.filter(f=>f.promotion_id===pf.id);
   return [{id:null,name:'ALL'}].concat(facs);
@@ -1001,6 +1005,7 @@ function csRenderFilters(){
 function csFiltered(){
   const pl=csPromoList()[CS_PFILTER], fl=csFactionList()[CS_FFILTER];
   return CS_ALL.filter(w=>{
+    if(pl && pl.id==='__FA__') return w.promotion_id==null;
     if(pl && pl.id!=null && w.promotion_id!==pl.id) return false;
     if(fl && fl.id!=null && w.faction_id!==fl.id) return false;
     return true;
@@ -1011,7 +1016,10 @@ function csRenderGrid(){
   const list=csFiltered();
   if(!list.length){ host.innerHTML='<div class="cs-gridempty">NO WRESTLERS</div>'; return; }
   host.innerHTML = list.map(w=>
-    '<div class="cs-cell'+(CS_SEL&&CS_SEL.id===w.id?' sel':'')+'" onclick="csSelect('+w.id+')">'+esc(w.name)+'</div>'
+    '<div class="cs-cell'+(CS_SEL&&CS_SEL.id===w.id?' sel':'')+'" onclick="csSelect('+w.id+')">'+
+    '<span class="cs-cell-n">'+esc(w.name)+'</span>'+
+    (w.origin?'<span class="cs-cell-o">'+esc(w.origin)+'</span>':'')+
+    '</div>'
   ).join('');
 }
 function csSelect(id){
@@ -1020,6 +1028,11 @@ function csSelect(id){
   const L=document.getElementById('cs-left');
   const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="230" height="300"><rect width="230" height="300" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="20" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
   const rows=[];
+  if(w.origin) rows.push(['FRANCHISE', w.origin]);
+  const pf = (w.promotion_id!=null) ? (CS_PROMOS.find(p=>p.id===w.promotion_id)||{}).name : null;
+  const ff = (w.faction_id!=null) ? (CS_FACTIONS.find(f=>f.id===w.faction_id)||{}).name : null;
+  rows.push(['PROMOTION', pf ? (ff ? pf+' · '+ff : pf) : 'Free Agent']);
+  rows.push(['RANK / CHA', (w.rank_grade||'?')+' / '+(w.charisma_grade||'?')]);
   if(w.country) rows.push(['COUNTRY', w.country]);
   if(w.dob) rows.push(['DOB', w.dob]);
   if(w.height||w.weight) rows.push(['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')]);
