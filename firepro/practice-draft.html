@@ -14,128 +14,238 @@
     --gold:#E9B949; --gold2:#ffd23f; --red:#E24B4A; --ink:#0a0506;
     --panel:#140a0b; --panel2:#1c0f10; --line:#3a2020; --txt:#ffe9b0; --muted:#9a7a6a;
   }
-  html,body{margin:0;height:100%;}
+  html,body{margin:0;padding:0;height:100%;}
   body{
-    background:
-      radial-gradient(1200px 600px at 50% -10%, #2a1112 0%, transparent 60%),
-      linear-gradient(#0a0506,#0a0506);
-    color:var(--txt); font-family:'Barlow',sans-serif; min-height:100vh;
+    background:#0a0506;
+    color:var(--txt); font-family:'Barlow',sans-serif; min-height:100vh; overflow-x:hidden;
   }
-  .wrap{max-width:1280px;margin:0 auto;padding:14px 14px 90px;}
+  /* ===== ARENA BACKGROUND — matches the Fire Pro hub (CRT scanlines + fiery floor) ===== */
+  .arena-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px),
+      radial-gradient(120% 80% at 50% 0%, #3a0d0d 0%, #160505 45%, #0a0506 100%);
+  }
+  .arena-bg::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:34%;
+    background:
+      radial-gradient(80% 120% at 50% 120%, rgba(255,120,30,.40), transparent 70%),
+      linear-gradient(0deg, rgba(255,59,59,.22), transparent);
+    mix-blend-mode:screen;
+  }
+  /* ===== FULL-BLEED SHELL (NOT centered — uses the whole page) ===== */
+  .shell{position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column;}
   h1,h2,h3{font-family:'Press Start 2P',monospace;letter-spacing:1px;}
-  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
-  .topbar h1{font-size:15px;color:var(--gold2);margin:0;text-shadow:0 2px 0 #5a1a1a;}
+
+  /* top red strip, hub-style */
+  .topbar{
+    position:sticky; top:0; z-index:30;
+    display:flex;align-items:center;gap:14px;
+    padding:12px 18px;
+    background:linear-gradient(180deg,#b3001b,#6e0010);
+    border-bottom:3px solid var(--gold2);
+    box-shadow:0 3px 18px -6px #000;
+  }
+  .topbar h1{font-size:15px;color:#fff;margin:0;text-shadow:2px 2px 0 #3a0008;}
+  .topbar .spacer{flex:1;}
+  .topbar .cfgline{font-family:'Press Start 2P',monospace;font-size:8px;color:#ffd9a0;letter-spacing:1px;opacity:.85;}
+
   .btn{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;
        background:linear-gradient(#2a1516,#1a0d0e);color:var(--txt);border:1px solid var(--line);
        border-radius:8px;padding:11px 14px;transition:.15s;}
   .btn:hover{border-color:var(--gold);color:#fff;transform:translateY(-1px);}
   .btn.primary{background:linear-gradient(#E24B4A,#a82f2f);border-color:#ff7a6a;color:#fff;}
-  .btn.gold{background:linear-gradient(#E9B949,#b8902f);border-color:#ffe08a;color:#1a0d0e;}
-  .btn.sm{padding:7px 10px;font-size:9px;}
+  .btn.gold{background:linear-gradient(#ffe27a,#ffd23f);border-color:#fff;color:#1a0d0e;}
+  .btn.sm{padding:8px 11px;font-size:9px;}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
   .btn.ghost{background:transparent;}
+  .btn.head{background:#ffd23f;color:#0a0506;border:2px solid #fff;box-shadow:0 0 10px -2px #ffd23f;}
+  .btn.head:hover{background:#fff;}
   .muted{color:var(--muted);}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;}
+
+  .content{flex:1; padding:16px 18px 110px;}
+
+  .card{background:rgba(20,10,11,.92);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px;}
   .card h3{font-size:11px;color:var(--gold2);margin:0 0 12px;}
   label{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
   input,select{font-family:'Barlow',sans-serif;font-size:15px;background:#0c0506;color:var(--txt);
     border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;}
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .row > *{flex:1;min-width:120px;}
+
   /* lobby seats */
+  .lobby-wrap{max-width:920px;}
   .seats{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
   .seat{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
         border-radius:9px;padding:8px 10px;}
   .seat .num{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);width:24px;text-align:center;}
-  .seat .nm{flex:1;font-weight:600;}
-  .seat .kind{font-family:'Press Start 2P',monospace;font-size:7px;padding:3px 7px;border-radius:5px;letter-spacing:1px;}
-  .seat .kind.human{background:#15331f;color:#7fe0a0;border:1px solid #2a6a40;}
-  .seat .kind.ai{background:#331515;color:#ff9a8a;border:1px solid #6a2a2a;}
   .seat input{width:auto;flex:1;}
-  /* draft layout */
-  .draft{display:grid;grid-template-columns:260px 1fr 320px;gap:12px;align-items:start;}
-  @media(max-width:1000px){ .draft{grid-template-columns:1fr;} }
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;}
+
+  /* ===== DRAFT — full-width arena grid ===== */
+  .draft{
+    display:grid;
+    grid-template-columns:300px minmax(0,1fr) 360px;
+    grid-template-rows:1fr;
+    gap:14px;
+    height:calc(100vh - 64px - 110px);
+    min-height:560px;
+  }
+  @media(max-width:1200px){ .draft{grid-template-columns:260px minmax(0,1fr) 300px;} }
+  @media(max-width:980px){ .draft{grid-template-columns:1fr; height:auto;} }
+
+  .panel{background:rgba(20,10,11,.92);border:1px solid var(--line);border-radius:12px;padding:14px;
+    display:flex;flex-direction:column;min-height:0;}
+
+  /* LEFT rail splits into: on-clock+order (top) and CHAT (bottom) */
+  .leftrail{display:flex;flex-direction:column;gap:14px;min-height:0;}
+  .leftrail .panel.top{flex:0 0 auto;}
+  .leftrail .panel.chat{flex:1 1 auto;min-height:200px;}
+
   .nowbox{display:flex;align-items:center;gap:10px;background:linear-gradient(#2a1516,#180c0d);
     border:1px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:10px;}
   .nowbox .pic{width:46px;height:46px;border-radius:8px;background:#0c0506 center/cover;border:1px solid var(--line);flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2);}
   .nowbox .who{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);}
   .nowbox .sub{font-size:12px;color:var(--muted);margin-top:3px;}
-  .ord{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
-  .ord .o{display:flex;gap:8px;align-items:center;font-size:13px;padding:5px 7px;border-radius:6px;}
+  .hdr{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;margin:6px 0 6px;}
+  .ord{display:flex;flex-direction:column;gap:5px;}
+  .ord .o{display:flex;gap:8px;align-items:center;font-size:13px;padding:6px 8px;border-radius:6px;}
   .ord .o.on{background:#2a1516;border:1px solid var(--gold);}
   .ord .o .b{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);}
   .ord .o.on .b{color:var(--gold2);}
   .ord .o .bal{margin-left:auto;font-size:11px;color:var(--gold2);}
-  .stable{margin-top:6px;display:flex;flex-direction:column;gap:4px;}
-  .stable .s{display:flex;gap:6px;font-size:13px;padding:3px 0;border-bottom:1px solid #251515;}
-  .stable .s .c{margin-left:auto;color:var(--gold2);}
-  /* center detail */
-  .cs-detail{display:flex;gap:16px;align-items:flex-start;}
-  .cs-photo{width:200px;flex:0 0 auto;aspect-ratio:3/4;object-fit:cover;display:block;border-radius:10px;border:1px solid var(--line);background:#0c0506;}
+  .ord .o .you{font-size:8px;color:#7fe0a0;font-family:'Press Start 2P',monospace;}
+
+  /* CHAT panel */
+  .chat .clog{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding:4px 2px;min-height:0;}
+  .cmsg{font-size:13px;line-height:1.4;}
+  .cmsg .nm{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.5px;margin-right:6px;}
+  .cmsg.human .nm{color:#7fe0a0;}
+  .cmsg.ai .nm{color:#ff9a8a;}
+  .cmsg.sys{color:var(--muted);font-style:italic;font-size:12px;}
+  .cmsg .body{color:var(--txt);}
+  .chat .crow{display:flex;gap:8px;margin-top:8px;flex:0 0 auto;}
+  .chat .crow input{flex:1;}
+  .chat .crow .btn{flex:0 0 auto;}
+
+  /* CENTER detail */
+  .center{overflow-y:auto;}
+  .cs-detail{display:flex;gap:18px;align-items:flex-start;}
+  .cs-photo{width:240px;flex:0 0 auto;aspect-ratio:3/4;object-fit:cover;display:block;border-radius:10px;border:1px solid var(--line);background:#0c0506;}
   .cs-meta{flex:1;min-width:0;}
-  .cs-name{font-family:'Press Start 2P',monospace;font-size:14px;color:#fff;line-height:1.5;}
-  .cs-nick{color:var(--gold2);font-style:italic;margin:4px 0 10px;}
-  .cs-info{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px;align-content:start;}
+  .cs-name{font-family:'Press Start 2P',monospace;font-size:16px;color:#fff;line-height:1.5;}
+  .cs-nick{color:var(--gold2);font-style:italic;margin:5px 0 14px;font-size:16px;}
+  .cs-info{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:15px;align-content:start;}
   .cs-info .k{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
   .cs-info .v{color:var(--txt);word-break:break-word;}
-  .cs-cost{margin-top:14px;font-family:'Press Start 2P',monospace;font-size:13px;color:var(--gold2);
-    background:#180c0d;border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;}
-  .cs-empty{font-family:'Press Start 2P',monospace;font-size:11px;color:#7a5a5a;text-align:center;padding:80px 10px;line-height:1.8;}
-  .confirm-row{display:flex;gap:10px;margin-top:12px;}
-  .confirm-row .btn{flex:1;}
-  @media(max-width:560px){ .cs-detail{flex-direction:column;align-items:center;} .cs-photo{width:100%;max-width:200px;} }
-  /* right roster list */
-  .filterbar{display:flex;gap:6px;margin-bottom:8px;}
-  .filterbar button{flex:1;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:1px;
-    background:#180c0d;color:var(--gold2);border:1px solid var(--line);border-radius:6px;padding:7px 4px;cursor:pointer;}
-  .filterbar .lbl{flex:2;text-align:center;align-self:center;font-size:10px;color:var(--txt);}
+  .cs-cost{margin-top:16px;font-family:'Press Start 2P',monospace;font-size:13px;color:var(--gold2);
+    background:#180c0d;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+  .cs-empty{font-family:'Press Start 2P',monospace;font-size:13px;color:#7a5a5a;text-align:center;line-height:2;
+    display:flex;align-items:center;justify-content:center;height:100%;min-height:300px;}
+  .confirm-row{display:flex;gap:10px;margin-top:14px;}
+  .confirm-row .btn{flex:1;font-size:11px;padding:14px;}
+  @media(max-width:680px){ .cs-detail{flex-direction:column;align-items:center;} .cs-photo{width:100%;max-width:240px;} }
+
+  /* RIGHT roster list */
+  .filterbar{display:flex;gap:6px;margin-bottom:8px;flex:0 0 auto;}
+  .filterbar button{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;
+    background:#180c0d;color:var(--gold2);border:1px solid var(--line);border-radius:6px;padding:8px 11px;cursor:pointer;}
+  .filterbar button:hover{border-color:var(--gold);}
+  .filterbar .lbl{flex:1;text-align:center;align-self:center;font-size:11px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rsearch{flex:0 0 auto;}
   .rsearch input{margin-bottom:8px;}
-  .rlist{max-height:62vh;overflow:auto;display:flex;flex-direction:column;gap:4px;}
+  .rlist{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:4px;min-height:0;}
   .ritem{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
-    border-radius:7px;padding:7px 9px;cursor:pointer;transition:.1s;}
+    border-radius:7px;padding:9px 11px;cursor:pointer;transition:.1s;}
   .ritem:hover{border-color:var(--gold);}
   .ritem.sel{border-color:var(--gold2);background:#2a1516;}
   .ritem.taken{opacity:.32;pointer-events:none;text-decoration:line-through;}
   .ritem .rn{flex:1;font-weight:600;font-size:14px;}
   .ritem .rg{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);}
   .ritem .rc{font-size:12px;color:var(--gold2);white-space:nowrap;}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;
+
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);opacity:0;
     background:#1a0d0e;border:1px solid var(--gold);color:var(--txt);padding:11px 16px;border-radius:9px;
-    font-size:14px;pointer-events:none;transition:.25s;z-index:50;max-width:90vw;text-align:center;}
+    font-size:14px;pointer-events:none;transition:.25s;z-index:9600;max-width:90vw;text-align:center;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .toast.err{border-color:var(--red);}
   .hidden{display:none!important;}
+
   /* results */
-  .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
-  .res-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+  .res-card{background:rgba(20,10,11,.92);border:1px solid var(--line);border-radius:12px;padding:16px;}
   .res-card h3{font-size:11px;margin:0 0 4px;}
   .res-card .tot{font-size:12px;color:var(--gold2);margin-bottom:10px;}
-  .res-card .rosrow{display:flex;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid #251515;}
+  .res-card .rosrow{display:flex;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid #251515;}
   .res-card .rosrow .c{margin-left:auto;color:var(--gold2);}
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid #5a2020;border-top-color:var(--gold2);
     border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
   @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ===== PERSISTENT FIRE PRO MUSIC PLAYER (identical to hub) ===== */
+  #fp-player{
+    position:fixed; left:0; right:0; bottom:0; z-index:9500;
+    display:none; align-items:center; gap:12px;
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg,#6e0010,#3a0008);
+    border-top:3px solid #ffd23f;
+    box-shadow:0 -4px 22px -6px #000;
+    font-family:'Press Start 2P',monospace;
+  }
+  #fp-player.show{display:flex;}
+  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; line-height:1; color:#0a0506;
+    background:#ffd23f; border:2px solid #fff; border-radius:4px; padding:9px 11px; text-transform:uppercase;
+    box-shadow:0 0 10px -2px #ffd23f; transition:.12s; white-space:nowrap;}
+  .fp-pbtn:hover{background:#fff; box-shadow:0 0 14px 0 #ffd23f;}
+  .fp-pbtn:active{transform:translateY(1px);}
+  #fp-play{min-width:42px;}
+  #fp-now{flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    font-size:9px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
+  #fp-now b{color:#fff;}
+  .fp-volwrap{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
+  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:10px; color:#ffd23f;
+    background:transparent; border:2px solid #ffd23f; border-radius:4px; padding:8px 9px; transition:.12s; white-space:nowrap;}
+  #fp-mute:hover{background:rgba(255,210,63,.15);}
+  #fp-mute.muted{color:#0a0506; background:#ffd23f;}
+  #fp-vol{-webkit-appearance:none; appearance:none; width:110px; height:6px;
+    background:linear-gradient(90deg,#ff3b3b,#ffd23f); border-radius:6px; outline:none; cursor:pointer;}
+  #fp-vol::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:15px; height:15px;
+    border-radius:50%; background:#fff; border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
+  #fp-vol::-moz-range-thumb{width:15px; height:15px; border-radius:50%; background:#fff;
+    border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
+  #fp-vol-pct{font-size:8px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
+  @media(max-width:600px){
+    #fp-player{gap:8px; padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap;}
+    .fp-pbtn{font-size:9px; padding:8px 8px;}
+    #fp-now{flex-basis:100%; order:-1; font-size:8px; text-align:center;}
+    #fp-vol{width:78px;}
+    #fp-mute{font-size:8px; padding:7px 7px;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="arena-bg"></div>
+
+<div class="shell">
   <div class="topbar">
-    <button class="btn sm ghost" onclick="goHub()">◄ HUB</button>
+    <button class="btn head sm" onclick="goHub()">◄ HUB</button>
     <h1>PRACTICE DRAFT</h1>
+    <div class="spacer"></div>
+    <div class="cfgline hidden" id="cfgLine"></div>
   </div>
+
+  <div class="content">
 
   <!-- ============ LOBBY ============ -->
   <div id="lobby">
-    <div class="card">
+    <div class="card lobby-wrap">
       <h3>Set up your practice draft</h3>
       <p class="muted" style="font-size:14px;margin:0 0 6px">No stakes — draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster.</p>
       <div class="row">
         <div>
           <label>Seats (2–8)</label>
           <select id="lobSeats" onchange="lobBuildSeats()">
-            <option>2</option><option selected>4</option><option>3</option>
+            <option>2</option><option>3</option><option selected>4</option>
             <option>5</option><option>6</option><option>7</option><option>8</option>
           </select>
         </div>
@@ -175,18 +285,27 @@
   <!-- ============ DRAFT ============ -->
   <div id="draftView" class="hidden">
     <div class="draft">
-      <!-- LEFT: on the clock + order + your stable -->
-      <div class="panel">
-        <div class="nowbox" id="nowBox"><div class="pic">?</div><div><div class="who">—</div><div class="sub"></div></div></div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;margin:6px 0 2px">DRAFT ORDER</div>
-        <div class="ord" id="ordList"></div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;margin:12px 0 2px" id="stableHdr">YOUR STABLE</div>
-        <div class="stable" id="stableList"></div>
+      <!-- LEFT rail: on-clock + order (top), chat (bottom) -->
+      <div class="leftrail">
+        <div class="panel top">
+          <div class="nowbox" id="nowBox"><div class="pic">?</div><div><div class="who">—</div><div class="sub"></div></div></div>
+          <div class="hdr">DRAFT ORDER</div>
+          <div class="ord" id="ordList"></div>
+        </div>
+        <div class="panel chat">
+          <div class="hdr">TRASH TALK</div>
+          <div class="clog" id="chatLog"></div>
+          <div class="crow">
+            <input id="chatInput" maxlength="160" placeholder="Say something…"
+                   onkeydown="if(event.key==='Enter')chatSend()">
+            <button class="btn gold sm" onclick="chatSend()">SEND</button>
+          </div>
+        </div>
       </div>
 
       <!-- CENTER: character detail + confirm -->
-      <div class="panel">
-        <div id="centerDetail"><div class="cs-empty">CLICK A WRESTLER<br>ON THE RIGHT TO<br>SEE THEIR INFO</div></div>
+      <div class="panel center">
+        <div id="centerDetail" style="flex:1;display:flex;flex-direction:column"><div class="cs-empty">CLICK A WRESTLER<br>ON THE RIGHT TO<br>SEE THEIR INFO</div></div>
         <div class="confirm-row" id="confirmRow" style="display:none">
           <button class="btn primary" id="confirmBtn" onclick="confirmPick()">CONFIRM PICK ►</button>
         </div>
@@ -223,16 +342,37 @@
       <div class="res-grid" id="resGrid"></div>
     </div>
   </div>
+
+  </div><!-- /content -->
+</div><!-- /shell -->
+
+<!-- ===== MUSIC (files live in firepro/audio/) ===== -->
+<audio id="fp-bg-music" preload="none"></audio>
+<div id="fp-player" aria-label="Fire Pro music player">
+  <button class="fp-pbtn" id="fp-prev" onclick="fpPrev()" title="Previous track" aria-label="Previous track">◄◄</button>
+  <button class="fp-pbtn" id="fp-play" onclick="fpTogglePlay()" title="Play / pause" aria-label="Play or pause">►</button>
+  <button class="fp-pbtn" id="fp-next" onclick="fpNext()" title="Next track" aria-label="Next track">►►</button>
+  <div id="fp-now">♪ <b>Track 1</b></div>
+  <div class="fp-volwrap">
+    <button id="fp-mute" onclick="fpToggleMute()" title="Mute / unmute" aria-label="Mute or unmute">VOL</button>
+    <input id="fp-vol" type="range" min="0" max="100" value="10" oninput="fpSetVolume(this.value)" aria-label="Music volume">
+    <span id="fp-vol-pct">10%</span>
+  </div>
 </div>
 
 <canvas id="pngCanvas" class="hidden"></canvas>
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== Supabase (same project → roster read works for anyone) =====
+// ===== Supabase (same project → roster read + auth carry over) =====
 const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
 const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
-let sb=null; try{ sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }catch(e){}
+let sb=null;
+try{
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' }
+  });
+}catch(e){}
 
 // ===== state =====
 let ROSTER=[], PROMOS=[], FACTIONS=[];
@@ -242,15 +382,18 @@ let DRAFT={ round:1, pickInRound:0, order:[], onClock:0, totalPicks:0, made:0 };
 let SEL=null;          // selected wrestler in center
 let PF=0, FF=0;        // filter indices
 let AI_THINKING=false;
+let YOU_INDEX=0;       // which seat is the local human "you" (first human seat)
 
 function byId(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function money(n){n=parseInt(n,10);if(isNaN(n))n=0;return '$'+n.toLocaleString('en-US');}
 function toast(m,err){const t=byId('toast');t.textContent=m;t.className='show'+(err?' err':'');setTimeout(()=>t.className=t.className.replace('show','').trim(),3000);}
-function goHub(){ window.location.href='index.html'; }
+function goHub(){ _fpSaveState(); window.location.href='index.html'; }
 
 // ===== boot =====
 window.addEventListener('load', async ()=>{
+  await loadMusicSettings();
+  fpPlayerInit();
   await loadRoster();
   lobBuildSeats();
 });
@@ -301,7 +444,6 @@ function lobStart(){
   CFG.rounds=parseInt(byId('lobRounds').value,10)||5;
   CFG.format=byId('lobFormat').value;
   CFG.budget=parseInt(byId('lobBudget').value,10)||4000000;
-  // need enough wrestlers for everyone to fill their rounds
   if(ROSTER.length < n*CFG.rounds){
     toast('Not enough wrestlers ('+ROSTER.length+') for '+n+' seats × '+CFG.rounds+' rounds.',true); return;
   }
@@ -311,20 +453,26 @@ function lobStart(){
     const ai=byId('seatKind'+i).getAttribute('data-ai')==='1';
     SEATS.push({ name:nm, ai, order:i, budget:CFG.budget, picks:[] });
   }
-  // build the pick order across all rounds
+  // first human seat is "you" for the chat
+  YOU_INDEX = SEATS.findIndex(s=>!s.ai); if(YOU_INDEX<0) YOU_INDEX=0;
+
   DRAFT.order=[]; DRAFT.round=1; DRAFT.made=0;
   DRAFT.totalPicks=n*CFG.rounds;
+
+  byId('cfgLine').textContent = (CFG.format==='snake'?'SNAKE':'LINEAR')+' · '+CFG.rounds+' RDS · '+money(CFG.budget);
+  byId('cfgLine').classList.remove('hidden');
+
   byId('lobby').classList.add('hidden');
   byId('draftView').classList.remove('hidden');
   PF=0;FF=0; rosRenderFilters();
+  chatPush('sys', null, 'Draft started — '+n+' seats, '+CFG.rounds+' rounds. Good luck.');
   advanceClock(true);
 }
 
 // ===== DRAFT FLOW =====
 function seatIndexForPick(globalPickIdx){
-  // globalPickIdx is 0-based across the whole draft
   const n=SEATS.length;
-  const round=Math.floor(globalPickIdx/n);       // 0-based
+  const round=Math.floor(globalPickIdx/n);
   const within=globalPickIdx%n;
   if(CFG.format==='snake' && (round%2===1)) return (n-1-within);
   return within;
@@ -335,7 +483,7 @@ function advanceClock(first){
   DRAFT.onClock=seatIdx;
   DRAFT.round=Math.floor(DRAFT.made/SEATS.length)+1;
   SEL=null;
-  renderNow(); renderOrder(); renderStable(); renderCenter(); rosRender();
+  renderNow(); renderOrder(); renderCenter(); rosRender();
   const seat=SEATS[seatIdx];
   if(seat.ai){ runAiPick(seat,seatIdx); }
 }
@@ -349,28 +497,21 @@ function renderNow(){
     (seat.ai&&AI_THINKING?' · <span class="spinner"></span> thinking…':'')+'</div></div>';
 }
 function renderOrder(){
-  byId('ordList').innerHTML=SEATS.map((s,i)=>
-    '<div class="o'+(i===DRAFT.onClock?' on':'')+'"><span class="b">'+(i+1)+'</span>'+
-    '<span>'+esc(s.name)+(s.ai?' 🤖':'')+'</span>'+
-    '<span class="bal">'+money(s.budget)+'</span></div>'
-  ).join('');
-}
-function renderStable(){
-  const seat=SEATS[DRAFT.onClock];
-  byId('stableHdr').textContent = (seat.ai?esc(seat.name).toUpperCase():'YOUR')+' STABLE';
-  if(!seat.picks.length){ byId('stableList').innerHTML='<div class="muted" style="font-size:13px">No picks yet.</div>'; return; }
-  byId('stableList').innerHTML=seat.picks.map(w=>
-    '<div class="s"><span>'+esc(w.name)+'</span><span class="c">'+money(w._cost)+'</span></div>'
-  ).join('');
+  byId('ordList').innerHTML=SEATS.map((s,i)=>{
+    const spent=s.picks.reduce((a,w)=>a+w._cost,0);
+    return '<div class="o'+(i===DRAFT.onClock?' on':'')+'"><span class="b">'+(i+1)+'</span>'+
+      '<span>'+esc(s.name)+(s.ai?' 🤖':'')+(i===YOU_INDEX?' <span class="you">YOU</span>':'')+'</span>'+
+      '<span class="bal">'+money(s.budget)+'</span></div>';
+  }).join('');
 }
 function taken(){ const t=new Set(); SEATS.forEach(s=>s.picks.forEach(w=>t.add(w.id))); return t; }
 
-// ----- center detail (reuses the roster-viewer layout) -----
+// ----- center detail -----
 function renderCenter(){
   const host=byId('centerDetail'); const cr=byId('confirmRow');
   if(!SEL){ host.innerHTML='<div class="cs-empty">CLICK A WRESTLER<br>ON THE RIGHT TO<br>SEE THEIR INFO</div>'; cr.style.display='none'; return; }
   const w=SEL;
-  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="266"><rect width="200" height="266" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
+  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
   const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
   const ff=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
   const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
@@ -414,7 +555,9 @@ function confirmPick(){
   if(!SEL){ toast('Pick a wrestler first.',true); return; }
   if(SEL._cost>seat.budget){ toast('You can\'t afford that.',true); return; }
   if(taken().has(SEL.id)){ toast('Already drafted.',true); return; }
-  commitPick(SEL);
+  const picked=SEL;
+  commitPick(picked);
+  chatPush('sys', null, esc(seat.name)+' drafted '+esc(picked.name)+' for '+money(picked._cost)+'.');
 }
 function commitPick(w){
   const seat=SEATS[DRAFT.onClock];
@@ -423,7 +566,7 @@ function commitPick(w){
   advanceClock();
 }
 
-// ----- AI opponent: calls the edge function (firepro_draft), with web search on -----
+// ----- AI opponent: edge function (firepro_draft), trash-talk lands in CHAT -----
 async function runAiPick(seat, seatIdx){
   AI_THINKING=true; renderNow();
   const t=taken();
@@ -438,7 +581,7 @@ async function runAiPick(seat, seatIdx){
         postType:'firepro_draft', webSearch:true,
         context:{ draft:{
           budgetLeft:seat.budget, roundsLeft,
-          available: available.slice(0,120),  // cap payload size
+          available: available.slice(0,120),
           stable: seat.picks.map(w=>({name:w.name,cost:w._cost})),
           otherStables: SEATS.filter((s,i)=>i!==seatIdx).map(s=>({name:s.name,picks:s.picks.map(w=>({name:w.name,cost:w._cost}))}))
         }}
@@ -449,20 +592,37 @@ async function runAiPick(seat, seatIdx){
       }
     }catch(e){ /* fall through to local fallback */ }
   }
-  // validate / fallback locally so the draft NEVER stalls
   let w = pickedId!=null ? ROSTER.find(x=>x.id===pickedId && !t.has(x.id) && x._cost<=seat.budget) : null;
   if(!w){
-    const pool=ROSTER.filter(x=>!t.has(x.id) && x._cost<=seat.budget)
-      .sort((a,b)=>a._cost-b._cost);   // cheapest affordable keeps it solvent
+    const pool=ROSTER.filter(x=>!t.has(x.id) && x._cost<=seat.budget).sort((a,b)=>a._cost-b._cost);
     w=pool[0]||null;
   }
   AI_THINKING=false;
-  if(!w){ // genuinely nothing affordable — skip this seat's pick
-    DRAFT.made++; advanceClock(); return;
-  }
-  if(line) toast(esc(seat.name)+': "'+line+'"');
-  // tiny pause so it feels like a turn, then commit
-  setTimeout(()=>commitPick(w), 550);
+  if(!w){ DRAFT.made++; advanceClock(); return; }
+  if(line) chatPush('ai', seat.name, line);
+  const picked=w;
+  setTimeout(()=>{
+    commitPick(picked);
+    chatPush('sys', null, esc(seat.name)+' drafted '+esc(picked.name)+' for '+money(picked._cost)+'.');
+  }, 550);
+}
+
+// ===== CHAT =====
+function chatPush(kind, name, body){
+  const log=byId('chatLog'); if(!log) return;
+  const div=document.createElement('div');
+  div.className='cmsg '+kind;
+  if(kind==='sys'){ div.innerHTML='<span class="body">'+body+'</span>'; }
+  else{ div.innerHTML='<span class="nm">'+esc(name)+':</span><span class="body">'+esc(body)+'</span>'; }
+  log.appendChild(div);
+  log.scrollTop=log.scrollHeight;
+}
+function chatSend(){
+  const inp=byId('chatInput'); const v=(inp.value||'').trim();
+  if(!v) return;
+  const me = SEATS[YOU_INDEX] ? SEATS[YOU_INDEX].name : 'You';
+  chatPush('human', me, v);
+  inp.value='';
 }
 
 // ----- right-side roster list + filters -----
@@ -529,22 +689,17 @@ function renderResults(){
 
 // ===== PNG EXPORT (canvas — no external libs) =====
 function drawStableCard(ctx, x, y, w, seat, title){
-  // returns the height used
   const pad=18, lh=30;
   const spent=seat.picks.reduce((a,p)=>a+p._cost,0);
   const rows=seat.picks.length;
   const h=pad*2 + 64 + rows*lh + 6;
-  // panel
   ctx.fillStyle='#140a0b'; roundRect(ctx,x,y,w,h,14); ctx.fill();
   ctx.strokeStyle='#3a2020'; ctx.lineWidth=2; roundRect(ctx,x,y,w,h,14); ctx.stroke();
-  // title
   ctx.fillStyle= seat.ai ? '#ff9a8a' : '#7fe0a0';
   ctx.font='bold 20px Oswald, sans-serif';
   ctx.fillText((title||seat.name)+(seat.ai?'  [AI]':''), x+pad, y+pad+20);
-  // subtotal
   ctx.fillStyle='#ffd23f'; ctx.font='14px Barlow, sans-serif';
   ctx.fillText(seat.picks.length+' wrestlers · '+money(spent)+' spent · '+money(seat.budget)+' left', x+pad, y+pad+44);
-  // rows
   ctx.font='16px Barlow, sans-serif';
   seat.picks.forEach((p,idx)=>{
     const ry=y+pad+64+idx*lh;
@@ -561,7 +716,6 @@ function drawStableCard(ctx, x, y, w, seat, title){
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function headerBar(ctx,W,title){
   ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,90);
-  ctx.fillStyle='#E9B949'; ctx.font='bold 26px "Press Start 2P", Oswald, monospace';
   ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
   ctx.fillText('WCA FIRE PRO — PRACTICE DRAFT', 24, 40);
   ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
@@ -577,8 +731,7 @@ function dlOne(i){
   const seat=SEATS[i];
   const c=byId('pngCanvas'); const ctx=c.getContext('2d');
   const W=520, pad=20;
-  // measure
-  const tmpH = 90 + drawStableCard(ctx, -9999, -9999, W-pad*2, seat); // draws offscreen to get h
+  const tmpH = 90 + drawStableCard(ctx, -9999, -9999, W-pad*2, seat);
   c.width=W; c.height=tmpH+pad;
   ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,c.width,c.height);
   headerBar(ctx,W,seat.name+'\u2019s stable');
@@ -591,9 +744,7 @@ function dlAll(){
   const cols = SEATS.length<=2?1:2;
   const colW=520, gap=18, pad=20;
   const W = pad*2 + cols*colW + (cols-1)*gap;
-  // measure each card height
   const heights=SEATS.map(s=>drawStableCard(ctx,-9999,-9999,colW,s));
-  // lay out in columns, tracking running y per column
   const colY=new Array(cols).fill(100);
   const place=[];
   SEATS.forEach((s,i)=>{
@@ -608,6 +759,121 @@ function dlAll(){
   place.forEach(p=>drawStableCard(ctx,p.x,p.y,colW,p.s));
   downloadCanvas(c,'wca-firepro-draft-ALL.png');
   toast('Saved the full lobby PNG');
+}
+
+// ===== MUSIC PLAYER (persistent across Fire Pro pages — identical engine to the hub) =====
+let FP_TRACKS = ['audio/bg-music-1.mp3','audio/bg-music-2.mp3','audio/bg-music-3.mp3','audio/bg-music-4.mp3'];
+let _fpNames = [];
+let _fpDefaultVol = 10;
+const FP_MUSIC_KEY = 'fpMusicState';
+let _fpIdx=0, _fpVol=10, _fpMuted=false, _fpWantPlay=false;
+
+async function loadMusicSettings(){
+  if(!sb) return;
+  try{
+    const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single();
+    const FP=(data && data.firepro)?data.firepro:{};
+    if(FP.music){
+      const m=FP.music;
+      const n=(typeof m.count==='number' && m.count>0)?Math.min(m.count,50):0;
+      if(n>0){ FP_TRACKS=[]; for(let i=1;i<=n;i++){ FP_TRACKS.push('audio/bg-music-'+i+'.mp3'); } }
+      _fpNames=Array.isArray(m.names)?m.names.slice():[];
+      if(typeof m.defaultVol==='number') _fpDefaultVol=Math.max(0,Math.min(100,m.defaultVol));
+    }
+  }catch(e){}
+}
+function _fpLoadState(){ try{ const raw=sessionStorage.getItem(FP_MUSIC_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; } }
+function _fpSaveState(){
+  const a=document.getElementById('fp-bg-music');
+  const blob={ idx:_fpIdx, vol:_fpVol, muted:_fpMuted, playing:_fpWantPlay,
+    t:(a && !isNaN(a.currentTime))?a.currentTime:0, ts:Date.now() };
+  try{ sessionStorage.setItem(FP_MUSIC_KEY, JSON.stringify(blob)); }catch(e){}
+}
+function fpPlayerInit(){
+  const a=document.getElementById('fp-bg-music');
+  const bar=document.getElementById('fp-player');
+  if(!a || !bar) return;
+  if(!FP_TRACKS.length) return;
+  bar.classList.add('show');
+  const st=_fpLoadState();
+  let resumeAt=0;
+  if(st){
+    _fpIdx=(typeof st.idx==='number' && st.idx>=0)?st.idx:0;
+    _fpVol=(typeof st.vol==='number')?st.vol:_fpDefaultVol;
+    _fpMuted=!!st.muted; _fpWantPlay=!!st.playing;
+    resumeAt=(typeof st.t==='number')?st.t:0;
+  } else { _fpVol=_fpDefaultVol; }
+  if(_fpIdx>=FP_TRACKS.length) _fpIdx=0;
+  a.src=FP_TRACKS[_fpIdx];
+  a.volume=_fpMuted?0:(_fpVol/100);
+  try{ a.currentTime=resumeAt>0?resumeAt:0; }catch(e){}
+  a.addEventListener('ended', fpNext);
+  a.addEventListener('error', ()=>{ if(_fpWantPlay) setTimeout(fpNext,400); });
+  window.addEventListener('pagehide', _fpSaveState);
+  window.addEventListener('beforeunload', _fpSaveState);
+  fpRenderPlayer();
+  if(_fpWantPlay){
+    a.play().then(()=>{ _fpWantPlay=true; fpRenderPlayer(); })
+            .catch(()=>{ _fpWantPlay=false; fpRenderPlayer(); });
+  }
+}
+function fpRenderPlayer(){
+  const playBtn=document.getElementById('fp-play');
+  const muteBtn=document.getElementById('fp-mute');
+  const vol=document.getElementById('fp-vol');
+  const pct=document.getElementById('fp-vol-pct');
+  const now=document.getElementById('fp-now');
+  if(playBtn) playBtn.textContent=_fpWantPlay?'❚❚':'►';
+  if(muteBtn){ muteBtn.textContent=_fpMuted?'MUTED':'VOL'; muteBtn.classList.toggle('muted',_fpMuted); }
+  if(vol) vol.value=_fpVol;
+  if(pct) pct.textContent=_fpVol+'%';
+  if(now){
+    const nm=(_fpNames && _fpNames[_fpIdx] && String(_fpNames[_fpIdx]).trim());
+    now.innerHTML='♪ <b>'+(nm?nm.replace(/</g,'&lt;'):('Track '+(_fpIdx+1)))+'</b>';
+  }
+}
+function fpTogglePlay(){
+  const a=document.getElementById('fp-bg-music');
+  if(!a) return;
+  if(_fpWantPlay){ a.pause(); _fpWantPlay=false; }
+  else{
+    a.play().then(()=>{ _fpWantPlay=true; fpRenderPlayer(); _fpSaveState(); })
+            .catch(()=>{ _fpWantPlay=false; fpRenderPlayer(); });
+    _fpWantPlay=true;
+  }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpLoadTrack(i, autoplay){
+  const a=document.getElementById('fp-bg-music');
+  if(!a || !FP_TRACKS.length) return;
+  _fpIdx=(i+FP_TRACKS.length)%FP_TRACKS.length;
+  a.src=FP_TRACKS[_fpIdx];
+  try{ a.currentTime=0; }catch(e){}
+  a.volume=_fpMuted?0:(_fpVol/100);
+  if(autoplay){
+    a.play().then(()=>{ _fpWantPlay=true; fpRenderPlayer(); _fpSaveState(); })
+            .catch(()=>{ _fpWantPlay=false; fpRenderPlayer(); });
+  }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpNext(){ fpLoadTrack(_fpIdx+1,true); }
+function fpPrev(){
+  const a=document.getElementById('fp-bg-music');
+  if(a && a.currentTime>3){ try{ a.currentTime=0; }catch(e){} _fpSaveState(); return; }
+  fpLoadTrack(_fpIdx-1,true);
+}
+function fpSetVolume(v){
+  _fpVol=Math.max(0,Math.min(100,parseInt(v,10)||0));
+  const a=document.getElementById('fp-bg-music');
+  if(_fpVol>0 && _fpMuted){ _fpMuted=false; }
+  if(a) a.volume=_fpMuted?0:(_fpVol/100);
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpToggleMute(){
+  const a=document.getElementById('fp-bg-music');
+  _fpMuted=!_fpMuted;
+  if(a) a.volume=_fpMuted?0:(_fpVol/100);
+  fpRenderPlayer(); _fpSaveState();
 }
 </script>
 </body>
