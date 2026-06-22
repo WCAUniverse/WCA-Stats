@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WCA · Fire Pro — Live Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --gold:#E9B949; --gold2:#ffd23f; --red:#E24B4A; --red2:#ff3b3b; --ink:#0a0506;
+    --panel:#140a0b; --panel2:#1c0f10; --line:#3a2020; --txt:#ffe9b0; --muted:#9a7a6a;
+    --green:#7fe0a0; --airose:#ff9a8a; --good:#3ECF8E;
+  }
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:#0a0506; color:var(--txt);
+    font-family:'Barlow',sans-serif; min-height:100vh; overflow-x:hidden;
+  }
+  h1,h2,h3{font-family:'Press Start 2P',monospace;letter-spacing:1px;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:#0c0506;}
+  ::-webkit-scrollbar-thumb{background:#3a2020;border-radius:6px;}
+  ::-webkit-scrollbar-thumb:hover{background:#5a2c2c;}
+
+  /* ===== ARENA BACKGROUND — matches the Fire Pro hub ===== */
+  .arena-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.30) 0 2px, transparent 2px 4px),
+      radial-gradient(120% 80% at 50% 0%, #3a0d0d 0%, #160505 45%, #0a0506 100%);
+  }
+  .arena-bg::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:38%;
+    background:
+      radial-gradient(80% 120% at 50% 120%, rgba(255,120,30,.42), transparent 70%),
+      linear-gradient(0deg, rgba(255,59,59,.22), transparent);
+    mix-blend-mode:screen;
+  }
+  /* faint spotlight sweep behind the hero */
+  .arena-glow{
+    position:fixed; left:50%; top:0; width:60vw; height:74vh; z-index:0; pointer-events:none;
+    transform:translateX(-50%);
+    background:radial-gradient(60% 70% at 50% 30%, rgba(255,59,59,.16), transparent 70%);
+  }
+
+  .shell{position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column;}
+
+  /* ===== TOP STRIP ===== */
+  .topbar{
+    position:sticky; top:0; z-index:30;
+    display:flex;align-items:center;gap:14px;
+    padding:10px 18px;
+    background:linear-gradient(180deg,#b3001b,#6e0010);
+    border-bottom:3px solid var(--gold2);
+    box-shadow:0 3px 22px -6px #000;
+  }
+  .topbar .draft-badge{
+    font-family:'Press Start 2P',monospace; font-size:11px; color:#fff;
+    background:linear-gradient(180deg,#2a0a0a,#120406); border:2px solid var(--red2);
+    border-radius:5px; padding:8px 12px; letter-spacing:1px;
+    text-shadow:1px 1px 0 #b3001b, 0 0 12px rgba(255,59,59,.6);
+    box-shadow:inset 0 0 14px -7px var(--gold2);
+  }
+  .topbar h1{font-size:15px;color:#fff;margin:0;text-shadow:2px 2px 0 #3a0008;letter-spacing:2px;}
+  .topbar .spacer{flex:1;}
+  .topbar .cfgline{
+    font-family:'Press Start 2P',monospace;font-size:9px;color:#0a0506;letter-spacing:1px;
+    background:var(--gold2); border:2px solid #fff; border-radius:5px; padding:7px 11px;
+    box-shadow:0 0 12px -3px var(--gold2);
+  }
+
+  .btn{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;
+       background:linear-gradient(180deg,#2a0a0a,#120406);color:var(--gold2);border:2px solid var(--red2);
+       border-radius:6px;padding:11px 14px;transition:.12s;text-transform:uppercase;
+       text-shadow:1px 1px 0 #b3001b; box-shadow:0 0 12px -3px var(--red2), inset 0 0 14px -9px var(--gold2);}
+  .btn:hover{color:#fff;border-color:var(--gold2);box-shadow:0 0 18px -2px var(--red2), inset 0 0 14px -6px var(--gold2);}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:linear-gradient(180deg,#ff5a4a,#a82f2f);border-color:#ff9a8a;color:#fff;text-shadow:1px 1px 0 #3a0008;}
+  .btn.primary:hover{border-color:#fff;}
+  .btn.gold{background:linear-gradient(180deg,#ffe27a,#ffd23f);border-color:#fff;color:#1a0d0e;text-shadow:none;}
+  .btn.gold:hover{background:#fff;}
+  .btn.sm{padding:8px 11px;font-size:9px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4);}
+  .btn.ghost{background:transparent;box-shadow:none;}
+  .btn.head{background:var(--gold2);color:#0a0506;border:2px solid #fff;box-shadow:0 0 12px -2px var(--gold2);text-shadow:none;}
+  .btn.head:hover{background:#fff;}
+  .muted{color:var(--muted);}
+
+  .content{flex:1; padding:14px 16px 96px; display:flex; flex-direction:column;}
+
+  /* arcade panel frame */
+  .panel{
+    position:relative;
+    background:linear-gradient(180deg,rgba(26,11,12,.96),rgba(12,6,7,.97));
+    border:2px solid var(--line); border-radius:10px; padding:13px;
+    display:flex;flex-direction:column;min-height:0;
+    box-shadow:inset 0 0 34px -18px var(--red2), 0 6px 22px -12px #000;
+  }
+  .panel.lit{ border-color:var(--red2); box-shadow:inset 0 0 30px -14px var(--red2), 0 0 22px -6px rgba(255,59,59,.35); }
+  .panel-h{
+    font-family:'Press Start 2P',monospace; font-size:9px; color:var(--gold2); letter-spacing:1px;
+    margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:8px; text-shadow:1px 1px 0 #3a0008;
+  }
+  .panel-h::before{content:''; width:4px; height:13px; background:var(--red2); box-shadow:0 0 8px var(--red2); display:inline-block;}
+
+  /* ===== LOBBY (centered arcade setup) ===== */
+  #lobby{display:flex; justify-content:center; padding-top:18px;}
+  .lobby-wrap{width:100%; max-width:1000px;}
+  .lobby-wrap .panel-h{font-size:11px;}
+  label{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
+  input,select{font-family:'Barlow',sans-serif;font-size:15px;background:#0c0506;color:var(--txt);
+    border:2px solid var(--line);border-radius:7px;padding:9px 11px;width:100%; outline:none;}
+  input:focus,select:focus{border-color:var(--gold2);}
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+  .row > *{flex:1;min-width:130px;}
+  .seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:9px;margin-top:8px;}
+  .seat{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);
+        border-radius:9px;padding:8px 10px;}
+  .seat .num{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);width:26px;text-align:center;flex:0 0 auto;}
+  .seat input{flex:1;}
+  .seat .btn{flex:0 0 auto;}
+  .intro{font-size:14px;line-height:1.55;color:#cdbfa6;margin:0 0 14px;}
+
+  /* ===== DRAFT — full-bleed arena grid ===== */
+  .draft{
+    display:grid;
+    grid-template-columns:340px minmax(0,1fr) 396px;
+    gap:14px;
+    height:calc(100vh - 58px - 96px);
+    min-height:600px;
+  }
+  @media(max-width:1280px){ .draft{grid-template-columns:300px minmax(0,1fr) 340px;} }
+  @media(max-width:1040px){ .draft{grid-template-columns:1fr; height:auto; min-height:0;} .draft .panel{min-height:340px;} .leftrail .chat{height:300px;min-height:300px;} }
+
+  /* LEFT rail: on-clock + order (top) and CHAT (bottom) */
+  .leftrail{display:flex;flex-direction:column;gap:14px;min-height:0;}
+  .leftrail .stack-top{flex:1 1 auto;min-height:0;}
+  /* chat is a CONSTANT height with its own scroll — never grows the rail */
+  .leftrail .chat{flex:0 0 auto;height:300px;min-height:300px;}
+
+  /* ON THE CLOCK card */
+  #nowBox{position:relative; padding:0; overflow:hidden;
+    border:2px solid var(--gold2); border-radius:10px; margin-bottom:12px;
+    background:linear-gradient(180deg,#2a1112,#140909);
+    box-shadow:0 0 24px -8px var(--gold2), inset 0 0 30px -16px var(--gold2);
+  }
+  .oc-tag{
+    font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:1px; color:#0a0506;
+    background:linear-gradient(90deg,#ffd23f,#ff8a3b); padding:7px 12px;
+    display:flex; align-items:center; gap:7px;
+  }
+  .oc-tag.ai{ background:linear-gradient(90deg,#ff6a5a,#b3001b); color:#fff; text-shadow:1px 1px 0 #3a0008; }
+  .oc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
+  .oc-cell{background:#160a0b;padding:9px 12px;display:flex;flex-direction:column;gap:3px;}
+  .oc-k{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;}
+  .oc-v{font-family:'Oswald',sans-serif;font-weight:700;font-size:26px;color:var(--gold2);line-height:1;}
+  .oc-v i{font-size:13px;color:var(--muted);font-style:normal;font-weight:500;}
+  .oc-seat{display:flex;align-items:center;gap:11px;padding:11px 12px;border-top:1px solid var(--line);}
+  .oc-ava{
+    width:46px;height:46px;flex:0 0 auto;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-family:'Press Start 2P',monospace;font-size:16px;color:#0a0506;
+    background:linear-gradient(180deg,#ffe27a,#ffce3a);border:2px solid #fff;box-shadow:0 0 12px -3px var(--gold2);
+  }
+  .oc-seat.ai .oc-ava{background:linear-gradient(180deg,#ff8a7a,#c23a3a);color:#fff;border-color:#ffd0c8;box-shadow:0 0 12px -3px var(--airose);}
+  .oc-seatmeta{min-width:0;}
+  .oc-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:21px;color:#fff;line-height:1.1;letter-spacing:.5px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .oc-bud{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--good);margin-top:4px;}
+  .oc-bud span{color:var(--muted);font-size:7px;}
+  .you{font-family:'Press Start 2P',monospace;font-size:7px;color:#0a0506;background:var(--green);
+    border-radius:3px;padding:2px 4px;vertical-align:middle;margin-left:4px;}
+
+  /* draft order list */
+  .ord{display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0;}
+  .ord .o{display:flex;gap:8px;align-items:center;font-size:14px;padding:7px 9px;border-radius:7px;
+    background:rgba(255,255,255,.02);border:1px solid transparent;}
+  .ord .o.on{background:linear-gradient(90deg,#2e1718,rgba(46,23,24,.2));border-color:var(--gold2);
+    box-shadow:0 0 14px -5px var(--gold2);}
+  .ord .o .b{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);width:16px;text-align:center;flex:0 0 auto;}
+  .ord .o.on .b{color:var(--gold2);}
+  .ord .o .onm{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;color:var(--txt);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px;}
+  .ord .o.human .onm{color:#d8f5e2;}
+  .ord .o .bot{font-style:normal;}
+  .ord .o .cnt{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);
+    background:#0c0506;border:1px solid var(--line);border-radius:4px;padding:3px 5px;flex:0 0 auto;}
+  .ord .o.on .cnt{color:var(--gold2);border-color:var(--gold);}
+  .ord .o .bal{font-family:'Barlow',sans-serif;font-weight:600;font-size:12px;color:var(--gold2);white-space:nowrap;flex:0 0 auto;min-width:74px;text-align:right;}
+  .ord .o .arrow{color:var(--gold2);font-size:11px;flex:0 0 auto;animation:nudge .8s ease-in-out infinite;}
+  @keyframes nudge{50%{transform:translateX(-3px);}}
+
+  /* draft progress */
+  .ordprog{margin-top:11px;flex:0 0 auto;}
+  .ordprog .lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:block;text-align:center;}
+  .ordprog .bar{height:8px;background:#1a0c0d;border:1px solid var(--line);border-radius:5px;overflow:hidden;}
+  .ordprog .fill{height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--gold2));transition:width .35s ease;box-shadow:0 0 10px var(--gold2);}
+
+  /* CHAT panel */
+  .chat .clog{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 0;min-height:0;}
+  .cmsg{font-size:14px;line-height:1.4;animation:cmIn .2s ease;}
+  @keyframes cmIn{from{opacity:0;transform:translateY(4px);}}
+  .cmsg .nm{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.5px;margin-right:6px;}
+  .cmsg.human .nm{color:var(--green);}
+  .cmsg.ai .nm{color:var(--airose);}
+  .cmsg.ai .body{color:#ffd9cf;}
+  .cmsg.sys{color:var(--muted);font-style:italic;font-size:12.5px;padding-left:4px;border-left:2px solid #2a1516;}
+  .cmsg .body{color:var(--txt);}
+  .chat .crow{display:flex;gap:8px;margin-top:10px;flex:0 0 auto;}
+  .chat .crow input{flex:1;}
+  .chat .crow .btn{flex:0 0 auto;}
+
+  /* ===== CENTER hero card ===== */
+  .center{padding:0;overflow:hidden;background:linear-gradient(180deg,rgba(22,9,10,.97),rgba(10,5,6,.98));}
+  .center-scroll{flex:1;display:flex;flex-direction:column;overflow-y:auto;}
+  .hero{position:relative;display:flex;gap:0;flex:0 0 auto;}
+  .hero-portrait{position:relative;width:46%;max-width:330px;flex:0 0 auto;aspect-ratio:3/4;background:#0c0506;overflow:hidden;
+    border-right:2px solid var(--line);}
+  .hero-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
+  .hero-portrait::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(115deg,transparent 55%,rgba(255,59,59,.18) 100%),
+      linear-gradient(0deg,rgba(10,5,6,.7),transparent 40%);pointer-events:none;}
+  .hero-grade{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2;}
+  .gbadge{font-family:'Press Start 2P',monospace;font-size:8px;color:#0a0506;background:var(--gold2);
+    border:2px solid #fff;border-radius:5px;padding:5px 7px;box-shadow:0 0 12px -3px var(--gold2);line-height:1.3;text-align:center;}
+  .gbadge small{display:block;font-size:6px;color:#4a2a00;}
+  .hero-meta{flex:1;min-width:0;padding:18px 20px;display:flex;flex-direction:column;}
+  .hero-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(26px,3.2vw,42px);color:#fff;line-height:1.02;
+    text-transform:uppercase;text-shadow:3px 3px 0 #b3001b,0 0 24px rgba(255,59,59,.5);letter-spacing:.5px;}
+  .hero-nick{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:18px;color:var(--gold2);margin:7px 0 14px;letter-spacing:.5px;}
+  .hero-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+  .chip{font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:1px;color:var(--gold2);
+    background:#180c0d;border:1px solid var(--line);border-radius:5px;padding:6px 8px;}
+  .chip.red{color:#fff;background:linear-gradient(180deg,#b3001b,#6e0010);border-color:#ff7a6a;}
+  .hero-info{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:15px;align-content:start;}
+  .hero-info .k{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
+  .hero-info .v{color:var(--txt);word-break:break-word;font-weight:500;}
+
+  /* cost bar + confirm */
+  .cost-zone{flex:0 0 auto;padding:14px 20px 16px;border-top:2px solid var(--line);background:rgba(8,4,5,.6);}
+  .cost-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .cost-lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
+  .cost-val{font-family:'Oswald',sans-serif;font-weight:700;font-size:28px;color:var(--good);line-height:1;}
+  .cost-val.bad{color:#ff7a6a;}
+  .cost-bar{height:12px;background:#1a0c0d;border:1px solid var(--line);border-radius:7px;overflow:hidden;}
+  .cost-fill{height:100%;width:0;background:linear-gradient(90deg,#1e8a55,#3ECF8E);box-shadow:0 0 12px #3ECF8E;transition:width .3s ease;}
+  .cost-fill.bad{background:linear-gradient(90deg,#a82f2f,#ff5a4a);box-shadow:0 0 12px #ff5a4a;}
+  .cost-note{font-size:12px;color:var(--muted);margin-top:6px;}
+  .confirm-row{display:flex;gap:10px;margin-top:14px;}
+  .confirm-row .btn{flex:1;font-size:12px;padding:16px;}
+
+  .cs-empty{font-family:'Press Start 2P',monospace;font-size:13px;color:#7a5a5a;text-align:center;line-height:2.1;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;}
+  .cs-empty .big{font-size:18px;color:#a06a5a;animation:fpBlink 1.2s steps(2,end) infinite;}
+  @keyframes fpBlink{50%{opacity:.3;}}
+  @media(max-width:760px){ .hero{flex-direction:column;} .hero-portrait{width:100%;max-width:none;border-right:none;border-bottom:2px solid var(--line);} }
+
+  /* ===== RIGHT roster ===== */
+  .rosfilters{flex:0 0 auto;}
+  .filterbar{display:flex;gap:6px;margin-bottom:7px;}
+  .filterbar button{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);
+    background:linear-gradient(180deg,#2a0a0a,#120406);border:2px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer;transition:.1s;}
+  .filterbar button:hover{border-color:var(--gold2);color:#fff;}
+  .filterbar .lbl{flex:1;text-align:center;align-self:center;font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;
+    letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:linear-gradient(180deg,#3a0d0d,#1a0606);border:1px solid var(--line);border-radius:6px;padding:9px 8px;}
+  .rsearch input{margin-bottom:8px;}
+  .rcols{display:flex;align-items:center;gap:8px;padding:4px 11px;flex:0 0 auto;
+    font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--line);margin-bottom:6px;}
+  .rcols .c-tag{width:42px;flex:0 0 auto;}
+  .rcols .c-nm{flex:1;}
+  .rcols .c-rg{width:46px;flex:0 0 auto;text-align:center;}
+  .rcols .c-rc{width:78px;flex:0 0 auto;text-align:right;}
+  .rlist{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:4px;min-height:0;}
+  .ritem{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:7px;padding:8px 11px;cursor:pointer;transition:.1s;}
+  .ritem:hover{border-color:var(--gold2);background:#241314;transform:translateX(2px);}
+  .ritem.sel{border-color:var(--gold2);background:linear-gradient(90deg,#3a1a14,#2a1516);box-shadow:0 0 14px -4px var(--gold2);}
+  .ritem.taken{opacity:.3;pointer-events:none;}
+  .ritem.taken .rn{text-decoration:line-through;}
+  .rtag{width:42px;flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.5px;text-align:center;
+    color:var(--gold2);background:#0c0506;border:1px solid var(--line);border-radius:4px;padding:5px 2px;overflow:hidden;}
+  .ritem .rn{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:17px;letter-spacing:.3px;min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ritem .rg{width:46px;flex:0 0 auto;text-align:center;font-family:'Press Start 2P',monospace;font-size:8px;color:#ffae6a;}
+  .ritem .rc{width:78px;flex:0 0 auto;text-align:right;font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;color:var(--gold2);white-space:nowrap;}
+  .rcount{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;text-align:center;padding-top:8px;}
+
+  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:#1a0d0e;border:2px solid var(--gold2);color:var(--txt);padding:12px 18px;border-radius:9px;
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;letter-spacing:.3px;
+    pointer-events:none;transition:.25s;z-index:9600;max-width:90vw;text-align:center;box-shadow:0 0 24px -6px var(--gold2);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{border-color:var(--red2);box-shadow:0 0 24px -6px var(--red2);}
+  .hidden{display:none!important;}
+
+  /* ===== RESULTS ===== */
+  #resultsView{display:flex;justify-content:center;}
+  .res-wrap{width:100%;max-width:1200px;}
+  .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:12px;}
+  .res-card{background:linear-gradient(180deg,rgba(26,11,12,.96),rgba(12,6,7,.97));border:2px solid var(--line);border-radius:11px;padding:15px;
+    box-shadow:inset 0 0 30px -18px var(--red2);}
+  .res-card h3{font-size:12px;margin:0 0 5px;}
+  .res-card .tot{font-family:'Barlow',sans-serif;font-size:13px;color:var(--gold2);margin-bottom:11px;}
+  .res-card .rosrow{display:flex;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;padding:6px 0;border-bottom:1px solid #251515;}
+  .res-card .rosrow .c{margin-left:auto;color:var(--gold2);font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;}
+
+  .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.35);border-top-color:#0a0506;
+    border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+  .oc-tag.ai .spinner{border:2px solid rgba(255,255,255,.4);border-top-color:#fff;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ===== MUSIC PLAYER (identical to hub) ===== */
+  #fp-player{
+    position:fixed; left:0; right:0; bottom:0; z-index:9500;
+    display:none; align-items:center; gap:12px;
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg,#6e0010,#3a0008);
+    border-top:3px solid #ffd23f;
+    box-shadow:0 -4px 22px -6px #000;
+    font-family:'Press Start 2P',monospace;
+  }
+  #fp-player.show{display:flex;}
+  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; line-height:1; color:#0a0506;
+    background:#ffd23f; border:2px solid #fff; border-radius:4px; padding:9px 11px; text-transform:uppercase;
+    box-shadow:0 0 10px -2px #ffd23f; transition:.12s; white-space:nowrap;}
+  .fp-pbtn:hover{background:#fff; box-shadow:0 0 14px 0 #ffd23f;}
+  .fp-pbtn:active{transform:translateY(1px);}
+  #fp-play{min-width:42px;}
+  #fp-now{flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    font-size:9px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
+  #fp-now b{color:#fff;}
+  .fp-volwrap{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
+  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:10px; color:#ffd23f;
+    background:transparent; border:2px solid #ffd23f; border-radius:4px; padding:8px 9px; transition:.12s; white-space:nowrap;}
+  #fp-mute:hover{background:rgba(255,210,63,.15);}
+  #fp-mute.muted{color:#0a0506; background:#ffd23f;}
+  #fp-vol{-webkit-appearance:none; appearance:none; width:110px; height:6px;
+    background:linear-gradient(90deg,#ff3b3b,#ffd23f); border-radius:6px; outline:none; cursor:pointer;}
+  #fp-vol::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:15px; height:15px;
+    border-radius:50%; background:#fff; border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
+  #fp-vol::-moz-range-thumb{width:15px; height:15px; border-radius:50%; background:#fff;
+    border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
+  #fp-vol-pct{font-size:8px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
+  @media(max-width:600px){
+    #fp-player{gap:8px; padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap;}
+    .fp-pbtn{font-size:9px; padding:8px 8px;}
+    #fp-now{flex-basis:100%; order:-1; font-size:8px; text-align:center;}
+    #fp-vol{width:78px;}
+    #fp-mute{font-size:8px; padding:7px 7px;}
+  }
+
+  /* ===== LIVE DRAFT ADDITIONS ===== */
+  .live-badge{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;
+    color:#fff;background:var(--red);border:1px solid #ff7a6a;border-radius:5px;padding:4px 8px;
+    animation:livepulse 1.4s ease-in-out infinite;}
+  @keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,.6);}50%{box-shadow:0 0 10px 2px rgba(226,75,74,.5);}}
+  .spec-badge{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;
+    color:#0a0506;background:var(--gold2);border-radius:5px;padding:4px 8px;}
+  /* auth bar in topbar */
+  .authwrap{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .authwrap .who{color:var(--gold2);font-family:'Barlow',sans-serif;}
+  .authwrap .who.out{color:var(--muted);}
+  /* join / lobby cards */
+  .seatcard{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:11px 14px;margin-bottom:8px;}
+  .seatcard .av{width:42px;height:42px;border-radius:8px;background:#0c0506 center/cover;border:1px solid var(--line);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2);}
+  .seatcard .nm{flex:1;font-weight:600;font-size:15px;}
+  .seatcard .ord{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold2);}
+  .seatcard.me{border-color:var(--green);}
+  .seatcard .youtag{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);}
+  .statusline{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold2);letter-spacing:1px;
+    margin:4px 0 14px;text-align:center;}
+  .joinrow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .joinrow > div{flex:1;min-width:160px;}
+  .waitmsg{text-align:center;padding:30px 16px;font-family:'Press Start 2P',monospace;font-size:11px;
+    color:#7a5a5a;line-height:2;}
+  .queued-tag{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold2);margin-left:6px;}
+</style>
+</head>
+<body>
+<div class="arena-bg"></div>
+<div class="arena-glow"></div>
+
+<div class="shell">
+  <div class="topbar">
+    <button class="btn head sm" onclick="goHub()">◄ HUB</button>
+    <span class="draft-badge">DRAFT</span>
+    <h1>LIVE DRAFT</h1>
+    <span class="live-badge hidden" id="liveBadge">● LIVE</span>
+    <span class="spec-badge hidden" id="specBadge">SPECTATING</span>
+    <div class="spacer"></div>
+    <div class="cfgline hidden" id="cfgLine"></div>
+    <div class="authwrap"><span class="who out" id="authWho">Not signed in</span></div>
+  </div>
+
+  <div class="content">
+
+  <!-- ============ JOIN / LOBBY ============ -->
+  <div id="lobby">
+    <div class="panel lobby-wrap">
+      <div class="panel-h">LIVE LEAGUE DRAFT</div>
+      <div class="statusline" id="lobStatus">LOOKING FOR AN ACTIVE DRAFT…</div>
+      <p class="intro" id="lobIntro">Sign in with your WCA account to claim a seat. The draft is run by the league admin — once it starts, your turn will light up here and you pick live against everyone else.</p>
+
+      <!-- not signed in -->
+      <div id="lobSignedOut" class="hidden">
+        <div class="waitmsg">SIGN IN TO YOUR<br>WCA ACCOUNT TO JOIN</div>
+        <div style="text-align:center"><button class="btn primary" onclick="goSignIn()">SIGN IN ON THE MAIN SITE ►</button></div>
+      </div>
+
+      <!-- signed in, can claim a seat -->
+      <div id="lobJoin" class="hidden">
+        <label>Your promotion / booker name (shown to everyone)</label>
+        <div class="joinrow">
+          <div><input id="joinName" maxlength="28" placeholder="e.g. Macho's Mayhem"></div>
+          <div style="flex:0 0 auto"><button class="btn primary" onclick="claimSeat()" id="joinBtn">CLAIM MY SEAT ►</button></div>
+        </div>
+        <p class="muted" id="joinMsg" style="font-size:13px;margin-top:8px"></p>
+      </div>
+
+      <!-- seated, waiting for start -->
+      <div id="lobSeated" class="hidden">
+        <div class="panel-h" style="margin-top:14px">SEATS IN THIS DRAFT</div>
+        <div id="seatList"></div>
+        <div class="waitmsg" id="waitForStart">WAITING FOR THE ADMIN<br>TO START THE DRAFT…</div>
+      </div>
+
+      <!-- spectator (draft already locked/live, no seat) -->
+      <div id="lobSpectate" class="hidden">
+        <div class="waitmsg">THIS DRAFT IS ALREADY UNDERWAY<br>YOU CAN WATCH IT LIVE</div>
+        <div style="text-align:center"><button class="btn gold" onclick="enterSpectate()">WATCH LIVE ►</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DRAFT ============ -->
+  <div id="draftView" class="hidden" style="flex:1;display:flex;flex-direction:column;">
+    <div class="draft">
+      <!-- LEFT rail -->
+      <div class="leftrail">
+        <div class="panel stack-top" style="flex:1 1 auto;min-height:0;">
+          <div id="nowBox"></div>
+          <div class="panel-h">DRAFT ORDER</div>
+          <div class="ord" id="ordList"></div>
+          <div class="ordprog" id="ordProgress">
+            <span class="lbl">0 / 0 PICKS</span>
+            <div class="bar"><div class="fill"></div></div>
+          </div>
+        </div>
+        <div class="panel chat lit">
+          <div class="panel-h">DRAFT FEED</div>
+          <div class="clog" id="chatLog"></div>
+          <div class="crow">
+            <input id="chatInput" maxlength="160" placeholder="Say something…"
+                   onkeydown="if(event.key==='Enter')chatSend()">
+            <button class="btn gold sm" onclick="chatSend()">SEND</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER: hero detail -->
+      <div class="panel center">
+        <div class="center-scroll" id="centerDetail"></div>
+        <div class="confirm-row" id="confirmRow" style="display:none;padding:0 20px 16px;">
+          <button class="btn primary" id="confirmBtn" onclick="confirmPick()">CONFIRM PICK ►</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: roster -->
+      <div class="panel">
+        <div class="panel-h">AVAILABLE ROSTER</div>
+        <div class="rosfilters">
+          <div class="filterbar">
+            <button onclick="rosCycle('promo',-1)">◄</button>
+            <div class="lbl" id="fPromo">ALL PROMOTIONS</div>
+            <button onclick="rosCycle('promo',1)">►</button>
+          </div>
+          <div class="filterbar">
+            <button onclick="rosCycle('fac',-1)">◄</button>
+            <div class="lbl" id="fFac">ALL</div>
+            <button onclick="rosCycle('fac',1)">►</button>
+          </div>
+          <div class="rsearch"><input id="rSearch" placeholder="Search wrestlers…" oninput="rosRender()"></div>
+        </div>
+        <div class="rcols"><span class="c-tag">PROMO</span><span class="c-nm">NAME</span><span class="c-rg">R/C</span><span class="c-rc">COST</span></div>
+        <div class="rlist" id="rList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div id="resultsView" class="hidden">
+    <div class="res-wrap">
+      <div class="panel">
+        <div class="panel-h">DRAFT COMPLETE — EVERYONE'S STABLE</div>
+        <p class="muted" style="font-size:14px;margin:0 0 12px">Every roster below is now saved to the league. The admin can review them anytime in the Fire Pro admin.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+          <button class="btn gold" onclick="dlAll()" id="dlAllBtn">📸 DOWNLOAD ALL (PNG)</button>
+          <button class="btn sm ghost" onclick="goHub()">◄ BACK TO HUB</button>
+        </div>
+        <div class="res-grid" id="resGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /shell -->
+
+<!-- ===== MUSIC (files live in firepro/audio/) ===== -->
+<audio id="fp-bg-music" preload="none"></audio>
+<div id="fp-player" aria-label="Fire Pro music player">
+  <button class="fp-pbtn" id="fp-prev" onclick="fpPrev()" title="Previous track" aria-label="Previous track">◄◄</button>
+  <button class="fp-pbtn" id="fp-play" onclick="fpTogglePlay()" title="Play / pause" aria-label="Play or pause">►</button>
+  <button class="fp-pbtn" id="fp-next" onclick="fpNext()" title="Next track" aria-label="Next track">►►</button>
+  <div id="fp-now">♪ <b>Track 1</b></div>
+  <div class="fp-volwrap">
+    <button id="fp-mute" onclick="fpToggleMute()" title="Mute / unmute" aria-label="Mute or unmute">VOL</button>
+    <input id="fp-vol" type="range" min="0" max="100" value="10" oninput="fpSetVolume(this.value)" aria-label="Music volume">
+    <span id="fp-vol-pct">10%</span>
+  </div>
+</div>
+
+<canvas id="pngCanvas" class="hidden"></canvas>
+<div class="toast" id="toast"></div>
+<script>
+// ===== Supabase (same project → login carries over from the main WCA site) =====
+const SUPABASE_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+let sb=null;
+try{
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+    auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' }
+  });
+}catch(e){}
+
+// ===== shared helpers =====
+function byId(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function money(n){n=parseInt(n,10);if(isNaN(n))n=0;return '$'+n.toLocaleString('en-US');}
+function toast(m,err){const t=byId('toast');t.textContent=m;t.className='show'+(err?' err':'');setTimeout(()=>t.className=t.className.replace('show','').trim(),3000);}
+function goHub(){ _fpSaveState(); window.location.href='index.html'; }
+function goSignIn(){ _fpSaveState(); window.location.href='../index.html#account'; }
+
+// ===== LIVE DRAFT STATE (mirrors the league tables) =====
+let ME=null;                 // { id, email } from auth
+let ROSTER=[], PROMOS=[], FACTIONS=[];
+let SEASON=null;             // fp_seasons row (mode:'draft', active)
+let STATE=null;              // fp_draft_state row
+let SEATS=[];                // fp_season_bookers rows (the players)
+let PICKS=[];                // fp_draft_picks rows
+let WMAP={};                 // wrestler id -> {name,cost,...}
+let SUB=null;                // realtime channel
+let SEL=null;                // selected wrestler in the center
+let PF=0, FF=0;              // roster filter indices
+let AM_SPECTATOR=false;      // no seat, watching
+let CLOCK=null;              // countdown interval
+let MY_TURN_LAST=false;      // edge-detect "my turn" for a sound/toast
+
+// ===== boot =====
+window.addEventListener('load', async ()=>{
+  await loadMusicSettings();
+  fpPlayerInit();
+  await loadRoster();
+  await refreshAuth();
+  await findActiveSeason();
+  if(SEASON){ subscribe(); await refreshAll(); routeView(); }
+  // re-check auth if the user logs in on another tab
+  if(sb) sb.auth.onAuthStateChange(()=>{ refreshAuth().then(routeView); });
+});
+
+async function refreshAuth(){
+  if(!sb){ ME=null; return; }
+  try{ const { data } = await sb.auth.getUser(); ME = (data && data.user) ? { id:data.user.id, email:data.user.email } : null; }
+  catch(_){ ME=null; }
+  const who=byId('authWho');
+  if(ME){ who.textContent=ME.email; who.classList.remove('out'); }
+  else  { who.textContent='Not signed in'; who.classList.add('out'); }
+}
+
+async function loadRoster(){
+  try{
+    const { data } = await sb.from('fp_wrestlers')
+      .select('id,name,nickname,origin,image_url,cost,cost_override,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
+      .order('name',{ascending:true});
+    ROSTER = (data||[]).map(w=>({...w, _cost:(w.cost_override!=null&&w.cost_override!=='')?w.cost_override:(w.cost||0)}));
+    WMAP={}; ROSTER.forEach(w=>{ WMAP[w.id]=w; });
+  }catch(e){ ROSTER=[]; }
+  try{ const { data } = await sb.from('fp_promotions').select('id,name').order('name'); PROMOS=data||[]; }catch(e){ PROMOS=[]; }
+  try{ const { data } = await sb.from('fp_factions').select('id,name,promotion_id').order('name'); FACTIONS=data||[]; }catch(e){ FACTIONS=[]; }
+}
+
+// find the active draft-mode season (the one the admin set live)
+async function findActiveSeason(){
+  if(!sb) return;
+  try{
+    // prefer an active draft season; fall back to a setup one with a draft_state in lobby/live
+    let { data } = await sb.from('fp_seasons').select('*')
+      .eq('mode','draft').in('status',['active','setup']).order('id',{ascending:false});
+    const list = data||[];
+    // pick the first whose draft_state is not 'done'
+    for(const s of list){
+      const { data: st } = await sb.from('fp_draft_state').select('*').eq('season_id',s.id).maybeSingle();
+      if(st && st.status!=='done'){ SEASON=s; STATE=st; return; }
+    }
+    // none live → still show the newest draft season so people see "not started"
+    if(list.length){ SEASON=list[0];
+      const { data: st } = await sb.from('fp_draft_state').select('*').eq('season_id',SEASON.id).maybeSingle();
+      STATE=st||null;
+    }
+  }catch(e){ /* no season / tables missing */ }
+  if(!SEASON){ byId('lobStatus').textContent='NO LIVE DRAFT RIGHT NOW'; byId('lobIntro').textContent='There’s no draft running at the moment. When the league admin opens one, this page will light up. Check back when a draft is scheduled.'; }
+}
+
+// ===== realtime: subscribe to the SAME tables the admin writes =====
+function subscribe(){
+  unsubscribe();
+  if(!SEASON) return;
+  SUB = sb.channel('draft-'+SEASON.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_draft_state',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_draft_picks',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_season_bookers',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
+    .subscribe();
+}
+function unsubscribe(){ if(SUB){ try{ sb.removeChannel(SUB); }catch(_){} SUB=null; } }
+async function onLiveChange(){ await refreshAll(); routeView(); }
+
+async function refreshAll(){
+  if(!SEASON) return;
+  try{
+    const [stRes, sbRes, pkRes] = await Promise.all([
+      sb.from('fp_draft_state').select('*').eq('season_id',SEASON.id).maybeSingle(),
+      sb.from('fp_season_bookers').select('*').eq('season_id',SEASON.id).order('draft_order',{ascending:true,nullsFirst:false}),
+      sb.from('fp_draft_picks').select('*').eq('season_id',SEASON.id).order('pick_no',{ascending:true})
+    ]);
+    STATE = stRes.data || STATE;
+    SEATS = sbRes.data || [];
+    PICKS = pkRes.data || [];
+  }catch(e){}
+}
+
+// am I seated? return my booker row or null
+function mySeat(){ return ME ? SEATS.find(s=>s.auth_id===ME.id) : null; }
+function orderLocked(){ return STATE && (STATE.order_locked || ['live','paused','done'].includes(STATE.status)); }
+function draftLive(){ return STATE && STATE.status==='live'; }
+function draftDone(){ return STATE && STATE.status==='done'; }
+
+// ===== view router: decides which screen to show =====
+function routeView(){
+  byId('liveBadge').classList.toggle('hidden', !draftLive());
+  byId('specBadge').classList.toggle('hidden', !AM_SPECTATOR);
+  if(SEASON){
+    byId('cfgLine').classList.remove('hidden');
+    byId('cfgLine').textContent = (STATE&&STATE.format?STATE.format.toUpperCase():(SEASON.draft_format||'').toUpperCase())
+      + ' · ' + (SEASON.draft_rounds||'?') + ' RDS · ' + money(SEASON.bankroll||0);
+  }
+
+  // draft finished → results
+  if(draftDone()){ showResults(); return; }
+
+  // draft live (or paused) and I'm seated or spectating → draft screen
+  if((draftLive() || (STATE&&STATE.status==='paused')) && (mySeat() || AM_SPECTATOR)){
+    showDraft(); return;
+  }
+
+  // otherwise we're in the lobby/join flow
+  showLobby();
+}
+
+function show(id){ ['lobby','draftView','resultsView'].forEach(v=>byId(v).classList.toggle('hidden', v!==id)); }
+
+// ===== LOBBY / JOIN =====
+function showLobby(){
+  show('lobby');
+  const out=byId('lobSignedOut'), join=byId('lobJoin'), seated=byId('lobSeated'), spec=byId('lobSpectate');
+  [out,join,seated,spec].forEach(x=>x.classList.add('hidden'));
+
+  if(!SEASON){ byId('lobStatus').textContent='NO LIVE DRAFT RIGHT NOW'; return; }
+  byId('lobStatus').textContent = (STATE?('STATUS: '+STATE.status.toUpperCase()):'DRAFT BEING SET UP');
+
+  if(!ME){ out.classList.remove('hidden'); return; }
+
+  const seat=mySeat();
+  if(seat){
+    seated.classList.remove('hidden');
+    renderSeatList();
+    byId('waitForStart').innerHTML = orderLocked()
+      ? 'ORDER LOCKED — WAITING FOR<br>THE ADMIN TO START…'
+      : 'YOU’RE IN!<br>WAITING FOR THE ADMIN<br>TO LOCK THE ORDER & START…';
+    return;
+  }
+  // no seat yet
+  if(orderLocked()){ spec.classList.remove('hidden'); return; }   // too late to join → offer spectate
+  join.classList.remove('hidden');                                 // can still claim a seat
+  renderSeatList();
+}
+
+function renderSeatList(){
+  const host=byId('seatList'); if(!host) return;
+  if(!SEATS.length){ host.innerHTML='<div class="muted" style="font-size:14px">No one has claimed a seat yet — be the first.</div>'; return; }
+  host.innerHTML = SEATS.map((s,i)=>{
+    const initial=(s.promotion_name||'?').trim().charAt(0).toUpperCase();
+    const av = s.avatar_url ? ' style="background-image:url(\''+esc(s.avatar_url)+'\')"' : '';
+    const isMe = ME && s.auth_id===ME.id;
+    return '<div class="seatcard'+(isMe?' me':'')+'">'+
+      '<div class="av"'+av+'>'+(s.avatar_url?'':esc(initial))+'</div>'+
+      '<div class="nm">'+esc(s.promotion_name||'(unnamed)')+(isMe?' <span class="youtag">YOU</span>':'')+'</div>'+
+      '<div class="ord">'+(s.draft_order!=null?('#'+s.draft_order):'—')+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+async function claimSeat(){
+  if(!ME){ goSignIn(); return; }
+  if(orderLocked()){ toast('This draft is already locked — you can spectate.',true); routeView(); return; }
+  const nm=(byId('joinName').value||'').trim();
+  if(!nm){ byId('joinMsg').textContent='Enter a name first.'; return; }
+  if(mySeat()){ toast('You already have a seat.'); routeView(); return; }
+  byId('joinBtn').disabled=true;
+  try{
+    // Use the backend RPC — it seeds the season wallet, blocks eliminated players,
+    // and refreshes the promotion name. (Matches fp_join_season in Supabase.)
+    const { error } = await sb.rpc('fp_join_season', { p_promotion: nm });
+    if(error) throw error;
+    await refreshAll(); routeView();
+    toast('Seat claimed — you’re in the draft.');
+  }catch(e){
+    const msg=(e.message||e)+'';
+    byId('joinMsg').textContent =
+      msg.includes('ELIMINATED') ? 'You were eliminated this season — no rejoining.' :
+      msg.includes('NO_ACTIVE_SEASON') ? 'There’s no active season to join yet.' :
+      msg.includes('NOT_SIGNED_IN') ? 'Please sign in first.' :
+      'Could not claim a seat: '+msg;
+  }
+  byId('joinBtn').disabled=false;
+}
+
+function enterSpectate(){ AM_SPECTATOR=true; routeView(); }
+
+// ===== DRAFT SCREEN =====
+function showDraft(){
+  show('draftView');
+  PF=0;FF=0; rosRenderFilters();
+  renderNow(); renderOrder(); renderCenter(); rosRender(); renderFeed();
+}
+
+function seatOnClock(){ return STATE ? SEATS.find(s=>s.auth_id===STATE.on_the_clock) : null; }
+function isMyTurn(){ return draftLive() && ME && STATE && STATE.on_the_clock===ME.id && !AM_SPECTATOR; }
+
+function spentBy(authId){ return PICKS.filter(p=>p.auth_id===authId).reduce((a,p)=>a+( (WMAP[p.wrestler_id]||{})._cost||0 ),0); }
+function seatBankroll(seat){
+  // the wallet the booker was seeded with at join; falls back to the season bankroll
+  if(seat && seat.starting_balance!=null) return seat.starting_balance;
+  if(seat && seat.balance!=null) return seat.balance + spentBy(seat.auth_id);
+  return SEASON ? (SEASON.bankroll||0) : 0;
+}
+function budgetLeft(authId){
+  // SINGLE POOL: the database deducts each pick from fp_season_bookers.balance,
+  // so the live balance IS the remaining draft budget. Read it directly.
+  const seat=SEATS.find(s=>s.auth_id===authId);
+  if(seat && seat.balance!=null) return seat.balance;
+  // fallback only if balance somehow missing: seeded bankroll minus picks
+  return seatBankroll(seat) - spentBy(authId);
+}
+
+function renderNow(){
+  const box=byId('nowBox');
+  const seat=seatOnClock();
+  if(!seat || !draftLive()){
+    const msg = (STATE&&STATE.status==='paused') ? 'DRAFT PAUSED BY ADMIN'
+              : draftDone() ? 'DRAFT COMPLETE'
+              : 'WAITING FOR THE DRAFT TO START…';
+    box.innerHTML='<div class="oc-tag" style="border-radius:8px">'+msg+'</div>'; return;
+  }
+  const initial=(seat.promotion_name||'?').trim().charAt(0).toUpperCase();
+  const mine = ME && seat.auth_id===ME.id;
+  const av = seat.avatar_url ? ' style="background-image:url(\''+esc(seat.avatar_url)+'\');background-size:cover;color:transparent"' : '';
+  box.innerHTML=
+    '<div class="oc-tag'+(mine?'':' ai')+'">'+(mine?'● YOUR PICK':'● PICKING NOW')+'<span style="margin-left:auto" id="clk">—</span></div>'+
+    '<div class="oc-grid">'+
+      '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+(STATE.current_round||1)+'<i>/'+(STATE.total_rounds||SEASON.draft_rounds)+'</i></span></div>'+
+      '<div class="oc-cell"><span class="oc-k">PICK</span><span class="oc-v">'+(STATE.current_pick||1)+'<i>/'+(SEATS.length*(STATE.total_rounds||SEASON.draft_rounds))+'</i></span></div>'+
+    '</div>'+
+    '<div class="oc-seat'+(mine?' human':'')+'">'+
+      '<div class="oc-ava"'+av+'>'+esc(initial)+'</div>'+
+      '<div class="oc-seatmeta">'+
+        '<div class="oc-name">'+esc(seat.promotion_name||'(unnamed)')+(mine?' <span class="you">YOU</span>':'')+'</div>'+
+        '<div class="oc-bud">'+money(budgetLeft(seat.auth_id))+' <span>LEFT</span></div>'+
+      '</div>'+
+    '</div>';
+  startClock();
+  if(isMyTurn() && !MY_TURN_LAST){ toast('You’re on the clock — make your pick!'); }
+  MY_TURN_LAST = isMyTurn();
+}
+function startClock(){
+  if(CLOCK){ clearInterval(CLOCK); CLOCK=null; }
+  const secs=SEASON.pick_seconds||0;
+  const c=byId('clk');
+  if(!secs || !STATE || !STATE.turn_started_at){ if(c)c.textContent='∞'; return; }
+  const tick=()=>{
+    const el=byId('clk'); if(!el){ clearInterval(CLOCK); return; }
+    const elapsed=(Date.now()-new Date(STATE.turn_started_at).getTime())/1000;
+    let left=Math.max(0,Math.ceil(secs-elapsed));
+    const m=Math.floor(left/60), s=left%60;
+    el.textContent=m+':'+String(s).padStart(2,'0');
+    el.classList.toggle('low', left<=10);
+    if(left<=0){ clearInterval(CLOCK); CLOCK=null; }
+  };
+  tick(); CLOCK=setInterval(tick,500);
+}
+
+function renderOrder(){
+  byId('ordList').innerHTML=SEATS.map((s,i)=>{
+    const on = STATE && s.auth_id===STATE.on_the_clock && draftLive();
+    const mine = ME && s.auth_id===ME.id;
+    return '<div class="o'+(on?' on':'')+'">'+
+      '<span class="b">'+(s.draft_order!=null?s.draft_order:(i+1))+'</span>'+
+      '<span>'+esc(s.promotion_name||'(unnamed)')+(mine?' <span class="you">YOU</span>':'')+'</span>'+
+      '<span class="bal">'+money(budgetLeft(s.auth_id))+'</span></div>';
+  }).join('');
+  const pb=byId('ordProgress');
+  if(pb){
+    const total=SEATS.length*(STATE?STATE.total_rounds:SEASON.draft_rounds);
+    const made=PICKS.length;
+    pb.querySelector('.fill').style.width=(total?Math.round(made/total*100):0)+'%';
+    pb.querySelector('.lbl').textContent=made+' / '+total+' PICKS';
+  }
+}
+
+function takenIds(){ return new Set(PICKS.map(p=>p.wrestler_id)); }
+
+// ----- center hero detail (cloned from practice) -----
+function renderCenter(){
+  const host=byId('centerDetail'); const cr=byId('confirmRow');
+  if(!SEL){
+    host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
+      (isMyTurn()?'YOU’RE ON THE CLOCK —<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
+                 :'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
+    cr.style.display='none'; return;
+  }
+  const w=SEL;
+  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
+  const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
+  const ff=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
+  const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+  const rows=[
+    ['FRANCHISE', w.origin||'—'],
+    ['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')||'—'],
+    ['COUNTRY', w.country||'—'],
+    ['DOB', w.dob||'—'],
+    ['FINISHER', w.finisher||'—'],
+    ['SIGNATURE', sigs[0]||'—'],
+    ['SIGNATURE 2', sigs[1]||'—'],
+  ];
+  const myBudget = isMyTurn() ? budgetLeft(ME.id) : (mySeat()?budgetLeft(ME.id):(SEASON.bankroll||0));
+  const afford = w._cost<=myBudget;
+  const fillPct=Math.max(4,Math.min(100, Math.round(w._cost/Math.max(myBudget,1)*100)));
+  const chips=[];
+  chips.push('<span class="chip red">'+esc(pf?pf:'FREE AGENT')+'</span>');
+  if(ff) chips.push('<span class="chip">'+esc(ff)+'</span>');
+  host.innerHTML=
+    '<div class="hero">'+
+      '<div class="hero-portrait">'+
+        '<div class="hero-grade">'+
+          '<span class="gbadge"><small>RANK</small>'+(w.rank_grade||'?')+'</span>'+
+          '<span class="gbadge"><small>CHA</small>'+(w.charisma_grade||'?')+'</span>'+
+        '</div>'+
+        '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+ph+'\'">'+
+      '</div>'+
+      '<div class="hero-meta">'+
+        '<div class="hero-name">'+esc(w.name)+'</div>'+
+        (w.nickname?'<div class="hero-nick">"'+esc(w.nickname)+'"</div>':'<div class="hero-nick" style="opacity:.5">&nbsp;</div>')+
+        '<div class="hero-chips">'+chips.join('')+'</div>'+
+        '<div class="hero-info">'+rows.map(r=>'<div class="k">'+esc(r[0])+'</div><div class="v">'+esc(r[1])+'</div>').join('')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="cost-zone">'+
+      '<div class="cost-row"><span class="cost-lbl">DRAFT COST</span><span class="cost-val'+(afford?'':' bad')+'">'+money(w._cost)+'</span></div>'+
+      '<div class="cost-bar"><div class="cost-fill'+(afford?'':' bad')+'" style="width:'+fillPct+'%"></div></div>'+
+      '<div class="cost-note">'+(afford?(money(myBudget-w._cost)+' would remain in your budget'):'Over budget — you can’t afford this pick')+'</div>'+
+    '</div>';
+  cr.style.display='flex';
+  const btn=byId('confirmBtn');
+  if(AM_SPECTATOR){ btn.disabled=true; btn.textContent='SPECTATING'; }
+  else if(!isMyTurn()){ btn.disabled=true; btn.textContent='NOT YOUR TURN'; }
+  else if(!afford){ btn.disabled=true; btn.textContent='CAN’T AFFORD'; }
+  else if(takenIds().has(w.id)){ btn.disabled=true; btn.textContent='ALREADY DRAFTED'; }
+  else { btn.disabled=false; btn.textContent = (SEASON.draft_run_mode==='queue') ? 'QUEUE THIS PICK ►' : 'CONFIRM PICK ►'; }
+}
+function selectWrestler(id){
+  if(takenIds().has(id)) return;
+  SEL=ROSTER.find(w=>w.id===id)||null;
+  renderCenter(); rosRender();
+}
+
+// ===== THE ONE WRITE: a player confirms their own pick =====
+// SAFETY: only ever writes during a LIVE draft, only on YOUR turn, only YOUR auth id.
+async function confirmPick(){
+  if(AM_SPECTATOR){ return; }
+  if(!isMyTurn()){ toast('It’s not your turn.',true); return; }
+  if(!SEL){ toast('Pick a wrestler first.',true); return; }
+  if(takenIds().has(SEL.id)){ toast('Already drafted.',true); return; }
+  if(SEL._cost>budgetLeft(ME.id)){ toast('You can’t afford that.',true); return; }
+  const picked=SEL;
+  byId('confirmBtn').disabled=true;
+  try{
+    if(SEASON.draft_run_mode==='queue'){
+      // queue mode: write my intended pick; the admin locks it in
+      const { error } = await sb.from('fp_draft_queue').upsert(
+        { season_id:SEASON.id, auth_id:ME.id, wrestler_id:picked.id },
+        { onConflict:'season_id,auth_id' }
+      );
+      if(error) throw error;
+      toast('Pick queued — waiting for the admin to lock it in.');
+    } else {
+      // live mode: the existing RPC records the pick AND advances the clock.
+      // ── fp_make_pick(p_season, p_wrestler, p_for) — matched to the admin's usage. ──
+      // If your SQL names the args differently, this is the one line to adjust.
+      const { error } = await sb.rpc('fp_make_pick',{ p_season:SEASON.id, p_wrestler:picked.id, p_for:ME.id });
+      if(error) throw error;
+      // realtime will push the new state back to everyone (including us) → re-render
+    }
+    SEL=null;
+  }catch(e){
+    const msg=(e.message||e)+'';
+    toast(
+      msg.includes('INSUFFICIENT_FUNDS') ? 'Not enough budget left for that pick.' :
+      msg.includes('Not your turn')      ? 'It’s not your turn anymore.' :
+      msg.includes('not live')           ? 'The draft isn’t live right now.' :
+      'Pick failed: '+msg, true);
+  }
+  // re-render happens via realtime; re-enable button as a fallback
+  setTimeout(()=>{ const b=byId('confirmBtn'); if(b) b.disabled=false; renderCenter(); }, 600);
+}
+
+// ===== DRAFT FEED (read-only list of picks; chat is local to viewers) =====
+function renderFeed(){
+  const log=byId('chatLog'); if(!log) return;
+  const seatName={}; SEATS.forEach(s=>seatName[s.auth_id]=s.promotion_name||'(unnamed)');
+  log.innerHTML = PICKS.slice().reverse().slice(0,40).map(p=>{
+    const w=WMAP[p.wrestler_id]||{name:'#'+p.wrestler_id,_cost:0};
+    return '<div class="cmsg sys"><span class="body"><b>'+esc(seatName[p.auth_id]||'—')+'</b> drafted '+
+      esc(w.name)+' for '+money(w._cost||0)+(p.is_auto?' (auto)':'')+'.</span></div>';
+  }).join('') || '<div class="cmsg sys"><span class="body">No picks yet — the draft is about to begin.</span></div>';
+  log.scrollTop=0;
+}
+function chatPush(kind,name,body){
+  const log=byId('chatLog'); if(!log) return;
+  const div=document.createElement('div'); div.className='cmsg '+kind;
+  div.innerHTML = kind==='sys' ? '<span class="body">'+body+'</span>'
+    : '<span class="nm">'+esc(name)+':</span><span class="body">'+esc(body)+'</span>';
+  log.insertBefore(div, log.firstChild);
+}
+function chatSend(){
+  const inp=byId('chatInput'); const v=(inp.value||'').trim(); if(!v) return;
+  const me = mySeat()? mySeat().promotion_name : (AM_SPECTATOR?'Spectator':'You');
+  chatPush('human', me, v); inp.value='';
+  // NOTE: chat is local to each viewer for now. A shared chat table can be added later
+  // the same way picks sync — kept local so nothing blocks the draft.
+}
+
+// ----- roster filters + list (cloned from practice) -----
+function promoList(){ return [{id:null,name:'ALL PROMOTIONS'},{id:'__FA__',name:'FREE AGENTS'}].concat(PROMOS); }
+function facList(){
+  const pf=promoList()[PF];
+  if(pf && pf.id==='__FA__') return [{id:null,name:'ALL'}];
+  let f=FACTIONS; if(pf && pf.id!=null) f=FACTIONS.filter(x=>x.promotion_id===pf.id);
+  return [{id:null,name:'ALL'}].concat(f);
+}
+function rosCycle(which,dir){
+  if(which==='promo'){ const l=promoList(); PF=(PF+dir+l.length)%l.length; FF=0; }
+  else{ const l=facList(); FF=(FF+dir+l.length)%l.length; }
+  rosRenderFilters(); rosRender();
+}
+function rosRenderFilters(){
+  byId('fPromo').textContent=(promoList()[PF]||{}).name||'ALL PROMOTIONS';
+  byId('fFac').textContent=(facList()[FF]||{}).name||'ALL';
+}
+function rosFiltered(){
+  const pf=promoList()[PF], fl=facList()[FF];
+  const q=(byId('rSearch').value||'').toLowerCase().trim();
+  return ROSTER.filter(w=>{
+    if(pf && pf.id==='__FA__'){ if(w.promotion_id!=null) return false; }
+    else if(pf && pf.id!=null && w.promotion_id!==pf.id) return false;
+    if(fl && fl.id!=null && w.faction_id!==fl.id) return false;
+    if(q && !((w.name||'').toLowerCase().includes(q) || (w.nickname||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function promoChip(w){
+  if(w.promotion_id==null) return 'FA';
+  const nm=((PROMOS.find(p=>p.id===w.promotion_id)||{}).name||'').trim();
+  if(!nm) return '—';
+  const words=nm.split(/\s+/);
+  if(words.length>1) return words.map(x=>x.charAt(0)).join('').slice(0,4).toUpperCase();
+  return nm.slice(0,4).toUpperCase();
+}
+function rosRender(){
+  const host=byId('rList'); const list=rosFiltered(); const t=takenIds();
+  const myBudget = (isMyTurn()||mySeat()) ? budgetLeft(ME.id) : (SEASON?SEASON.bankroll:0);
+  if(!list.length){ host.innerHTML='<div class="muted" style="text-align:center;padding:20px">No wrestlers match.</div>'; return; }
+  let avail=0;
+  const rowsHtml=list.map(w=>{
+    const isTaken=t.has(w.id); if(!isTaken) avail++;
+    const unaff = !isTaken && w._cost>myBudget;
+    const clickable = !isTaken && (isMyTurn() || (!draftLive() && !AM_SPECTATOR));
+    return '<div class="ritem'+(isTaken?' taken':'')+(SEL&&SEL.id===w.id?' sel':'')+'" '+
+      (isTaken?'':'onclick="selectWrestler('+w.id+')"')+'>'+
+      '<span class="rtag">'+esc(promoChip(w))+'</span>'+
+      '<span class="rn">'+esc(w.name)+'</span>'+
+      '<span class="rg">'+(w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+'</span>'+
+      '<span class="rc" style="'+(unaff?'color:#ff7a6a':'')+'">'+money(w._cost)+'</span>'+
+      '</div>';
+  }).join('');
+  host.innerHTML=rowsHtml+'<div class="rcount">'+avail+' AVAILABLE · '+(list.length-avail)+' DRAFTED</div>';
+}
+
+// ===== RESULTS (reads the real saved picks) =====
+function buildResultSeats(){
+  return SEATS.map(s=>({
+    name: s.promotion_name||'(unnamed)',
+    ai:false,
+    budget: budgetLeft(s.auth_id),
+    picks: PICKS.filter(p=>p.auth_id===s.auth_id).map(p=>WMAP[p.wrestler_id]).filter(Boolean)
+  }));
+}
+let RES=[];
+function showResults(){
+  show('resultsView');
+  RES=buildResultSeats();
+  byId('resGrid').innerHTML=RES.map((s,i)=>{
+    const spent=s.picks.reduce((a,w)=>a+(w._cost||0),0);
+    return '<div class="res-card" id="resCard'+i+'">'+
+      '<h3 style="color:#7fe0a0">'+esc(s.name)+'</h3>'+
+      '<div class="tot">'+s.picks.length+' wrestlers · '+money(spent)+' spent · '+money(s.budget)+' left</div>'+
+      s.picks.map(w=>'<div class="rosrow"><span>'+esc(w.name)+'</span><span class="c">'+money(w._cost||0)+'</span></div>').join('')+
+      '<button class="btn sm gold" style="margin-top:10px;width:100%" onclick="dlOne('+i+')">📸 Download PNG</button>'+
+      '</div>';
+  }).join('');
+}
+
+// ===== PNG export (shared with practice) — uses RES =====
+
+// ===== MUSIC PLAYER (persistent across Fire Pro pages — identical engine to the hub) =====
+let FP_TRACKS = ['audio/bg-music-1.mp3','audio/bg-music-2.mp3','audio/bg-music-3.mp3','audio/bg-music-4.mp3'];
+let _fpNames = [];
+let _fpDefaultVol = 10;
+const FP_MUSIC_KEY = 'fpMusicState';
+let _fpIdx=0, _fpVol=10, _fpMuted=false, _fpWantPlay=false;
+
+async function loadMusicSettings(){
+  if(!sb) return;
+  try{
+    const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single();
+    const FP=(data && data.firepro)?data.firepro:{};
+    if(FP.music){
+      const m=FP.music;
+      const n=(typeof m.count==='number' && m.count>0)?Math.min(m.count,50):0;
+      if(n>0){ FP_TRACKS=[]; for(let i=1;i<=n;i++){ FP_TRACKS.push('audio/bg-music-'+i+'.mp3'); } }
+      _fpNames=Array.isArray(m.names)?m.names.slice():[];
+      if(typeof m.defaultVol==='number') _fpDefaultVol=Math.max(0,Math.min(100,m.defaultVol));
+    }
+  }catch(e){}
+}
+function _fpLoadState(){ try{ const raw=sessionStorage.getItem(FP_MUSIC_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; } }
+function _fpSaveState(){
+  const a=document.getElementById('fp-bg-music');
+  const blob={ idx:_fpIdx, vol:_fpVol, muted:_fpMuted, playing:_fpWantPlay,
+    t:(a && !isNaN(a.currentTime))?a.currentTime:0, ts:Date.now() };
+  try{ sessionStorage.setItem(FP_MUSIC_KEY, JSON.stringify(blob)); }catch(e){}
+}
+function fpPlayerInit(){
+  const a=document.getElementById('fp-bg-music');
+  const bar=document.getElementById('fp-player');
+  if(!a || !bar) return;
+  if(!FP_TRACKS.length) return;
+  bar.classList.add('show');
+  const st=_fpLoadState();
+  let resumeAt=0;
+  if(st){
+    _fpIdx=(typeof st.idx==='number' && st.idx>=0)?st.idx:0;
+    _fpVol=(typeof st.vol==='number')?st.vol:_fpDefaultVol;
+    _fpMuted=!!st.muted; _fpWantPlay=!!st.playing;
+    resumeAt=(typeof st.t==='number')?st.t:0;
+  } else { _fpVol=_fpDefaultVol; }
+  if(_fpIdx>=FP_TRACKS.length) _fpIdx=0;
+  a.src=FP_TRACKS[_fpIdx];
+  a.volume=_fpMuted?0:(_fpVol/100);
+  try{ a.currentTime=resumeAt>0?resumeAt:0; }catch(e){}
+  a.addEventListener('ended', fpNext);
+  a.addEventListener('error', ()=>{ if(_fpWantPlay) setTimeout(fpNext,400); });
+  window.addEventListener('pagehide', _fpSaveState);
+  window.addEventListener('beforeunload', _fpSaveState);
+  fpRenderPlayer();
+  if(_fpWantPlay){
+    a.play().then(()=>{ _fpWantPlay=true; fpRenderPlayer(); })
+            .catch(()=>{ _fpWantPlay=false; fpRenderPlayer(); });
+  }
+}
+function fpRenderPlayer(){
+  const playBtn=document.getElementById('fp-play');
+  const muteBtn=document.getElementById('fp-mute');
+  const vol=document.getElementById('fp-vol');
+  const pct=document.getElementById('fp-vol-pct');
+  const now=document.getElementById('fp-now');
+  if(playBtn) playBtn.textContent=_fpWantPlay?'❚❚':'►';
+  if(muteBtn){ muteBtn.textContent=_fpMuted?'MUTED':'VOL'; muteBtn.classList.toggle('muted',_fpMuted); }
+  if(vol) vol.value=_fpVol;
+  if(pct) pct.textContent=_fpVol+'%';
+  if(now){
+    const nm=(_fpNames && _fpNames[_fpIdx] && String(_fpNames[_fpIdx]).trim());
+    now.innerHTML='♪ <b>'+(nm?nm.replace(/</g,'&lt;'):('Track '+(_fpIdx+1)))+'</b>';
+  }
+}
+function fpTogglePlay(){
+  const a=document.getElementById('fp-bg-music');
+  if(!a) return;
+  if(_fpWantPlay){ a.pause(); _fpWantPlay=false; }
+  else{
+    a.play().then(()=>{ _fpWantPlay=true; fpRenderPlayer(); _fpSaveState(); })
+            .catch(()=>{ _fpWantPlay=false; fpRenderPlayer(); });
+    _fpWantPlay=true;
+  }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpLoadTrack(i, autoplay){
+  const a=document.getElementById('fp-bg-music');
+  if(!a || !FP_TRACKS.length) return;
+  _fpIdx=(i+FP_TRACKS.length)%FP_TRACKS.length;
+  a.src=FP_TRACKS[_fpIdx];
+  try{ a.currentTime=0; }catch(e){}
+  a.volume=_fpMuted?0:(_fpVol/100);
+  if(autoplay){
+    a.play().then(()=>{ _fpWantPlay=true; fpRenderPlayer(); _fpSaveState(); })
+            .catch(()=>{ _fpWantPlay=false; fpRenderPlayer(); });
+  }
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpNext(){ fpLoadTrack(_fpIdx+1,true); }
+function fpPrev(){
+  const a=document.getElementById('fp-bg-music');
+  if(a && a.currentTime>3){ try{ a.currentTime=0; }catch(e){} _fpSaveState(); return; }
+  fpLoadTrack(_fpIdx-1,true);
+}
+function fpSetVolume(v){
+  _fpVol=Math.max(0,Math.min(100,parseInt(v,10)||0));
+  const a=document.getElementById('fp-bg-music');
+  if(_fpVol>0 && _fpMuted){ _fpMuted=false; }
+  if(a) a.volume=_fpMuted?0:(_fpVol/100);
+  fpRenderPlayer(); _fpSaveState();
+}
+function fpToggleMute(){
+  const a=document.getElementById('fp-bg-music');
+  _fpMuted=!_fpMuted;
+  if(a) a.volume=_fpMuted?0:(_fpVol/100);
+  fpRenderPlayer(); _fpSaveState();
+}
+
+function drawStableCard(ctx, x, y, w, seat, title){
+  const pad=18, lh=30;
+  const spent=seat.picks.reduce((a,p)=>a+p._cost,0);
+  const rows=seat.picks.length;
+  const h=pad*2 + 64 + rows*lh + 6;
+  ctx.fillStyle='#140a0b'; roundRect(ctx,x,y,w,h,14); ctx.fill();
+  ctx.strokeStyle='#3a2020'; ctx.lineWidth=2; roundRect(ctx,x,y,w,h,14); ctx.stroke();
+  ctx.fillStyle= seat.ai ? '#ff9a8a' : '#7fe0a0';
+  ctx.font='bold 20px Oswald, sans-serif';
+  ctx.fillText((title||seat.name)+(seat.ai?'  [AI]':''), x+pad, y+pad+20);
+  ctx.fillStyle='#ffd23f'; ctx.font='14px Barlow, sans-serif';
+  ctx.fillText(seat.picks.length+' wrestlers · '+money(spent)+' spent · '+money(seat.budget)+' left', x+pad, y+pad+44);
+  ctx.font='16px Barlow, sans-serif';
+  seat.picks.forEach((p,idx)=>{
+    const ry=y+pad+64+idx*lh;
+    ctx.fillStyle='#ffe9b0'; ctx.textAlign='left';
+    ctx.fillText(p.name, x+pad, ry);
+    ctx.fillStyle='#ffd23f'; ctx.textAlign='right';
+    ctx.fillText(money(p._cost), x+w-pad, ry);
+    ctx.textAlign='left';
+    ctx.strokeStyle='#251515'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x+pad,ry+8); ctx.lineTo(x+w-pad,ry+8); ctx.stroke();
+  });
+  return h;
+}
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function headerBar(ctx,W,title){
+  ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,90);
+  ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
+  ctx.fillText('WCA FIRE PRO — PRACTICE DRAFT', 24, 40);
+  ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
+  ctx.fillText(title||('Snake/Linear · '+CFG.rounds+' rounds · '+money(CFG.budget)+' each'), 24, 66);
+}
+function downloadCanvas(canvas,name){
+  canvas.toBlob(b=>{
+    const u=URL.createObjectURL(b); const a=document.createElement('a');
+    a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1000);
+  },'image/png');
+}
+function dlOne(i){
+  const seat=RES[i];
+  const c=byId('pngCanvas'); const ctx=c.getContext('2d');
+  const W=520, pad=20;
+  const tmpH = 90 + drawStableCard(ctx, -9999, -9999, W-pad*2, seat);
+  c.width=W; c.height=tmpH+pad;
+  ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,c.width,c.height);
+  headerBar(ctx,W,seat.name+'\u2019s stable');
+  drawStableCard(ctx, pad, 100, W-pad*2, seat);
+  downloadCanvas(c,'wca-firepro-draft-'+seat.name.replace(/[^a-z0-9]/gi,'_')+'.png');
+  toast('Saved '+seat.name+'\u2019s roster PNG');
+}
+function dlAll(){
+  const c=byId('pngCanvas'); const ctx=c.getContext('2d');
+  const cols = RES.length<=2?1:2;
+  const colW=520, gap=18, pad=20;
+  const W = pad*2 + cols*colW + (cols-1)*gap;
+  const heights=RES.map(s=>drawStableCard(ctx,-9999,-9999,colW,s));
+  const colY=new Array(cols).fill(100);
+  const place=[];
+  RES.forEach((s,i)=>{
+    const col=i%cols;
+    place.push({s, x:pad+col*(colW+gap), y:colY[col], h:heights[i]});
+    colY[col]+=heights[i]+gap;
+  });
+  const H=Math.max(...colY)+pad;
+  c.width=W; c.height=H;
+  ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,H);
+  headerBar(ctx,W,'All stables · '+RES.length+' drafters');
+  place.forEach(p=>drawStableCard(ctx,p.x,p.y,colW,p.s));
+  downloadCanvas(c,'wca-firepro-draft-ALL.png');
+  toast('Saved the full lobby PNG');
+}
+
+</script>
+</body>
+</html>
