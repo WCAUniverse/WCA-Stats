@@ -84,6 +84,12 @@
   .btn.gold{background:linear-gradient(180deg,#ffe27a,#ffd23f);border-color:#fff;color:#1a0d0e;text-shadow:none;}
   .btn.gold:hover{background:#fff;}
   .btn.sm{padding:8px 11px;font-size:9px;}
+  .btn.done{background:linear-gradient(180deg,#2a1c0a,#160f04);border-color:var(--gold2);color:var(--gold2);}
+  .btn.done:hover{background:linear-gradient(180deg,#3a2810,#1c1406);border-color:#fff;color:#fff;}
+  .donetag{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--gold2);color:#1a0d0e;
+           border-radius:4px;padding:2px 5px;vertical-align:middle;letter-spacing:0;}
+  .o.done{opacity:.5;}
+  .o.done .bal{text-decoration:line-through;}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4);}
   .btn.ghost{background:transparent;box-shadow:none;}
   .btn.head{background:var(--gold2);color:#0a0506;border:2px solid #fff;box-shadow:0 0 12px -2px var(--gold2);text-shadow:none;}
@@ -385,7 +391,7 @@
   <div id="lobby">
     <div class="panel lobby-wrap">
       <div class="panel-h">SET UP YOUR PRACTICE DRAFT</div>
-      <p class="intro">No stakes — draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster.</p>
+      <p class="intro">No stakes — draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster. After the mandatory rounds, drafting is <b>optional</b> — keep going as long as you can afford it, or hit <b>I'M DONE</b> to stop. Unspent money is yours; in a real season it carries into booking.</p>
       <div class="row">
         <div>
           <label>Seats (2–8)</label>
@@ -395,19 +401,23 @@
           </select>
         </div>
         <div>
-          <label>Rounds (picks each)</label>
+          <label>Mandatory rounds (min 9)</label>
           <select id="lobRounds">
-            <option>3</option><option selected>5</option><option>6</option><option>7</option><option>8</option>
+            <option selected>9</option><option>10</option><option>11</option>
+            <option>12</option><option>13</option><option>14</option><option>15</option>
           </select>
         </div>
         <div>
-          <label>Budget each</label>
-          <select id="lobBudget">
-            <option value="2500000">$2,500,000</option>
-            <option value="4000000" selected>$4,000,000</option>
-            <option value="6000000">$6,000,000</option>
-            <option value="10000000">$10,000,000</option>
+          <label>Starting budget each</label>
+          <select id="lobBudget" onchange="lobBudgetTier()">
+            <option value="4000000">$4,000,000 — Hard</option>
+            <option value="5500000" selected>$5,500,000 — Standard</option>
+            <option value="7500000">$7,500,000 — Comfortable</option>
+            <option value="10000000">$10,000,000 — Big Roster</option>
+            <option value="custom">Custom amount…</option>
           </select>
+          <input id="lobBudgetCustom" type="number" step="50000" placeholder="5500000"
+                 style="display:none;margin-top:6px" value="5500000">
         </div>
         <div>
           <label>Order</label>
@@ -455,8 +465,9 @@
       <!-- CENTER: hero detail -->
       <div class="panel center">
         <div class="center-scroll" id="centerDetail"></div>
-        <div class="confirm-row" id="confirmRow" style="display:none;padding:0 20px 16px;">
+        <div class="confirm-row" id="confirmRow" style="display:none;padding:0 20px 16px;gap:10px;">
           <button class="btn primary" id="confirmBtn" onclick="confirmPick()">CONFIRM PICK ►</button>
+          <button class="btn done" id="doneBtn" onclick="imDone()" style="display:none;">🏁 I'M DONE</button>
         </div>
       </div>
 
@@ -531,9 +542,9 @@ try{
 
 // ===== state =====
 let ROSTER=[], PROMOS=[], FACTIONS=[];
-let SEATS=[];          // {name, ai, order, budget, picks:[wrestler...]}
-let CFG={ rounds:5, format:'snake', budget:4000000 };
-let DRAFT={ round:1, pickInRound:0, order:[], onClock:0, totalPicks:0, made:0 };
+let SEATS=[];          // {name, ai, order, budget, picks:[wrestler...], done:bool}
+let CFG={ floor:9, format:'snake', budget:5500000 };
+let DRAFT={ round:1, order:[], onClock:0, made:0 };
 let SEL=null;          // selected wrestler in center
 let PF=0, FF=0;        // filter indices
 let AI_THINKING=false;
@@ -593,54 +604,116 @@ function lobShuffle(){
   for(let i=0;i<n;i++){ byId('seatName'+i).value=names[i]; const b=byId('seatKind'+i); b.setAttribute('data-ai',kinds[i]); b.textContent=(kinds[i]==='1')?'🤖 AI':'🧑 HUMAN'; }
   toast('Order shuffled');
 }
+function lobBudgetTier(){
+  const sel=byId('lobBudget'), inp=byId('lobBudgetCustom');
+  if(sel.value==='custom'){ inp.style.display='block'; inp.focus(); }
+  else { inp.style.display='none'; }
+}
 function lobStart(){
   if(!ROSTER.length){ toast('Roster is empty — nothing to draft.',true); return; }
   const n=parseInt(byId('lobSeats').value,10)||4;
-  CFG.rounds=parseInt(byId('lobRounds').value,10)||5;
+  CFG.floor=Math.max(9, parseInt(byId('lobRounds').value,10)||9);
   CFG.format=byId('lobFormat').value;
-  CFG.budget=parseInt(byId('lobBudget').value,10)||4000000;
-  if(ROSTER.length < n*CFG.rounds){
-    toast('Not enough wrestlers ('+ROSTER.length+') for '+n+' seats × '+CFG.rounds+' rounds.',true); return;
+  const tierSel=byId('lobBudget').value;
+  CFG.budget = tierSel==='custom'
+    ? (parseInt(byId('lobBudgetCustom').value,10)||5500000)
+    : (parseInt(tierSel,10)||5500000);
+  // need at least floor picks each available
+  if(ROSTER.length < n*CFG.floor){
+    toast('Not enough wrestlers ('+ROSTER.length+') for '+n+' seats × '+CFG.floor+' mandatory rounds.',true); return;
   }
   SEATS=[];
   for(let i=0;i<n;i++){
     const nm=(byId('seatName'+i).value||('Player '+(i+1))).slice(0,22);
     const ai=byId('seatKind'+i).getAttribute('data-ai')==='1';
-    SEATS.push({ name:nm, ai, order:i, budget:CFG.budget, picks:[] });
+    SEATS.push({ name:nm, ai, order:i, budget:CFG.budget, picks:[], done:false });
   }
-  // first human seat is "you" for the chat
   YOU_INDEX = SEATS.findIndex(s=>!s.ai); if(YOU_INDEX<0) YOU_INDEX=0;
 
-  DRAFT.order=[]; DRAFT.round=1; DRAFT.made=0;
-  DRAFT.totalPicks=n*CFG.rounds;
+  DRAFT.order=[]; DRAFT.round=1; DRAFT.made=0; DRAFT.onClock=0;
 
-  byId('cfgLine').textContent = (CFG.format==='snake'?'SNAKE':'LINEAR')+' · '+CFG.rounds+' RDS · '+money(CFG.budget);
+  byId('cfgLine').textContent = (CFG.format==='snake'?'SNAKE':'LINEAR')+' · MIN '+CFG.floor+' RDS · '+money(CFG.budget);
   byId('cfgLine').classList.remove('hidden');
 
   byId('lobby').classList.add('hidden');
   byId('draftView').classList.remove('hidden');
   PF=0;FF=0; rosRenderFilters();
-  chatPush('sys', null, 'Draft started — '+n+' seats, '+CFG.rounds+' rounds. Good luck.');
-  advanceClock(true);
+  chatPush('sys', null, 'Draft started — '+n+' seats, '+CFG.floor+' mandatory rounds, then optional. Good luck.');
+  // first seat on the clock
+  DRAFT.onClock = seatOrderForRound(1)[0];
+  beginTurn(true);
 }
 
-// ===== DRAFT FLOW =====
-function seatIndexForPick(globalPickIdx){
-  const n=SEATS.length;
-  const round=Math.floor(globalPickIdx/n);
-  const within=globalPickIdx%n;
-  if(CFG.format==='snake' && (round%2===1)) return (n-1-within);
-  return within;
+// ===== VARIABLE DRAFT ENGINE =====
+// cheapest still-available wrestler cost (for the broke check)
+function cheapestAvailable(){
+  const t=taken(); let lo=Infinity;
+  for(const w of ROSTER){ if(!t.has(w.id) && w._cost<lo) lo=w._cost; }
+  return lo;
 }
-function advanceClock(first){
-  if(DRAFT.made >= DRAFT.totalPicks){ return finishDraft(); }
-  const seatIdx=seatIndexForPick(DRAFT.made);
-  DRAFT.onClock=seatIdx;
-  DRAFT.round=Math.floor(DRAFT.made/SEATS.length)+1;
+function seatCanContinue(i){
+  const s=SEATS[i]; if(!s||s.done) return false;
+  return s.budget >= cheapestAvailable();      // can they afford anyone left?
+}
+// during the floor everyone is in; after it, only seats that aren't done and can afford
+function activeSeatsForRound(round){
+  const idxs=SEATS.map((s,i)=>i);
+  if(round<=CFG.floor) return idxs.filter(i=>!SEATS[i].done); // (nobody passes during floor)
+  return idxs.filter(i=>!SEATS[i].done && seatCanContinue(i));
+}
+// the pick order for a given round (snake reverses on even rounds)
+function seatOrderForRound(round){
+  let seq=activeSeatsForRound(round);
+  if(CFG.format==='snake' && (round%2===0)) seq=seq.slice().reverse();
+  return seq;
+}
+function draftIsOver(){
+  // over when no remaining round has anyone able to pick
+  return activeSeatsForRound(DRAFT.round).length===0 &&
+         activeSeatsForRound(DRAFT.round+1).length===0;
+}
+// move the clock to the next eligible seat; rolls rounds; ends the draft when done
+function advanceClock(){
+  // find where we are in this round's sequence
+  let seq=seatOrderForRound(DRAFT.round);
+  let pos=seq.indexOf(DRAFT.onClock);
+  if(pos>=0 && pos < seq.length-1){
+    DRAFT.onClock=seq[pos+1];
+    beginTurn();
+    return;
+  }
+  // end of round → advance rounds until we find one with eligible seats
+  let r=DRAFT.round;
+  for(let guard=0; guard<500; guard++){
+    r++;
+    const nextSeq=seatOrderForRound(r);
+    if(nextSeq.length>0){
+      DRAFT.round=r; DRAFT.onClock=nextSeq[0]; beginTurn(); return;
+    }
+    // if neither this nor the next round has anyone, we're finished
+    if(seatOrderForRound(r+1).length===0){ break; }
+  }
+  finishDraft();
+}
+function beginTurn(first){
   SEL=null;
   renderNow(); renderOrder(); renderCenter(); rosRender();
-  const seat=SEATS[seatIdx];
-  if(seat.ai){ runAiPick(seat,seatIdx); }
+  const seat=SEATS[DRAFT.onClock];
+  if(seat && seat.ai){ runAiPick(seat,DRAFT.onClock); }
+}
+// a human (or AI with no affordable target) ends their draft for good
+function passSeat(i, reason){
+  const s=SEATS[i]; if(!s||s.done) return;
+  s.done=true;
+  chatPush('sys', null, esc(s.name)+' is done drafting'+(reason?(' ('+reason+')'):'')+'.');
+}
+function imDone(){
+  const i=DRAFT.onClock; const s=SEATS[i];
+  if(!s || s.ai) return;
+  if(DRAFT.round<=CFG.floor){ toast('You must draft through the mandatory rounds first (round '+CFG.floor+').',true); return; }
+  if(!confirm('End your draft? You\'re done for good and won\'t pick again — but continuing is optional, you can keep building your stable if you\'d like. Unspent money stays yours.')) return;
+  passSeat(i);
+  advanceClock();
 }
 function renderNow(){
   const seat=SEATS[DRAFT.onClock];
@@ -651,8 +724,8 @@ function renderNow(){
   box.innerHTML=
     '<div class="oc-tag'+(seat.ai?' ai':'')+'">'+(thinking?'<span class="spinner"></span> THINKING…':'● PICKING NOW')+'</div>'+
     '<div class="oc-grid">'+
-      '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+DRAFT.round+'<i>/'+CFG.rounds+'</i></span></div>'+
-      '<div class="oc-cell"><span class="oc-k">PICK</span><span class="oc-v">'+pickNum+'<i>/'+DRAFT.totalPicks+'</i></span></div>'+
+      '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+DRAFT.round+'<i>'+(DRAFT.round>CFG.floor?' (opt)':'/'+CFG.floor)+'</i></span></div>'+
+      '<div class="oc-cell"><span class="oc-k">PICKS</span><span class="oc-v">'+seat.picks.length+'</span></div>'+
     '</div>'+
     '<div class="oc-seat'+(seat.ai?' ai':' human')+'">'+
       '<div class="oc-ava">'+esc(initial)+'</div>'+
@@ -665,19 +738,23 @@ function renderNow(){
 function renderOrder(){
   byId('ordList').innerHTML=SEATS.map((s,i)=>{
     const on=i===DRAFT.onClock;
-    return '<div class="o'+(on?' on':'')+(s.ai?' ai':' human')+'">'+
+    return '<div class="o'+(on?' on':'')+(s.ai?' ai':' human')+(s.done?' done':'')+'">'+
       '<span class="b">'+(i+1)+'</span>'+
-      '<span class="onm">'+esc(s.name)+(s.ai?' <i class="bot">🤖</i>':'')+(i===YOU_INDEX?' <span class="you">YOU</span>':'')+'</span>'+
-      '<span class="cnt">'+s.picks.length+'/'+CFG.rounds+'</span>'+
+      '<span class="onm">'+esc(s.name)+(s.ai?' <i class="bot">🤖</i>':'')+(i===YOU_INDEX?' <span class="you">YOU</span>':'')+(s.done?' <span class="donetag">DONE</span>':'')+'</span>'+
+      '<span class="cnt">'+s.picks.length+'</span>'+
       '<span class="bal">'+money(s.budget)+'</span>'+
       (on?'<span class="arrow">◄</span>':'')+
       '</div>';
   }).join('');
   const pb=byId('ordProgress');
   if(pb){
-    const pct=DRAFT.totalPicks?Math.round(DRAFT.made/DRAFT.totalPicks*100):0;
+    // progress = how far through the mandatory floor (then it's open-ended)
+    const target=SEATS.length*CFG.floor;
+    const pct=target?Math.min(100,Math.round(DRAFT.made/target*100)):0;
     pb.querySelector('.fill').style.width=pct+'%';
-    pb.querySelector('.lbl').textContent=DRAFT.made+' / '+DRAFT.totalPicks+' PICKS';
+    pb.querySelector('.lbl').textContent = DRAFT.round>CFG.floor
+      ? 'OPTIONAL ROUNDS — '+DRAFT.made+' PICKS'
+      : DRAFT.made+' / '+target+' MANDATORY PICKS';
   }
 }
 function taken(){ const t=new Set(); SEATS.forEach(s=>s.picks.forEach(w=>t.add(w.id))); return t; }
@@ -686,9 +763,17 @@ function taken(){ const t=new Set(); SEATS.forEach(s=>s.picks.forEach(w=>t.add(w
 function renderCenter(){
   const host=byId('centerDetail'); const cr=byId('confirmRow');
   if(!SEL){
-    host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST</div>';
-    cr.style.display='none'; return;
+    const seat=SEATS[DRAFT.onClock];
+    const optional = DRAFT.round>CFG.floor && seat && !seat.ai;
+    host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
+      (optional
+        ? 'OPTIONAL ROUND — PICK ANOTHER<br>WRESTLER, OR HIT <b>I\'M DONE</b><br>TO LOCK YOUR STABLE'
+        : 'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
+    if(optional){ cr.style.display='flex'; byId('confirmBtn').style.display='none'; updateDoneBtn(); }
+    else { cr.style.display='none'; }
+    return;
   }
+  byId('confirmBtn').style.display='';
   const w=SEL;
   const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
   const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
@@ -735,6 +820,14 @@ function renderCenter(){
   const seatIsAI=seat.ai;
   btn.disabled=!afford || seatIsAI;
   btn.textContent=seatIsAI?'AI IS PICKING…':(afford?'CONFIRM PICK ►':'CAN\'T AFFORD');
+  updateDoneBtn();
+}
+// the "I'M DONE" button only appears for a human, on their turn, after the floor
+function updateDoneBtn(){
+  const d=byId('doneBtn'); if(!d) return;
+  const seat=SEATS[DRAFT.onClock];
+  const show = seat && !seat.ai && DRAFT.round>CFG.floor;
+  d.style.display = show ? '' : 'none';
 }
 function selectWrestler(id){
   const t=taken(); if(t.has(id)) return;
@@ -765,7 +858,25 @@ async function runAiPick(seat, seatIdx){
   const available=ROSTER.filter(w=>!t.has(w.id) && w._cost<=seat.budget)
     .map(w=>({ id:w.id, name:w.name, cost:w._cost, rank:w.rank_grade||'?', cha:w.charisma_grade||'?',
               notes:[w.origin, (w.country||'')].filter(Boolean).join(' · ') }));
-  const roundsLeft = CFG.rounds - seat.picks.length;
+
+  // optional phase + can't afford anyone → the AI is done
+  if(available.length===0){
+    AI_THINKING=false;
+    if(DRAFT.round>CFG.floor){ passSeat(seatIdx,'out of affordable picks'); advanceClock(); return; }
+    // mandatory phase but broke: nothing to pick, just advance the clock
+    advanceClock(); return;
+  }
+
+  // in the optional phase the AI may choose to stop once its stable is deep & money's tight
+  if(DRAFT.round>CFG.floor){
+    const cheapest=Math.min.apply(null, available.map(a=>a.cost));
+    // stop if it can only afford bottom-tier scraps and already has a full-ish stable
+    if(seat.picks.length>=CFG.floor && seat.budget < cheapest*1.5 && Math.random()<0.6){
+      AI_THINKING=false; passSeat(seatIdx,'satisfied with the stable'); advanceClock(); return;
+    }
+  }
+
+  const roundsLeft = Math.max(0, CFG.floor - seat.picks.length);  // mandatory picks remaining
   let pickedId=null, line='';
   if(available.length){
     try{
@@ -790,7 +901,10 @@ async function runAiPick(seat, seatIdx){
     w=pool[0]||null;
   }
   AI_THINKING=false;
-  if(!w){ DRAFT.made++; advanceClock(); return; }
+  if(!w){ // truly nothing affordable
+    if(DRAFT.round>CFG.floor){ passSeat(seatIdx,'out of affordable picks'); }
+    advanceClock(); return;
+  }
   if(line) chatPush('ai', seat.name, line);
   const picked=w;
   // briefly show the AI's pick in the hero card before committing
@@ -926,7 +1040,7 @@ function headerBar(ctx,W,title){
   ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
   ctx.fillText('WCA FIRE PRO — PRACTICE DRAFT', 24, 40);
   ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
-  ctx.fillText(title||('Snake/Linear · '+CFG.rounds+' rounds · '+money(CFG.budget)+' each'), 24, 66);
+  ctx.fillText(title||((CFG.format==='snake'?'Snake':'Linear')+' · min '+CFG.floor+' rounds · '+money(CFG.budget)+' each'), 24, 66);
 }
 function downloadCanvas(canvas,name){
   canvas.toBlob(b=>{

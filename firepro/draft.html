@@ -84,6 +84,11 @@
   .btn.gold{background:linear-gradient(180deg,#ffe27a,#ffd23f);border-color:#fff;color:#1a0d0e;text-shadow:none;}
   .btn.gold:hover{background:#fff;}
   .btn.sm{padding:8px 11px;font-size:9px;}
+  .btn.done{background:linear-gradient(180deg,#2a1c0a,#160f04);border-color:var(--gold2);color:var(--gold2);}
+  .btn.done:hover{background:linear-gradient(180deg,#3a2810,#1c1406);border-color:#fff;color:#fff;}
+  .donetag{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--gold2);color:#1a0d0e;border-radius:4px;padding:2px 5px;vertical-align:middle;letter-spacing:0;}
+  .ord .o.done{opacity:.5;}
+  .ord .o.done .bal{text-decoration:line-through;}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4);}
   .btn.ghost{background:transparent;box-shadow:none;}
   .btn.head{background:var(--gold2);color:#0a0506;border:2px solid #fff;box-shadow:0 0 12px -2px var(--gold2);text-shadow:none;}
@@ -467,8 +472,9 @@
       <!-- CENTER: hero detail -->
       <div class="panel center">
         <div class="center-scroll" id="centerDetail"></div>
-        <div class="confirm-row" id="confirmRow" style="display:none;padding:0 20px 16px;">
+        <div class="confirm-row" id="confirmRow" style="display:none;padding:0 20px 16px;gap:10px;">
           <button class="btn primary" id="confirmBtn" onclick="confirmPick()">CONFIRM PICK ►</button>
+          <button class="btn done" id="doneBtn" onclick="doPass()" style="display:none;">🏁 I'M DONE</button>
         </div>
       </div>
 
@@ -752,7 +758,8 @@ function showDraft(){
 function seatOnClock(){ return STATE ? SEATS.find(s=>s.auth_id===STATE.on_the_clock) : null; }
 function isMyTurn(){ return draftLive() && ME && STATE && STATE.on_the_clock===ME.id && !AM_SPECTATOR; }
 
-function spentBy(authId){ return PICKS.filter(p=>p.auth_id===authId).reduce((a,p)=>a+( (WMAP[p.wrestler_id]||{})._cost||0 ),0); }
+function realPicks(){ return PICKS.filter(p=>p.wrestler_id!=null); }
+function spentBy(authId){ return realPicks().filter(p=>p.auth_id===authId).reduce((a,p)=>a+( (WMAP[p.wrestler_id]||{})._cost||0 ),0); }
 function seatBankroll(seat){
   // the wallet the booker was seeded with at join; falls back to the season bankroll
   if(seat && seat.starting_balance!=null) return seat.starting_balance;
@@ -780,11 +787,14 @@ function renderNow(){
   const initial=(seat.promotion_name||'?').trim().charAt(0).toUpperCase();
   const mine = ME && seat.auth_id===ME.id;
   const av = seat.avatar_url ? ' style="background-image:url(\''+esc(seat.avatar_url)+'\');background-size:cover;color:transparent"' : '';
+  const floor = STATE.min_rounds || SEASON.min_rounds || STATE.total_rounds || SEASON.draft_rounds || 9;
+  const curRound = STATE.current_round||1;
+  const roundTail = curRound>floor ? ' <i>(opt)</i>' : '<i>/'+floor+'</i>';
   box.innerHTML=
     '<div class="oc-tag'+(mine?'':' ai')+'">'+(mine?'● YOUR PICK':'● PICKING NOW')+'<span style="margin-left:auto" id="clk">—</span></div>'+
     '<div class="oc-grid">'+
-      '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+(STATE.current_round||1)+'<i>/'+(STATE.total_rounds||SEASON.draft_rounds)+'</i></span></div>'+
-      '<div class="oc-cell"><span class="oc-k">PICK</span><span class="oc-v">'+(STATE.current_pick||1)+'<i>/'+(SEATS.length*(STATE.total_rounds||SEASON.draft_rounds))+'</i></span></div>'+
+      '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+curRound+roundTail+'</span></div>'+
+      '<div class="oc-cell"><span class="oc-k">PICK</span><span class="oc-v">'+(STATE.current_pick||1)+'</span></div>'+
     '</div>'+
     '<div class="oc-seat'+(mine?' human':'')+'">'+
       '<div class="oc-ava"'+av+'>'+esc(initial)+'</div>'+
@@ -794,6 +804,7 @@ function renderNow(){
       '</div>'+
     '</div>';
   startClock();
+  updateDoneBtn();
   if(isMyTurn() && !MY_TURN_LAST){ toast('You’re on the clock — make your pick!'); }
   MY_TURN_LAST = isMyTurn();
 }
@@ -818,31 +829,40 @@ function renderOrder(){
   byId('ordList').innerHTML=SEATS.map((s,i)=>{
     const on = STATE && s.auth_id===STATE.on_the_clock && draftLive();
     const mine = ME && s.auth_id===ME.id;
-    return '<div class="o'+(on?' on':'')+'">'+
+    const done = !!s.is_done;
+    return '<div class="o'+(on?' on':'')+(done?' done':'')+'">'+
       '<span class="b">'+(s.draft_order!=null?s.draft_order:(i+1))+'</span>'+
-      '<span>'+esc(s.promotion_name||'(unnamed)')+(mine?' <span class="you">YOU</span>':'')+'</span>'+
+      '<span>'+esc(s.promotion_name||'(unnamed)')+(mine?' <span class="you">YOU</span>':'')+(done?' <span class="donetag">DONE</span>':'')+'</span>'+
       '<span class="bal">'+money(budgetLeft(s.auth_id))+'</span></div>';
   }).join('');
   const pb=byId('ordProgress');
   if(pb){
-    const total=SEATS.length*(STATE?STATE.total_rounds:SEASON.draft_rounds);
-    const made=PICKS.length;
-    pb.querySelector('.fill').style.width=(total?Math.round(made/total*100):0)+'%';
-    pb.querySelector('.lbl').textContent=made+' / '+total+' PICKS';
+    const floor=(STATE?STATE.min_rounds:SEASON.min_rounds)||SEASON.draft_rounds||9;
+    const total=SEATS.length*floor;
+    const made=realPicks().length;
+    const past=(STATE&&STATE.current_round>floor);
+    pb.querySelector('.fill').style.width=(total?Math.min(100,Math.round(made/total*100)):0)+'%';
+    pb.querySelector('.lbl').textContent = past ? ('OPTIONAL — '+made+' PICKS') : (made+' / '+total+' MANDATORY');
   }
 }
 
-function takenIds(){ return new Set(PICKS.map(p=>p.wrestler_id)); }
+function takenIds(){ return new Set(realPicks().map(p=>p.wrestler_id)); }
 
 // ----- center hero detail (cloned from practice) -----
 function renderCenter(){
   const host=byId('centerDetail'); const cr=byId('confirmRow');
+  const floor = (STATE&&STATE.min_rounds) || SEASON.min_rounds || SEASON.draft_rounds || 9;
+  const optionalMine = isMyTurn() && STATE && (STATE.current_round||1) > floor;
   if(!SEL){
     host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
-      (isMyTurn()?'YOU’RE ON THE CLOCK —<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
+      (optionalMine?'OPTIONAL ROUND — PICK ANOTHER<br>WRESTLER, OR HIT <b>I’M DONE</b><br>TO LOCK YOUR STABLE'
+       :isMyTurn()?'YOU’RE ON THE CLOCK —<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
                  :'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
-    cr.style.display='none'; return;
+    if(optionalMine){ cr.style.display='flex'; byId('confirmBtn').style.display='none'; updateDoneBtn(); }
+    else { cr.style.display='none'; }
+    return;
   }
+  byId('confirmBtn').style.display='';
   const w=SEL;
   const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
   const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
@@ -891,6 +911,7 @@ function renderCenter(){
   else if(!afford){ btn.disabled=true; btn.textContent='CAN’T AFFORD'; }
   else if(takenIds().has(w.id)){ btn.disabled=true; btn.textContent='ALREADY DRAFTED'; }
   else { btn.disabled=false; btn.textContent = (SEASON.draft_run_mode==='queue') ? 'QUEUE THIS PICK ►' : 'CONFIRM PICK ►'; }
+  updateDoneBtn();
 }
 function selectWrestler(id){
   if(takenIds().has(id)) return;
@@ -938,13 +959,50 @@ async function confirmPick(){
   setTimeout(()=>{ const b=byId('confirmBtn'); if(b) b.disabled=false; renderCenter(); }, 600);
 }
 
+// "I'M DONE" — end my own draft for good (only legal after the mandatory floor).
+async function doPass(){
+  if(AM_SPECTATOR){ return; }
+  if(!isMyTurn()){ toast('It’s not your turn.',true); return; }
+  const floor = (STATE&&STATE.min_rounds) || SEASON.min_rounds || SEASON.draft_rounds || 9;
+  if((STATE.current_round||1) <= floor){
+    toast('You must draft through the mandatory rounds first (round '+floor+').',true); return;
+  }
+  if(!confirm('End your draft? You’re done for good and won’t pick again this draft — but continuing is optional, you can keep building your stable if you’d like. Your unspent money stays in your wallet for the season.')) return;
+  byId('doneBtn').disabled=true;
+  try{
+    const { error } = await sb.rpc('fp_draft_pass',{ p_season:SEASON.id, p_for:ME.id });
+    if(error) throw error;
+    toast('You’re done drafting — good luck this season!');
+    SEL=null;
+  }catch(e){
+    const msg=(e.message||e)+'';
+    toast(msg.includes('FLOOR_NOT_MET') ? 'You still have mandatory rounds to draft.' :
+          msg.includes('NOT_YOUR_TURN') ? 'It’s not your turn anymore.' :
+          'Couldn’t end your draft: '+msg, true);
+    const d=byId('doneBtn'); if(d) d.disabled=false;
+  }
+}
+
+// the "I'M DONE" button shows only on my turn, in the optional phase
+function updateDoneBtn(){
+  const d=byId('doneBtn'); if(!d) return;
+  const floor = (STATE&&STATE.min_rounds) || SEASON.min_rounds || SEASON.draft_rounds || 9;
+  const optional = isMyTurn() && STATE && (STATE.current_round||1) > floor;
+  d.style.display = optional ? '' : 'none';
+}
+
 // ===== DRAFT FEED (read-only list of picks; chat is local to viewers) =====
 function renderFeed(){
   const log=byId('chatLog'); if(!log) return;
   const seatName={}; SEATS.forEach(s=>seatName[s.auth_id]=s.promotion_name||'(unnamed)');
   log.innerHTML = PICKS.slice().reverse().slice(0,40).map(p=>{
+    const nm=esc(seatName[p.auth_id]||'—');
+    if(p.wrestler_id==null){
+      // skip / kick marker — show the reason note
+      return '<div class="cmsg sys" style="color:#ff9a8a"><span class="body">⏭ <b>'+nm+'</b> — '+esc(p.note||'skipped')+'.</span></div>';
+    }
     const w=WMAP[p.wrestler_id]||{name:'#'+p.wrestler_id,_cost:0};
-    return '<div class="cmsg sys"><span class="body"><b>'+esc(seatName[p.auth_id]||'—')+'</b> drafted '+
+    return '<div class="cmsg sys"><span class="body"><b>'+nm+'</b> drafted '+
       esc(w.name)+' for '+money(w._cost||0)+(p.is_auto?' (auto)':'')+'.</span></div>';
   }).join('') || '<div class="cmsg sys"><span class="body">No picks yet — the draft is about to begin.</span></div>';
   log.scrollTop=0;
@@ -1026,7 +1084,7 @@ function buildResultSeats(){
     name: s.promotion_name||'(unnamed)',
     ai:false,
     budget: budgetLeft(s.auth_id),
-    picks: PICKS.filter(p=>p.auth_id===s.auth_id).map(p=>WMAP[p.wrestler_id]).filter(Boolean)
+    picks: realPicks().filter(p=>p.auth_id===s.auth_id).map(p=>WMAP[p.wrestler_id]).filter(Boolean)
   }));
 }
 let RES=[];

@@ -161,6 +161,14 @@
     border-radius:7px; padding:7px 10px; cursor:pointer; min-width:150px;
   }
   .mhint{font-size:11.5px; color:#8a98a8;}
+  .mtitle{
+    display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+    font-family:'Oswald',sans-serif; font-size:12.5px; color:var(--gold2);
+    background:rgba(233,185,73,.08); border:1px solid rgba(233,185,73,.35);
+    border-radius:7px; padding:5px 9px; white-space:nowrap; user-select:none;
+  }
+  .mtitle input{ accent-color:var(--gold2); cursor:pointer; margin:0; }
+  body.readonly .mtitle{ pointer-events:none; opacity:.7; }
   .mspacer{flex:1 1 auto;}
   .mcost{font-family:'Oswald',sans-serif; font-size:14px; color:var(--gold2);}
   .mcost small{color:#8a98a8; font-weight:400;}
@@ -618,6 +626,7 @@ async function loadMyCard(){
       if(matches && matches.length){
         CARD = matches.map(m=>({
           typeKey: m.type_key,
+          title: !!m.is_title,
           sides: Array.isArray(m.sides) ? m.sides.map(s=>Array.isArray(s)?s.slice():[]) : []
         }));
       }
@@ -680,12 +689,14 @@ function initCard(){
   renderMatches();
 }
 
-/* cost of one match = sum of wrestler costs in it + the type surcharge */
+/* cost of one match = sum of wrestler costs + the type surcharge + Title premium ($5k) */
+const TITLE_PREMIUM = 5000;
 function matchCost(m){
   const t=TYPE_BY_KEY[m.typeKey]; const sur=t?t.surcharge:0;
+  const titleAdd = m.title ? TITLE_PREMIUM : 0;
   let w=0;
   for(const side of m.sides){ for(const id of side){ const ww=wrestlerById(id); if(ww) w+=ww.cost; } }
-  return { wrestler:w, surcharge:sur, total:w+sur };
+  return { wrestler:w, surcharge:sur, title:titleAdd, total:w+sur+titleAdd };
 }
 
 function usedIds(){
@@ -714,8 +725,11 @@ function renderMatches(){
       '<span class="mnum">MATCH '+(mi+1)+'</span>'+
       '<select class="mtype" onchange="changeType('+mi+',this.value)">'+opts+'</select>'+
       '<span class="mhint">'+esc(typeHint(t))+'</span>'+
+      '<label class="mtitle" title="Championship match — adds '+money(TITLE_PREMIUM)+'">'+
+        '<input type="checkbox" '+(m.title?'checked':'')+' onchange="toggleTitle('+mi+',this.checked)"> 🏆 Title +'+money(TITLE_PREMIUM)+
+      '</label>'+
       '<span class="mspacer"></span>'+
-      '<span class="mcost">'+money(c.total)+' <small>('+money(c.wrestler)+' + '+money(c.surcharge)+' risk)</small></span>';
+      '<span class="mcost">'+money(c.total)+' <small>('+money(c.wrestler)+' + '+money(c.surcharge)+' risk'+(c.title?' + '+money(c.title)+' title':'')+')</small></span>';
     card.appendChild(head);
 
     // sides
@@ -791,7 +805,13 @@ function changeType(mi, key){
     }
   }
   CARD[mi]=nm;
+  CARD[mi].title = !!old.title;   // keep the Title flag when the match type changes
   renderMatches(); recalc(); renderRoster();
+}
+function toggleTitle(mi, on){
+  if(!CARD[mi]) return;
+  CARD[mi].title = !!on;
+  renderMatches(); recalc();
 }
 
 function removeFromSlot(mi,si,k){
@@ -1014,7 +1034,8 @@ async function submitCard(){
       return {
         card_id:cardId, position:i, type_key:m.typeKey,
         type_name:t?t.name:m.typeKey, surcharge:c.surcharge,
-        sides:m.sides, wrestler_cost:c.wrestler, match_cost:c.total
+        sides:m.sides, wrestler_cost:c.wrestler, match_cost:c.total,
+        is_title: !!m.title
       };
     });
     const { error:e2 } = await sb.from('fp_matches').insert(rows);
