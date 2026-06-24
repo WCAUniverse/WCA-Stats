@@ -420,6 +420,16 @@
                  style="display:none;margin-top:6px" value="5500000">
         </div>
         <div>
+          <label>Bankruptcy floor</label>
+          <select id="lobBankruptcy">
+            <option value="10000" selected>$10,000 — Standard (real rules)</option>
+            <option value="0">$0 — Only at fully broke</option>
+            <option value="50000">$50,000 — Strict</option>
+            <option value="100000">$100,000 — Brutal</option>
+          </select>
+          <p class="muted" style="font-size:12px;margin:4px 0 0">Drop to or below this and you're eliminated — same as the real game.</p>
+        </div>
+        <div>
           <label>Order</label>
           <select id="lobFormat">
             <option value="snake" selected>Snake (1‑2‑3‑3‑2‑1)</option>
@@ -543,7 +553,7 @@ try{
 // ===== state =====
 let ROSTER=[], PROMOS=[], FACTIONS=[];
 let SEATS=[];          // {name, ai, order, budget, picks:[wrestler...], done:bool}
-let CFG={ floor:9, format:'snake', budget:5500000 };
+let CFG={ floor:9, format:'snake', budget:5500000, bankruptcy:10000, reserve:10000 };
 let DRAFT={ round:1, order:[], onClock:0, made:0 };
 let SEL=null;          // selected wrestler in center
 let PF=0, FF=0;        // filter indices
@@ -618,6 +628,12 @@ function lobStart(){
   CFG.budget = tierSel==='custom'
     ? (parseInt(byId('lobBudgetCustom').value,10)||5500000)
     : (parseInt(tierSel,10)||5500000);
+  // bankruptcy floor: drop to/below this = eliminated (mirrors the real game)
+  CFG.bankruptcy = Math.max(0, parseInt(byId('lobBankruptcy').value,10)||10000);
+  // booking reserve: money the AI should keep for booking shows after the draft.
+  // A safe cushion above the floor so a stable can actually run cards all season.
+  // (floor + room for a handful of cheap singles cards). Min $250k or floor+$100k.
+  CFG.reserve = Math.max(CFG.bankruptcy + 100000, 250000);
   // need at least floor picks each available
   if(ROSTER.length < n*CFG.floor){
     toast('Not enough wrestlers ('+ROSTER.length+') for '+n+' seats × '+CFG.floor+' mandatory rounds.',true); return;
@@ -632,13 +648,13 @@ function lobStart(){
 
   DRAFT.order=[]; DRAFT.round=1; DRAFT.made=0; DRAFT.onClock=0;
 
-  byId('cfgLine').textContent = (CFG.format==='snake'?'SNAKE':'LINEAR')+' · MIN '+CFG.floor+' RDS · '+money(CFG.budget);
+  byId('cfgLine').textContent = (CFG.format==='snake'?'SNAKE':'LINEAR')+' · MIN '+CFG.floor+' RDS · '+money(CFG.budget)+' · FLOOR '+money(CFG.bankruptcy);
   byId('cfgLine').classList.remove('hidden');
 
   byId('lobby').classList.add('hidden');
   byId('draftView').classList.remove('hidden');
   PF=0;FF=0; rosRenderFilters();
-  chatPush('sys', null, 'Draft started — '+n+' seats, '+CFG.floor+' mandatory rounds, then optional. Good luck.');
+  chatPush('sys', null, 'Draft started — '+n+' seats, '+CFG.floor+' mandatory rounds, then optional. Bankruptcy floor is '+money(CFG.bankruptcy)+' (real-game rule): if your wallet drops to or below it during the season you\'re eliminated, so don\'t blow your whole bankroll drafting — you need money to book shows. Good luck.');
   // first seat on the clock
   DRAFT.onClock = seatOrderForRound(1)[0];
   beginTurn(true);
@@ -840,6 +856,15 @@ function confirmPick(){
   if(!SEL){ toast('Pick a wrestler first.',true); return; }
   if(SEL._cost>seat.budget){ toast('You can\'t afford that.',true); return; }
   if(taken().has(SEL.id)){ toast('Already drafted.',true); return; }
+  // Teaching guard: warn if this pick would push the booker to/below the bankruptcy
+  // floor or leave too little to book shows. It's practice, so we allow it after a
+  // confirm — but the warning teaches the real-game consequence.
+  const after = seat.budget - SEL._cost;
+  if(after <= CFG.bankruptcy){
+    if(!confirm('⚠ HEADS UP — REAL-GAME RULE\n\nDrafting '+SEL.name+' for '+money(SEL._cost)+' leaves you with '+money(after)+', which is AT OR BELOW the bankruptcy floor of '+money(CFG.bankruptcy)+'.\n\nIn the real season this would ELIMINATE you (no buy-back). Draft anyway for practice?')) return;
+  } else if(after < CFG.reserve){
+    if(!confirm('⚠ Low on funds\n\nThis leaves you '+money(after)+'. In the real season your draft money also pays to BOOK shows (matches cost money), so a thin wallet can get you eliminated mid-season. A safer cushion is around '+money(CFG.reserve)+'+.\n\nDraft '+SEL.name+' anyway?')) return;
+  }
   const picked=SEL;
   commitPick(picked);
   chatPush('sys', null, esc(seat.name)+' drafted '+esc(picked.name)+' for '+money(picked._cost)+'.');
@@ -852,27 +877,56 @@ function commitPick(w){
 }
 
 // ----- AI opponent: edge function (firepro_draft), trash-talk lands in CHAT -----
+// The AI must keep a BOOKING RESERVE (CFG.reserve) so it can book shows after the
+// draft and never drops to/below the bankruptcy floor. "Spendable" money on any pick
+// is whatever sits above (remaining mandatory picks' worth + the booking reserve).
+function reserveFor(seat){
+  // money this seat must keep: enough cheap picks for its remaining mandatory rounds,
+  // PLUS the booking reserve. Past the floor, only the booking reserve applies.
+  const cheap = cheapestAvailable();
+  const mandLeft = Math.max(0, CFG.floor - seat.picks.length);
+  const cheapVal = isFinite(cheap) ? cheap : 0;
+  // reserve a cheap pick per remaining mandatory round AFTER this one
+  const futureMandatory = Math.max(0, mandLeft - 1) * cheapVal;
+  return CFG.reserve + futureMandatory;
+}
 async function runAiPick(seat, seatIdx){
   AI_THINKING=true; renderNow();
   const t=taken();
-  const available=ROSTER.filter(w=>!t.has(w.id) && w._cost<=seat.budget)
+  const inOptional = DRAFT.round>CFG.floor;
+  const mustPick = !inOptional;                 // still inside the mandatory floor?
+  const reserve = reserveFor(seat);
+  // what the AI can spend on THIS pick without breaking its reserve
+  const spendable = Math.max(0, seat.budget - reserve);
+
+  // Build the affordable list. During mandatory rounds the AI MUST pick, so if
+  // nothing fits the reserve it may dip in (it still can't exceed its raw budget).
+  let available=ROSTER.filter(w=>!t.has(w.id) && w._cost<=spendable)
     .map(w=>({ id:w.id, name:w.name, cost:w._cost, rank:w.rank_grade||'?', cha:w.charisma_grade||'?',
               notes:[w.origin, (w.country||'')].filter(Boolean).join(' · ') }));
+  if(available.length===0 && mustPick){
+    // mandatory: fall back to anything it can literally afford (protect the draft, not the reserve)
+    available=ROSTER.filter(w=>!t.has(w.id) && w._cost<=seat.budget)
+      .map(w=>({ id:w.id, name:w.name, cost:w._cost, rank:w.rank_grade||'?', cha:w.charisma_grade||'?',
+                notes:[w.origin, (w.country||'')].filter(Boolean).join(' · ') }));
+  }
 
-  // optional phase + can't afford anyone → the AI is done
+  // optional phase + nothing it should/ can buy → the AI is done (banks its money)
   if(available.length===0){
     AI_THINKING=false;
-    if(DRAFT.round>CFG.floor){ passSeat(seatIdx,'out of affordable picks'); advanceClock(); return; }
-    // mandatory phase but broke: nothing to pick, just advance the clock
+    if(inOptional){ passSeat(seatIdx,'banking money for booking'); advanceClock(); return; }
+    // mandatory phase but truly can't afford anyone → just advance (handled by end logic)
     advanceClock(); return;
   }
 
-  // in the optional phase the AI may choose to stop once its stable is deep & money's tight
-  if(DRAFT.round>CFG.floor){
-    const cheapest=Math.min.apply(null, available.map(a=>a.cost));
-    // stop if it can only afford bottom-tier scraps and already has a full-ish stable
-    if(seat.picks.length>=CFG.floor && seat.budget < cheapest*1.5 && Math.random()<0.6){
-      AI_THINKING=false; passSeat(seatIdx,'satisfied with the stable'); advanceClock(); return;
+  // In the optional phase the AI stops once its stable is solid and more spending would
+  // start eating into the booking reserve. Principled, not random: if buying even the
+  // cheapest remaining option would drop it below its reserve, it's done.
+  if(inOptional){
+    const cheapestOpt=Math.min.apply(null, available.map(a=>a.cost));
+    const wouldLeave = seat.budget - cheapestOpt;
+    if(seat.picks.length>=CFG.floor && wouldLeave < CFG.reserve){
+      AI_THINKING=false; passSeat(seatIdx,'banking money for booking'); advanceClock(); return;
     }
   }
 
@@ -884,6 +938,9 @@ async function runAiPick(seat, seatIdx){
         postType:'firepro_draft', webSearch:true,
         context:{ draft:{
           budgetLeft:seat.budget, roundsLeft,
+          bankruptcyFloor:CFG.bankruptcy,
+          bookingReserveMin:CFG.reserve,
+          inOptionalPhase:inOptional,
           available: available.slice(0,120),
           stable: seat.picks.map(w=>({name:w.name,cost:w._cost})),
           otherStables: SEATS.filter((s,i)=>i!==seatIdx).map(s=>({name:s.name,picks:s.picks.map(w=>({name:w.name,cost:w._cost}))}))
@@ -895,14 +952,23 @@ async function runAiPick(seat, seatIdx){
       }
     }catch(e){ /* fall through to local fallback */ }
   }
+  // Validate the AI's pick: must be untaken, affordable, AND (when possible) within reserve.
   let w = pickedId!=null ? ROSTER.find(x=>x.id===pickedId && !t.has(x.id) && x._cost<=seat.budget) : null;
+  // if the model picked something that breaks the reserve while cheaper reserve-safe
+  // options exist, swap to the cheapest reserve-safe option (enforces discipline).
+  if(w && w._cost>spendable){
+    const safe=ROSTER.filter(x=>!t.has(x.id) && x._cost<=spendable).sort((a,b)=>b._cost-a._cost);
+    if(safe.length) w=safe[0];   // best reserve-safe pick instead
+  }
   if(!w){
-    const pool=ROSTER.filter(x=>!t.has(x.id) && x._cost<=seat.budget).sort((a,b)=>a._cost-b._cost);
+    // local fallback: best reserve-safe value, else cheapest affordable
+    let pool=ROSTER.filter(x=>!t.has(x.id) && x._cost<=spendable).sort((a,b)=>b._cost-a._cost);
+    if(!pool.length) pool=ROSTER.filter(x=>!t.has(x.id) && x._cost<=seat.budget).sort((a,b)=>a._cost-b._cost);
     w=pool[0]||null;
   }
   AI_THINKING=false;
   if(!w){ // truly nothing affordable
-    if(DRAFT.round>CFG.floor){ passSeat(seatIdx,'out of affordable picks'); }
+    if(inOptional){ passSeat(seatIdx,'banking money for booking'); }
     advanceClock(); return;
   }
   if(line) chatPush('ai', seat.name, line);
@@ -916,7 +982,11 @@ async function runAiPick(seat, seatIdx){
 }
 
 // ===== CHAT =====
+let CHAT_HISTORY=[];     // {from, text} recent lines for AI grounding
+let AI_REPLYING=false;   // guard so we don't stack replies
 function chatPush(kind, name, body){
+  // track real conversational lines (not system notices) for AI context
+  if(kind!=='sys' && name){ CHAT_HISTORY.push({from:name, text:String(body)}); if(CHAT_HISTORY.length>20) CHAT_HISTORY.shift(); }
   const log=byId('chatLog'); if(!log) return;
   const div=document.createElement('div');
   div.className='cmsg '+kind;
@@ -931,6 +1001,43 @@ function chatSend(){
   const me = SEATS[YOU_INDEX] ? SEATS[YOU_INDEX].name : 'You';
   chatPush('human', me, v);
   inp.value='';
+  // an AI opponent replies, matching the human's tone
+  aiChatReply(me, v);
+}
+
+// Pick one AI seat to answer a human chat line via the edge function (firepro_chat).
+async function aiChatReply(fromName, message){
+  if(AI_REPLYING) return;
+  // choose an AI responder: prefer the seat currently on the clock if it's AI,
+  // otherwise a random AI seat. If there are no AI seats, nobody replies.
+  const aiSeats = SEATS.map((s,i)=>({s,i})).filter(o=>o.s.ai);
+  if(!aiSeats.length) return;
+  let responder = aiSeats.find(o=>o.i===DRAFT.onClock) || aiSeats[Math.floor(Math.random()*aiSeats.length)];
+  const seat = responder.s, seatIdx = responder.i;
+  AI_REPLYING=true;
+  try{
+    const { data, error } = await sb.functions.invoke('swift-api', { body:{
+      postType:'firepro_chat',
+      userPrompt: message,
+      context:{ chat:{
+        fromName, aiName: seat.name,
+        history: CHAT_HISTORY.slice(-8),
+        state:{
+          onClock: SEATS[DRAFT.onClock] ? SEATS[DRAFT.onClock].name : '',
+          round: DRAFT.round, floor: CFG.floor,
+          aiBudget: seat.budget,
+          aiStable: seat.picks.map(w=>({name:w.name,cost:w._cost})),
+          otherStables: SEATS.filter((s,i)=>i!==seatIdx).map(s=>({name:s.name,picks:s.picks.map(w=>({name:w.name,cost:w._cost}))}))
+        }
+      }}
+    }});
+    let reply = (!error && data && typeof data.reply==='string') ? data.reply.trim() : '';
+    if(reply){
+      // small natural delay so it doesn't reply instantly
+      setTimeout(()=>{ chatPush('ai', seat.name, reply); }, 500+Math.random()*600);
+    }
+  }catch(e){ /* stay silent on failure rather than break the chat */ }
+  AI_REPLYING=false;
 }
 
 // ----- right-side roster list + filters -----
