@@ -433,7 +433,21 @@
       <div id="lobSeated" class="hidden">
         <div class="panel-h" style="margin-top:14px">SEATS IN THIS DRAFT</div>
         <div id="seatList"></div>
+        <div style="text-align:center;margin-top:14px">
+          <button class="btn gold" id="readyBtn" onclick="toggleReady()">✋ I'M READY</button>
+        </div>
         <div class="waitmsg" id="waitForStart">WAITING FOR THE ADMIN<br>TO START THE DRAFT…</div>
+      </div>
+
+      <!-- shared lobby chat (everyone signed in can talk while waiting) -->
+      <div id="lobChatWrap" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px">
+        <div class="panel-h">LOBBY CHAT</div>
+        <div class="clog" id="lobChatLog" style="height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+        <div class="crow" style="display:flex;gap:8px;margin-top:10px">
+          <input id="lobChatInput" maxlength="160" placeholder="Say something…" style="flex:1"
+                 onkeydown="if(event.key==='Enter')lobChatSend()">
+          <button class="btn gold sm" onclick="lobChatSend()">SEND</button>
+        </div>
       </div>
 
       <!-- spectator (draft already locked/live, no seat) -->
@@ -560,6 +574,7 @@ let SEASON=null;             // fp_seasons row (mode:'draft', active)
 let STATE=null;              // fp_draft_state row
 let SEATS=[];                // fp_season_bookers rows (the players)
 let PICKS=[];                // fp_draft_picks rows
+let CHAT=[];                 // fp_season_chat rows (shared lobby/draft chat)
 let WMAP={};                 // wrestler id -> {name,cost,...}
 let SUB=null;                // realtime channel
 let SEL=null;                // selected wrestler in the center
@@ -631,6 +646,7 @@ function subscribe(){
     .on('postgres_changes',{event:'*',schema:'public',table:'fp_draft_state',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'fp_draft_picks',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'fp_season_bookers',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'fp_season_chat',filter:'season_id=eq.'+SEASON.id}, onLiveChange)
     .subscribe();
 }
 function unsubscribe(){ if(SUB){ try{ sb.removeChannel(SUB); }catch(_){} SUB=null; } }
@@ -639,14 +655,16 @@ async function onLiveChange(){ await refreshAll(); routeView(); }
 async function refreshAll(){
   if(!SEASON) return;
   try{
-    const [stRes, sbRes, pkRes] = await Promise.all([
+    const [stRes, sbRes, pkRes, chRes] = await Promise.all([
       sb.from('fp_draft_state').select('*').eq('season_id',SEASON.id).maybeSingle(),
       sb.from('fp_season_bookers').select('*').eq('season_id',SEASON.id).order('draft_order',{ascending:true,nullsFirst:false}),
-      sb.from('fp_draft_picks').select('*').eq('season_id',SEASON.id).order('pick_no',{ascending:true})
+      sb.from('fp_draft_picks').select('*').eq('season_id',SEASON.id).order('pick_no',{ascending:true}),
+      sb.from('fp_season_chat').select('*').eq('season_id',SEASON.id).order('created_at',{ascending:false}).limit(60)
     ]);
     STATE = stRes.data || STATE;
     SEATS = sbRes.data || [];
     PICKS = pkRes.data || [];
+    CHAT  = chRes.data || [];   // newest first (matches the feed's newest-on-top)
   }catch(e){}
 }
 
@@ -689,12 +707,17 @@ function showLobby(){
   if(!SEASON){ byId('lobStatus').textContent='NO LIVE DRAFT RIGHT NOW'; return; }
   byId('lobStatus').textContent = (STATE?('STATUS: '+STATE.status.toUpperCase()):'DRAFT BEING SET UP');
 
+  // shared lobby chat — anyone signed in (seated or not) can talk while waiting
+  const cw=byId('lobChatWrap');
+  if(cw){ cw.classList.toggle('hidden', !ME); if(ME) renderLobChat(); }
+
   if(!ME){ out.classList.remove('hidden'); return; }
 
   const seat=mySeat();
   if(seat){
     seated.classList.remove('hidden');
     renderSeatList();
+    renderReadyBtn();
     byId('waitForStart').innerHTML = orderLocked()
       ? 'ORDER LOCKED — WAITING FOR<br>THE ADMIN TO START…'
       : 'YOU’RE IN!<br>WAITING FOR THE ADMIN<br>TO LOCK THE ORDER & START…';
@@ -715,10 +738,60 @@ function renderSeatList(){
     const isMe = ME && s.auth_id===ME.id;
     return '<div class="seatcard'+(isMe?' me':'')+'">'+
       '<div class="av"'+av+'>'+(s.avatar_url?'':esc(initial))+'</div>'+
-      '<div class="nm">'+esc(s.promotion_name||'(unnamed)')+(isMe?' <span class="youtag">YOU</span>':'')+'</div>'+
+      '<div class="nm">'+esc(s.promotion_name||'(unnamed)')+(isMe?' <span class="youtag">YOU</span>':'')+
+        (s.ready?' <span class="donetag" style="background:#7fe0a0">✓ READY</span>':'')+'</div>'+
       '<div class="ord">'+(s.draft_order!=null?('#'+s.draft_order):'—')+'</div>'+
       '</div>';
   }).join('');
+}
+
+/* ---- READY CHECK-IN (fp_season_bookers.ready via fp_set_ready RPC) ---- */
+function renderReadyBtn(){
+  const b=byId('readyBtn'); if(!b) return;
+  const seat=mySeat(); if(!seat){ b.style.display='none'; return; }
+  b.style.display='';
+  const r=!!seat.ready;
+  b.textContent = r ? '✓ READY — TAP TO UNREADY' : "✋ I'M READY";
+  b.classList.toggle('gold', !r);
+  b.classList.toggle('done', r);
+}
+async function toggleReady(){
+  const seat=mySeat(); if(!seat){ toast('Claim a seat first.',true); return; }
+  const next=!seat.ready;
+  const b=byId('readyBtn'); if(b) b.disabled=true;
+  try{
+    const { error } = await sb.rpc('fp_set_ready',{ p_season:SEASON.id, p_ready:next });
+    if(error) throw error;
+    await refreshAll(); routeView();
+    toast(next ? "You're checked in — the admin can see you're ready." : 'Ready status cleared.');
+  }catch(e){
+    const msg=(e.message||e)+'';
+    toast(msg.includes('NO_SEAT') ? 'No seat found for you this season.' : 'Could not update: '+msg, true);
+  }
+  if(b) b.disabled=false;
+}
+
+/* ---- SHARED LOBBY CHAT (fp_season_chat — synced live to everyone) ---- */
+function renderLobChat(){
+  const log=byId('lobChatLog'); if(!log) return;
+  const nearBottom = (log.scrollHeight - log.scrollTop - log.clientHeight) < 60;
+  log.innerHTML = CHAT.slice().reverse().map(c=>{
+    if(c.kind==='sys') return '<div class="cmsg sys"><span class="body">'+esc(c.body)+'</span></div>';
+    return '<div class="cmsg human"><span class="nm">'+esc(c.from_name)+':</span><span class="body">'+esc(c.body)+'</span></div>';
+  }).join('') || '<div class="cmsg sys"><span class="body">Say hi — everyone in the lobby sees this chat.</span></div>';
+  if(nearBottom) log.scrollTop=log.scrollHeight;
+}
+async function lobChatSend(){
+  const inp=byId('lobChatInput'); const v=(inp.value||'').trim(); if(!v) return;
+  if(!ME){ toast('Sign in to chat.',true); return; }
+  inp.value='';
+  const nm = mySeat() ? (mySeat().promotion_name||'(unnamed)') : 'Spectator';
+  try{
+    const { error } = await sb.from('fp_season_chat').insert({
+      season_id:SEASON.id, auth_id:ME.id, from_name:nm.slice(0,28), kind:'human', body:v.slice(0,200)
+    });
+    if(error) throw error;
+  }catch(e){ toast('Chat failed: '+(e.message||e)+' — run 2_firepro_season_lobby.sql.',true); }
 }
 
 async function claimSeat(){
@@ -991,11 +1064,22 @@ function updateDoneBtn(){
   d.style.display = optional ? '' : 'none';
 }
 
-// ===== DRAFT FEED (read-only list of picks; chat is local to viewers) =====
+// ===== DRAFT FEED (picks + SHARED chat, merged newest-first) =====
 function renderFeed(){
   const log=byId('chatLog'); if(!log) return;
   const seatName={}; SEATS.forEach(s=>seatName[s.auth_id]=s.promotion_name||'(unnamed)');
-  log.innerHTML = PICKS.slice().reverse().slice(0,40).map(p=>{
+  // merge pick events and chat lines into one stream, newest first
+  const items=[];
+  PICKS.forEach(p=>items.push({ t:new Date(p.created_at||0).getTime()||0, kind:'pick', p:p }));
+  CHAT.forEach(c=>items.push({ t:new Date(c.created_at||0).getTime()||0, kind:'chat', c:c }));
+  items.sort((a,b)=>b.t-a.t);
+  log.innerHTML = items.slice(0,60).map(it=>{
+    if(it.kind==='chat'){
+      const c=it.c;
+      if(c.kind==='sys') return '<div class="cmsg sys"><span class="body">'+esc(c.body)+'</span></div>';
+      return '<div class="cmsg human"><span class="nm">'+esc(c.from_name)+':</span><span class="body">'+esc(c.body)+'</span></div>';
+    }
+    const p=it.p;
     const nm=esc(seatName[p.auth_id]||'—');
     if(p.wrestler_id==null){
       // skip / kick marker — show the reason note
@@ -1014,12 +1098,26 @@ function chatPush(kind,name,body){
     : '<span class="nm">'+esc(name)+':</span><span class="body">'+esc(body)+'</span>';
   log.insertBefore(div, log.firstChild);
 }
-function chatSend(){
+async function chatSend(){
   const inp=byId('chatInput'); const v=(inp.value||'').trim(); if(!v) return;
-  const me = mySeat()? mySeat().promotion_name : (AM_SPECTATOR?'Spectator':'You');
-  chatPush('human', me, v); inp.value='';
-  // NOTE: chat is local to each viewer for now. A shared chat table can be added later
-  // the same way picks sync — kept local so nothing blocks the draft.
+  const me = mySeat()? (mySeat().promotion_name||'(unnamed)') : (AM_SPECTATOR?'Spectator':'You');
+  inp.value='';
+  if(!ME){
+    // not signed in → local echo only (nothing blocks the draft)
+    chatPush('human', me, v);
+    toast('Sign in to chat with everyone — this message is only on your screen.',true);
+    return;
+  }
+  try{
+    const { error } = await sb.from('fp_season_chat').insert({
+      season_id:SEASON.id, auth_id:ME.id, from_name:String(me).slice(0,28), kind:'human', body:v.slice(0,200)
+    });
+    if(error) throw error;
+    // realtime pushes it back into the feed for everyone (including us)
+  }catch(e){
+    chatPush('human', me, v); // graceful fallback: local echo
+    toast('Shared chat unavailable ('+(e.message||e)+') — shown locally only.',true);
+  }
 }
 
 // ----- roster filters + list (cloned from practice) -----

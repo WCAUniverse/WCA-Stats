@@ -359,6 +359,51 @@
     #fp-vol{width:78px;}
     #fp-mute{font-size:8px; padding:7px 7px;}
   }
+
+  /* ============================================================
+     ONLINE MULTIPLAYER (additive — local mode untouched)
+     ============================================================ */
+  #modeSelect{display:flex;justify-content:center;padding-top:26px;}
+  .mode-wrap{width:100%;max-width:900px;display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:760px){.mode-wrap{grid-template-columns:1fr;}}
+  .mode-card{position:relative;cursor:pointer;text-align:center;padding:34px 22px 30px;
+    background:linear-gradient(180deg,rgba(26,11,12,.97),rgba(12,6,7,.98));
+    border:2px solid var(--line);border-radius:12px;transition:.15s;
+    box-shadow:inset 0 0 34px -18px var(--red2), 0 6px 22px -12px #000;}
+  .mode-card:hover{border-color:var(--gold2);transform:translateY(-2px);
+    box-shadow:inset 0 0 30px -12px var(--gold2), 0 0 26px -6px rgba(255,210,63,.35);}
+  .mode-card .mc-ico{font-size:42px;display:block;margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(255,59,59,.5));}
+  .mode-card h2{font-size:13px;color:var(--gold2);margin:0 0 12px;text-shadow:1px 1px 0 #3a0008;}
+  .mode-card p{font-size:13.5px;line-height:1.55;color:#cdbfa6;margin:0;}
+  .mode-card .mc-off{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a7a;margin-top:12px;display:none;}
+  .mode-card.disabled{opacity:.55;cursor:not-allowed;}
+  .mode-card.disabled .mc-off{display:block;}
+
+  #olBrowser,#olRoom{display:flex;justify-content:center;padding-top:18px;}
+  .ol-wrap{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:14px;}
+  .olcard{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel2);
+    border:2px solid var(--line);border-radius:9px;padding:11px 14px;}
+  .olcard .nm{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;color:#fff;letter-spacing:.4px;}
+  .olcard .meta{font-size:12.5px;color:var(--muted);}
+  .olcard .st{font-family:'Press Start 2P',monospace;font-size:7px;border-radius:4px;padding:3px 6px;letter-spacing:0;}
+  .olcard .st.open{background:var(--green);color:#0a2a14;}
+  .olcard .st.drafting{background:var(--red2);color:#fff;animation:olPulse 1.2s ease-in-out infinite;}
+  @keyframes olPulse{50%{opacity:.65;}}
+  .olcard .sp{flex:1;}
+  .ol-seatgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px;margin-top:8px;}
+  .olseat{display:flex;align-items:center;gap:9px;background:var(--panel2);border:2px solid var(--line);
+    border-radius:9px;padding:9px 11px;min-height:52px;}
+  .olseat.me{border-color:var(--green);box-shadow:0 0 12px -5px var(--green);}
+  .olseat.empty{opacity:.6;border-style:dashed;}
+  .olseat .num{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);width:22px;text-align:center;flex:0 0 auto;}
+  .olseat .who{flex:1;min-width:0;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .olseat .who small{display:block;font-size:11px;color:var(--muted);font-family:'Barlow',sans-serif;font-weight:400;}
+  .ol-clock{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold2);margin-left:auto;}
+  .ol-clock.low{color:#ff5a4a;animation:olPulse .6s ease-in-out infinite;}
+  .olspec{font-family:'Press Start 2P',monospace;font-size:8px;color:#0a0506;background:#8ecbff;
+    border-radius:4px;padding:3px 6px;letter-spacing:0;}
+
 </style>
 </head>
 <body>
@@ -387,8 +432,162 @@
 
   <div class="content">
 
+  <!-- ============ MODE SELECT (local vs online) ============ -->
+  <div id="modeSelect">
+    <div class="mode-wrap">
+      <div class="mode-card" onclick="chooseLocal()">
+        <span class="mc-ico">🕹️</span>
+        <h2>LOCAL / VS AI</h2>
+        <p>Everything on this screen — draft against the AI, or pass the keyboard between friends. No sign-in needed. Exactly the practice draft you know.</p>
+      </div>
+      <div class="mode-card" id="onlineCard" onclick="chooseOnline()">
+        <span class="mc-ico">🌐</span>
+        <h2>ONLINE LOBBIES</h2>
+        <p>Draft live against other people on their own screens. Browse public lobbies, host your own, or spectate one in progress. Empty seats become AI when the host starts. Sign-in required.</p>
+        <span class="mc-off" id="onlineOffMsg">DISABLED BY THE ADMIN</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ONLINE: LOBBY BROWSER ============ -->
+  <div id="olBrowser" class="hidden">
+    <div class="ol-wrap">
+      <div class="panel">
+        <div class="panel-h">ONLINE PRACTICE LOBBIES</div>
+        <div id="olAuthGate" class="hidden">
+          <p class="intro">You need your WCA account to play online (so your seat is really yours).</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn primary" onclick="olGoSignIn()">SIGN IN ON THE MAIN SITE ►</button>
+            <button class="btn sm ghost" onclick="showMode()">◄ BACK</button>
+          </div>
+        </div>
+        <div id="olBrowserBody" class="hidden">
+          <div class="row" style="align-items:flex-end">
+            <div style="flex:2;min-width:220px">
+              <label>Your GM name (shown to everyone)</label>
+              <input id="olMyName" maxlength="22" placeholder="e.g. Macho's Mayhem">
+            </div>
+            <div style="flex:0 0 auto;display:flex;gap:10px">
+              <button class="btn gold" onclick="olToggleCreate()">＋ HOST A LOBBY</button>
+              <button class="btn sm ghost" onclick="showMode()">◄ BACK</button>
+            </div>
+          </div>
+          <div id="olCreateForm" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+            <div class="row">
+              <div><label>Lobby name</label><input id="olcName" maxlength="40" placeholder="Friday Night Draft"></div>
+              <div><label>Seats (2–8)</label>
+                <select id="olcSeats"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
+              <div><label>Pick clock (seconds)</label>
+                <select id="olcClock"><option value="60">60</option><option value="90">90</option><option value="120" selected>120</option><option value="180">180</option><option value="300">300</option></select></div>
+              <div><label>Mandatory rounds</label>
+                <select id="olcRounds"><option selected>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option></select></div>
+            </div>
+            <div class="row" style="margin-top:4px">
+              <div><label>Starting budget each</label>
+                <select id="olcBudget">
+                  <option value="4000000">$4,000,000 — Hard</option>
+                  <option value="5500000" selected>$5,500,000 — Standard</option>
+                  <option value="7500000">$7,500,000 — Comfortable</option>
+                  <option value="10000000">$10,000,000 — Big Roster</option>
+                </select></div>
+              <div><label>Bankruptcy floor</label>
+                <select id="olcBankruptcy">
+                  <option value="10000" selected>$10,000 — Standard</option>
+                  <option value="0">$0 — Only at fully broke</option>
+                  <option value="50000">$50,000 — Strict</option>
+                  <option value="100000">$100,000 — Brutal</option>
+                </select></div>
+              <div><label>Order</label>
+                <select id="olcFormat"><option value="snake" selected>Snake (1‑2‑3‑3‑2‑1)</option><option value="linear">Linear (1‑2‑3‑1‑2‑3)</option></select></div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button class="btn primary" id="olcCreateBtn" onclick="olCreate()">OPEN LOBBY ►</button>
+              <span class="muted" style="font-size:12.5px">Your lobby is public — anyone can join or spectate. Seats still open when you hit START become AI opponents.</span>
+            </div>
+          </div>
+          <label style="margin-top:16px">Open &amp; live lobbies <span class="muted" style="font-size:11px;text-transform:none;letter-spacing:0">(updates live)</span></label>
+          <div id="olList"><p class="muted" style="font-size:13.5px">Loading lobbies…</p></div>
+        </div>
+        <p class="muted" id="olBrowserMsg" style="font-size:13px;margin-top:10px"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ONLINE: LOBBY ROOM (pre-start) ============ -->
+  <div id="olRoom" class="hidden">
+    <div class="ol-wrap">
+      <div class="panel">
+        <div class="panel-h" id="olRoomTitle">LOBBY</div>
+        <p class="intro" id="olRoomInfo"></p>
+        <div class="ol-seatgrid" id="olRoomSeats"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap" id="olRoomBtns"></div>
+        <p class="muted" id="olRoomMsg" style="font-size:13px;margin-top:10px"></p>
+      </div>
+      <div class="panel chat lit" style="height:300px">
+        <div class="panel-h">LOBBY CHAT</div>
+        <div class="clog" id="olRoomChatLog"></div>
+        <div class="crow">
+          <input id="olRoomChatInput" maxlength="160" placeholder="Say something…"
+                 onkeydown="if(event.key==='Enter')olChatSend('olRoomChatInput')">
+          <button class="btn gold sm" onclick="olChatSend('olRoomChatInput')">SEND</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ONLINE: LIVE DRAFT ============ -->
+  <div id="olDraft" class="hidden" style="flex:1;display:flex;flex-direction:column;">
+    <div class="draft">
+      <div class="leftrail">
+        <div class="panel stack-top" style="flex:1 1 auto;min-height:0;">
+          <div id="olNowBox"></div>
+          <div class="panel-h">DRAFT ORDER</div>
+          <div class="ord" id="olOrdList"></div>
+          <div class="ordprog" id="olOrdProgress">
+            <span class="lbl">0 / 0 PICKS</span>
+            <div class="bar"><div class="fill"></div></div>
+          </div>
+        </div>
+        <div class="panel chat lit">
+          <div class="panel-h">TRASH TALK</div>
+          <div class="clog" id="olChatLog"></div>
+          <div class="crow">
+            <input id="olChatInput" maxlength="160" placeholder="Say something…"
+                   onkeydown="if(event.key==='Enter')olChatSend('olChatInput')">
+            <button class="btn gold sm" onclick="olChatSend('olChatInput')">SEND</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel center">
+        <div class="center-scroll" id="olCenterDetail"></div>
+        <div class="confirm-row" id="olConfirmRow" style="display:none;padding:0 20px 16px;gap:10px;">
+          <button class="btn primary" id="olConfirmBtn" onclick="olConfirmPick()">CONFIRM PICK ►</button>
+          <button class="btn done" id="olDoneBtn" onclick="olImDone()" style="display:none;">🏁 I'M DONE</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">AVAILABLE ROSTER</div>
+        <div class="rosfilters">
+          <div class="filterbar">
+            <button onclick="olRosCycle('promo',-1)">◄</button>
+            <div class="lbl" id="olfPromo">ALL PROMOTIONS</div>
+            <button onclick="olRosCycle('promo',1)">►</button>
+          </div>
+          <div class="filterbar">
+            <button onclick="olRosCycle('fac',-1)">◄</button>
+            <div class="lbl" id="olfFac">ALL</div>
+            <button onclick="olRosCycle('fac',1)">►</button>
+          </div>
+          <div class="rsearch"><input id="olrSearch" placeholder="Search wrestlers…" oninput="olRosRender()"></div>
+        </div>
+        <div class="rcols"><span class="c-tag">PROMO</span><span class="c-nm">NAME</span><span class="c-rg">R/C</span><span class="c-rc">COST</span></div>
+        <div class="rlist" id="olrList"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ LOBBY ============ -->
-  <div id="lobby">
+  <div id="lobby" class="hidden">
     <div class="panel lobby-wrap">
       <div class="panel-h">SET UP YOUR PRACTICE DRAFT</div>
       <p class="intro">No stakes — draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster. After the mandatory rounds, drafting is <b>optional</b> — keep going as long as you can afford it, or hit <b>I'M DONE</b> to stop. Unspent money is yours; in a real season it carries into booking.</p>
@@ -1304,5 +1503,512 @@ function fpToggleMute(){
   fpRenderPlayer(); _fpSaveState();
 }
 </script>
+
+<!-- ============================================================
+     ONLINE MULTIPLAYER ENGINE (additive script — local mode above
+     is untouched; this block only powers the ONLINE screens)
+     ============================================================ -->
+<script>
+// ===== online state =====
+let OL = {
+  me:null, myName:'', cfg:{enabled:true},
+  lobby:null, players:[], picks:[], chat:[],
+  sub:null, browserSub:null, spectate:false,
+  sel:null, pf:0, ff:0,
+  clockInt:null, tickedTurn:0, chatAiPending:false, refreshing:false
+};
+const OL_VIEWS = ['modeSelect','olBrowser','olRoom','olDraft','lobby','draftView','resultsView'];
+function olShow(id){ OL_VIEWS.forEach(v=>{ const el=byId(v); if(el) el.classList.toggle('hidden', v!==id); }); }
+
+// ===== mode select =====
+function showMode(){ olTeardown(); olShow('modeSelect'); }
+function chooseLocal(){ olTeardown(); olShow('lobby'); }
+async function chooseOnline(){
+  if(OL.cfg.enabled===false){ toast('Online lobbies are currently disabled by the admin.',true); return; }
+  olShow('olBrowser');
+  await olRefreshAuth();
+  if(!OL.me){ byId('olAuthGate').classList.remove('hidden'); byId('olBrowserBody').classList.add('hidden'); return; }
+  byId('olAuthGate').classList.add('hidden'); byId('olBrowserBody').classList.remove('hidden');
+  const saved=localStorage.getItem('fp_gm_name')||'';
+  if(saved && !byId('olMyName').value) byId('olMyName').value=saved;
+  olSubscribeBrowser();
+  await olLoadBrowser();
+  // if I'm already in a live lobby (refreshed the page mid-draft), jump back in
+  try{
+    const { data } = await sb.from('fp_lobby_players').select('lobby_id, fp_lobbies!inner(status)')
+      .eq('auth_id', OL.me.id).in('fp_lobbies.status',['open','drafting']).limit(1);
+    if(data && data.length){ toast('Rejoining your lobby…'); olEnter(data[0].lobby_id); }
+  }catch(_){}
+}
+function olGoSignIn(){ _fpSaveState(); window.location.href='../index.html#account'; }
+
+async function olRefreshAuth(){
+  try{ const { data } = await sb.auth.getUser(); OL.me=(data&&data.user)?{id:data.user.id,email:data.user.email}:null; }
+  catch(_){ OL.me=null; }
+}
+function olName(){
+  const v=(byId('olMyName')&&byId('olMyName').value||'').trim().slice(0,22);
+  const nm = v || OL.myName || (OL.me&&OL.me.email?OL.me.email.split('@')[0]:'Challenger');
+  OL.myName=nm; try{ localStorage.setItem('fp_gm_name',nm); }catch(_){}
+  return nm;
+}
+
+// ===== boot hook (reads the admin lobby settings) =====
+async function olBoot(){
+  try{
+    const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single();
+    OL.cfg = (data && data.firepro && data.firepro.options && data.firepro.options.lobbies) || {enabled:true};
+  }catch(_){ OL.cfg={enabled:true}; }
+  if(OL.cfg.enabled===false){
+    const c=byId('onlineCard'); if(c){ c.classList.add('disabled'); }
+  }
+}
+window.addEventListener('load', ()=>{ olBoot(); });
+
+// ===== edge-function bridge =====
+async function olApi(action, payload){
+  const { data, error } = await sb.functions.invoke('firepro-lobby', { body:Object.assign({action:action}, payload||{}) });
+  if(error){
+    let msg=error.message||'request failed';
+    try{ const j=await error.context.json(); if(j&&j.error) msg=j.error; }catch(_){}
+    throw new Error(msg);
+  }
+  if(data && data.error) throw new Error(data.error);
+  return data||{};
+}
+function olFriendly(msg){
+  const M={ NOT_SIGNED_IN:'Please sign in first.', LOBBIES_DISABLED:'Online lobbies are disabled by the admin.',
+    ALREADY_HOSTING:'You already have a lobby open — close it first.', LOBBY_NOT_OPEN:'That lobby already started.',
+    LOBBY_FULL:'That lobby is full — you can spectate instead.', NOT_HOST:'Only the host can do that.',
+    NO_HUMANS:'You need at least one human in the lobby.', ROSTER_TOO_SMALL:'Not enough wrestlers in the roster for that many seats × rounds.',
+    NOT_LIVE:'The draft isn\u2019t live.', NOT_SEATED:'You\u2019re spectating — no picking!', NOT_YOUR_TURN:'It\u2019s not your turn.',
+    ALREADY_DRAFTED:'Already drafted.', INSUFFICIENT_FUNDS:'You can\u2019t afford that pick.', FLOOR_NOT_MET:'Finish the mandatory rounds first.' };
+  return M[msg]||msg;
+}
+
+// ===== lobby browser =====
+function olSubscribeBrowser(){
+  olUnsubBrowser();
+  OL.browserSub = sb.channel('ol-browser')
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_lobbies'}, ()=>{ olLoadBrowser(); })
+    .subscribe();
+}
+function olUnsubBrowser(){ if(OL.browserSub){ try{ sb.removeChannel(OL.browserSub); }catch(_){} OL.browserSub=null; } }
+async function olLoadBrowser(){
+  const host=byId('olList'); if(!host || byId('olBrowser').classList.contains('hidden')) return;
+  try{
+    const { data: lobbies } = await sb.from('fp_lobbies').select('*')
+      .in('status',['open','drafting']).order('created_at',{ascending:false}).limit(30);
+    const ids=(lobbies||[]).map(l=>l.id);
+    let counts={};
+    if(ids.length){
+      const { data: pl } = await sb.from('fp_lobby_players').select('lobby_id,is_ai').in('lobby_id',ids);
+      (pl||[]).forEach(p=>{ if(!counts[p.lobby_id])counts[p.lobby_id]={h:0,a:0}; counts[p.lobby_id][p.is_ai?'a':'h']++; });
+    }
+    if(!(lobbies||[]).length){ host.innerHTML='<p class="muted" style="font-size:13.5px">No lobbies right now — host one and it shows up here for everyone instantly.</p>'; return; }
+    host.innerHTML=(lobbies||[]).map(l=>{
+      const c=counts[l.id]||{h:0,a:0};
+      const open=l.status==='open';
+      const full=(c.h+c.a)>=l.seats;
+      return '<div class="olcard">'+
+        '<span class="st '+(open?'open':'drafting')+'">'+(open?'OPEN':'● LIVE')+'</span>'+
+        '<span class="nm">'+esc(l.name)+'</span>'+
+        '<span class="meta">Host: '+esc(l.host_name)+' · '+(c.h+c.a)+'/'+l.seats+' seats'+(c.a?(' ('+c.a+' AI)'):'')+
+          ' · '+l.clock_seconds+'s clock · '+money(l.budget)+(open?'':(' · Round '+(l.round||1)))+'</span>'+
+        '<span class="sp"></span>'+
+        (open&&!full?'<button class="btn sm primary" onclick="olJoin('+l.id+')">JOIN ►</button>':'')+
+        '<button class="btn sm'+(open?' ghost':' gold')+'" onclick="olSpectate('+l.id+')">👁 WATCH</button>'+
+        '</div>';
+    }).join('');
+  }catch(e){ host.innerHTML='<p class="muted" style="font-size:13.5px">Could not load lobbies — run the lobby SQL files first.</p>'; }
+}
+function olToggleCreate(){ byId('olCreateForm').classList.toggle('hidden'); }
+async function olCreate(){
+  const btn=byId('olcCreateBtn'); btn.disabled=true;
+  try{
+    const r=await olApi('create',{
+      name:(byId('olcName').value||'').trim(), gm_name:olName(),
+      seats:parseInt(byId('olcSeats').value,10), clock:parseInt(byId('olcClock').value,10),
+      floor:parseInt(byId('olcRounds').value,10), budget:parseInt(byId('olcBudget').value,10),
+      bankruptcy:parseInt(byId('olcBankruptcy').value,10), format:byId('olcFormat').value
+    });
+    toast('Lobby is open — waiting for challengers.');
+    olEnter(r.lobby_id);
+  }catch(e){
+    if((e.message||'')==='ALREADY_HOSTING'){ toast(olFriendly('ALREADY_HOSTING'),true); }
+    else toast(olFriendly(e.message||'create failed'),true);
+  }
+  btn.disabled=false;
+}
+async function olJoin(id){
+  try{ await olApi('join',{lobby_id:id, gm_name:olName()}); OL.spectate=false; olEnter(id); }
+  catch(e){ toast(olFriendly(e.message||'join failed'),true); }
+}
+function olSpectate(id){ OL.spectate=true; olEnter(id); }
+
+// ===== enter / leave a lobby =====
+async function olEnter(id){
+  olUnsubBrowser();
+  olTeardown(false);
+  OL.tickedTurn=0; OL.sel=null; OL.pf=0; OL.ff=0; OL.chat=[];
+  await olRefreshSnapshot(id);
+  if(!OL.lobby){ toast('That lobby is gone.',true); chooseOnline(); return; }
+  // spectator flag: if I actually hold a seat, I'm a player
+  if(OL.me && OL.players.some(p=>p.auth_id===OL.me.id)) OL.spectate=false;
+  // load recent chat
+  try{
+    const { data } = await sb.from('fp_lobby_chat').select('*').eq('lobby_id',id)
+      .order('created_at',{ascending:false}).limit(60);
+    OL.chat=(data||[]).reverse();
+  }catch(_){ OL.chat=[]; }
+  OL.sub = sb.channel('ol-lobby-'+id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_lobbies',filter:'id=eq.'+id}, olOnChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_lobby_players',filter:'lobby_id=eq.'+id}, olOnChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'fp_lobby_picks',filter:'lobby_id=eq.'+id}, olOnChange)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'fp_lobby_chat',filter:'lobby_id=eq.'+id}, olOnChat)
+    .subscribe();
+  if(OL.clockInt) clearInterval(OL.clockInt);
+  OL.clockInt=setInterval(olClockTick,400);
+  olRoute();
+}
+async function olRefreshSnapshot(id){
+  id = id || (OL.lobby&&OL.lobby.id);
+  if(!id) return;
+  try{
+    const [l,p,k]=await Promise.all([
+      sb.from('fp_lobbies').select('*').eq('id',id).maybeSingle(),
+      sb.from('fp_lobby_players').select('*').eq('lobby_id',id).order('seat',{ascending:true}),
+      sb.from('fp_lobby_picks').select('*').eq('lobby_id',id).order('id',{ascending:true})
+    ]);
+    OL.lobby=l.data||null; OL.players=p.data||[]; OL.picks=k.data||[];
+  }catch(_){}
+}
+let OL_REFRESH_T=null;
+function olOnChange(){
+  if(OL_REFRESH_T) return;
+  OL_REFRESH_T=setTimeout(async ()=>{ OL_REFRESH_T=null; await olRefreshSnapshot(); olRoute(); }, 120);
+}
+function olOnChat(payload){
+  if(payload && payload.new){ OL.chat.push(payload.new); if(OL.chat.length>80) OL.chat.shift(); olRenderChat(); }
+}
+function olTeardown(backToBrowserSub){
+  if(OL.sub){ try{ sb.removeChannel(OL.sub); }catch(_){} OL.sub=null; }
+  if(OL.clockInt){ clearInterval(OL.clockInt); OL.clockInt=null; }
+  if(backToBrowserSub!==false) olUnsubBrowser();
+  OL.lobby=null; OL.players=[]; OL.picks=[]; OL.spectate=false;
+}
+async function olLeave(){
+  if(!OL.lobby) { chooseOnline(); return; }
+  const live=OL.lobby.status==='drafting';
+  if(!OL.spectate && OL.me && OL.players.some(p=>p.auth_id===OL.me.id)){
+    if(live && !confirm('Leave mid-draft? The AI takes over your stable and you can\u2019t reclaim the seat.')) return;
+    try{ await olApi('leave',{lobby_id:OL.lobby.id}); }catch(_){}
+  }
+  chooseOnline();
+}
+async function olClose(){
+  if(!OL.lobby) return;
+  if(!confirm('Close this lobby for everyone?')) return;
+  try{ await olApi('close',{lobby_id:OL.lobby.id}); toast('Lobby closed.'); chooseOnline(); }
+  catch(e){ toast(olFriendly(e.message||'failed'),true); }
+}
+async function olKick(seat){
+  try{ await olApi('kick',{lobby_id:OL.lobby.id, seat:seat}); }
+  catch(e){ toast(olFriendly(e.message||'failed'),true); }
+}
+async function olStart(){
+  const b=byId('olStartBtn'); if(b) b.disabled=true;
+  try{ await olApi('start',{lobby_id:OL.lobby.id}); }
+  catch(e){ toast(olFriendly(e.message||'failed'),true); if(b) b.disabled=false; }
+}
+
+// ===== routing between room / draft / results =====
+function olRoute(){
+  if(!OL.lobby){ chooseOnline(); return; }
+  const st=OL.lobby.status;
+  const cfg=byId('cfgLine');
+  if(cfg){ cfg.classList.remove('hidden');
+    cfg.textContent=(OL.lobby.format==='snake'?'SNAKE':'LINEAR')+' · MIN '+OL.lobby.floor_rounds+' RDS · '+money(OL.lobby.budget)+' · '+OL.lobby.clock_seconds+'s CLOCK'; }
+  if(st==='open'){ olShow('olRoom'); olRenderRoom(); olRenderChat(); return; }
+  if(st==='drafting'){ olShow('olDraft'); olRenderDraft(); olRenderChat(); return; }
+  if(st==='done'){ olFinish(); return; }
+  toast('This lobby was closed.',true); chooseOnline();
+}
+function olMySeat(){ return (OL.me && OL.players.find(p=>p.auth_id===OL.me.id))||null; }
+function olIsHost(){ return OL.me && OL.lobby && OL.lobby.host_auth===OL.me.id; }
+function olIsMyTurn(){ const s=olMySeat(); return !!(s && OL.lobby && OL.lobby.status==='drafting' && OL.lobby.on_seat===s.seat && !s.done); }
+
+// ===== room render =====
+function olRenderRoom(){
+  byId('olRoomTitle').textContent='LOBBY — '+(OL.lobby.name||'').toUpperCase();
+  byId('olRoomInfo').innerHTML='Host: <b>'+esc(OL.lobby.host_name)+'</b> · '+OL.players.length+'/'+OL.lobby.seats+' seats claimed · '+
+    money(OL.lobby.budget)+' each · '+OL.lobby.floor_rounds+' mandatory rounds · '+OL.lobby.clock_seconds+'s pick clock.'+
+    (OL.spectate?' <span class="olspec">SPECTATING</span>':'')+
+    '<br>Seats still open when the host starts become <b>AI opponents</b>.';
+  let html='';
+  for(let s=0;s<OL.lobby.seats;s++){
+    const p=OL.players.find(x=>x.seat===s);
+    if(p){
+      const me=OL.me&&p.auth_id===OL.me.id;
+      html+='<div class="olseat'+(me?' me':'')+'"><span class="num">'+(s+1)+'</span>'+
+        '<span class="who">'+esc(p.display_name)+(me?' <span class="you">YOU</span>':'')+(p.auth_id===OL.lobby.host_auth?'<small>HOST</small>':'')+'</span>'+
+        (olIsHost()&&!me?'<button class="btn sm ghost" onclick="olKick('+s+')">✖</button>':'')+
+        '</div>';
+    }else{
+      html+='<div class="olseat empty"><span class="num">'+(s+1)+'</span><span class="who">OPEN<small>AI if empty at start</small></span></div>';
+    }
+  }
+  byId('olRoomSeats').innerHTML=html;
+  const btns=byId('olRoomBtns');
+  if(OL.spectate){
+    btns.innerHTML='<button class="btn sm ghost" onclick="olLeave()">◄ BACK TO LOBBIES</button>';
+  }else if(olIsHost()){
+    btns.innerHTML='<button class="btn primary" id="olStartBtn" onclick="olStart()">START DRAFT ►</button>'+
+      '<button class="btn sm ghost" onclick="olClose()">✖ CLOSE LOBBY</button>';
+  }else{
+    btns.innerHTML='<span class="muted" style="font-size:13px;align-self:center">Waiting for the host to start…</span>'+
+      '<button class="btn sm ghost" onclick="olLeave()">◄ LEAVE</button>';
+  }
+}
+
+// ===== shared chat =====
+function olRenderChat(){
+  ['olRoomChatLog','olChatLog'].forEach(id=>{
+    const log=byId(id); if(!log) return;
+    log.innerHTML=OL.chat.map(c=>{
+      if(c.kind==='sys') return '<div class="cmsg sys"><span class="body">'+esc(c.body)+'</span></div>';
+      const k=c.kind==='ai'?'ai':'human';
+      return '<div class="cmsg '+k+'"><span class="nm">'+esc(c.from_name)+':</span><span class="body">'+esc(c.body)+'</span></div>';
+    }).join('');
+    log.scrollTop=log.scrollHeight;
+  });
+}
+async function olChatSend(inputId){
+  const inp=byId(inputId); const v=(inp.value||'').trim(); if(!v) return;
+  if(!OL.me){ toast('Sign in to chat.',true); return; }
+  inp.value='';
+  const nm=olMySeat()?olMySeat().display_name:(olName()+' (spec)');
+  try{
+    const { error } = await sb.from('fp_lobby_chat').insert({ lobby_id:OL.lobby.id, auth_id:OL.me.id, from_name:nm, kind:'human', body:v.slice(0,200) });
+    if(error) throw error;
+  }catch(e){ toast('Chat failed: '+(e.message||e),true); return; }
+  // poke an AI seat for a reply (fire-and-forget; only the sender triggers it)
+  if(!OL.chatAiPending && OL.players.some(p=>p.is_ai)){
+    OL.chatAiPending=true;
+    olApi('chat_ai',{lobby_id:OL.lobby.id, message:v}).catch(()=>{}).finally(()=>{ OL.chatAiPending=false; });
+  }
+}
+
+// ===== live draft render =====
+function olTaken(){ return new Set(OL.picks.filter(p=>p.wrestler_id!=null).map(p=>p.wrestler_id)); }
+function olStableOf(seat){ return OL.picks.filter(p=>p.seat===seat && p.wrestler_id!=null).map(p=>ROSTER.find(w=>w.id===p.wrestler_id)).filter(Boolean); }
+function olRenderDraft(){ olRenderNow(); olRenderOrder(); olRenderCenter(); olRosRenderFilters(); olRosRender(); }
+function olRenderNow(){
+  const box=byId('olNowBox'); if(!box||!OL.lobby) return;
+  const seat=OL.players.find(p=>p.seat===OL.lobby.on_seat);
+  if(!seat){ box.innerHTML='<div class="oc-tag" style="border-radius:8px">WAITING…</div>'; return; }
+  const mine=olIsMyTurn();
+  const initial=(seat.display_name||'?').trim().charAt(0).toUpperCase();
+  const floor=OL.lobby.floor_rounds, curRound=OL.lobby.round||1;
+  box.innerHTML=
+    '<div class="oc-tag'+(seat.is_ai?' ai':'')+'">'+(seat.is_ai?'<span class="spinner"></span> AI PICKING…':(mine?'● YOUR PICK':'● PICKING NOW'))+
+      '<span class="ol-clock" id="olClk">—</span></div>'+
+    '<div class="oc-grid">'+
+      '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+curRound+'<i>'+(curRound>floor?' (opt)':'/'+floor)+'</i></span></div>'+
+      '<div class="oc-cell"><span class="oc-k">PICKS</span><span class="oc-v">'+(OL.lobby.picks_made||0)+'</span></div>'+
+    '</div>'+
+    '<div class="oc-seat'+(seat.is_ai?' ai':' human')+'">'+
+      '<div class="oc-ava">'+esc(initial)+'</div>'+
+      '<div class="oc-seatmeta">'+
+        '<div class="oc-name">'+esc(seat.display_name)+(seat.is_ai?' 🤖':'')+(mine?' <span class="you">YOU</span>':'')+'</div>'+
+        '<div class="oc-bud">'+money(seat.wallet)+' <span>LEFT</span></div>'+
+      '</div>'+
+    '</div>';
+  olRenderClock();
+}
+function olRenderClock(){
+  const el=byId('olClk'); if(!el||!OL.lobby) return;
+  if(!OL.lobby.deadline || OL.lobby.status!=='drafting'){ el.textContent='—'; return; }
+  const left=Math.max(0, Math.ceil((new Date(OL.lobby.deadline).getTime()-Date.now())/1000));
+  el.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
+  el.classList.toggle('low', left<=10);
+}
+function olClockTick(){
+  olRenderClock();
+  if(!OL.lobby || OL.lobby.status!=='drafting' || !OL.lobby.deadline) return;
+  const overBy=Date.now()-new Date(OL.lobby.deadline).getTime();
+  // any connected viewer nudges the referee once per turn, 1.5s after expiry
+  if(overBy>1500 && OL.tickedTurn!==OL.lobby.turn_no && OL.me){
+    OL.tickedTurn=OL.lobby.turn_no;
+    olApi('tick',{lobby_id:OL.lobby.id}).catch(()=>{});
+  }
+}
+function olRenderOrder(){
+  const host=byId('olOrdList'); if(!host) return;
+  host.innerHTML=OL.players.map(p=>{
+    const on=OL.lobby.on_seat===p.seat;
+    const me=OL.me&&p.auth_id===OL.me.id;
+    return '<div class="o'+(on?' on':'')+(p.is_ai?' ai':' human')+(p.done?' done':'')+'">'+
+      '<span class="b">'+(p.seat+1)+'</span>'+
+      '<span class="onm">'+esc(p.display_name)+(p.is_ai?' <i class="bot">🤖</i>':'')+(me?' <span class="you">YOU</span>':'')+(p.done?' <span class="donetag">DONE</span>':'')+'</span>'+
+      '<span class="cnt">'+olStableOf(p.seat).length+'</span>'+
+      '<span class="bal">'+money(p.wallet)+'</span>'+
+      (on?'<span class="arrow">◄</span>':'')+
+      '</div>';
+  }).join('');
+  const pb=byId('olOrdProgress');
+  if(pb){
+    const target=OL.players.length*OL.lobby.floor_rounds;
+    const made=OL.picks.filter(p=>p.wrestler_id!=null).length;
+    pb.querySelector('.fill').style.width=(target?Math.min(100,Math.round(made/target*100)):0)+'%';
+    pb.querySelector('.lbl').textContent=(OL.lobby.round>OL.lobby.floor_rounds)?('OPTIONAL ROUNDS — '+made+' PICKS'):(made+' / '+target+' MANDATORY PICKS');
+  }
+}
+function olSelect(id){
+  if(olTaken().has(id)) return;
+  OL.sel=ROSTER.find(w=>w.id===id)||null;
+  olRenderCenter(); olRosRender();
+}
+function olRenderCenter(){
+  const host=byId('olCenterDetail'); const cr=byId('olConfirmRow'); if(!host) return;
+  const floor=OL.lobby.floor_rounds;
+  const optionalMine=olIsMyTurn() && (OL.lobby.round||1)>floor;
+  if(!OL.sel){
+    host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
+      (optionalMine?'OPTIONAL ROUND — PICK ANOTHER<br>WRESTLER, OR HIT <b>I\u2019M DONE</b><br>TO LOCK YOUR STABLE'
+      :olIsMyTurn()?'YOU\u2019RE ON THE CLOCK —<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
+      :'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
+    if(optionalMine){ cr.style.display='flex'; byId('olConfirmBtn').style.display='none'; olUpdateDoneBtn(); }
+    else{ cr.style.display='none'; }
+    return;
+  }
+  byId('olConfirmBtn').style.display='';
+  const w=OL.sel;
+  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
+  const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
+  const ffn=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
+  const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+  const rows=[['FRANCHISE',w.origin||'—'],['HT / WT',[w.height,w.weight].filter(Boolean).join(' / ')||'—'],['COUNTRY',w.country||'—'],['DOB',w.dob||'—'],['FINISHER',w.finisher||'—'],['SIGNATURE',sigs[0]||'—'],['SIGNATURE 2',sigs[1]||'—']];
+  const my=olMySeat();
+  const myBudget=my?Number(my.wallet):Number(OL.lobby.budget);
+  const afford=w._cost<=myBudget;
+  const fillPct=Math.max(4,Math.min(100,Math.round(w._cost/Math.max(myBudget,1)*100)));
+  const chips=['<span class="chip red">'+esc(pf?pf:'FREE AGENT')+'</span>'];
+  if(ffn) chips.push('<span class="chip">'+esc(ffn)+'</span>');
+  host.innerHTML=
+    '<div class="hero"><div class="hero-portrait">'+
+      '<div class="hero-grade"><span class="gbadge"><small>RANK</small>'+(w.rank_grade||'?')+'</span><span class="gbadge"><small>CHA</small>'+(w.charisma_grade||'?')+'</span></div>'+
+      '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+ph+'\'"></div>'+
+      '<div class="hero-meta"><div class="hero-name">'+esc(w.name)+'</div>'+
+      (w.nickname?'<div class="hero-nick">"'+esc(w.nickname)+'"</div>':'<div class="hero-nick" style="opacity:.5">&nbsp;</div>')+
+      '<div class="hero-chips">'+chips.join('')+'</div>'+
+      '<div class="hero-info">'+rows.map(r=>'<div class="k">'+esc(r[0])+'</div><div class="v">'+esc(r[1])+'</div>').join('')+'</div></div></div>'+
+    '<div class="cost-zone">'+
+      '<div class="cost-row"><span class="cost-lbl">DRAFT COST</span><span class="cost-val'+(afford?'':' bad')+'">'+money(w._cost)+'</span></div>'+
+      '<div class="cost-bar"><div class="cost-fill'+(afford?'':' bad')+'" style="width:'+fillPct+'%"></div></div>'+
+      '<div class="cost-note">'+(afford?(money(myBudget-w._cost)+' would remain in your wallet'):'Over budget — you can\u2019t afford this pick')+'</div>'+
+    '</div>';
+  cr.style.display='flex';
+  const btn=byId('olConfirmBtn');
+  if(OL.spectate||!my){ btn.disabled=true; btn.textContent='SPECTATING'; }
+  else if(!olIsMyTurn()){ btn.disabled=true; btn.textContent='NOT YOUR TURN'; }
+  else if(!afford){ btn.disabled=true; btn.textContent='CAN\u2019T AFFORD'; }
+  else if(olTaken().has(w.id)){ btn.disabled=true; btn.textContent='ALREADY DRAFTED'; }
+  else{ btn.disabled=false; btn.textContent='CONFIRM PICK ►'; }
+  olUpdateDoneBtn();
+}
+function olUpdateDoneBtn(){
+  const d=byId('olDoneBtn'); if(!d) return;
+  d.style.display=(olIsMyTurn() && (OL.lobby.round||1)>OL.lobby.floor_rounds)?'':'none';
+}
+async function olConfirmPick(){
+  if(!olIsMyTurn()){ toast('It\u2019s not your turn.',true); return; }
+  if(!OL.sel){ toast('Pick a wrestler first.',true); return; }
+  const my=olMySeat(); const w=OL.sel;
+  if(olTaken().has(w.id)){ toast('Already drafted.',true); return; }
+  if(w._cost>Number(my.wallet)){ toast('You can\u2019t afford that.',true); return; }
+  // same teaching guard as local practice — bankruptcy floor is a real-game rule
+  const after=Number(my.wallet)-w._cost;
+  const reserve=Number(OL.lobby.reserve)||250000;
+  if(after<=Number(OL.lobby.bankruptcy)){
+    if(!confirm('⚠ HEADS UP — REAL-GAME RULE\n\nDrafting '+w.name+' for '+money(w._cost)+' leaves you '+money(after)+', AT OR BELOW the bankruptcy floor of '+money(OL.lobby.bankruptcy)+'.\n\nIn the real season this would ELIMINATE you. Draft anyway for practice?')) return;
+  }else if(after<reserve){
+    if(!confirm('⚠ Low on funds\n\nThis leaves you '+money(after)+'. Draft money also books shows all season — a safer cushion is around '+money(reserve)+'+.\n\nDraft '+w.name+' anyway?')) return;
+  }
+  byId('olConfirmBtn').disabled=true;
+  try{ await olApi('pick',{lobby_id:OL.lobby.id, wrestler_id:w.id}); OL.sel=null; }
+  catch(e){ toast(olFriendly(e.message||'pick failed'),true); }
+  setTimeout(()=>{ const b=byId('olConfirmBtn'); if(b) b.disabled=false; },600);
+}
+async function olImDone(){
+  if(!olIsMyTurn()) return;
+  if(!confirm('End your draft? You\u2019re done for good this draft — unspent money stays banked.')) return;
+  try{ await olApi('pass',{lobby_id:OL.lobby.id}); OL.sel=null; }
+  catch(e){ toast(olFriendly(e.message||'failed'),true); }
+}
+
+// ----- online roster list (own filter state; reuses the shared CSS) -----
+function olPromoList(){ return [{id:null,name:'ALL PROMOTIONS'},{id:'__FA__',name:'FREE AGENTS'}].concat(PROMOS); }
+function olFacList(){
+  const pf=olPromoList()[OL.pf];
+  if(pf&&pf.id==='__FA__') return [{id:null,name:'ALL'}];
+  let f=FACTIONS; if(pf&&pf.id!=null) f=FACTIONS.filter(x=>x.promotion_id===pf.id);
+  return [{id:null,name:'ALL'}].concat(f);
+}
+function olRosCycle(which,dir){
+  if(which==='promo'){ const l=olPromoList(); OL.pf=(OL.pf+dir+l.length)%l.length; OL.ff=0; }
+  else{ const l=olFacList(); OL.ff=(OL.ff+dir+l.length)%l.length; }
+  olRosRenderFilters(); olRosRender();
+}
+function olRosRenderFilters(){
+  const a=byId('olfPromo'), b=byId('olfFac');
+  if(a) a.textContent=(olPromoList()[OL.pf]||{}).name||'ALL PROMOTIONS';
+  if(b) b.textContent=(olFacList()[OL.ff]||{}).name||'ALL';
+}
+function olRosFiltered(){
+  const pf=olPromoList()[OL.pf], fl=olFacList()[OL.ff];
+  const q=((byId('olrSearch')||{}).value||'').toLowerCase().trim();
+  return ROSTER.filter(w=>{
+    if(pf&&pf.id==='__FA__'){ if(w.promotion_id!=null) return false; }
+    else if(pf&&pf.id!=null&&w.promotion_id!==pf.id) return false;
+    if(fl&&fl.id!=null&&w.faction_id!==fl.id) return false;
+    if(q&&!((w.name||'').toLowerCase().includes(q)||(w.nickname||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function olRosRender(){
+  const host=byId('olrList'); if(!host) return;
+  const list=olRosFiltered(); const t=olTaken();
+  const my=olMySeat(); const myBudget=my?Number(my.wallet):Infinity;
+  if(!list.length){ host.innerHTML='<div class="muted" style="text-align:center;padding:20px">No wrestlers match.</div>'; return; }
+  let avail=0;
+  host.innerHTML=list.map(w=>{
+    const isTaken=t.has(w.id); if(!isTaken) avail++;
+    const unaff=!isTaken&&w._cost>myBudget;
+    return '<div class="ritem'+(isTaken?' taken':'')+(OL.sel&&OL.sel.id===w.id?' sel':'')+'" '+
+      (isTaken?'':'onclick="olSelect('+w.id+')"')+'>'+
+      '<span class="rtag">'+esc(promoChip(w))+'</span>'+
+      '<span class="rn">'+esc(w.name)+'</span>'+
+      '<span class="rg">'+(w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+'</span>'+
+      '<span class="rc" style="'+(unaff?'color:#ff7a6a':'')+'">'+money(w._cost)+'</span>'+
+      '</div>';
+  }).join('')+'<div class="rcount">'+avail+' AVAILABLE · '+(list.length-avail)+' DRAFTED</div>';
+}
+
+// ===== results: reuse the local results screen (PNG export and all) =====
+function olFinish(){
+  if(OL.clockInt){ clearInterval(OL.clockInt); OL.clockInt=null; }
+  // map online players into the local SEATS shape so renderResults/dl* work as-is
+  SEATS=OL.players.map(p=>({
+    name:p.display_name, ai:!!p.is_ai, order:p.seat,
+    budget:Number(p.wallet), done:true,
+    picks:olStableOf(p.seat)
+  }));
+  olShow('resultsView');
+  renderResults();
+  toast('Draft complete — check the final stables!');
+}
+</script>
+
 </body>
 </html>
