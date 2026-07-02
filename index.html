@@ -6089,71 +6089,80 @@ function _slSnafuBoxStars(ctx,x,y,w,h,accent){
     ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.4+0.1})`; ctx.fill();
   }
 }
+function _slRoundRectPath(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+// NOTE: must stay pixel-for-pixel identical to slSnafuRender() in admin.html —
+// the admin preview and the live site render the SAME stored payload (host/fact/num/
+// color2/textcol/textsize/size/x/y/tx/ty), so any drift here is what breaks "editing".
 function _slSnafuDraw(canvas, pl, whenDone){
   const W=1152, H=864; canvas.width=W; canvas.height=H;
   const ctx = canvas.getContext('2d');
   const S = W/1152;
-  const host   = pl.host || 'snafu';
-  const fact   = pl.fact || pl.body || '';
-  const num    = pl.num  || '1';
-  const c2     = pl.color2   || '#ff5fd0';
-  const tcol   = pl.textcol  || '#ffffff';
-  const tsize  = parseInt(pl.textsize)||40;
-  const imgSize= parseInt(pl.size)||100;
-  const imgX   = parseFloat(pl.x)??50;
-  const imgY   = parseFloat(pl.y)??50;
-  const txX    = parseFloat(pl.tx)??50;
-  const txY    = parseFloat(pl.ty)??88;
+  const host    = pl.host || 'snafu';
+  const fact    = pl.fact || pl.body || '';
+  const num     = pl.num  || '1';
+  const c2      = pl.color2   || '#ff5fd0';
+  const tcol    = pl.textcol  || '#ffffff';
+  const textPx  = parseInt(pl.textsize)||40;
+  const sizePct = (parseInt(pl.size)||100)/100;
+  const xPct    = (parseInt(pl.x)??50)/100;
+  const yPct    = (parseInt(pl.y)??50)/100;
+  const tboxXPct= (parseInt(pl.tx)??50)/100;
+  const tboxYPct= (parseInt(pl.ty)??88)/100;
   const imgUrl = host==='toxic'
     ? (pl.url_toxic  || SNAFU_URL_TOXIC)
     : (pl.url_nogrid || SNAFU_URL_NOGRID);
   const label  = host==='toxic' ? `TID BIT #${num}` : `SNAFU FACT #${num}`;
 
+  // BACK: starfield
   _slSnafuStars(ctx,W,H,c2);
 
+  // text box geometry: width fixed, height auto-grows, X/Y move it freely (matches admin)
+  const boxW = W*0.88;
+  ctx.font = `600 ${Math.round(textPx*S)}px 'Oswald',sans-serif`;
+  const lines = _slSnafuWrap(ctx, fact, boxW-80*S);
+  const labelPx = Math.round(34*S);
+  const lh = Math.round((textPx+10)*S);
+  const padTop = Math.round(22*S), labelGap = Math.round(20*S), padBot = Math.round(28*S);
+  const contentH = padTop + labelPx + labelGap + Math.max(1,lines.length)*lh + padBot;
+  const boxH = Math.max(H*0.12, contentH);
+  const boxX = tboxXPct*W - boxW/2;
+  const boxY = tboxYPct*H - boxH/2;
+
   _slSnafuLoadImg(imgUrl, (img)=>{
+    // MIDDLE: host image — cover-fit the canvas, then scaled/positioned by the sliders
     if(img){
-      const scale = (imgSize/100);
-      const iw = img.naturalWidth*scale*S*1.1, ih = img.naturalHeight*scale*S*1.1;
-      const cx = (imgX/100)*W, cy = (imgY/100)*H;
-      ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
+      const ir=img.width/img.height, cr=W/H;
+      let dw,dh;
+      if(ir>cr){ dh=H; dw=H*ir; } else { dw=W; dh=W/ir; }
+      dw*=sizePct; dh*=sizePct;
+      const cx = W/2 + (xPct-0.5)*2*W;
+      const cy = H/2 + (yPct-0.5)*2*H;
+      ctx.drawImage(img, cx-dw/2, cy-dh/2, dw, dh);
     }
 
-    // Text box
-    const fs = tsize*S;
-    ctx.font = `bold ${fs}px "Segoe UI",system-ui,sans-serif`;
-    const pad = 36*S;
-    const lines = _slSnafuWrap(ctx, fact, W*0.72 - pad*2);
-    const lineH = fs*1.35;
-    const labelH = fs*0.85;
-    const boxW = W*0.74;
-    const boxH = labelH + lines.length*lineH + pad*2 + 10*S;
-    const bx = (txX/100)*W - boxW/2;
-    const by = (txY/100)*H - boxH/2;
-
-    // box bg + neon border
+    // FRONT: black text box with faint stars + neon outline (auto-sized)
     ctx.save();
-    ctx.fillStyle = _slSnafuShade('#0b0b1a', 0.88);
-    const r = 18*S;
-    ctx.beginPath();
-    ctx.moveTo(bx+r,by); ctx.arcTo(bx+boxW,by,bx+boxW,by+boxH,r);
-    ctx.arcTo(bx+boxW,by+boxH,bx,by+boxH,r);
-    ctx.arcTo(bx,by+boxH,bx,by,r); ctx.arcTo(bx,by,bx+boxW,by,r);
-    ctx.closePath(); ctx.fill();
-    ctx.shadowColor=c2; ctx.shadowBlur=18*S;
-    ctx.strokeStyle=c2; ctx.lineWidth=3*S; ctx.stroke();
+    ctx.fillStyle='rgba(4,3,10,0.92)'; _slRoundRectPath(ctx,boxX,boxY,boxW,boxH,22*S); ctx.fill();
     ctx.restore();
-    _slSnafuBoxStars(ctx,bx,by,boxW,boxH,c2);
+    _slSnafuBoxStars(ctx,boxX,boxY,boxW,boxH,c2);
+    ctx.save();
+    ctx.shadowColor=c2; ctx.shadowBlur=26*S; ctx.lineWidth=4*S; ctx.strokeStyle=c2;
+    _slRoundRectPath(ctx,boxX,boxY,boxW,boxH,22*S); ctx.stroke();
+    ctx.shadowBlur=0; ctx.lineWidth=1.5*S; ctx.strokeStyle='rgba(255,255,255,.5)';
+    _slRoundRectPath(ctx,boxX+5*S,boxY+5*S,boxW-10*S,boxH-10*S,18*S); ctx.stroke();
+    ctx.restore();
 
-    // label
-    ctx.font = `700 ${fs*0.6}px "Segoe UI",system-ui,sans-serif`;
-    ctx.fillStyle = c2; ctx.textAlign='center';
-    ctx.fillText(label, bx+boxW/2, by+pad+labelH);
-
-    // fact lines
-    ctx.font = `bold ${fs}px "Segoe UI",system-ui,sans-serif`;
-    ctx.fillStyle = tcol;
-    lines.forEach((ln,i)=> ctx.fillText(ln, bx+boxW/2, by+pad+labelH+10*S+(i+1)*lineH));
+    // label + text, laid out top-down so the box grows with content
+    ctx.save();
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle=c2; ctx.shadowColor=c2; ctx.shadowBlur=10*S;
+    ctx.font=`800 ${labelPx}px 'Oswald',sans-serif`;
+    ctx.fillText(label, W/2, boxY+padTop);
+    ctx.shadowBlur=0;
+    ctx.fillStyle=tcol; ctx.font=`600 ${Math.round(textPx*S)}px 'Oswald',sans-serif`;
+    let ty=boxY+padTop+labelPx+labelGap;
+    lines.forEach(l=>{ ctx.fillText(l, W/2, ty); ty+=lh; });
+    ctx.restore();
 
     if(whenDone) whenDone();
   });
