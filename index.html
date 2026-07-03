@@ -1343,13 +1343,22 @@
      the rest of the site is full-width. Reads like a social-media timeline. */
   #page-storylines{ max-width:720px; margin-left:auto; margin-right:auto; }
 
-  /* ── Storyline post photos (payload.photo_url) — 16:9 / 1:1 / 9:16 / natural ── */
-  .sl-photo{margin:12px 0 4px;border-radius:12px;overflow:hidden;border:1px solid rgba(233,185,73,.28);background:#000;cursor:zoom-in}
-  .sl-photo img{width:100%;height:100%;object-fit:cover;display:block}
-  .sl-photo.r169{aspect-ratio:16/9}
-  .sl-photo.r11{aspect-ratio:1/1;max-width:480px;margin-left:auto;margin-right:auto}
-  .sl-photo.r916{aspect-ratio:9/16;max-width:320px;margin-left:auto;margin-right:auto}
-  .sl-photo.rauto img{height:auto;object-fit:contain;max-height:640px}
+  /* ── Storyline post photos (payload.photos = [{url,ratio}, ...]) — carousel with arrows ── */
+  .sl-photo-carousel{position:relative;margin:12px 0 4px;border-radius:12px;overflow:hidden;border:1px solid rgba(233,185,73,.28);background:#000}
+  .sl-photo-track{display:flex;transition:transform .3s ease}
+  .sl-photo-slide{flex:0 0 100%;width:100%;cursor:zoom-in}
+  .sl-photo-slide img{width:100%;height:100%;object-fit:cover;display:block}
+  .sl-photo-carousel.r169{aspect-ratio:16/9}
+  .sl-photo-carousel.r11{aspect-ratio:1/1;max-width:480px;margin-left:auto;margin-right:auto}
+  .sl-photo-carousel.r916{aspect-ratio:9/16;max-width:320px;margin-left:auto;margin-right:auto}
+  .sl-photo-carousel.rauto{max-height:640px}
+  .sl-photo-carousel.rauto .sl-photo-slide img{height:640px;object-fit:contain}
+  .sl-photo-arrow{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(233,185,73,.5);color:#fff;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;padding:0}
+  .sl-photo-arrow.prev{left:8px} .sl-photo-arrow.next{right:8px}
+  .sl-photo-arrow:hover{background:rgba(0,0,0,.85);border-color:var(--gold)}
+  .sl-photo-dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+  .sl-photo-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4)}
+  .sl-photo-dot.active{background:var(--gold)}
   /* On PC, widen the feed so comments can slide out to the RIGHT of each post
      without cramping the post. Mobile stays narrow (comments open downward). */
   @media(min-width:901px){
@@ -6223,21 +6232,49 @@ function slRenderSnafu(p){
   return html;
 }
 
-// ── Attached post photo (payload.photo_url + payload.photo_ratio) ──
-// Set in the admin's "Post photo" tool (upload + crop). Renders inside the
-// post just above the footer/engage bar, at the chosen layout (16:9 / 1:1 /
-// 9:16 / natural). Click opens a full-size lightbox.
-function slPostPhoto(p){
-  const url = p && p.payload && p.payload.photo_url;
-  if(!url) return '';
-  const r = String((p.payload.photo_ratio||'auto')).replace(/[^0-9a-z]/gi,'');
+// ── Attached post photos (payload.photos = [{url,ratio}, ...]) ──
+// Set in the admin's "Post photos" tool (upload + crop, multiple allowed).
+// Renders as a carousel inside the post, just above the footer/engage bar.
+// One photo = no arrows. Multiple = prev/next arrows + dots to swipe through.
+// Falls back to a legacy single payload.photo_url/photo_ratio from posts
+// saved before multi-photo support. Click any slide for a full-size lightbox.
+function slPhotosOf(p){
+  const pl = p && p.payload;
+  if(!pl) return [];
+  if(Array.isArray(pl.photos) && pl.photos.length) return pl.photos;
+  if(pl.photo_url) return [{ url: pl.photo_url, ratio: pl.photo_ratio||'auto' }];
+  return [];
+}
+function slPhotoCarouselHTML(photos, uid){
+  if(!photos || !photos.length) return '';
+  const first = photos[0];
+  const r = String(first.ratio||'auto').replace(/[^0-9a-z]/gi,'');
   const cls = (r==='169'||r==='11'||r==='916') ? 'r'+r : 'rauto';
-  return `<div class="sl-photo ${cls}" role="button" tabindex="0" title="Click to view full size"
-    onclick="event.stopPropagation();slPhotoZoom(this.getAttribute('data-photourl'))"
-    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();slPhotoZoom(this.getAttribute('data-photourl'));}"
-    data-photourl="${escAttr(url)}">
-    <img src="${esc(url)}" alt="post photo" loading="lazy" onerror="this.parentNode.style.display='none'">
+  const slides = photos.map((ph,i)=>`<div class="sl-photo-slide" role="button" tabindex="0" title="Click to view full size"
+      onclick="event.stopPropagation();slPhotoZoom('${escAttr(ph.url)}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();slPhotoZoom('${escAttr(ph.url)}');}">
+      <img src="${esc(ph.url)}" alt="post photo ${i+1}" loading="lazy" onerror="this.closest('.sl-photo-slide').style.display='none'">
+    </div>`).join('');
+  const dots = photos.length>1 ? `<div class="sl-photo-dots">${photos.map((_,i)=>`<span class="sl-photo-dot${i===0?' active':''}"></span>`).join('')}</div>` : '';
+  const arrows = photos.length>1 ? `
+    <button type="button" class="sl-photo-arrow prev" onclick="event.stopPropagation();slCarouselNav('${uid}',-1)" aria-label="Previous photo">‹</button>
+    <button type="button" class="sl-photo-arrow next" onclick="event.stopPropagation();slCarouselNav('${uid}',1)" aria-label="Next photo">›</button>` : '';
+  return `<div class="sl-photo-carousel ${cls}" id="carousel-${uid}" data-idx="0">
+    <div class="sl-photo-track">${slides}</div>
+    ${arrows}${dots}
   </div>`;
+}
+function slCarouselNav(uid, dir){
+  const root = document.getElementById('carousel-'+uid);
+  if(!root) return;
+  const track = root.querySelector('.sl-photo-track');
+  const n = track.children.length;
+  if(n<2) return;
+  let idx = parseInt(root.dataset.idx||'0',10);
+  idx = (idx+dir+n)%n;
+  root.dataset.idx = idx;
+  track.style.transform = `translateX(-${idx*100}%)`;
+  root.querySelectorAll('.sl-photo-dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
 }
 function slPhotoZoom(url){
   if(!url) return;
@@ -6260,9 +6297,12 @@ function slPhotoZoom(url){
 function slRenderPost(p){
   // Inject the post id onto the <article> (all types) so share-links can find it.
   let html = slRenderPostInner(p);
-  // Attach the optional post photo just above the social footer (if the type
-  // has one) or the engage bar — works for every post type, custom ones too.
-  const _ph = slPostPhoto(p);
+  // Attach the optional post photo carousel just above the social footer (if
+  // the type has one) or the engage bar — works for every post type, custom
+  // ones too. Uses the post id as the carousel's DOM id so multiple posts on
+  // the same feed page each get independent, working arrows.
+  const _photos = slPhotosOf(p);
+  const _ph = _photos.length ? slPhotoCarouselHTML(_photos, 'p'+p.id) : '';
   if(_ph){
     let at = html.indexOf('<div class="sl-foot"');
     if(at === -1) at = html.indexOf('<div class="sl-engage"');
