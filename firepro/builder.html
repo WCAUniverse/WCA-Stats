@@ -234,6 +234,13 @@
     background:#0c1118; border:1px solid var(--line); border-radius:8px; outline:none;
   }
   .rsearch input:focus{border-color:var(--gold);}
+  .rsort{padding:0 12px 10px; border-bottom:1px solid var(--line); display:flex; align-items:center;}
+  .rsort select{
+    padding:7px 9px; font-size:13px; color:#fff; flex:1 1 auto;
+    background:#0c1118; border:1px solid var(--line); border-radius:8px; outline:none; cursor:pointer;
+  }
+  .rsort select:focus{border-color:var(--gold);}
+  body.readonly .rsort{ display:none; }
   .rlist{overflow-y:auto; padding:8px; flex:1 1 auto; min-height:120px;}
   @media(max-width:980px){ .rlist{max-height:50vh;} }
   .rcard{
@@ -377,6 +384,14 @@
     <div class="roster">
       <h2><i class="ti ti-users"></i> Roster <span class="cnt" id="rCnt"></span></h2>
       <div class="rsearch"><input id="rSearch" type="text" placeholder="Search wrestlers…" oninput="renderRoster()"></div>
+      <div class="rsort">
+        <label for="rSort" style="font-size:11px;color:var(--muted,#9aa);margin-right:6px">Sort</label>
+        <select id="rSort" onchange="renderRoster()">
+          <option value="name">Name</option>
+          <option value="promotion">Promotion</option>
+          <option value="team">Team</option>
+        </select>
+      </div>
       <div class="rlist" id="rList"><div class="rempty">Loading roster…</div></div>
     </div>
   </div>
@@ -425,6 +440,8 @@ let SETTINGS = {                 // builder knobs (from site_settings.firepro.bu
 let TYPES = [];                  // fp_match_types rows
 let TYPE_BY_KEY = {};            // key -> type
 let ROSTER = [];                 // fp_wrestlers (id,name,nickname,image_url,cost,...)
+let PROMO_BY_ID = {};            // fp_promotions id -> name
+let FACTION_BY_ID = {};          // fp_factions id -> name
 let CARD = [];                   // array of matches: { typeKey, sides:[[id,...],[id,...]] }
 let PROMO = 'Your Promotion';    // booker's promotion name
 let OWNER = '';                  // booker's owner/handle name
@@ -433,7 +450,7 @@ let MY_CARD_ID = null;           // id of this booker's existing card for EVENT 
 let READONLY = false;            // true when submissions are closed
 let SEASON = null;               // active season row (id,name,bankroll) or null
 let WALLET = null;               // my fp_season_bookers row for SEASON, or null
-let SPEND_CAP = 2500000;         // effective cap: wallet balance if joined, else SETTINGS.budget
+let SPEND_CAP = 0;               // effective cap: your season wallet balance. No season/wallet = 0.
 let CARD_CAP = 0;                // per-card budget cap (fp_seasons.budget_cap); 0 = no cap
 
 /* =====================================================================
@@ -479,7 +496,6 @@ async function loadSettings(){
       const b = fp.builder;
       SETTINGS.enabled    = b.enabled !== false;
       SETTINGS.cardSize   = (typeof b.cardSize==='number' && b.cardSize>0) ? Math.min(b.cardSize,12) : 6;
-      SETTINGS.budget     = (typeof b.budget==='number'  && b.budget>=0)  ? b.budget : 2500000;
       SETTINGS.allowDupes = !!b.allowDupes;
       SETTINGS.intro      = b.intro || '';
       SETTINGS.navLabel   = b.navLabel || 'BOOK A SHOW';
@@ -660,13 +676,27 @@ async function loadRoster(){
   ROSTER=[];
   try{
     const { data, error } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,origin,image_url,cost,rank_grade,charisma_grade')
+      .select('id,name,nickname,origin,image_url,cost,rank_grade,charisma_grade,promotion_id,faction_id')
       .order('name',{ascending:true});
     if(error) throw error;
     ROSTER = (data||[]).map(w=>({ ...w, cost: (w.cost!=null?w.cost:0) }));
   }catch(e){ ROSTER=[]; }
   ROSTER.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  await loadPromoFaction();
   renderRoster();
+}
+
+/* promotion / faction name lookups — used to sort/label the roster panel */
+async function loadPromoFaction(){
+  PROMO_BY_ID={}; FACTION_BY_ID={};
+  try{
+    const [proRes, facRes] = await Promise.all([
+      sb.from('fp_promotions').select('id,name'),
+      sb.from('fp_factions').select('id,name')
+    ]);
+    for(const p of (proRes.data||[])) PROMO_BY_ID[p.id]=p.name;
+    for(const f of (facRes.data||[])) FACTION_BY_ID[f.id]=f.name;
+  }catch(e){ /* labels just won't show if this fails */ }
 }
 
 /* =====================================================================
@@ -859,21 +889,35 @@ function placeWrestler(id, mi, si, k){
    ===================================================================== */
 function renderRoster(){
   const host=byId('rList'); const q=(byId('rSearch').value||'').trim().toLowerCase();
+  const sortSel=byId('rSort'); const sortBy = sortSel ? sortSel.value : 'name';
   const used=usedIds();
   let list=ROSTER;
   if(q){ list=ROSTER.filter(w=> String(w.name).toLowerCase().includes(q)
       || String(w.nickname||'').toLowerCase().includes(q)); }
+  list=list.slice();
+  if(sortBy==='promotion'){
+    list.sort((a,b)=> String(PROMO_BY_ID[a.promotion_id]||'\uffff').localeCompare(String(PROMO_BY_ID[b.promotion_id]||'\uffff'))
+      || String(a.name).localeCompare(String(b.name)));
+  } else if(sortBy==='team'){
+    list.sort((a,b)=> String(FACTION_BY_ID[a.faction_id]||'\uffff').localeCompare(String(FACTION_BY_ID[b.faction_id]||'\uffff'))
+      || String(a.name).localeCompare(String(b.name)));
+  } else {
+    list.sort((a,b)=> String(a.name).localeCompare(String(b.name)));
+  }
   byId('rCnt').textContent='('+list.length+')';
   if(!list.length){ host.innerHTML='<div class="rempty">'+(ROSTER.length?'No matches for that search.':'No wrestlers in the roster yet.')+'</div>'; return; }
   let html='';
   for(const w of list){
     const isUsed = !SETTINGS.allowDupes && used.has(w.id);
+    const tag = sortBy==='promotion' ? (PROMO_BY_ID[w.promotion_id]||'')
+              : sortBy==='team' ? (FACTION_BY_ID[w.faction_id]||'')
+              : '';
     html+='<div class="rcard'+(isUsed?' used':'')+'" draggable="true"'+
       ' ondragstart="rosterDragStart(event,'+w.id+')" ondragend="rosterDragEnd(event)"'+
       ' title="'+esc(w.name)+(isUsed?' — already on the card':'')+'">'+
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
       '<div class="meta"><div class="n">'+esc(w.name)+'</div>'+
-        '<div class="s">'+esc(w.origin||w.nickname||'')+
+        '<div class="s">'+esc(tag||w.origin||w.nickname||'')+
           '<span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span></div></div>'+
       '<div class="cost">'+money(w.cost)+'</div></div>';
   }
@@ -881,17 +925,18 @@ function renderRoster(){
 }
 
 /* =====================================================================
-   WALLET — the spend cap is the booker's live season balance.
-   No active season / not joined → falls back to the flat SETTINGS.budget
-   so casual (no-season) play still works.
+   WALLET — the spend cap is the booker's live season wallet balance, full
+   stop. No active season, or a season you haven't joined yet, means a $0
+   cap — going broke (or having no wallet) is part of the game, not
+   something a flat fallback should paper over.
    ===================================================================== */
 async function loadWallet(){
-  SEASON=null; WALLET=null; SPEND_CAP=SETTINGS.budget||0; CARD_CAP=0;
+  SEASON=null; WALLET=null; SPEND_CAP=0; CARD_CAP=0;
   if(!sb||!USER) return;
   try{
     const { data:sid } = await sb.rpc('fp_active_season');
-    if(!sid) return;                      // no season → flat budget
-    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,budget_cap,status').eq('id',sid).maybeSingle();
+    if(!sid) return;                      // no season → nothing to spend
+    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,budget_cap,bankruptcy_floor,status').eq('id',sid).maybeSingle();
     SEASON = srow || { id:sid };
     CARD_CAP = (srow && srow.budget_cap>0) ? srow.budget_cap : 0;   // 0 = no per-card cap
     const { data:w } = await sb.rpc('fp_my_wallet');
@@ -902,11 +947,11 @@ async function loadWallet(){
     } else if(WALLET && WALLET.eliminated){
       walletCap = 0;                      // eliminated → can't spend
     } else {
-      walletCap = SETTINGS.budget||0;     // season live but not joined yet
+      walletCap = 0;                      // season live but you haven't joined yet
     }
     // a card must satisfy BOTH the wallet and the per-card cap (when a cap is set)
     SPEND_CAP = (CARD_CAP>0) ? Math.min(walletCap, CARD_CAP) : walletCap;
-  }catch(e){ /* leave flat-budget fallback */ }
+  }catch(e){ /* leave SPEND_CAP at 0 */ }
 }
 
 /* =====================================================================
@@ -941,11 +986,18 @@ function recalc(){
       note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet ('+money(WALLET.balance)+').'+
         (capBinds ? ' This card is capped at <b style="color:#ffd23f">'+money(CARD_CAP)+'</b> per show.' : '')+
         ' Go broke and you\'re out for the season.';
+      // soft heads-up as the wallet nears the bankruptcy floor — informational only, doesn't limit anything
+      const floor = (SEASON && SEASON.bankruptcy_floor!=null) ? SEASON.bankruptcy_floor : 10000;
+      const cushion = Math.max(floor, 250000);
+      if(WALLET.balance <= floor + cushion){
+        note.innerHTML += '<br><span style="color:#ffb454">⚠ Your wallet\'s getting thin — '+money(WALLET.balance-floor)+' above the bankruptcy floor of '+money(floor)+'.</span>';
+      }
     } else if(SEASON){
       note.style.color='#7fe0a0';
-      note.innerHTML='A season is live — <b>join it in the hub Settings</b> to book with your real wallet. (Showing the practice budget for now.)';
+      note.innerHTML='A season is live — <b>join it in the hub Settings</b> to get your wallet and start booking.';
     } else {
-      note.innerHTML='';
+      note.style.color='#9aa';
+      note.innerHTML='No season is currently active, so there\'s no wallet to book against yet — check back once one starts.';
     }
   }
 
