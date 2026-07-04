@@ -3938,9 +3938,9 @@ function rankHTML(name){
   return `<div class="pf-ranks">${chips}</div>`;
 }
 // ===== PER-WRESTLER MATCH HISTORY (from recorded results) =====
-// Full match-by-match history began at WCA 50, when the Results Engine went
-// live. Older matches are counted in the career totals (W-D-L-NW) but have
-// no per-match rows, so they can't be listed here.
+// Covers every archived show with saved winners (backfilled) plus everything
+// recorded live through the Results Engine. A match only appears once a
+// winner has been saved for it.
 const MH_CACHE = {};
 async function renderWrestlerHistory(name, hostId){
   const host=document.getElementById(hostId);
@@ -3961,7 +3961,7 @@ async function renderWrestlerHistory(name, hostId){
   if(hostId==='cs-history' && typeof CS_SELECTED!=='undefined' && CS_SELECTED && CS_SELECTED!==name) return;
   if(!rows.length){
     host.innerHTML = `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
-      <div class="pf-empty">No recorded matches yet — full match-by-match history began at WCA 50. Earlier career results are counted in the totals above.</div></div>`;
+      <div class="pf-empty">No recorded matches on file for them yet — matches appear here once a winner is saved for them.</div></div>`;
     return;
   }
   const legend = `<details class="mh-legend"><summary>How to read this</summary>
@@ -3971,7 +3971,7 @@ async function renderWrestlerHistory(name, hostId){
     <span class="f5b n" style="width:16px;height:16px">N</span> no-win — they were on the losing end but never took the fall, so it doesn't count against them ·
     <span class="f5b d" style="width:16px;height:16px">D</span> draw.
     <i class="ti ti-crown" style="color:var(--gold)"></i> = a championship was on the line.
-    Full history starts at WCA 50 — older matches live in the career totals.</div></details>`;
+    A match appears here once its winner is on file.</div></details>`;
   // group by division, newest first inside each
   const byDiv={};
   rows.forEach(r=>{ const k=r.division||'Other'; (byDiv[k]=byDiv[k]||[]).push(r); });
