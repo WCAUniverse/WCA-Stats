@@ -4077,6 +4077,8 @@ function setPostAs(asAdmin){
 }
 
 // Pull this user's bet history from the v_my_bet_history view and fill both lists.
+// Shows, per bet: the match, who they picked, the stake, and the result in plain
+// English — plus a "how to read this" explainer for people new to betting.
 async function loadBetHistory(){
   const betsEl=document.getElementById('acc-bets');
   const profitEl=document.getElementById('acc-profit');
@@ -4107,15 +4109,77 @@ async function loadBetHistory(){
     return;
   }
 
+  // Resolve who each bet was placed ON (side names) + voided matches.
+  // Both fail soft — worst case we just show less detail.
+  const evIds = [...new Set(rows.map(r=>r.event_id).filter(v=>v!==null&&v!==undefined))];
+  const sidesByKey = {};   // "eventId:slot" -> parsed sides array
+  const voidByKey  = {};   // "eventId:slot" -> true if match was voided
+  if(evIds.length){
+    try{
+      const { data: ems } = await sb.from('event_matches')
+        .select('event_id,slot,sides').in('event_id', evIds);
+      (ems||[]).forEach(em=>{
+        let s = em.sides;
+        if(typeof s==='string'){ try{ s=JSON.parse(s); }catch(err){ s=[]; } }
+        sidesByKey[em.event_id+':'+em.slot] = s || [];
+      });
+    }catch(e){}
+    try{
+      const { data: mbs } = await sb.from('match_betting')
+        .select('event_id,slot,status').in('event_id', evIds);
+      (mbs||[]).forEach(mb=>{ if(mb.status==='void') voidByKey[mb.event_id+':'+mb.slot]=true; });
+    }catch(e){}
+  }
+  const pickName = (r)=>{
+    const sides = sidesByKey[r.event_id+':'+r.slot];
+    if(sides && r.side_index!==null && r.side_index!==undefined){
+      return sideLabel(sides[r.side_index]);
+    }
+    return '';
+  };
+
+  // Plain-English explainer (collapsible) at the top of the history.
+  const explainer = `<details class="acc-howto" style="margin:0 0 10px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12px; color:var(--muted)">
+    <summary style="cursor:pointer; color:var(--gold); font-weight:600">New to betting? How to read this</summary>
+    <div style="margin-top:8px; line-height:1.6">
+      Every match has its own prize pool made of everyone\u2019s bets.<br>
+      \u2022 <b style="color:var(--win)">Won</b> — you picked the winner. You got your bet back <b>plus</b> a share of the money the other side lost. Bigger bet = bigger share. The green number is pure profit.<br>
+      \u2022 <b style="color:var(--loss)">Lost</b> — you picked wrong. Your bet went to the people who picked right. The red number is what you lost.<br>
+      \u2022 <b style="color:var(--gold)">Pending</b> — the match hasn\u2019t been decided yet. Your points are held until it is.<br>
+      \u2022 <b>Refunded</b> — the match was voided, so your bet came straight back. No win, no loss.<br>
+      If <i>everyone</i> picked the winner, there\u2019s no losing pool to split — everyone gets their bet back plus a flat <b>$250</b> bonus.<br>
+      The show\u2019s <b>Betting Champion</b> is whoever finishes with the most total profit from bets — points earned by watching never count toward it.
+    </div>
+  </details>`;
+
   // RECENT BETS list (everything they placed)
-  betsEl.innerHTML = rows.map(r=>{
+  betsEl.innerHTML = explainer + rows.map(r=>{
     const matchName = r.match_title || ('Match '+(r.slot||''));
-    const status = r.settled ? (r.won ? '<span class="acc-pill win">Won</span>' : '<span class="acc-pill loss">Lost</span>')
-                             : '<span class="acc-pill pend">Pending</span>';
+    const isVoid = !!voidByKey[r.event_id+':'+r.slot];
+    let status, resultLine;
+    if(isVoid){
+      status = '<span class="acc-pill" style="border:1px solid var(--line); color:var(--muted)">Refunded</span>';
+      resultLine = 'Match voided — your '+fmtMoney(r.amount)+' came back.';
+    } else if(r.settled){
+      const net = Number(r.net_profit)||0;
+      if(r.won){
+        status = '<span class="acc-pill win">Won</span>';
+        resultLine = '<b style="color:var(--win)">+'+fmtMoney(net)+' profit</b> — your '+fmtMoney(r.amount)+' stake came back too.';
+      } else {
+        status = '<span class="acc-pill loss">Lost</span>';
+        resultLine = '<b style="color:var(--loss)">\u2212'+fmtMoney(r.amount)+'</b> — your stake went to the winning side.';
+      }
+    } else {
+      status = '<span class="acc-pill pend">Pending</span>';
+      resultLine = 'Waiting on the match result.';
+    }
+    const pick = pickName(r);
     return `<div class="acc-row">
         <div class="acc-row-main">
           <div class="acc-row-match">${esc(matchName)}</div>
           <div class="acc-row-event">${esc(r.event_name||'')}</div>
+          <div class="acc-row-event">You bet <b>${fmtMoney(r.amount)}</b>${pick?` on <b>${esc(pick)}</b>`:''}</div>
+          <div class="acc-row-event">${resultLine}</div>
         </div>
         <div class="acc-row-side">
           <div class="acc-row-amt">${fmtMoney(r.amount)}</div>
@@ -4125,7 +4189,7 @@ async function loadBetHistory(){
   }).join('');
 
   // WINNINGS / PROFIT list (settled matches only) + running total
-  const settled = rows.filter(r=>r.settled);
+  const settled = rows.filter(r=>r.settled && !voidByKey[r.event_id+':'+r.slot]);
   let total = 0;
   if(!settled.length){
     profitEl.innerHTML = `<div class="acc-empty-sm">No settled matches yet.</div>`;
@@ -4135,10 +4199,11 @@ async function loadBetHistory(){
       const cls = net>0?'pos':(net<0?'neg':'even');
       const sign = net>0?'+':'';
       const matchName = r.match_title || ('Match '+(r.slot||''));
+      const pick = pickName(r);
       return `<div class="acc-row">
           <div class="acc-row-main">
             <div class="acc-row-match">${esc(matchName)}</div>
-            <div class="acc-row-event">${esc(r.event_name||'')}</div>
+            <div class="acc-row-event">${esc(r.event_name||'')}${pick?` · picked ${esc(pick)}`:''}</div>
           </div>
           <div class="acc-row-net ${cls}">${sign}${fmtMoney(net)}</div>
         </div>`;
@@ -4326,6 +4391,8 @@ function boutHTML(m, isMain, ctx){
   const myBet = ctx.myBetsBySlot[m.slot] || null;     // {side_index, amount} or null
 
   // VS row with per-side pot + multiplier + bet button
+  const winIdx = (status==='settled' && ctx.winnerBySlot && ctx.winnerBySlot[m.slot]!==undefined)
+    ? ctx.winnerBySlot[m.slot] : undefined;
   let vsRow='';
   sides.forEach((s,idx)=>{
     if(idx>0) vsRow+=`<div class="vs">VS</div>`;
@@ -4341,21 +4408,44 @@ function boutHTML(m, isMain, ctx){
     const betBtn = canBet
       ? `<button class="pick-btn ${picked?'picked':''}" onclick="openBet(${m.slot},${idx})">${picked?'✓ Your pick':'Bet this side'}</button>`
       : '';
-    vsRow += `<div class="fighter betside ${picked?'picked':''}">${sideCellInner(s,isMain)}${potLine}${betBtn}</div>`;
+    const isWin = winIdx!==undefined && Number(winIdx)===idx;
+    const winTag = isWin ? `<div class="rwin-tag"><i class="ti ti-trophy"></i> Winner</div>` : '';
+    vsRow += `<div class="fighter betside ${picked?'picked':''}">${sideCellInner(s,isMain)}${winTag}${potLine}${betBtn}</div>`;
   });
 
   // status ribbon
   let ribbon='';
   if(status==='open')        ribbon=`<span class="bet-status open"><i class="ti ti-coins"></i> Betting open</span>`;
   else if(status==='closed') ribbon=`<span class="bet-status closed"><i class="ti ti-lock"></i> Bets locked</span>`;
-  else if(status==='settled')ribbon=`<span class="bet-status settled"><i class="ti ti-check"></i> Settled</span>`;
+  else if(status==='settled'){
+    const wName = (winIdx!==undefined) ? sideLabel(sides[winIdx]) : '';
+    ribbon = wName
+      ? `<span class="bet-status settled"><i class="ti ti-trophy"></i> Winner: ${esc(wName)}</span>`
+      : `<span class="bet-status settled"><i class="ti ti-check"></i> Settled</span>`;
+  }
   else if(status==='void')   ribbon=`<span class="bet-status void"><i class="ti ti-ban"></i> Voided — refunded</span>`;
 
-  // my-bet line + change/cancel
+  // my-bet line + change/cancel — after settlement it shows the personal result
   let mine='';
   if(myBet){
     const sideName = sideLabel(sides[myBet.side_index]);
-    mine = `<div class="my-bet">You bet <b>${fmtMoney(myBet.amount)}</b> on <b>${esc(sideName)}</b>
+    let resultLine = '';
+    if(status==='settled' && winIdx!==undefined){
+      const iWon = Number(myBet.side_index)===Number(winIdx);
+      // recompute the exact payout from the public bet board (same math the bank used)
+      let winTotal=0, loseTotal=0;
+      bets.forEach(b=>{
+        if(Number(b.side_index)===Number(winIdx)) winTotal+=Number(b.amount);
+        else loseTotal+=Number(b.amount);
+      });
+      if(iWon){
+        const profit = (loseTotal>0 && winTotal>0) ? Math.round(Number(myBet.amount)/winTotal*loseTotal) : 250;
+        resultLine = ` — <b style="color:var(--win)">✓ You won! +${fmtMoney(profit)} profit</b> <span class="muted">(your ${fmtMoney(myBet.amount)} stake came back too)</span>`;
+      }else{
+        resultLine = ` — <b style="color:var(--loss)">✗ You lost ${fmtMoney(myBet.amount)}</b>`;
+      }
+    }
+    mine = `<div class="my-bet">You bet <b>${fmtMoney(myBet.amount)}</b> on <b>${esc(sideName)}</b>${resultLine}
       ${status==='open'?`<button class="link-btn" onclick="cancelBet(${m.slot})">cancel</button>`:''}</div>`;
   } else if(status==='open' && !ctx.signedIn){
     mine = `<div class="my-bet muted">Sign in with Discord to place a bet.</div>`;
@@ -4386,6 +4476,7 @@ function boutHTML(m, isMain, ctx){
     ${stip}${notes}
     ${mine}
     ${board}
+    ${status==='settled' ? ratingWidget(m.slot) : ''}
   </div>`;
 }
 // side label used in text (team name or members)
@@ -4426,13 +4517,42 @@ async function loadFeaturedData(){
 
   const {data:statuses}=await sb.from('match_betting').select('*').eq('event_id',ev.id);
   const {data:board}=await sb.from('v_bet_board').select('*').eq('event_id',ev.id);
-  const statusBySlot={}; (statuses||[]).forEach(s=>statusBySlot[s.slot]=s.status);
+  const statusBySlot={}; const winnerBySlot={};
+  (statuses||[]).forEach(s=>{
+    statusBySlot[s.slot]=s.status;
+    if(s.winner_idx!==null && s.winner_idx!==undefined) winnerBySlot[s.slot]=Number(s.winner_idx);
+  });
   const betsBySlot={};   (board||[]).forEach(b=>{ (betsBySlot[b.slot]=betsBySlot[b.slot]||[]).push(b); });
   const myBetsBySlot={};
   if(CURRENT_USER){
     (board||[]).filter(b=>b.user_id===CURRENT_USER.id).forEach(b=>{ myBetsBySlot[b.slot]={side_index:b.side_index, amount:b.amount}; });
   }
-  CURRENT_CTX = { signedIn: !!CURRENT_USER, statusBySlot, betsBySlot, myBetsBySlot };
+  CURRENT_CTX = { signedIn: !!CURRENT_USER, statusBySlot, winnerBySlot, betsBySlot, myBetsBySlot };
+
+  // Load star-rating state for this event so rating widgets work on the
+  // live Events/Live pages too (not just the archive).
+  try{
+    const [ratingsR, myRatingsR, manualR] = await Promise.all([
+      sb.from('v_match_ratings').select('*').eq('event_id', ev.id),
+      CURRENT_USER ? sb.from('match_ratings').select('slot,stars').eq('event_id', ev.id).eq('user_id', CURRENT_USER.id) : Promise.resolve({data:[]}),
+      sb.from('manual_match_ratings').select('*').eq('event_id', ev.id).then(r=>r, ()=>({data:[]}))
+    ]);
+    RATE_EVENT_ID = ev.id;
+    RATE_AGG = {}; RATE_MINE = {}; RATE_MANUAL = {};
+    (ratingsR.data || []).forEach(rr=>{ RATE_AGG[rr.slot] = { avg:Number(rr.avg_stars)||0, votes:Number(rr.votes)||0 }; });
+    (myRatingsR.data || []).forEach(rr=>{ RATE_MINE[rr.slot] = Number(rr.stars)||0; });
+    (manualR.data || []).forEach(rr=>{
+      const st = Number(rr.stars)||0, vt = Number(rr.votes)||0;
+      if(st<=0) return;
+      RATE_MANUAL[rr.slot] = { stars:st, votes:vt, source:rr.source||'', voters:rr.voters||'' };
+      const cur = RATE_AGG[rr.slot] || { avg:0, votes:0 };
+      const liveSum = cur.avg * cur.votes;
+      const w = Math.max(1, vt);
+      const total = cur.votes + w;
+      RATE_AGG[rr.slot] = { avg:(liveSum + st*w)/total, votes:total, hasManual:true };
+    });
+  }catch(e){ /* ratings fail soft — never block the card */ }
+
   return {ev, list, ctx:CURRENT_CTX};
 }
 
