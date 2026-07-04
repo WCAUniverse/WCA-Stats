@@ -333,6 +333,18 @@
     justify-content:center; font-family:'Oswald'; font-size:10px; font-weight:600; color:#0b0b0d;}
   .f5b.w{background:var(--win);} .f5b.l{background:var(--loss); color:#fff;} .f5b.d{background:var(--muted);} .f5b.n{background:transparent; border:1px solid var(--muted2); color:var(--muted2);}
 
+  /* per-wrestler match history */
+  .mh-wrap{margin-top:16px; border-top:1px solid var(--line); padding-top:12px;}
+  .mh-title{font-family:'Barlow Condensed',sans-serif; font-size:16px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .mh-legend{font-size:11.5px; color:var(--muted); border:1px solid var(--line); border-radius:8px; padding:6px 10px; margin-bottom:10px;}
+  .mh-legend summary{cursor:pointer; color:var(--gold);}
+  .mh-legend > div{margin-top:6px; line-height:1.7;}
+  .mh-div{margin-bottom:12px;}
+  .mh-divname{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:8px 0 4px;}
+  .mh-row{display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .mh-row:last-child{border-bottom:none;}
+  .mh-main{flex:1; min-width:0;}
+  .mh-sub{display:block; font-size:11px; color:var(--muted);}
   /* contender dots */
   .dots{display:flex; gap:4px; flex-shrink:0;}
   .dots-end{width:38px; flex-shrink:0;}
@@ -2511,6 +2523,15 @@
       <button class="rfilter" data-rank="Undisputed">Undisputed</button>
       <button class="rfilter" data-rank="Factions">Factions</button>
     </div>
+    <details class="mh-legend" style="margin:0 0 12px">
+      <summary>New here? How WCA records work</summary>
+      <div>Every match on a WCA card counts toward exactly one division.
+      The <b style="color:var(--win)">winner</b> earns a Win — and a contender point if they're not the champion. Three points makes them <b>#1 Contender</b> and earns a title shot; taking the shot resets their points, win or lose.
+      Whoever gets <b style="color:var(--loss)">pinned, tapped out, or eliminated</b> takes the Loss.
+      Anyone else on the losing end who never took the fall gets a <b>No-Win</b> — it doesn't count against their record.
+      Champions sit at the top of their division until they lose the belt, and every record, form box, and title change updates automatically after each show.
+      Tap any name to open their profile and see their match-by-match history.</div>
+    </details>
     <div class="legend legend-big">
       <span><b class="lg-rank">#</b> = rank in division</span>
       <span><span class="lg-ring"></span> = win rate</span>
@@ -3826,7 +3847,9 @@ function csSelect(name){
     ${(w.performer||socialIcons(w.socials))?`<div class="cs-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
     ${rankHTML(w.name)}
     ${w.bio?`<div class="cs-bio">${esc(w.bio)}</div>`:''}
-    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>`;
+    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
+    <div id="cs-history"></div>`;
+  renderWrestlerHistory(w.name, 'cs-history');
 
   stage.classList.remove('shown');
   requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.add('shown')));
@@ -3914,6 +3937,75 @@ function rankHTML(name){
   }).join('');
   return `<div class="pf-ranks">${chips}</div>`;
 }
+// ===== PER-WRESTLER MATCH HISTORY (from recorded results) =====
+// Full match-by-match history began at WCA 50, when the Results Engine went
+// live. Older matches are counted in the career totals (W-D-L-NW) but have
+// no per-match rows, so they can't be listed here.
+const MH_CACHE = {};
+async function renderWrestlerHistory(name, hostId){
+  const host=document.getElementById(hostId);
+  if(!host) return;
+  host.innerHTML = '<div class="pf-empty" style="margin-top:12px">Loading match history…</div>';
+  let rows = MH_CACHE[name];
+  if(!rows){
+    try{
+      const { data, error } = await sb.from('v_match_history')
+        .select('*').eq('participant', name)
+        .order('event_date',{ascending:false}).order('slot',{ascending:true});
+      if(error) throw error;
+      rows = data||[];
+      MH_CACHE[name]=rows;
+    }catch(e){ host.innerHTML=''; return; } // history view not installed yet — hide quietly
+  }
+  // guard against a stale async fill after the user clicked another wrestler
+  if(hostId==='cs-history' && typeof CS_SELECTED!=='undefined' && CS_SELECTED && CS_SELECTED!==name) return;
+  if(!rows.length){
+    host.innerHTML = `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
+      <div class="pf-empty">No recorded matches yet — full match-by-match history began at WCA 50. Earlier career results are counted in the totals above.</div></div>`;
+    return;
+  }
+  const legend = `<details class="mh-legend"><summary>How to read this</summary>
+    <div>Newest matches first.
+    <span class="f5b w" style="width:16px;height:16px">W</span> won the match ·
+    <span class="f5b l" style="width:16px;height:16px">L</span> lost — they were pinned, tapped out, or eliminated ·
+    <span class="f5b n" style="width:16px;height:16px">N</span> no-win — they were on the losing end but never took the fall, so it doesn't count against them ·
+    <span class="f5b d" style="width:16px;height:16px">D</span> draw.
+    <i class="ti ti-crown" style="color:var(--gold)"></i> = a championship was on the line.
+    Full history starts at WCA 50 — older matches live in the career totals.</div></details>`;
+  // group by division, newest first inside each
+  const byDiv={};
+  rows.forEach(r=>{ const k=r.division||'Other'; (byDiv[k]=byDiv[k]||[]).push(r); });
+  const secs = Object.keys(byDiv).sort().map(dv=>{
+    const list = byDiv[dv].map(r=>{
+      const cls = r.result==='W'?'w':r.result==='L'?'l':r.result==='D'?'d':'n';
+      const opp = mhOpponents(r);
+      const when = r.event_date ? new Date(r.event_date).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}) : '';
+      const belt = r.championship ? ` <i class="ti ti-crown" style="color:var(--gold)" title="${esc(r.championship)} Championship match"></i>` : '';
+      return `<div class="mh-row">
+        <span class="f5b ${cls}" style="width:20px;height:20px;flex:0 0 20px">${r.result}</span>
+        <span class="mh-main">${opp?('vs '+esc(opp)):esc(r.match_title||'Match')}${belt}
+          <span class="mh-sub">${esc(r.event_name||'')}${when?' · '+when:''}${r.match_type?' · '+esc(r.match_type):''}</span></span>
+      </div>`;
+    }).join('');
+    return `<div class="mh-div"><div class="mh-divname">${esc(dv)} Division</div>${list}</div>`;
+  }).join('');
+  host.innerHTML = `<div class="mh-wrap">
+    <div class="mh-title"><i class="ti ti-history"></i> Match History</div>
+    ${legend}${secs}</div>`;
+}
+// Everyone in the match EXCEPT the wrestler's own side.
+function mhOpponents(r){
+  let sides=r.sides;
+  if(typeof sides==='string'){ try{ sides=JSON.parse(sides); }catch(e){ sides=[]; } }
+  if(!Array.isArray(sides)) return '';
+  const opps=[];
+  sides.forEach((s,i)=>{
+    if(i===Number(r.side_index)) return;
+    const nm = s.team_name || (s.members||[]).filter(Boolean).join(' & ');
+    if(nm) opps.push(nm);
+  });
+  return opps.join(', ');
+}
 function openProfile(w){
   if(!w) return;
   const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
@@ -3951,8 +4043,10 @@ function openProfile(w){
       </div>
     </div>
     ${bio}
-    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>`;
+    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
+    <div id="pf-history"></div>`;
   document.getElementById('profile-modal').classList.add('open');
+  renderWrestlerHistory(w.name, 'pf-history');
 }
 function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
 
