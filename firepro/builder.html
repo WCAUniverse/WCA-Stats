@@ -173,6 +173,31 @@
   .mcost{font-family:'Oswald',sans-serif; font-size:14px; color:var(--gold2);}
   .mcost small{color:#8a98a8; font-weight:400;}
 
+  /* Card-position labels — shows where each match falls in the running
+     order (order matters for booking: top of the list goes on first). */
+  .mpos{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:10.5px;
+    letter-spacing:.6px; text-transform:uppercase; white-space:nowrap;
+    padding:5px 9px; border-radius:7px; user-select:none;
+  }
+  .mpos-open{ color:#9be0ff; background:rgba(80,170,255,.10); border:1px solid rgba(80,170,255,.35); }
+  .mpos-mid{ color:#8a98a8; background:rgba(255,255,255,.04); border:1px solid var(--line); }
+  .mpos-comain{ color:#e0b3ff; background:rgba(190,120,255,.10); border:1px solid rgba(190,120,255,.35); }
+  .mpos-main{ color:var(--gold2); background:rgba(233,185,73,.12); border:1px solid rgba(233,185,73,.45);
+    box-shadow:0 0 10px -4px var(--gold2); }
+  /* Left-edge accent on the whole match card, so the running order reads
+     at a glance while scrolling the list. */
+  .match.pos-open{ border-left:3px solid #4aa8ff; }
+  .match.pos-comain{ border-left:3px solid #be78ff; }
+  .match.pos-main{ border-left:3px solid var(--gold2); }
+  .card-order-legend{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    font-size:11.5px; color:#8a98a8; background:rgba(255,255,255,.02);
+    border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-bottom:12px;
+  }
+  .card-order-legend b{color:var(--ink);}
+  .card-order-legend .mpos{padding:3px 7px; font-size:9.5px;}
+
   /* the blue-vs-red plates */
   .sides{display:flex; align-items:stretch; gap:0;}
   .sides.multi{flex-wrap:wrap;}
@@ -369,6 +394,13 @@
       <h1 id="promoName">Your Promotion</h1>
       <div class="you">Booking as <b id="bookerEmail">…</b></div>
       <p class="intro" id="introText"></p>
+    </div>
+    <div class="card-order-legend">
+      <span><b>Order matters:</b> matches run top-to-bottom as booked below.</span>
+      <span class="mpos mpos-open">Opening Match</span>
+      <span class="mpos mpos-mid">Mid-Card</span>
+      <span class="mpos mpos-comain">Co-Main Event</span>
+      <span class="mpos mpos-main">Main Event</span>
     </div>
     <div id="matches"></div>
   </div>
@@ -781,21 +813,34 @@ function usedIds(){
 /* =====================================================================
    RENDER — matches
    ===================================================================== */
+function matchPositionInfo(mi, total){
+  // Figures out where this slot sits in the running order so the booker
+  // can see at a glance which match opens the show and which two close it.
+  // Order matters for booking, so this is purely descriptive of CARD's
+  // existing top-to-bottom order — nothing here changes that order.
+  if(total<=1) return { cls:'pos-main', label:'MAIN EVENT' };
+  if(mi===total-1) return { cls:'pos-main', label:'MAIN EVENT' };
+  if(mi===0) return { cls:'pos-open', label:'OPENING MATCH' };
+  if(mi===total-2) return { cls:'pos-comain', label:'CO-MAIN EVENT' };
+  return { cls:'pos-mid', label:'MID-CARD' };
+}
 function renderMatches(){
   const host=byId('matches'); host.innerHTML='';
   const costs = computeCardCosts();
   CARD.forEach((m,mi)=>{
     const t=TYPE_BY_KEY[m.typeKey]||TYPES[0];
     const c=costs[mi];
+    const pos=matchPositionInfo(mi, CARD.length);
 
-    const card=document.createElement('div'); card.className='match';
+    const card=document.createElement('div'); card.className='match '+pos.cls;
 
-    // head: number, type picker, cost
+    // head: number, position label, type picker, cost
     const head=document.createElement('div'); head.className='match-head';
     let opts='';
     for(const ty of TYPES){ opts+='<option value="'+esc(ty.key)+'"'+(ty.key===m.typeKey?' selected':'')+'>'+esc(ty.name)+'</option>'; }
     head.innerHTML =
       '<span class="mnum">MATCH '+(mi+1)+'</span>'+
+      '<span class="mpos '+pos.cls+'">'+pos.label+'</span>'+
       '<select class="mtype" onchange="changeType('+mi+',this.value)">'+opts+'</select>'+
       '<span class="mhint">'+esc(typeHint(t))+'</span>'+
       '<label class="mtitle" title="Championship match — adds '+money(TITLE_PREMIUM)+'">'+
