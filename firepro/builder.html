@@ -241,6 +241,7 @@
   }
   .rsort select:focus{border-color:var(--gold);}
   body.readonly .rsort{ display:none; }
+  body.readonly #venueSelect, body.readonly #ticketPriceRow button{ pointer-events:none; opacity:.6; }
   .rlist{overflow-y:auto; padding:8px; flex:1 1 auto; min-height:120px;}
   @media(max-width:980px){ .rlist{max-height:50vh;} }
   .rcard{
@@ -252,6 +253,7 @@
   .rcard:active{cursor:grabbing;}
   .rcard.dragging{opacity:.45;}
   .rcard.used{opacity:.4;}
+  .rcard.owned{border-color:#2f5f4a; background:#0e1a15;}
   .rcard img{width:42px; height:42px; border-radius:8px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
   .rcard .meta{flex:1 1 auto; min-width:0;}
   .rcard .meta .n{font-family:'Oswald',sans-serif; font-size:14px; white-space:nowrap;
@@ -381,6 +383,16 @@
       <div id="walletNote" style="font-size:11px;color:#9be0ff;margin-top:8px;line-height:1.4"></div>
     </div>
 
+    <div class="meter" id="gatePanel" style="margin-top:16px">
+      <div class="row"><span>Venue</span><b>&amp; Gate</b></div>
+      <select id="venueSelect" onchange="onVenueChange(this.value)"
+        style="width:100%;margin:8px 0 10px;padding:9px;background:#0c1118;color:#fff;border:1px solid var(--line,#26313f);border-radius:8px;font-size:13px">
+        <option value="">No venue — skip gate revenue</option>
+      </select>
+      <div id="ticketPriceRow" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div id="gateInfo" style="font-size:11px;color:#9be0ff;line-height:1.6"></div>
+    </div>
+
     <div class="roster">
       <h2><i class="ti ti-users"></i> Roster <span class="cnt" id="rCnt"></span></h2>
       <div class="rsearch"><input id="rSearch" type="text" placeholder="Search wrestlers…" oninput="renderRoster()"></div>
@@ -439,10 +451,14 @@ let SETTINGS = {                 // builder knobs (from site_settings.firepro.bu
 };
 let TYPES = [];                  // fp_match_types rows
 let TYPE_BY_KEY = {};            // key -> type
+let VENUES = [];                 // fp_venues rows
+let VENUE_BY_KEY = {};           // key -> venue
+const TICKET_PRICES = [10,20,40,60,100];
 let ROSTER = [];                 // fp_wrestlers (id,name,nickname,image_url,cost,...)
 let PROMO_BY_ID = {};            // fp_promotions id -> name
 let FACTION_BY_ID = {};          // fp_factions id -> name
 let CARD = [];                   // array of matches: { typeKey, sides:[[id,...],[id,...]] }
+let GATE = { venueKey:null, ticketPrice:null, paid:false };  // this card's venue + ticket price
 let PROMO = 'Your Promotion';    // booker's promotion name
 let OWNER = '';                  // booker's owner/handle name
 let EVENT = null;                // the currently OPEN event row (or null)
@@ -450,6 +466,7 @@ let MY_CARD_ID = null;           // id of this booker's existing card for EVENT 
 let READONLY = false;            // true when submissions are closed
 let SEASON = null;               // active season row (id,name,bankroll) or null
 let WALLET = null;               // my fp_season_bookers row for SEASON, or null
+let OWNED_IDS = new Set();       // wrestler ids already paid for THIS season — free to reuse
 let SPEND_CAP = 0;               // effective cap: your season wallet balance. No season/wallet = 0.
 let CARD_CAP = 0;                // per-card budget cap (fp_seasons.budget_cap); 0 = no cap
 
@@ -545,7 +562,7 @@ async function checkAuth(){
   // load supporting data + this booker's existing card (if any)
   const okPromo = await loadPromotion();
   if(okPromo===false) return;   // redirecting to the hub to create a promotion
-  await Promise.all([ loadTypes(), loadRoster() ]);
+  await Promise.all([ loadTypes(), loadRoster(), loadVenues() ]);
   await loadMyCard();          // refills CARD from their saved submission, or makes a blank one
 
   // active season + my wallet → the spend cap is the wallet balance when a season is live
@@ -560,7 +577,7 @@ async function checkAuth(){
   byId('mBudget').textContent = money(SPEND_CAP);
 
   if(READONLY) applyReadonly();
-  renderMatches(); recalc(); renderRoster();
+  renderMatches(); recalc(); renderRoster(); renderGatePanel();
 }
 
 /* an event is open for edits if status==open AND not manually closed AND deadline not passed */
@@ -631,12 +648,15 @@ async function loadPromotion(){
 /* Load this booker's existing card for the open EVENT and refill the UI.
    If they have none yet, start a blank card. */
 async function loadMyCard(){
-  MY_CARD_ID=null; CARD=[];
+  MY_CARD_ID=null; CARD=[]; GATE={ venueKey:null, ticketPrice:null, paid:false };
   try{
-    const { data:cards } = await sb.from('fp_cards').select('id')
+    const { data:cards } = await sb.from('fp_cards').select('id,venue_key,ticket_price,gate_paid')
       .eq('event_id', EVENT.id).eq('booker_id', USER.id).limit(1);
     if(cards && cards.length){
       MY_CARD_ID = cards[0].id;
+      GATE.venueKey = cards[0].venue_key || null;
+      GATE.ticketPrice = cards[0].ticket_price || null;
+      GATE.paid = !!cards[0].gate_paid;
       const { data:matches } = await sb.from('fp_matches').select('*')
         .eq('card_id', MY_CARD_ID).order('position',{ascending:true});
       if(matches && matches.length){
@@ -670,6 +690,17 @@ async function loadTypes(){
   }
   TYPES.sort((a,b)=>(a.sort-b.sort)||a.name.localeCompare(b.name));
   for(const t of TYPES) TYPE_BY_KEY[t.key]=t;
+}
+
+async function loadVenues(){
+  VENUES=[]; VENUE_BY_KEY={};
+  try{
+    const { data, error } = await sb.from('fp_venues')
+      .select('*').eq('enabled',true).order('sort',{ascending:true});
+    if(error) throw error;
+    VENUES = data||[];
+  }catch(e){ VENUES=[]; /* venue table not set up yet — gate section just won't show */ }
+  for(const v of VENUES) VENUE_BY_KEY[v.key]=v;
 }
 
 async function loadRoster(){
@@ -721,12 +752,23 @@ function initCard(){
 
 /* cost of one match = sum of wrestler costs + the type surcharge + Title premium ($5k) */
 const TITLE_PREMIUM = 5000;
-function matchCost(m){
-  const t=TYPE_BY_KEY[m.typeKey]; const sur=t?t.surcharge:0;
-  const titleAdd = m.title ? TITLE_PREMIUM : 0;
-  let w=0;
-  for(const side of m.sides){ for(const id of side){ const ww=wrestlerById(id); if(ww) w+=ww.cost; } }
-  return { wrestler:w, surcharge:sur, title:titleAdd, total:w+sur+titleAdd };
+// Costs out the WHOLE card in CARD order, charging each wrestler only once —
+// either they're already owned this season (free from the start) or this is
+// the first time they're used anywhere on this card (charged once, free after).
+function computeCardCosts(){
+  const charged = new Set(OWNED_IDS);
+  return CARD.map(m=>{
+    const t=TYPE_BY_KEY[m.typeKey]; const sur=t?t.surcharge:0;
+    const titleAdd = m.title ? TITLE_PREMIUM : 0;
+    let w=0;
+    for(const side of m.sides){
+      for(const id of side){
+        const ww=wrestlerById(id); if(!ww) continue;
+        if(!charged.has(id)){ w+=ww.cost; charged.add(id); }
+      }
+    }
+    return { wrestler:w, surcharge:sur, title:titleAdd, total:w+sur+titleAdd };
+  });
 }
 
 function usedIds(){
@@ -741,9 +783,10 @@ function usedIds(){
    ===================================================================== */
 function renderMatches(){
   const host=byId('matches'); host.innerHTML='';
+  const costs = computeCardCosts();
   CARD.forEach((m,mi)=>{
     const t=TYPE_BY_KEY[m.typeKey]||TYPES[0];
-    const c=matchCost(m);
+    const c=costs[mi];
 
     const card=document.createElement('div'); card.className='match';
 
@@ -807,11 +850,12 @@ function slotHTML(mi,si,k,id){
   const w=id?wrestlerById(id):null;
   const dataAttrs='data-mi="'+mi+'" data-si="'+si+'" data-k="'+k+'"';
   if(w){
+    const owned = OWNED_IDS.has(id);
     return '<div class="slot filled" '+dataAttrs+
       ' ondragover="slotOver(event)" ondragleave="slotLeave(event)" ondrop="slotDrop(event)">'+
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
       '<span class="nm">'+esc(w.name)+'<small>'+esc([w.origin,(w.rank_grade||'?')+'/'+(w.charisma_grade||'?')].filter(Boolean).join(' · '))+'</small></span>'+
-      '<span class="pc">'+money(w.cost)+'</span>'+
+      '<span class="pc"'+(owned?' style="color:#7fe0a0"':'')+'>'+(owned?'FREE · owned':money(w.cost))+'</span>'+
       '<span class="x" onclick="removeFromSlot('+mi+','+si+','+k+')" title="Remove">✕</span></div>';
   }
   return '<div class="slot" '+dataAttrs+
@@ -909,17 +953,18 @@ function renderRoster(){
   let html='';
   for(const w of list){
     const isUsed = !SETTINGS.allowDupes && used.has(w.id);
+    const owned = OWNED_IDS.has(w.id);
     const tag = sortBy==='promotion' ? (PROMO_BY_ID[w.promotion_id]||'')
               : sortBy==='team' ? (FACTION_BY_ID[w.faction_id]||'')
               : '';
-    html+='<div class="rcard'+(isUsed?' used':'')+'" draggable="true"'+
+    html+='<div class="rcard'+(isUsed?' used':'')+(owned?' owned':'')+'" draggable="true"'+
       ' ondragstart="rosterDragStart(event,'+w.id+')" ondragend="rosterDragEnd(event)"'+
-      ' title="'+esc(w.name)+(isUsed?' — already on the card':'')+'">'+
+      ' title="'+esc(w.name)+(isUsed?' — already on the card':'')+(owned?' — already paid for this season, free to reuse':'')+'">'+
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
       '<div class="meta"><div class="n">'+esc(w.name)+'</div>'+
         '<div class="s">'+esc(tag||w.origin||w.nickname||'')+
           '<span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span></div></div>'+
-      '<div class="cost">'+money(w.cost)+'</div></div>';
+      '<div class="cost"'+(owned?' style="color:#7fe0a0"':'')+'>'+(owned?'FREE':money(w.cost))+'</div></div>';
   }
   host.innerHTML=html;
 }
@@ -931,7 +976,7 @@ function renderRoster(){
    something a flat fallback should paper over.
    ===================================================================== */
 async function loadWallet(){
-  SEASON=null; WALLET=null; SPEND_CAP=0; CARD_CAP=0;
+  SEASON=null; WALLET=null; SPEND_CAP=0; CARD_CAP=0; OWNED_IDS=new Set();
   if(!sb||!USER) return;
   try{
     const { data:sid } = await sb.rpc('fp_active_season');
@@ -951,15 +996,71 @@ async function loadWallet(){
     }
     // a card must satisfy BOTH the wallet and the per-card cap (when a cap is set)
     SPEND_CAP = (CARD_CAP>0) ? Math.min(walletCap, CARD_CAP) : walletCap;
+    await loadOwnedRoster();
   }catch(e){ /* leave SPEND_CAP at 0 */ }
+}
+
+// Wrestlers you've already paid for THIS season (any event) are free to reuse —
+// only genuinely new signings and match costs come out of the wallet again.
+async function loadOwnedRoster(){
+  OWNED_IDS = new Set();
+  if(!SEASON || !SEASON.id || !USER) return;
+  try{
+    const { data } = await sb.from('fp_season_rosters').select('wrestler_id').eq('season_id',SEASON.id).eq('auth_id',USER.id);
+    (data||[]).forEach(r=>OWNED_IDS.add(r.wrestler_id));
+  }catch(e){ /* table missing or RLS not set up yet — everyone just pays full price */ }
 }
 
 /* =====================================================================
    BUDGET METER + SUBMIT GATE
    ===================================================================== */
+// venue rental is paid up front (same as match cost) — gate revenue arrives later, at event payout
+function gateVenue(){ return GATE.venueKey ? VENUE_BY_KEY[GATE.venueKey] : null; }
+function gateRentalCost(){ const v=gateVenue(); return v ? (v.rental_cost||0) : 0; }
+function gateRevenue(){ const v=gateVenue(); return (v && GATE.ticketPrice) ? v.capacity*GATE.ticketPrice : 0; }
+
+function onVenueChange(key){
+  GATE.venueKey = key || null;
+  renderGatePanel(); recalc();
+}
+function onTicketPrice(price){
+  GATE.ticketPrice = (GATE.ticketPrice===price) ? null : price;   // click again to deselect
+  renderGatePanel(); recalc();
+}
+function renderGatePanel(){
+  const sel=byId('venueSelect'); if(!sel) return;
+  if(!VENUES.length){
+    byId('gatePanel').style.display='none';
+    return;
+  }
+  byId('gatePanel').style.display='';
+  if(document.activeElement!==sel){
+    sel.innerHTML = '<option value="">No venue — skip gate revenue</option>' +
+      VENUES.map(v=>'<option value="'+esc(v.key)+'"'+(v.key===GATE.venueKey?' selected':'')+'>'+
+        esc(v.name)+' ('+v.capacity.toLocaleString()+' seats)</option>').join('');
+  }
+  const priceRow=byId('ticketPriceRow');
+  priceRow.innerHTML = TICKET_PRICES.map(p=>
+    '<button type="button" onclick="onTicketPrice('+p+')" style="flex:1 1 auto;padding:7px 4px;border-radius:8px;font-size:12px;cursor:pointer;'+
+    (GATE.ticketPrice===p ? 'background:#ffd23f;color:#111;border:1px solid #ffd23f;font-weight:700' : 'background:#0c1118;color:#9be0ff;border:1px solid var(--line,#26313f)')+
+    '">$'+p+'</button>').join('');
+
+  const info=byId('gateInfo');
+  const v=gateVenue();
+  if(!v){
+    info.innerHTML='Pick a venue to add gate revenue on top of your match payouts. Rental is paid now (comes out of this card\'s budget); ticket revenue is credited when the event is published — a sellout is always assumed.';
+  } else {
+    const rental=gateRentalCost(), rev=gateRevenue();
+    info.innerHTML='<b style="color:#ffd23f">'+esc(v.name)+'</b> — '+v.capacity.toLocaleString()+' seats · rental '+money(rental)+' (charged now)<br>'+
+      (GATE.ticketPrice
+        ? 'At $'+GATE.ticketPrice+'/ticket, sellout gate = <b style="color:#7fe0a0">'+money(rev)+'</b> — credited when the event is published.'
+        : 'Pick a ticket price above to see your projected gate.');
+  }
+}
+
 function recalc(){
-  let spent=0;
-  for(const m of CARD){ spent+=matchCost(m).total; }
+  let spent=gateRentalCost();
+  for(const c of computeCardCosts()){ spent+=c.total; }
   const budget=SPEND_CAP||0;
   const remain=budget-spent;
   byId('mSpent').textContent=money(spent);
@@ -986,6 +1087,12 @@ function recalc(){
       note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet ('+money(WALLET.balance)+').'+
         (capBinds ? ' This card is capped at <b style="color:#ffd23f">'+money(CARD_CAP)+'</b> per show.' : '')+
         ' Go broke and you\'re out for the season.';
+      // how much this card is saving by reusing wrestlers already paid for this season
+      const ownedOnCard = [...usedIds()].filter(id=>OWNED_IDS.has(id));
+      if(ownedOnCard.length){
+        const saved = ownedOnCard.reduce((sum,id)=>{ const w=wrestlerById(id); return sum+(w?w.cost:0); },0);
+        note.innerHTML += '<br><span style="color:#7fe0a0">🔓 '+ownedOnCard.length+' wrestler'+(ownedOnCard.length===1?'':'s')+' on this card '+(ownedOnCard.length===1?'is':'are')+' already paid for this season — saving you '+money(saved)+'.</span>';
+      }
       // soft heads-up as the wallet nears the bankruptcy floor — informational only, doesn't limit anything
       const floor = (SEASON && SEASON.bankruptcy_floor!=null) ? SEASON.bankruptcy_floor : 10000;
       const cushion = Math.max(floor, 250000);
@@ -1038,17 +1145,17 @@ async function submitCard(){
   const verb = MY_CARD_ID ? 'UPDATING…' : 'SAVING…';
   byId('submitBtn').textContent=verb;
 
-  let totalCost=0;
-  for(const m of CARD) totalCost+=matchCost(m).total;
-
-  // server-truth wallet re-check (guards against a stale/over-budget client)
+  // server-truth wallet + owned-roster re-check (guards against a stale/over-budget client)
   await loadWallet();
   if(WALLET && WALLET.eliminated){
     toast('You\'ve been eliminated this season — can\'t submit.', true);
     SUBMITTING=false; recalc(); return;
   }
+  const costs = computeCardCosts();
+  let totalCost=gateRentalCost();
+  for(const c of costs) totalCost+=c.total;
   if(totalCost > (SPEND_CAP||0)){
-    toast('Card costs '+money(totalCost)+' but your '+((WALLET&&!WALLET.eliminated)?'wallet':'budget')+' is '+money(SPEND_CAP)+'. Trim it.', true);
+    toast('Card costs '+money(totalCost)+' (incl. venue rental) but your '+((WALLET&&!WALLET.eliminated)?'wallet':'budget')+' is '+money(SPEND_CAP)+'. Trim it.', true);
     SUBMITTING=false; byId('submitBtn').textContent = MY_CARD_ID ? 'UPDATE CARD' : 'SUBMIT CARD';
     recalc(); return;
   }
@@ -1065,6 +1172,7 @@ async function submitCard(){
     const baseRow = {
       booker_id:USER.id, promotion_name:PROMO, event_id:EVENT.id,
       status:'submitted', total_cost:totalCost, match_count:CARD.length,
+      venue_key: GATE.venueKey, ticket_price: GATE.ticketPrice,
       submitted_at:new Date().toISOString()
     };
 
@@ -1082,7 +1190,7 @@ async function submitCard(){
 
     // (re)create the matches
     const rows=CARD.map((m,i)=>{
-      const t=TYPE_BY_KEY[m.typeKey]; const c=matchCost(m);
+      const t=TYPE_BY_KEY[m.typeKey]; const c=costs[i];
       return {
         card_id:cardId, position:i, type_key:m.typeKey,
         type_name:t?t.name:m.typeKey, surcharge:c.surcharge,
@@ -1092,6 +1200,21 @@ async function submitCard(){
     });
     const { error:e2 } = await sb.from('fp_matches').insert(rows);
     if(e2) throw e2;
+
+    // lock in ownership for anyone newly used on this card — free to reuse the rest of the season
+    if(SEASON && SEASON.id){
+      const newIds=[...usedIds()].filter(id=>!OWNED_IDS.has(id));
+      if(newIds.length){
+        try{
+          const rosterRows = newIds.map(id=>({
+            season_id:SEASON.id, auth_id:USER.id, wrestler_id:id,
+            first_event_id: EVENT.id, acquired_cost:(wrestlerById(id)||{}).cost||0
+          }));
+          const { error:er } = await sb.from('fp_season_rosters').upsert(rosterRows, { onConflict:'season_id,auth_id,wrestler_id', ignoreDuplicates:true });
+          if(!er) newIds.forEach(id=>OWNED_IDS.add(id));
+        }catch(e){ /* roster table not set up yet — no discount applied, no harm done */ }
+      }
+    }
 
     toast(MY_CARD_ID ? ('Card updated ✓ — you can keep editing until '+EVENT.name+' closes.')
                      : ('Card submitted ✓ — good luck, '+PROMO+'!'));
