@@ -672,7 +672,10 @@
 
 <!-- WARP SOUND EFFECT (plays on arrival + on exit):
        File:  audio/Warp.mp3                                          -->
-<audio id="fp-warp-sfx" preload="none" src="audio/Warp.mp3"></audio>
+<!-- preload="auto" so the file is buffered ahead of time instead of being
+     fetched on the first play() call (that fetch delay was the "sound plays
+     a little late" issue). -->
+<audio id="fp-warp-sfx" preload="auto" src="audio/Warp.mp3"></audio>
 
 <!-- ===== PERSISTENT FIRE PRO MUSIC PLAYER (pinned bottom, lives on every FP page) ===== -->
 <div id="fp-player" aria-label="Fire Pro music player">
@@ -970,8 +973,13 @@ function fpExit(){
     void portal.offsetWidth;
     portal.classList.add('warp');   // forward warp = "leaving into the flash"
   }
-  // at the bright flash, jump back to the main site
-  setTimeout(()=>{ window.location.href = '../index.html'; }, 700);
+  // At the bright flash, jump back to the main site. This used to fire at
+  // 700ms, but the forward-warp animation/flash actually run 1.1s-1.15s
+  // (see #fp-portal.warp .fp-warp / .fp-flash above), so the page navigated
+  // away mid-animation and cut both the visual and the sound off early.
+  // 1150ms lets the flash finish first, matching how fpEnter() times its
+  // own 1500ms jump against its 1.5s/1.55s animations.
+  setTimeout(()=>{ window.location.href = '../index.html'; }, 1150);
 }
 
 // move to the builder / archive (same Fire Pro section, keep the music going)
