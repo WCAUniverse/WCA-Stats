@@ -173,31 +173,6 @@
   .mcost{font-family:'Oswald',sans-serif; font-size:14px; color:var(--gold2);}
   .mcost small{color:#8a98a8; font-weight:400;}
 
-  /* Card-position labels — shows where each match falls in the running
-     order (order matters for booking: top of the list goes on first). */
-  .mpos{
-    font-family:'Oswald',sans-serif; font-weight:700; font-size:10.5px;
-    letter-spacing:.6px; text-transform:uppercase; white-space:nowrap;
-    padding:5px 9px; border-radius:7px; user-select:none;
-  }
-  .mpos-open{ color:#9be0ff; background:rgba(80,170,255,.10); border:1px solid rgba(80,170,255,.35); }
-  .mpos-mid{ color:#8a98a8; background:rgba(255,255,255,.04); border:1px solid var(--line); }
-  .mpos-comain{ color:#e0b3ff; background:rgba(190,120,255,.10); border:1px solid rgba(190,120,255,.35); }
-  .mpos-main{ color:var(--gold2); background:rgba(233,185,73,.12); border:1px solid rgba(233,185,73,.45);
-    box-shadow:0 0 10px -4px var(--gold2); }
-  /* Left-edge accent on the whole match card, so the running order reads
-     at a glance while scrolling the list. */
-  .match.pos-open{ border-left:3px solid #4aa8ff; }
-  .match.pos-comain{ border-left:3px solid #be78ff; }
-  .match.pos-main{ border-left:3px solid var(--gold2); }
-  .card-order-legend{
-    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    font-size:11.5px; color:#8a98a8; background:rgba(255,255,255,.02);
-    border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-bottom:12px;
-  }
-  .card-order-legend b{color:var(--ink);}
-  .card-order-legend .mpos{padding:3px 7px; font-size:9.5px;}
-
   /* the blue-vs-red plates */
   .sides{display:flex; align-items:stretch; gap:0;}
   .sides.multi{flex-wrap:wrap;}
@@ -395,13 +370,8 @@
       <div class="you">Booking as <b id="bookerEmail">…</b></div>
       <p class="intro" id="introText"></p>
     </div>
-    <div class="card-order-legend">
-      <span><b>Order matters:</b> matches run top-to-bottom as booked below.</span>
-      <span class="mpos mpos-open">Opening Match</span>
-      <span class="mpos mpos-mid">Mid-Card</span>
-      <span class="mpos mpos-comain">Co-Main Event</span>
-      <span class="mpos mpos-main">Main Event</span>
-    </div>
+    <div id="crossoverBanner" style="display:none"></div>
+    <div id="curveballBanner" style="display:none"></div>
     <div id="matches"></div>
   </div>
 
@@ -594,7 +564,7 @@ async function checkAuth(){
   // load supporting data + this booker's existing card (if any)
   const okPromo = await loadPromotion();
   if(okPromo===false) return;   // redirecting to the hub to create a promotion
-  await Promise.all([ loadTypes(), loadRoster(), loadVenues() ]);
+  await Promise.all([ loadTypes(), loadRoster(), loadVenues(), loadCurveballs(), loadCrossoverInvite() ]);
   await loadMyCard();          // refills CARD from their saved submission, or makes a blank one
 
   // active season + my wallet → the spend cap is the wallet balance when a season is live
@@ -609,7 +579,7 @@ async function checkAuth(){
   byId('mBudget').textContent = money(SPEND_CAP);
 
   if(READONLY) applyReadonly();
-  renderMatches(); recalc(); renderRoster(); renderGatePanel();
+  renderMatches(); recalc(); renderRoster(); renderGatePanel(); renderCurveballBanner(); renderCrossoverBanner();
 }
 
 /* an event is open for edits if status==open AND not manually closed AND deadline not passed */
@@ -735,6 +705,81 @@ async function loadVenues(){
   for(const v of VENUES) VENUE_BY_KEY[v.key]=v;
 }
 
+// Curveballs active for the currently open event — informational only, never
+// blocks submission. Shown as a banner so bookers always know the conditions
+// in play, even though following through is entirely up to them.
+let ACTIVE_CURVEBALLS=[];
+async function loadCurveballs(){
+  ACTIVE_CURVEBALLS=[];
+  if(!EVENT) return;
+  try{
+    const { data:cbs } = await sb.from('fp_curveballs').select('*').eq('enabled',true);
+    const { data:assigns } = await sb.from('fp_curveball_assignments').select('*');
+    const relevant = (assigns||[]).filter(a=>
+      a.event_id===EVENT.id || (EVENT.season_id!=null && a.season_id===EVENT.season_id && a.event_id==null));
+    const ids=[...new Set(relevant.map(a=>a.curveball_id))];
+    ACTIVE_CURVEBALLS = ids.map(id=>(cbs||[]).find(c=>c.id===id)).filter(Boolean);
+  }catch(e){ ACTIVE_CURVEBALLS=[]; /* curveball tables not set up yet — banner just won't show */ }
+}
+function renderCurveballBanner(){
+  const host=byId('curveballBanner'); if(!host) return;
+  if(!ACTIVE_CURVEBALLS.length){ host.style.display='none'; return; }
+  host.style.display='block';
+  host.style.cssText='display:block;background:rgba(155,224,255,.06);border:1px solid rgba(155,224,255,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px';
+  host.innerHTML = '<div style="font-family:\'Oswald\',sans-serif;font-size:12px;letter-spacing:.5px;color:#9be0ff;text-transform:uppercase;margin-bottom:6px">🎲 This event\'s curveballs</div>' +
+    ACTIVE_CURVEBALLS.map(cb=>'<div style="font-size:12.5px;color:#dbe6f0;margin:4px 0"><b style="color:#fff">'+esc(cb.name)+'</b> — '+esc(cb.description)+'</div>').join('');
+}
+
+// Cross-Promotion invite — accept/decline only for now. Once accepted, the
+// joint session builder itself is a separate page still to come; this just
+// covers the invite/response loop so nothing sits unanswered.
+let CROSSOVER_INVITE=null;
+async function loadCrossoverInvite(){
+  CROSSOVER_INVITE=null;
+  if(!EVENT || !USER) return;
+  try{
+    const { data:sessions } = await sb.from('fp_crossover_sessions').select('id,status').eq('event_id',EVENT.id).neq('status','cancelled');
+    if(!sessions || !sessions.length) return;
+    for(const s of sessions){
+      const { data:mine } = await sb.from('fp_crossover_participants').select('*').eq('session_id',s.id).eq('auth_id',USER.id).maybeSingle();
+      if(mine){
+        const { data:others } = await sb.from('fp_crossover_participants').select('promotion_name,auth_id,response').eq('session_id',s.id).neq('auth_id',USER.id);
+        CROSSOVER_INVITE = { session:s, me:mine, others:others||[] };
+        break;
+      }
+    }
+  }catch(e){ CROSSOVER_INVITE=null; /* crossover tables not set up yet — banner just won't show */ }
+}
+function renderCrossoverBanner(){
+  const host=byId('crossoverBanner'); if(!host) return;
+  if(!CROSSOVER_INVITE){ host.style.display='none'; return; }
+  const { me, others } = CROSSOVER_INVITE;
+  const otherNames = others.map(o=>esc(o.promotion_name||'another promotion')).join(', ');
+  host.style.display='block';
+  host.style.cssText='display:block;background:rgba(233,185,73,.08);border:1px solid rgba(233,185,73,.4);border-radius:10px;padding:12px 14px;margin-bottom:14px';
+  if(me.response==='pending'){
+    host.innerHTML='<div style="font-family:\'Oswald\',sans-serif;font-size:12px;letter-spacing:.5px;color:var(--gold2,#e9b949);text-transform:uppercase;margin-bottom:6px">🤝 Cross-Promotion invite</div>'+
+      '<div style="font-size:13px;color:#fff;margin-bottom:10px">You\'ve been invited to jointly book this event with <b>'+otherNames+'</b>. Cost and payout split evenly across everyone who accepts.</div>'+
+      '<button class="btn" style="margin-right:8px" onclick="crossoverRespond(true)">Accept</button>'+
+      '<button class="btn ghost" onclick="crossoverRespond(false)">Decline</button>';
+  } else if(me.response==='accepted'){
+    host.innerHTML='<div style="font-size:13px;color:#fff">🤝 You\'ve accepted the Cross-Promotion invite with <b>'+otherNames+'</b>. Hang tight — the joint session opens here once everyone\'s accepted.</div>';
+  } else {
+    host.style.display='none';
+  }
+}
+async function crossoverRespond(accept){
+  if(!CROSSOVER_INVITE) return;
+  try{
+    const { error } = await sb.from('fp_crossover_participants')
+      .update({ response: accept?'accepted':'declined', responded_at:new Date().toISOString() })
+      .eq('id', CROSSOVER_INVITE.me.id);
+    if(error) throw error;
+    await loadCrossoverInvite();
+    renderCrossoverBanner();
+  }catch(e){ toast('Couldn\'t respond: '+(e.message||e), true); }
+}
+
 async function loadRoster(){
   ROSTER=[];
   try{
@@ -813,34 +858,21 @@ function usedIds(){
 /* =====================================================================
    RENDER — matches
    ===================================================================== */
-function matchPositionInfo(mi, total){
-  // Figures out where this slot sits in the running order so the booker
-  // can see at a glance which match opens the show and which two close it.
-  // Order matters for booking, so this is purely descriptive of CARD's
-  // existing top-to-bottom order — nothing here changes that order.
-  if(total<=1) return { cls:'pos-main', label:'MAIN EVENT' };
-  if(mi===total-1) return { cls:'pos-main', label:'MAIN EVENT' };
-  if(mi===0) return { cls:'pos-open', label:'OPENING MATCH' };
-  if(mi===total-2) return { cls:'pos-comain', label:'CO-MAIN EVENT' };
-  return { cls:'pos-mid', label:'MID-CARD' };
-}
 function renderMatches(){
   const host=byId('matches'); host.innerHTML='';
   const costs = computeCardCosts();
   CARD.forEach((m,mi)=>{
     const t=TYPE_BY_KEY[m.typeKey]||TYPES[0];
     const c=costs[mi];
-    const pos=matchPositionInfo(mi, CARD.length);
 
-    const card=document.createElement('div'); card.className='match '+pos.cls;
+    const card=document.createElement('div'); card.className='match';
 
-    // head: number, position label, type picker, cost
+    // head: number, type picker, cost
     const head=document.createElement('div'); head.className='match-head';
     let opts='';
     for(const ty of TYPES){ opts+='<option value="'+esc(ty.key)+'"'+(ty.key===m.typeKey?' selected':'')+'>'+esc(ty.name)+'</option>'; }
     head.innerHTML =
       '<span class="mnum">MATCH '+(mi+1)+'</span>'+
-      '<span class="mpos '+pos.cls+'">'+pos.label+'</span>'+
       '<select class="mtype" onchange="changeType('+mi+',this.value)">'+opts+'</select>'+
       '<span class="mhint">'+esc(typeHint(t))+'</span>'+
       '<label class="mtitle" title="Championship match — adds '+money(TITLE_PREMIUM)+'">'+
