@@ -342,10 +342,30 @@
   }
   .fp-card h3{ font-family:'Press Start 2P',monospace; font-size:11px; color:#ffd23f; margin:0 0 8px; letter-spacing:1px; }
   .fp-cardsub{ font-family:'Barlow',sans-serif; font-size:14px; color:#cdbfa6; margin:0 0 12px; line-height:1.5; }
-  .fp-sub-row{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid #2a1010; font-family:'Barlow'; font-size:14px; }
+  .fp-sub-row{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid #2a1010; font-family:'Barlow'; font-size:14px; cursor:pointer; }
   .fp-sub-row .ev{ color:#ffd23f; font-weight:600; flex:1; }
   .fp-sub-row .st{ font-size:12px; color:#9fb0c2; }
   .fp-sub-row .st.done{ color:#3ECF8E; }
+  .fp-sub-row .chev{ font-family:'Press Start 2P',monospace; font-size:9px; color:#ffd23f; transition:.2s; }
+  .fp-sub-row.open .chev{ transform:rotate(90deg); }
+  .fp-sub-body{ display:none; padding:6px 0 12px; }
+  .fp-sub-body.open{ display:block; }
+  .fp-amatch{ border:1px solid #3a1414; border-radius:8px; margin:6px 0; overflow:hidden; }
+  .fp-amatch .ah{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:7px 10px; background:rgba(255,255,255,.02); border-bottom:1px solid #3a1414; }
+  .fp-amatch .anum{ font-family:'Press Start 2P',monospace; font-size:8px; color:#0a0506; background:#ffd23f; border-radius:5px; padding:5px 7px; }
+  .fp-amatch .atype{ font-family:'Barlow'; font-weight:600; font-size:13px; color:#fff; }
+  .fp-amatch .arate{ margin-left:auto; font-family:'Barlow'; font-size:13px; color:#ffd23f; }
+  .fp-amatch .apay{ font-family:'Barlow'; font-size:12px; color:#3ECF8E; }
+  .fp-amatch .ab{ display:flex; gap:12px; flex-wrap:wrap; padding:8px 10px; }
+  .fp-aside{ flex:1 1 160px; min-width:130px; }
+  .fp-aside .sl{ font-family:'Press Start 2P',monospace; font-size:7px; letter-spacing:1px; margin-bottom:3px; color:#9fb0c2; }
+  .fp-aside .wn{ font-family:'Barlow'; font-size:13px; color:#e8eef5; }
+  .fp-aside .wn.win{ color:#3ECF8E; } .fp-aside .wn.win::after{ content:" ★"; color:#3ECF8E; }
+  .fp-ptot{ display:flex; gap:16px; flex-wrap:wrap; margin-top:6px; padding:8px 2px; border-top:1px dashed #3a1414; font-family:'Barlow'; }
+  .fp-ptot span{ font-size:10px; color:#9fb0c2; text-transform:uppercase; letter-spacing:.5px; }
+  .fp-ptot b{ font-size:15px; color:#fff; }
+  .fp-ptot .p b{ color:#3ECF8E; } .fp-ptot .r b{ color:#ffd23f; }
+  .fp-cb-row{ font-family:'Barlow'; font-size:13px; color:#e8eef5; margin:4px 0; }
 
   /* ===== ROSTER character select ===== */
   #scr-roster .fp-roster-guide{
@@ -364,8 +384,14 @@
   }
   .cs-empty{ font-family:'Press Start 2P',monospace; font-size:11px; color:#7a5a5a; text-align:center; padding-top:120px; letter-spacing:1px; }
   .cs-detail{ display:flex; gap:18px; align-items:flex-start; }
-  .cs-photo{ width:230px; flex:0 0 auto; aspect-ratio:3/4; object-fit:cover; display:block;
-    background:#0c0506; border:1px solid #3a1414; border-radius:8px; }
+  .cs-photowrap{ width:230px; flex:0 0 auto; aspect-ratio:3/4; position:relative;
+    border-radius:8px; overflow:hidden; background:#0c0506; }
+  .cs-photo-bg{ position:absolute; inset:0; background:url('images/portrait-bg.png') center/cover no-repeat; z-index:0; }
+  .cs-photo-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; display:block; }
+  .cs-photo-noimg{ position:absolute; inset:0; z-index:1; display:flex; align-items:center; justify-content:center;
+    font-family:'Press Start 2P',monospace; font-size:28px; color:#5b3a3a; }
+  .cs-photo-lines{ position:absolute; inset:0; background:url('images/portrait-lines.png') center/cover no-repeat;
+    z-index:2; pointer-events:none; }
   .cs-meta{ flex:1; min-width:0; }
   .cs-name{ font-family:'Press Start 2P',monospace; font-size:18px; color:#fff; text-shadow:2px 2px 0 #b3001b; margin-bottom:4px; line-height:1.3; }
   .cs-nick{ font-family:'Barlow Condensed',sans-serif; font-size:17px; color:#ffd23f; margin-bottom:14px; letter-spacing:1px; }
@@ -378,7 +404,7 @@
   }
   @media(max-width:520px){
     .cs-detail{ flex-direction:column; align-items:center; }
-    .cs-photo{ width:100%; max-width:230px; }
+    .cs-photowrap{ width:100%; max-width:230px; }
     .cs-name,.cs-nick{ text-align:center; }
   }
   .cs-right{ display:flex; flex-direction:column; min-height:340px; }
@@ -1049,7 +1075,7 @@ async function csInit(){
   if(CS_LOADED){ csRenderGrid(); return; }
   try{
     const { data } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,origin,image_url,cost,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
+      .select('id,name,nickname,origin,image_url,image_crop_x,image_crop_y,image_zoom,cost,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
       .order('name',{ascending:true});
     CS_ALL = data||[];
   }catch(e){ CS_ALL=[]; }
@@ -1104,7 +1130,6 @@ function csSelect(id){
   const w=CS_ALL.find(x=>x.id===id); if(!w) return; CS_SEL=w;
   csRenderGrid();
   const L=document.getElementById('cs-left');
-  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="230" height="300"><rect width="230" height="300" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="20" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
   const rows=[];
   const pf = (w.promotion_id!=null) ? (CS_PROMOS.find(p=>p.id===w.promotion_id)||{}).name : null;
   const ff = (w.faction_id!=null) ? (CS_FACTIONS.find(f=>f.id===w.faction_id)||{}).name : null;
@@ -1116,9 +1141,16 @@ function csSelect(id){
   rows.push(['FINISHER', w.finisher || '—']);
   rows.push(['SIGNATURE', sig1]);
   if(w.country) rows.push(['COUNTRY', w.country]);
+  // photo layers: background art (back) → cropped wrestler photo (middle) → frame lines (front).
+  // Same crop_x/crop_y/zoom the admin sets in the roster editor, so framing matches everywhere.
+  const photoLayer = w.image_url
+    ? '<img class="cs-photo-img" src="'+esc(w.image_url)+'" style="object-position:'
+      +(w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'
+      +'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" onerror="this.remove()">'
+    : '<div class="cs-photo-noimg">'+esc(wInitials(w.name))+'</div>';
   L.innerHTML =
     '<div class="cs-detail">'+
-      '<img class="cs-photo" src="'+esc(w.image_url||'')+'" onerror="this.src=\''+ph+'\'">'+
+      '<div class="cs-photowrap"><div class="cs-photo-bg"></div>'+photoLayer+'<div class="cs-photo-lines"></div></div>'+
       '<div class="cs-meta">'+
         '<div class="cs-name">'+esc(w.name)+'</div>'+
         (w.nickname?'<div class="cs-nick">"'+esc(w.nickname)+'"</div>':'')+
@@ -1126,6 +1158,12 @@ function csSelect(id){
       '</div>'+
     '</div>'+
     '<div class="cs-cost">COST: '+money(w.cost)+'</div>';
+}
+function wInitials(name){
+  const words = String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!words.length) return '?';
+  if(words.length===1) return words[0].slice(0,2).toUpperCase();
+  return (words[0][0]+words[words.length-1][0]).toUpperCase();
 }
 function money(n){ n=parseInt(n,10); if(isNaN(n)) n=0; return '$'+n.toLocaleString('en-US'); }
 
@@ -1139,24 +1177,108 @@ async function renderSettings(){
   document.getElementById('set-account').textContent = ME.user ? ('Signed in as '+(ME.username||'Player')) : 'Not signed in.';
   // --- season wallet ---
   fpRenderWallet();
-  // my submissions
+  // my submissions — full detailed breakdown (match-by-match, gate, curveballs),
+  // same shape as the public archive view, but scoped to just this booker's own
+  // cards so it's useful even before/without an event being published yet.
   const host=document.getElementById('set-subs');
   if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to see your submissions.</p>'; return; }
   host.innerHTML='<p class="fp-cardsub">Loading…</p>';
   try{
-    const { data:cards } = await sb.from('fp_cards').select('id,event_id,reviewed,payout,total_cost').eq('booker_id',ME.user.id);
+    const { data:cards } = await sb.from('fp_cards').select('id,event_id,reviewed,payout,total_cost,venue_key,ticket_price,gate_paid').eq('booker_id',ME.user.id);
     if(!cards || !cards.length){ host.innerHTML='<p class="fp-cardsub">No submissions yet. Hit PLAY when an event is open!</p>'; return; }
-    // event names
+    // event names/status
     const eids=[...new Set(cards.map(c=>c.event_id).filter(Boolean))];
     let emap={};
     if(eids.length){ const { data:evs } = await sb.from('fp_events').select('id,name,status').in('id',eids); (evs||[]).forEach(e=>emap[e.id]=e); }
-    host.innerHTML = cards.map(c=>{
-      const ev=emap[c.event_id]||{}; const done=c.reviewed;
+    // matches for all my cards, plus name maps for wrestlers/match types/venues
+    const cids=cards.map(c=>c.id);
+    let matches=[];
+    if(cids.length){ try{ const { data } = await sb.from('fp_matches').select('*').in('card_id',cids).order('position',{ascending:true}); matches=data||[]; }catch(e){} }
+    const byCard={}; matches.forEach(m=>{ (byCard[m.card_id]=byCard[m.card_id]||[]).push(m); });
+    let wmap={}, tmap={}, venueMap={};
+    try{ const { data } = await sb.from('fp_wrestlers').select('id,name'); (data||[]).forEach(w=>wmap[w.id]=w.name); }catch(e){}
+    try{ const { data } = await sb.from('fp_match_types').select('key,name'); (data||[]).forEach(t=>tmap[t.key]=t.name); }catch(e){}
+    try{ const { data } = await sb.from('fp_venues').select('key,name,capacity,rental_cost'); (data||[]).forEach(v=>venueMap[v.key]=v); }catch(e){}
+    // curveball catalog + settled outcomes for my cards
+    let cbCatalog={}, cbByCard={};
+    try{ const { data } = await sb.from('fp_curveballs').select('id,name,bonus_amount,penalty_amount'); (data||[]).forEach(cb=>cbCatalog[cb.id]=cb); }catch(e){}
+    if(cids.length){
+      try{
+        const { data } = await sb.from('fp_card_curveball_results').select('card_id,curveball_id,passed,delta_applied,settled').in('card_id',cids).eq('settled',true);
+        (data||[]).forEach(r=>{ (cbByCard[r.card_id]=cbByCard[r.card_id]||[]).push(r); });
+      }catch(e){}
+    }
+    let stars=false; try{ const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single(); if(data&&data.firepro&&data.firepro.options&&data.firepro.options.ratingStars) stars=true; }catch(e){}
+    const rateLbl=(pct)=>{ if(pct==null) return '—'; return stars ? (Math.round((pct/20)*10)/10)+'★' : pct+'%'; };
+    host.innerHTML = cards.map((c,ci)=>{
+      const ev=emap[c.event_id]||{};
+      const done=c.reviewed;
       const status = done ? ('Reviewed · '+money(c.payout||0)) : (ev.status==='completed'?'Published':'Submitted');
-      return '<div class="fp-sub-row"><span class="ev">'+esc(ev.name||('Event #'+c.event_id))+'</span>'+
-             '<span class="st'+(done?' done':'')+'">'+esc(status)+'</span></div>';
+      const uid='mysub_'+c.id;
+      const ms=byCard[c.id]||[];
+      let payTot=0, rsum=0, rn=0, matchesHtml='';
+      ms.forEach((m,i)=>{
+        const tname=tmap[m.type_key]||m.type_key;
+        const sides=Array.isArray(m.sides)?m.sides:[];
+        const isRumble=sides.length===1;
+        if(m.rating_pct!=null){ rsum+=m.rating_pct; rn++; }
+        const mpay=(m.payout||0)+(m.bonus||0); payTot+=mpay;
+        let sidesHtml='';
+        sides.forEach((s,si)=>{
+          const lbl=isRumble?'RUMBLE FIELD':(sides.length===2?(si===0?'BLUE':'RED'):('CORNER '+(si+1)));
+          const won=(m.winner_side===si);
+          const names=Array.isArray(s)?s.map(id=>esc(wmap[id]||('#'+id))).join(' &amp; '):'';
+          sidesHtml+='<div class="fp-aside"><div class="sl">'+lbl+'</div><div class="wn'+(won?' win':'')+'">'+(names||'—')+'</div></div>';
+        });
+        matchesHtml+='<div class="fp-amatch"><div class="ah">'+
+          '<span class="anum">M'+(i+1)+'</span><span class="atype">'+esc(tname)+'</span>'+
+          '<span class="arate">'+rateLbl(m.rating_pct)+'</span>'+
+          (mpay?'<span class="apay">'+money(mpay)+'</span>':'')+
+          '</div><div class="ab">'+sidesHtml+'</div></div>';
+      });
+      const avg=rn?Math.round(rsum/rn):null;
+      const cardPay=(c.payout!=null)?c.payout:payTot;
+      const venue=c.venue_key?venueMap[c.venue_key]:null;
+      const gate=(venue&&c.ticket_price)?venue.capacity*c.ticket_price:0;
+      const venueHtml=venue
+        ? '<div class="fp-ptot"><div><span>Venue</span><b>'+esc(venue.name)+'</b></div>'+
+          '<div><span>Tickets</span><b>$'+(c.ticket_price||'—')+'</b></div>'+
+          '<div class="p"><span>Gate</span><b>'+money(gate)+(c.gate_paid?'':' (pending)')+'</b></div></div>'
+        : '';
+      const cbResults=cbByCard[c.id]||[];
+      let cbNet=0, cbHtml='';
+      if(cbResults.length){
+        cbHtml='<div class="fp-ptot" style="flex-direction:column;align-items:flex-start">'+
+          '<span>Curveballs</span>'+
+          cbResults.map(r=>{
+            const cb=cbCatalog[r.curveball_id]||{}; const delta=r.delta_applied||0; cbNet+=delta;
+            return '<div class="fp-cb-row">'+(r.passed===true?'✓ ':r.passed===false?'✗ ':'')+esc(cb.name||'Curveball')+
+              ' <b style="color:'+(delta>=0?'#3ECF8E':'#ff8a89')+'">'+(delta>=0?'+':'')+money(delta)+'</b></div>';
+          }).join('')+
+        '</div>';
+      }
+      const grandTotal=cardPay+gate+cbNet;
+      return '<div>'+
+        '<div class="fp-sub-row" onclick="toggleMySub(\''+uid+'\')" id="row_'+uid+'">'+
+          '<span class="ev">'+esc(ev.name||('Event #'+c.event_id))+'</span>'+
+          '<span class="st'+(done?' done':'')+'">'+esc(status)+'</span>'+
+          '<span class="chev" id="chev_'+uid+'">▸</span>'+
+        '</div>'+
+        '<div class="fp-sub-body" id="body_'+uid+'">'+matchesHtml+
+          '<div class="fp-ptot"><div class="r"><span>Avg rating</span><b>'+(avg!=null?rateLbl(avg):'—')+'</b></div>'+
+            '<div class="p"><span>Match payout</span><b>'+money(cardPay)+'</b></div>'+
+            '<div><span>Booked cost</span><b>'+money(c.total_cost)+'</b></div></div>'+
+          venueHtml+cbHtml+
+          '<div class="fp-ptot" style="border-top:2px solid #ffd23f"><div class="p"><span>Grand total</span><b style="font-size:18px">'+money(grandTotal)+'</b></div></div>'+
+        '</div></div>';
     }).join('');
   }catch(e){ host.innerHTML='<p class="fp-cardsub">Could not load submissions.</p>'; }
+}
+function toggleMySub(uid){
+  const row=document.getElementById('row_'+uid), body=document.getElementById('body_'+uid);
+  if(!row||!body) return;
+  const open=body.classList.toggle('open');
+  row.classList.toggle('open',open);
 }
 function fpRenderWallet(){
   const host=document.getElementById('set-wallet'); if(!host) return;

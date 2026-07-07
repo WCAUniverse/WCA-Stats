@@ -186,7 +186,7 @@ async function loadMaps(){
 async function loadArchive(){
   let events=[];
   try{
-    const {data}=await sb.from('fp_events').select('*').eq('status','completed').order('id',{ascending:false});
+    const {data}=await sb.from('fp_events').select('*').eq('status','completed').or('is_test.eq.false,is_test.is.null').order('id',{ascending:false});
     events=data||[];
   }catch(e){}
   if(!events.length){
@@ -207,6 +207,24 @@ async function loadArchive(){
   if(cids.length){ try{ const {data}=await sb.from('fp_matches').select('*').in('card_id',cids).order('position',{ascending:true}); matches=data||[]; }catch(e){} }
   const byCard={}; matches.forEach(m=>{ (byCard[m.card_id]=byCard[m.card_id]||[]).push(m); });
 
+  // venues — for showing which venue was booked + gate revenue math
+  let venueMap={};
+  try{ const {data}=await sb.from('fp_venues').select('key,name,capacity,rental_cost'); (data||[]).forEach(v=>venueMap[v.key]=v); }catch(e){}
+
+  // curveballs — catalog (names/amounts) + settled per-card outcomes, so fans can
+  // see exactly which conditions hit and for how much, same as the admin sees.
+  let cbCatalogMap={}, cbResultsByCard={};
+  try{
+    const {data}=await sb.from('fp_curveballs').select('id,name,description,bonus_amount,penalty_amount');
+    (data||[]).forEach(cb=>cbCatalogMap[cb.id]=cb);
+  }catch(e){}
+  if(cids.length){
+    try{
+      const {data}=await sb.from('fp_card_curveball_results').select('card_id,curveball_id,passed,delta_applied,settled').in('card_id',cids).eq('settled',true);
+      (data||[]).forEach(r=>{ (cbResultsByCard[r.card_id]=cbResultsByCard[r.card_id]||[]).push(r); });
+    }catch(e){}
+  }
+
   let html='';
   events.forEach(ev=>{
     const evCards=cards.filter(c=>c.event_id===ev.id)
@@ -222,7 +240,7 @@ async function loadArchive(){
       evCards.forEach((c,ci)=>{
         const o=owners[c.booker_id]||{};
         const ms=byCard[c.id]||[];
-        html+=promoCardHtml(c,o,ms,ev.id+'_'+ci);
+        html+=promoCardHtml(c,o,ms,ev.id+'_'+ci,venueMap,cbCatalogMap,cbResultsByCard[c.id]||[]);
       });
     }
     html+='</div></div>';
@@ -234,7 +252,8 @@ function sideName(side, win, idx){
   if(!Array.isArray(side)) return '';
   return side.map(id=>esc(WMAP[id]||('#'+id))).join(' & ');
 }
-function promoCardHtml(c,o,ms,uid){
+function promoCardHtml(c,o,ms,uid,venueMap,cbCatalogMap,cbResults){
+  venueMap=venueMap||{}; cbCatalogMap=cbCatalogMap||{}; cbResults=cbResults||[];
   const promo=c.promotion_name||o.promo||'—';
   const owner=o.owner||'';
   let payTot=0, rsum=0, rn=0;
@@ -261,17 +280,48 @@ function promoCardHtml(c,o,ms,uid){
   });
   const avg = rn?Math.round(rsum/rn):null;
   const cardPay = (c.payout!=null)?c.payout:payTot;
+
+  // venue / gate — sellout always assumed, so this is the actual amount credited
+  // (or, if not yet gate_paid for some reason, what it will be)
+  const venue = c.venue_key ? venueMap[c.venue_key] : null;
+  const gate = (venue && c.ticket_price) ? venue.capacity*c.ticket_price : 0;
+  const venueHtml = venue
+    ? '<div class="ptot" style="border-top:1px dashed var(--line)"><div><span>Venue</span><b style="color:#e8eef5">'+esc(venue.name)+'</b></div>'+
+      '<div><span>Tickets</span><b style="color:#e8eef5">$'+(c.ticket_price||'—')+'</b></div>'+
+      '<div class="p"><span>Gate revenue</span><b>'+money(gate)+(c.gate_paid?'':' (pending)')+'</b></div></div>'
+    : '';
+
+  // curveballs — every settled outcome for this card, name + pass/fail + $ effect
+  let cbNet=0, cbHtml='';
+  if(cbResults.length){
+    cbHtml='<div class="ptot" style="flex-direction:column;align-items:flex-start;gap:8px;border-top:1px dashed var(--line)">'+
+      '<span style="text-transform:uppercase;letter-spacing:.5px;font-size:11px;color:#8a98a8">Curveballs</span>'+
+      cbResults.map(r=>{
+        const cb=cbCatalogMap[r.curveball_id]||{};
+        const delta=r.delta_applied||0; cbNet+=delta;
+        const good=delta>=0;
+        return '<div style="font-family:\'Oswald\';font-size:14px;color:#e8eef5">'+
+          (r.passed===true?'✓ ':r.passed===false?'✗ ':'')+esc(cb.name||'Curveball')+
+          ' <b style="color:'+(good?'var(--ok)':'var(--loss)')+'">'+(delta>=0?'+':'')+money(delta)+'</b></div>';
+      }).join('')+
+    '</div>';
+  }
+
+  const grandTotal = cardPay + gate + cbNet;
+
   return '<div class="promo-card" id="pc_'+uid+'">'+
     '<div class="promo-head" onclick="togglePromo(\''+uid+'\')">'+
       '<div><div class="pn">'+esc(promo)+'</div>'+(owner?'<div class="ow">'+esc(owner)+'</div>':'')+'</div>'+
       '<span class="stat r">'+ (avg!=null?'<b>'+rateLabel(avg)+'</b> avg':'') +'</span>'+
-      '<span class="stat p"><b>'+money(cardPay)+'</b> payout</span>'+
+      '<span class="stat p"><b>'+money(grandTotal)+'</b> total</span>'+
       '<span class="chev">▸</span>'+
     '</div>'+
     '<div class="promo-body">'+matchesHtml+
       '<div class="ptot"><div class="r"><span>Avg rating</span><b>'+(avg!=null?rateLabel(avg):'—')+'</b></div>'+
-        '<div class="p"><span>Total payout</span><b>'+money(cardPay)+'</b></div>'+
+        '<div class="p"><span>Match payout</span><b>'+money(cardPay)+'</b></div>'+
         '<div><span>Booked cost</span><b>'+money(c.total_cost)+'</b></div></div>'+
+      venueHtml+cbHtml+
+      '<div class="ptot" style="border-top:2px solid var(--gold2)"><div class="p"><span>Grand total</span><b style="font-size:20px">'+money(grandTotal)+'</b></div></div>'+
     '</div></div>';
 }
 function togglePromo(uid){ const el=byId('pc_'+uid); if(el) el.classList.toggle('open'); }
