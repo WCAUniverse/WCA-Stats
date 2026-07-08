@@ -1143,11 +1143,15 @@ function csSelect(id){
   if(w.country) rows.push(['COUNTRY', w.country]);
   // photo layers: background art (back) → cropped wrestler photo (middle) → frame lines (front).
   // Same crop_x/crop_y/zoom the admin sets in the roster editor, so framing matches everywhere.
+  const initials = wInitials(w.name);
+  const noImgHtml = "<div class='cs-photo-noimg'>"+esc(initials)+"</div>";
   const photoLayer = w.image_url
     ? '<img class="cs-photo-img" src="'+esc(w.image_url)+'" style="object-position:'
       +(w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'
-      +'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" onerror="this.remove()">'
-    : '<div class="cs-photo-noimg">'+esc(wInitials(w.name))+'</div>';
+      +'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" '
+      +'onerror="console.warn(\'Photo failed to load for '+esc(w.name).replace(/'/g,"\\'")+':\', this.src); this.outerHTML='
+      +'\''+noImgHtml.replace(/'/g,"\\'")+'\';">'
+    : noImgHtml;
   L.innerHTML =
     '<div class="cs-detail">'+
       '<div class="cs-photowrap"><div class="cs-photo-bg"></div>'+photoLayer+'<div class="cs-photo-lines"></div></div>'+
