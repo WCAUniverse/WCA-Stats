@@ -1576,6 +1576,32 @@
   .sl-interview .sl-iv-qwho{color:var(--gold);}
   .sl-interview .sl-iv-origin{color:var(--muted); font-weight:400; font-size:14px;}
 
+  /* ---- PRESS Q&A — multi-reporter press conference transcript ---- */
+  .sl-pressqa{background:linear-gradient(180deg,var(--panel),var(--bg2,#100f12));
+    border:1px solid var(--line); padding:22px 24px;}
+  .sl-pressqa .sl-pq-headline{font-family:'Oswald'; font-weight:700;
+    font-size:clamp(22px,4vw,32px); line-height:1.05; text-transform:uppercase;
+    color:#fff; margin:6px 0;}
+  .sl-pressqa .sl-pq-meta{font-family:'Barlow'; font-size:13px; color:var(--muted);
+    letter-spacing:.3px; line-height:1.9; margin:10px 0 20px;}
+  .sl-pressqa .sl-pq-meta b{color:#e7d9a8; font-weight:600;}
+  .sl-pressqa .sl-pq-mod{font-family:'Barlow'; font-size:14.5px; font-style:italic;
+    color:var(--muted); margin:14px 0; padding-left:13px; border-left:2px solid var(--line);
+    line-height:1.55; white-space:pre-wrap;}
+  .sl-pressqa .sl-pq-mod b{color:#a9a69e; font-style:normal; font-weight:700;}
+  .sl-pressqa .sl-pq-open{font-family:'Barlow'; font-size:16px; line-height:1.6;
+    color:#d7d4cc; margin-bottom:12px;}
+  .sl-pressqa .sl-pq-reporter{font-family:'Oswald'; font-weight:700; font-size:13.5px;
+    letter-spacing:.4px; color:var(--gold); margin:22px 0 5px;}
+  .sl-pressqa .sl-pq-outlet{color:var(--gold-dim); font-weight:400; text-transform:uppercase;
+    font-size:11.5px; letter-spacing:1.5px; margin-left:2px;}
+  .sl-pressqa .sl-pq-question{font-family:'Barlow'; font-size:16px; line-height:1.6;
+    color:#d7d4cc; margin-bottom:9px;}
+  .sl-pressqa .sl-pq-answer{font-family:'Barlow'; font-size:16px; line-height:1.6;
+    color:#d7d4cc; margin-bottom:4px;}
+  .sl-pressqa .sl-pq-speaker{font-weight:700;}
+  .pq-c0{color:#6db8ff} .pq-c1{color:#7fe0a0} .pq-c2{color:#c9a6ff} .pq-c3{color:#ff9d9d} .pq-c4{color:#f4b183}
+
   /* ---- SIGNING — contract letterhead (reuses HR frame look) ---- */
   .sl-signing,.sl-injury{background:#11100c; border:1px solid var(--gold);
     padding:0; box-shadow:0 0 0 1px var(--gold-deep) inset;}
@@ -2281,87 +2307,9 @@
   #fp-portal.warpback .fp-warp{animation:fpWarpGrow .9s ease-out reverse forwards;}
   #fp-portal.warpback .fp-flash{animation:fpFlash .9s ease-in forwards;}
 
-  /* ---------- The Fire Pro "coming soon" fullscreen view ---------- */
-  #fp-zone{
-    position:fixed; inset:0; z-index:9000; display:none;
-    overflow-y:auto; background:#0a0506;
-    font-family:'Press Start 2P',monospace; color:#ffe9b0;
-    image-rendering:pixelated;
-  }
-  #fp-zone.on{display:block;}
-  /* CRT scanline + arena vibe background */
-  #fp-zone .fp-bg{
-    position:fixed; inset:0; z-index:0; pointer-events:none;
-    background:
-      repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 2px, transparent 2px 4px),
-      radial-gradient(120% 80% at 50% 0%, #3a0d0d 0%, #160505 45%, #0a0506 100%);
-  }
-  #fp-zone .fp-bg::after{ /* fiery floor band, echoing the FPW menus */
-    content:''; position:absolute; left:0; right:0; bottom:0; height:34%;
-    background:
-      radial-gradient(80% 120% at 50% 120%, rgba(255,120,30,.45), transparent 70%),
-      linear-gradient(0deg, rgba(255,59,59,.25), transparent);
-    mix-blend-mode:screen;
-  }
-  #fp-zone .fp-inner{
-    position:relative; z-index:1; min-height:100%;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:48px 20px 60px; gap:26px;
-  }
-  /* top bar: red FPW-style header strip with a back button */
-  #fp-zone .fp-top{
-    position:fixed; top:0; left:0; right:0; z-index:2;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:12px 16px;
-    background:linear-gradient(180deg,#b3001b,#6e0010);
-    border-bottom:3px solid #ffd23f;
-    box-shadow:0 4px 18px -6px #000;
-  }
-  #fp-zone .fp-top .fp-tag{
-    font-size:10px; letter-spacing:2px; color:#ffd23f;
-    text-shadow:1px 1px 0 #000;
-  }
-  #fp-back{
-    font-family:'Press Start 2P',monospace; cursor:pointer;
-    font-size:9px; letter-spacing:1px; color:#0a0506;
-    background:#ffd23f; border:2px solid #fff; border-radius:4px;
-    padding:9px 12px; text-transform:uppercase;
-    box-shadow:0 0 12px -2px #ffd23f;
-    transition:.12s;
-  }
-  #fp-back:hover{background:#fff; box-shadow:0 0 16px 0 #ffd23f;}
-  #fp-zone .fp-logo{
-    max-width:min(560px,86vw); width:100%; height:auto;
-    filter:drop-shadow(0 0 30px rgba(255,80,30,.55));
-    image-rendering:auto;
-  }
-  /* text fallback if the logo PNG isn't in the repo yet */
-  #fp-zone .fp-logo-fallback{
-    font-size:clamp(16px,5vw,30px); line-height:1.5; color:#ffd23f;
-    text-shadow:3px 3px 0 #b3001b, 0 0 22px rgba(255,59,59,.7);
-  }
-  #fp-zone .fp-soon{
-    font-size:clamp(14px,4.5vw,26px); color:#fff;
-    text-shadow:2px 2px 0 #b3001b; letter-spacing:1px;
-    animation:fpBlink 1.2s steps(2,end) infinite;
-  }
-  @keyframes fpBlink{50%{opacity:.25;}}
-  #fp-zone .fp-sub{
-    font-size:9px; line-height:2; color:#ffb37a; max-width:520px;
-    letter-spacing:1px;
-  }
-  #fp-zone .fp-press{
-    margin-top:6px; font-size:8px; color:#9be0ff; letter-spacing:1px;
-    animation:fpBlink 1.4s steps(2,end) infinite;
-  }
-  @media(max-width:600px){
-    #fp-zone .fp-top .fp-tag{font-size:8px;}
-    #fp-zone .fp-inner{padding-top:64px; gap:20px;}
-  }
   @media(prefers-reduced-motion:reduce){
     #nav-firepro{animation:none;}
     #fp-portal *{animation-duration:.01s !important;}
-    #fp-zone .fp-soon,#fp-zone .fp-press{animation:none;}
   }
 
 </style>
@@ -2369,10 +2317,9 @@
 <body>
 
 <!-- ===================== FIRE PRO (additive) =====================
-     Portal transition overlay + the retro "coming soon" zone.
-     Both inert until JS triggers them. The logo PNG should be placed
-     at icons/firepro-logo.png in the repo; if missing, a styled text
-     fallback shows instead. -->
+     Portal transition overlay + its warp sound effect — used by fpEnter()
+     leaving for Fire Pro and by fpResumeExitSfx() returning from it.
+     Inert until JS triggers it. -->
 <div id="fp-portal" aria-hidden="true">
   <div class="fp-stars"></div>
   <div class="fp-warp"></div>
@@ -2389,22 +2336,6 @@
      otherwise the first play() call has to fetch the file before any sound
      comes out, which is the "plays a little late" delay. -->
 <audio id="fp-warp-sfx" preload="auto"></audio>
-
-<div id="fp-zone" aria-hidden="true">
-  <div class="fp-bg"></div>
-  <div class="fp-top">
-    <span class="fp-tag">WCA · FIRE PRO WRESTLING WORLD</span>
-    <button id="fp-back" onclick="fpExit()">◄ BACK TO WCA</button>
-  </div>
-  <div class="fp-inner">
-    <img class="fp-logo" src="icons/firepro-logo.png" alt="WCA Fire Pro"
-         onerror="this.style.display='none';document.getElementById('fp-logo-fallback').style.display='block';">
-    <div class="fp-logo-fallback" id="fp-logo-fallback" style="display:none">WORLD<br>CHAMPIONSHIP<br>ALLIANCE</div>
-    <div class="fp-soon">WCA FIRE PRO — COMING SOON</div>
-    <div class="fp-sub" id="fp-sub-text">A 16-bit spin-off built in Fire Pro Wrestling World. Its own roster, its own rules, its own chaos. Under construction.</div>
-    <div class="fp-press" id="fp-press-text">► PRESS &laquo;BACK TO WCA&raquo; TO RETURN ◄</div>
-  </div>
-</div>
 <!-- =================== END FIRE PRO =================== -->
 
 <header>
@@ -2618,6 +2549,7 @@
       <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
       <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
       <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
+      <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
       <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
       <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
       <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
@@ -2845,13 +2777,6 @@ async function loadFirePro(){
     if(error || !data || !data.firepro) return;        // not set up yet → stay hidden
     const fp = data.firepro;
     if(fp.label && String(fp.label).trim()) btn.textContent = fp.label;
-    // editable coming-soon copy (falls back to the HTML defaults if blank)
-    if(fp.sub && String(fp.sub).trim()){
-      const s=document.getElementById('fp-sub-text'); if(s) s.textContent = fp.sub;
-    }
-    if(fp.press && String(fp.press).trim()){
-      const p=document.getElementById('fp-press-text'); if(p) p.textContent = fp.press;
-    }
     if(fp.enabled === true) btn.style.display = 'inline-block';
   }catch(e){ /* stay hidden */ }
 }
@@ -2886,21 +2811,27 @@ function fpEnter(ev){
   setTimeout(()=>{ window.location.href = 'firepro/index.html'; }, 1500);
 }
 
-// Back button: reverse warp out of the zone to the main site.
-function fpExit(){
-  const portal = document.getElementById('fp-portal');
-  const zone   = document.getElementById('fp-zone');
-  if(!portal || !zone) return;
-  portal.classList.remove('warp','warpback');
-  portal.classList.add('on');
-  void portal.offsetWidth;
-  portal.classList.add('warpback');
-  // hide the zone partway through so we land back on the normal site
-  setTimeout(()=>{ zone.classList.remove('on'); zone.setAttribute('aria-hidden','true'); }, 450);
-  setTimeout(()=>{
-    portal.classList.remove('on','warpback');
-    document.body.style.overflow = '';
-  }, 900);
+// Runs once on page load. If the visitor just came BACK from Fire Pro,
+// firepro/index.html's fpExit() stored a timestamp for when the warp sound
+// started playing over there. Continue that same sound from where it left
+// off instead of it being hard-cut by the page jump (the "cut off on the
+// way out" bug). Mirrors how firepro/index.html's fpResumeSfx() already
+// resumes the sound on the way IN.
+function fpResumeExitSfx(){
+  const a = document.getElementById('fp-warp-sfx');
+  if(!(a && a.getAttribute('src'))) return;
+  let started = 0;
+  try{ started = parseInt(sessionStorage.getItem('fpSfxStart')||'0', 10); }catch(e){}
+  if(!started) return;
+  try{ sessionStorage.removeItem('fpSfxStart'); }catch(e){}
+  const offset = (Date.now() - started) / 1000;   // seconds elapsed since it started
+  if(!(offset > 0 && offset < 30)) return;         // stale/bogus — don't play anything unexpected
+  try{
+    a.currentTime = offset;
+    a.play().catch(()=>{});
+  }catch(e){
+    try{ a.currentTime = 0; a.play().catch(()=>{}); }catch(e2){}
+  }
 }
 
 function ringSVG(pct){
@@ -3358,7 +3289,7 @@ async function loadDashboard(){
 // Pure read; no new tables. Clicking a card jumps to the Storylines tab.
 const DSL_KIND_LABEL = {
   notice:'Announcement', article:'Article', social:'Social', promo:'Promo',
-  interview:'Interview', signing:'Signing', injury:'Report', timeline:'Timeline',
+  interview:'Interview', press_qa:'Press Q&A', signing:'Signing', injury:'Report', timeline:'Timeline',
   rankings:'Rankings', mystery:'Breaking'
 };
 function dslExcerpt(p){
@@ -5391,7 +5322,7 @@ async function openArchiveEvent(id){
   // linked storylines
   if(stories.length){
     html += `<div class="section-title">Storylines from this event</div>`;
-    const kindLabel={social:'Social',article:'Article',notice:'HR Notice',promo:'Promo',interview:'Interview',signing:'Signing',injury:'Injury',rankings:'Rankings',mystery:'Mystery',timeline:'Timeline'};
+    const kindLabel={social:'Social',article:'Article',notice:'HR Notice',promo:'Promo',interview:'Interview',press_qa:'Press Q&A',signing:'Signing',injury:'Injury',rankings:'Rankings',mystery:'Mystery',timeline:'Timeline'};
     html += `<div class="lb-table">` + stories.map(s=>{
       const t = s.title || kindLabel[s.kind] || 'Post';
       return `<div class="lb-rowx">
@@ -6135,6 +6066,55 @@ function slRenderInterview(p){
     <div class="sl-iv-body">${qa}</div>
   ${slEngageBar(p)}</article>`;
 }
+// Assigns a rotating color class to each unique speaker (by name, in order of
+// first appearance across opening statements then Q&A) so a multi-participant
+// press conference reads clearly. Reporters always use the gold/press color
+// instead of this rotation, keeping "who's asking" visually distinct from
+// "who's answering."
+function pqSpeakerColorMap(pl){
+  const map = {}; let n = 0;
+  const consider = name => { const k=(name||'').trim(); if(k && !(k in map)){ map[k] = 'pq-c'+(n%5); n++; } };
+  (pl.openStatements||[]).forEach(o=>consider(o.speaker));
+  (pl.qa||[]).forEach(x=>consider(x.speaker));
+  return map;
+}
+function slRenderPressQA(p){
+  const pl = p.payload || {};
+  const colorMap = pqSpeakerColorMap(pl);
+  const firstParticipant = (pl.participants||'').split(',')[0].trim();
+  const speakerSpan = name => {
+    const n = (name||'').trim() || firstParticipant || 'Speaker';
+    const cls = colorMap[n] || 'pq-c0';
+    return `<span class="sl-pq-speaker ${cls}">${esc(n)}:</span>`;
+  };
+  const metaParts = [];
+  if(pl.event) metaParts.push(`<b>Event:</b> ${esc(pl.event)}`);
+  if(pl.team) metaParts.push(`<b>Team:</b> ${esc(pl.team)}`);
+  metaParts.push(`<b>Date:</b> ${esc(slDate(p.story_date))}`);
+  if(pl.participants) metaParts.push(`<b>Participants:</b> ${esc(pl.participants)}`);
+
+  const openHtml = (Array.isArray(pl.openStatements)?pl.openStatements:[]).filter(o=>o.speaker||o.text).map(o=>
+    `<div class="sl-pq-open">${speakerSpan(o.speaker)} ${slFmt(o.text)}</div>`
+  ).join('');
+
+  const qaHtml = (Array.isArray(pl.qa)?pl.qa:[]).filter(x=>x.question||x.answer).map((x,i)=>{
+    const outlet = x.outlet ? `<span class="sl-pq-outlet">, ${esc(x.outlet)}</span>` : '';
+    return `<div class="sl-pq-reporter">Reporter ${i+1}: ${esc(x.reporter||'Reporter')}${outlet}.</div>
+      <div class="sl-pq-question">${slFmt(x.question)}</div>
+      <div class="sl-pq-answer">${speakerSpan(x.speaker)} ${slFmt(x.answer)}</div>`;
+  }).join('');
+
+  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
+  return `<article class="slpost sl-pressqa">${pin}
+    <h2 class="sl-pq-headline">${esc(p.title)}</h2>
+    <div class="sl-pq-meta">${metaParts.join(' &nbsp;·&nbsp; ')}</div>
+    ${pl.modOpen?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modOpen)}</div>`:''}
+    ${openHtml}
+    ${pl.modTrans?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modTrans)}</div>`:''}
+    ${qaHtml}
+    ${pl.modClose?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modClose)}</div>`:''}
+  ${slEngageBar(p)}</article>`;
+}
 function slRenderSigning(p){
   const pl = p.payload || {};
   const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
@@ -6550,6 +6530,7 @@ function slRenderPostInner(p){
     case 'timeline':  return slRenderTimeline(p);
     case 'promo':     return slRenderPromo(p);
     case 'interview': return slRenderInterview(p);
+    case 'press_qa': return slRenderPressQA(p);
     case 'signing':   return slRenderSigning(p);
     case 'injury':    return slRenderInjury(p);
     case 'rankings':  return slRenderRankings(p);
@@ -7217,6 +7198,7 @@ if(!isConfigured){
     seeing the layout with no data.</div>`;
 }else{
   const lb=document.getElementById('loginBtn'); if(lb) lb.onclick=signInDiscord;
+  fpResumeExitSfx();   // continue the Fire Pro warp sound if we just came back from it
   applyTheme();
   applyDashboard();
   refreshUser();
