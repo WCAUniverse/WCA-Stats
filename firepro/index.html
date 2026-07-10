@@ -993,6 +993,11 @@ function fpExit(){
   const portal = document.getElementById('fp-portal');
   _fpSaveState();   // capture music position/track before we leave
   fpPlaySfx();
+  // remember WHEN the sound started so the main site can pick up where it
+  // left off after the page jump — without this the sound just hard-stops
+  // the instant this page unloads, which was the "cut off on the way out"
+  // bug (the way IN already does this via fpEnter()/fpResumeSfx()).
+  try{ sessionStorage.setItem('fpSfxStart', String(Date.now())); }catch(e){}
   if(portal){
     portal.classList.remove('warp','warpback');
     portal.classList.add('on');
