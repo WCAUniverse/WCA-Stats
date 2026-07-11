@@ -4034,6 +4034,19 @@ async function renderAccountPage(firstTime){
       <div class="acc-hint">Choose how your live-chat messages are signed. Your admin powers never change either way.</div>
     </div>` : '';
 
+  let ownerBlock = '';
+  try{
+    const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', CURRENT_USER.id);
+    if(ownedRows && ownedRows.length){
+      ownerBlock = `
+        <div class="acc-card">
+          <div class="acc-card-title">Your Character${ownedRows.length>1?'s':''}</div>
+          <div class="acc-hint" style="margin-bottom:10px">Update your bio, socials, and moveset — changes go to WCA staff for approval before they go live.</div>
+          <a href="edit-wrestler.html" class="acc-link-btn" style="display:inline-block;text-decoration:none">Edit Wrestler Data</a>
+        </div>`;
+    }
+  }catch(e){}
+
   const ava = avatarUrl
     ? `<img class="acc-ava" src="${esc(avatarUrl)}" alt="">`
     : `<div class="acc-ava acc-ava-init">${esc(init)}</div>`;
@@ -4062,6 +4075,7 @@ async function renderAccountPage(firstTime){
           ${provRows}
         </div>
         ${adminBlock}
+        ${ownerBlock}
       </div>
     </div>
 
@@ -7079,7 +7093,7 @@ async function spLoadMySubmissions(){
   if(!SP_MY_SUBS.length){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="hint" style="margin:14px 0 6px">Your submissions</div>' + SP_MY_SUBS.map(r=>{
     const w = SP_MY_WRESTLERS.find(x=>String(x.id)===String(r.wrestler_id));
-    const cls = r.submission_status==='approved' ? 'var(--good)' : (r.submission_status==='rejected' ? 'var(--bad)' : 'var(--gold)');
+    const cls = r.submission_status==='approved' ? 'var(--win)' : (r.submission_status==='rejected' ? 'var(--loss)' : 'var(--gold)');
     const note = r.review_note ? `<div class="hint" style="margin-top:2px">Note: ${esc(r.review_note)}</div>` : '';
     return `<div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
