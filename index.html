@@ -2551,6 +2551,7 @@
       <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
       <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
     </div>
+    <div id="sp-composer"></div>
     <div class="sl-feed" id="sl-feed"><div class="loading">Loading…</div></div>
     <div id="sl-pager"></div>
   </div>
@@ -6992,6 +6993,125 @@ function slRefreshCommentCount(id){
   if(cbtn) cbtn.innerHTML = `<i class="ti ti-message-2"></i> ${cc} ${cc===1?'Comment':'Comments'}`;
 }
 
+/* ---------- SUPERSTAR PORTAL: owner composer (top of Storylines page) ---------- */
+let SP_MY_WRESTLERS = [];
+let SP_MY_SUBS = [];
+let SP_EDITING_ID = null;
+
+async function spOwnerComposerInit(){
+  const el = document.getElementById('sp-composer');
+  if(!el) return;
+  if(!CURRENT_USER){ el.innerHTML=''; SP_MY_WRESTLERS=[]; return; }
+  const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', CURRENT_USER.id);
+  const wids = (ownedRows||[]).map(r=>r.wrestler_id);
+  if(!wids.length){ el.innerHTML=''; SP_MY_WRESTLERS=[]; return; }
+  const { data: mine } = await sb.from('wrestlers').select('id,name').in('id', wids).order('name');
+  SP_MY_WRESTLERS = mine || [];
+  spRenderComposer();
+  spLoadMySubmissions();
+}
+function spRenderComposer(){
+  const el = document.getElementById('sp-composer');
+  if(!el || !SP_MY_WRESTLERS.length) return;
+  const options = SP_MY_WRESTLERS.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join('');
+  el.innerHTML = `
+    <div class="sl-cform" style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:18px">
+      <div id="spComposerBanner" class="hint" style="margin-bottom:4px"></div>
+      <div class="sl-crow" style="justify-content:flex-start">
+        <span style="color:var(--muted);font-family:'Barlow';font-size:13px">Posting as</span>
+        <div class="af-field" style="margin:0;max-width:200px"><select id="spPostAs">${options}</select></div>
+        <div class="af-field" style="margin:0;max-width:160px"><select id="spPostKind">
+          <option value="social">Social</option>
+          <option value="promo">Promo</option>
+          <option value="interview">Interview</option>
+        </select></div>
+      </div>
+      <div class="af-field" style="margin:8px 0 0"><input type="text" id="spPostTitle" placeholder="Title (optional)"></div>
+      <div class="af-field" style="margin:8px 0 0"><textarea id="spPostBody" placeholder="What's happening…" maxlength="2000"></textarea></div>
+      <div class="sl-crow">
+        <span class="hint" style="font-size:11px">Goes to WCA for approval before it's posted publicly.</span>
+        <button class="sl-cpost" onclick="spSubmitPost()">Post</button>
+      </div>
+      <div class="msg" id="spComposerMsg"></div>
+      <div id="spMySubsBox"></div>
+    </div>`;
+}
+function spMsg(text, ok){
+  const m = document.getElementById('spComposerMsg');
+  if(!m) return;
+  m.className = 'msg show ' + (ok?'ok':'err');
+  m.textContent = text;
+  if(ok) setTimeout(()=>m.classList.remove('show'), 4000);
+}
+async function spSubmitPost(){
+  const asSel = document.getElementById('spPostAs');
+  const kindSel = document.getElementById('spPostKind');
+  const title = (document.getElementById('spPostTitle').value||'').trim();
+  const body = (document.getElementById('spPostBody').value||'').trim();
+  if(!body){ spMsg('Write something first.', false); return; }
+  if(SP_EDITING_ID){
+    const { error } = await sb.rpc('submit_storyline_edit', {
+      p_storyline_id: SP_EDITING_ID, p_title: title||null, p_body: body, p_payload: {}
+    });
+    if(error){ spMsg('Failed: '+error.message, false); return; }
+    spMsg('Updated — back in the review queue ✓', true);
+    spCancelEdit();
+  } else {
+    const wid = asSel.value;
+    const { error } = await sb.rpc('submit_storyline', {
+      p_wrestler_id: parseInt(wid,10), p_kind: kindSel.value, p_title: title||null, p_body: body, p_payload: {}
+    });
+    if(error){ spMsg('Failed: '+error.message, false); return; }
+    spMsg('Submitted for approval ✓', true);
+    document.getElementById('spPostTitle').value = '';
+    document.getElementById('spPostBody').value = '';
+  }
+  spLoadMySubmissions();
+}
+async function spLoadMySubmissions(){
+  const box = document.getElementById('spMySubsBox');
+  if(!box || !CURRENT_USER) return;
+  const { data, error } = await sb.from('storylines')
+    .select('id,kind,title,body,wrestler_id,submission_status,review_note,created_at')
+    .eq('submitted_by', CURRENT_USER.id)
+    .order('created_at',{ascending:false});
+  SP_MY_SUBS = (!error && data) ? data : [];
+  if(!SP_MY_SUBS.length){ box.innerHTML=''; return; }
+  box.innerHTML = '<div class="hint" style="margin:14px 0 6px">Your submissions</div>' + SP_MY_SUBS.map(r=>{
+    const w = SP_MY_WRESTLERS.find(x=>String(x.id)===String(r.wrestler_id));
+    const cls = r.submission_status==='approved' ? 'var(--good)' : (r.submission_status==='rejected' ? 'var(--bad)' : 'var(--gold)');
+    const note = r.review_note ? `<div class="hint" style="margin-top:2px">Note: ${esc(r.review_note)}</div>` : '';
+    return `<div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+        <span><b>${esc(r.title||'(untitled)')}</b> <span class="hint">— ${esc(w?w.name:'')} · ${esc(r.kind)}</span></span>
+        <span style="color:${cls};font-size:11px;text-transform:uppercase;letter-spacing:.5px">${esc(r.submission_status)}</span>
+      </div>
+      ${note}
+      <div style="margin-top:6px"><button class="sl-cpost" style="padding:5px 12px;font-size:12px" onclick="spEditSubmission(${r.id})">Edit</button></div>
+    </div>`;
+  }).join('');
+}
+function spEditSubmission(id){
+  const r = SP_MY_SUBS.find(x=>String(x.id)===String(id));
+  if(!r) return;
+  SP_EDITING_ID = id;
+  document.getElementById('spPostTitle').value = r.title||'';
+  document.getElementById('spPostBody').value = r.body||'';
+  const wSel = document.getElementById('spPostAs'); if(wSel){ wSel.value = String(r.wrestler_id); wSel.disabled = true; }
+  const kSel = document.getElementById('spPostKind'); if(kSel){ kSel.value = r.kind; kSel.disabled = true; }
+  document.getElementById('spComposerBanner').innerHTML =
+    `Editing your ${esc(r.kind)} post — <a href="#" onclick="spCancelEdit();return false;">cancel</a>`;
+  document.getElementById('sp-composer').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function spCancelEdit(){
+  SP_EDITING_ID = null;
+  document.getElementById('spPostTitle').value = '';
+  document.getElementById('spPostBody').value = '';
+  const wSel = document.getElementById('spPostAs'); if(wSel) wSel.disabled = false;
+  const kSel = document.getElementById('spPostKind'); if(kSel) kSel.disabled = false;
+  const banner = document.getElementById('spComposerBanner'); if(banner) banner.innerHTML = '';
+}
+
 function renderStorylines(){
   const feed = document.getElementById('sl-feed');
   const pager = document.getElementById('sl-pager');
@@ -7059,7 +7179,7 @@ function activatePage(pg){
   if(pg==='live') loadLive();   // always fetch the latest live state on open
   else { stopLiveRailPolling(); stopChatRealtime(); }   // leaving Live — stop polls/realtime
   if(pg!=='dashboard' && COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
-  if(pg==='storylines') loadStorylines();
+  if(pg==='storylines'){ loadStorylines(); spOwnerComposerInit(); }
   if(pg==='leaderboard') loadLeaderboard();
   if(pg==='archive') loadArchive();
   if(pg==='apply') loadApply();
@@ -7205,6 +7325,7 @@ if(!isConfigured){
         history.replaceState(null, '', window.location.origin + window.location.pathname);
       }
       refreshUser();
+      spOwnerComposerInit();
     }
   });
   loadMerchLink();
@@ -7226,6 +7347,7 @@ if(!isConfigured){
   });
   loadRoster().then(()=>{
     loadStorylines();
+    spOwnerComposerInit();
     // Roster is now available — re-render the spots that use xlinkName() so champion
     // names become tappable (on first paint roster wasn't loaded yet, so they were plain).
     try{ if(typeof loadChampions==='function') loadChampions(); }catch(e){}
