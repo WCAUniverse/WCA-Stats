@@ -87,6 +87,8 @@
   <a href="index.html#account" class="back-link">&larr; Back to my account</a>
 </header>
 
+<div id="ew-va-banner" style="display:none;background:#3a2a00;border-bottom:1px solid var(--gold);color:#f7df8e;font-size:13px;padding:9px 20px;text-align:center;"></div>
+
 <div class="wrap">
   <h1 class="page-title">Edit Wrestler Data</h1>
   <p class="hint">Update your character's bio, socials, and moveset. Everything here goes to WCA
@@ -108,6 +110,8 @@ const SOCIAL_DEF = [
 ];
 
 let EW_USER = null;
+let EW_ACTING_ID = null;     // the id we're actually operating as (view-as target, or EW_USER's own)
+let EW_ACTING_NAME = null;
 let EW_WRESTLERS = [];   // every wrestler this user owns (full editable-field rows)
 let EW_CURRENT = null;   // the one currently selected in the tab bar
 
@@ -122,10 +126,29 @@ async function ewInit(){
       <a href="index.html">Sign in from the main site</a>, then come back to this page.</p></div>`;
     return;
   }
-  const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', EW_USER.id);
+
+  // View-as: only honored if this signed-in user actually passes is_admin() —
+  // the RPC enforces this too, this is just so the page doesn't even try to
+  // pretend for a non-admin whose sessionStorage happens to have a stale value.
+  EW_ACTING_ID = EW_USER.id;
+  EW_ACTING_NAME = null;
+  try{
+    const viewAsId = sessionStorage.getItem('wcaViewAsId');
+    const viewAsName = sessionStorage.getItem('wcaViewAsName');
+    if(viewAsId){
+      const { data: isAdmin } = await sb.rpc('is_admin');
+      if(isAdmin === true){
+        EW_ACTING_ID = viewAsId;
+        EW_ACTING_NAME = viewAsName;
+      }
+    }
+  }catch(e){}
+  ewRenderBanner();
+
+  const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', EW_ACTING_ID);
   const wids = (ownedRows||[]).map(r=>r.wrestler_id);
   if(!wids.length){
-    body.innerHTML = `<div class="card"><p>You don't have a character assigned to your account yet.
+    body.innerHTML = `<div class="card"><p>${EW_ACTING_NAME?esc(EW_ACTING_NAME):'You'} don't have a character assigned yet.
       Reach out to WCA staff if you think this is a mistake.</p></div>`;
     return;
   }
@@ -133,13 +156,25 @@ async function ewInit(){
     .select('id,name,bio,nickname,from_loc,theme_song,theme_url,finishers,signatures,socials')
     .in('id', wids).order('name');
   if(error){
-    body.innerHTML = `<div class="card"><p>Couldn't load your character data: ${esc(error.message)}</p></div>`;
+    body.innerHTML = `<div class="card"><p>Couldn't load character data: ${esc(error.message)}</p></div>`;
     return;
   }
   EW_WRESTLERS = mine || [];
   EW_CURRENT = EW_WRESTLERS[0] || null;
   ewRenderPage();
 }
+
+function ewRenderBanner(){
+  const el = document.getElementById('ew-va-banner');
+  if(!el) return;
+  if(EW_ACTING_NAME){
+    el.style.display = 'block';
+    el.innerHTML = `👁️ Viewing as <b>${esc(EW_ACTING_NAME)}</b> — for testing only, this isn't a real login as them.`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 
 function ewParseSocials(s){
   if(!s) return {};
@@ -244,7 +279,8 @@ async function ewSubmit(){
 
   if(!Object.keys(newVals).length){ ewMsg('Nothing changed yet.', false); return; }
 
-  const { error } = await sb.rpc('submit_bio_edit', { p_wrestler_id: w.id, p_new_values: newVals });
+  const asUser = (EW_ACTING_ID !== EW_USER.id) ? EW_ACTING_ID : null;
+  const { error } = await sb.rpc('submit_bio_edit', { p_wrestler_id: w.id, p_new_values: newVals, p_as_user: asUser });
   if(error){ ewMsg('Failed: '+error.message, false); return; }
   ewMsg('Submitted for approval ✓', true);
   ewLoadHistory();
@@ -255,7 +291,7 @@ async function ewLoadHistory(){
   if(!box || !EW_CURRENT) return;
   const { data, error } = await sb.from('wrestler_edit_requests')
     .select('id,status,new_values,review_note,submitted_at')
-    .eq('wrestler_id', EW_CURRENT.id).eq('submitted_by', EW_USER.id)
+    .eq('wrestler_id', EW_CURRENT.id).eq('submitted_by', EW_ACTING_ID)
     .order('submitted_at',{ascending:false});
   if(error || !data || !data.length){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="hint" style="margin-bottom:8px">Your edit history for ' + esc(EW_CURRENT.name) + '</div>' +

@@ -2381,6 +2381,15 @@
 </head>
 <body>
 
+<!-- View As banner — hidden unless an admin has an active view-as session
+     going (set in sessionStorage by vaStart()). Always visible while active,
+     on every page, so it's never ambiguous who's "logged in" right now. -->
+<div id="va-banner" style="display:none;position:sticky;top:0;z-index:9999;background:#3a2a00;border-bottom:1px solid var(--gold);
+  color:#f7df8e;font-family:'Barlow';font-size:13px;padding:9px 16px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap">
+  <span>👁️ Viewing as <b id="va-banner-name"></b> — for testing only, this isn't a real login as them</span>
+  <button onclick="vaExit()" style="background:var(--gold);color:#1a1509;border:none;border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer;font-size:12px">Exit view-as</button>
+</div>
+
 <!-- ===================== FIRE PRO (additive) =====================
      Portal transition overlay + its warp sound effect — used by fpEnter()
      leaving for Fire Pro and by fpResumeExitSfx() returning from it.
@@ -2974,6 +2983,60 @@ function beltIcon(div, cls){
 }
 
 // ===== AUTH + POINTS =====
+
+// ---------- VIEW AS USER (admin-only testing tool) ----------
+// Lets an admin simulate a specific owner's view of the Superstar Portal
+// composer and edit-wrestler page WITHOUT creating a real login session as
+// them — every action still runs through admin-gated RPCs (p_as_user) that
+// check is_admin() server-side and log the real admin as the actor. Scoped
+// to sessionStorage, so it clears itself when the tab closes and never
+// silently persists into a future session.
+let VIEW_AS_ID = null;
+let VIEW_AS_NAME = null;
+
+function vaInit(){
+  try{
+    VIEW_AS_ID = sessionStorage.getItem('wcaViewAsId') || null;
+    VIEW_AS_NAME = sessionStorage.getItem('wcaViewAsName') || null;
+  }catch(e){ VIEW_AS_ID = null; VIEW_AS_NAME = null; }
+  vaRenderBanner();
+}
+function vaRenderBanner(){
+  const b = document.getElementById('va-banner');
+  if(!b) return;
+  if(VIEW_AS_ID){
+    document.getElementById('va-banner-name').textContent = VIEW_AS_NAME || 'user';
+    b.style.display = 'flex';
+  } else {
+    b.style.display = 'none';
+  }
+}
+function vaStart(id, name){
+  if(!IS_ADMIN) return;
+  VIEW_AS_ID = id; VIEW_AS_NAME = name;
+  try{
+    sessionStorage.setItem('wcaViewAsId', id);
+    sessionStorage.setItem('wcaViewAsName', name);
+  }catch(e){}
+  vaRenderBanner();
+  // Refresh anything that depends on which user is "active" for testing.
+  if(typeof spOwnerComposerInit === 'function') spOwnerComposerInit();
+}
+function vaExit(){
+  VIEW_AS_ID = null; VIEW_AS_NAME = null;
+  try{ sessionStorage.removeItem('wcaViewAsId'); sessionStorage.removeItem('wcaViewAsName'); }catch(e){}
+  vaRenderBanner();
+  if(typeof spOwnerComposerInit === 'function') spOwnerComposerInit();
+}
+function vaStartFromPicker(){
+  const sel = document.getElementById('va-pick');
+  if(!sel || !sel.value) return;
+  const opt = sel.options[sel.selectedIndex];
+  const name = (opt && opt.dataset.name) || (opt ? opt.textContent : 'User');
+  vaStart(sel.value, name);
+  if(typeof loadAccount === 'function') loadAccount();
+}
+
 let CURRENT_USER = null;   // { id, ... } from auth
 let MY_PROFILE = null;     // row from profiles
 let IS_ADMIN = false;      // true when the signed-in user passes the DB is_admin() check
@@ -4112,6 +4175,37 @@ async function renderAccountPage(firstTime){
     }
   }catch(e){}
 
+  let vaBlock = '';
+  if(IS_ADMIN){
+    try{
+      const { data: ownerRows } = await sb.from('wrestler_owners').select('auth_id');
+      const uniqueIds = [...new Set((ownerRows||[]).map(r=>r.auth_id))];
+      let options = '<option value="">— pick a user —</option>';
+      if(uniqueIds.length){
+        const { data: profs } = await sb.from('profiles').select('id,username,display_name').in('id', uniqueIds);
+        const sorted = (profs||[]).sort((a,b)=>(a.display_name||a.username||'').localeCompare(b.display_name||b.username||''));
+        options += sorted.map(p=>{
+          const label = p.display_name || p.username || 'Player';
+          return `<option value="${p.id}" data-name="${escAttr(label)}">${esc(label)}</option>`;
+        }).join('');
+      }
+      const activeNote = VIEW_AS_ID
+        ? `<div class="acc-hint" style="margin-bottom:10px;color:var(--gold)">Currently viewing as <b>${esc(VIEW_AS_NAME||'')}</b>.</div>`
+        : '';
+      vaBlock = `
+        <div class="acc-card">
+          <div class="acc-card-title">View As User <span style="font-weight:400;text-transform:none;color:var(--muted);font-size:12px">(admin testing tool)</span></div>
+          <div class="acc-hint" style="margin-bottom:10px">Simulate an owner's Superstar Portal composer and bio-edit page as them, for testing. This isn't a real login as them — every action taken is still logged under your own account.</div>
+          ${activeNote}
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <select id="va-pick" style="background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:220px">${options}</select>
+            <button class="acc-link-btn" style="cursor:pointer" onclick="vaStartFromPicker()">View as</button>
+            ${VIEW_AS_ID ? `<button class="acc-link-btn" style="cursor:pointer" onclick="vaExit();loadAccount();">Exit view-as</button>` : ''}
+          </div>
+        </div>`;
+    }catch(e){}
+  }
+
   const ava = avatarUrl
     ? `<img class="acc-ava" src="${esc(avatarUrl)}" alt="">`
     : `<div class="acc-ava acc-ava-init">${esc(init)}</div>`;
@@ -4141,6 +4235,7 @@ async function renderAccountPage(firstTime){
         </div>
         ${adminBlock}
         ${ownerBlock}
+        ${vaBlock}
       </div>
     </div>
 
@@ -6108,6 +6203,7 @@ function slRenderSpotlight(p){
         ${p.body?`<div class="sl-sp-text">${slFmt(p.body)}</div>`:''}
       </div>
     </div>
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderPromo(p){
@@ -6118,6 +6214,7 @@ function slRenderPromo(p){
     ${pl.setting?`<div class="sl-pr-setting">${esc(pl.setting)}</div>`:''}
     <div class="sl-pr-quote"><span class="sl-pr-q">&ldquo;</span>${slFmt(p.body)}<span class="sl-pr-q">&rdquo;</span></div>
     <div class="sl-pr-speaker">&mdash; ${esc(author)}</div>
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderInterview(p){
@@ -6138,6 +6235,7 @@ function slRenderInterview(p){
     <h2 class="sl-iv-headline">${esc(p.title)}</h2>
     ${p.body?`<div class="sl-iv-intro">${slFmt(p.body)}</div>`:''}
     <div class="sl-iv-body">${qa}</div>
+    ${slMedia([p.body, ...(Array.isArray(pl.qa)?pl.qa:[]).flatMap(x=>[x.q,x.a])].filter(Boolean).join(' '))}
   ${slEngageBar(p)}</article>`;
 }
 // Assigns a rotating color class to each unique speaker (by name, in order of
@@ -6187,6 +6285,10 @@ function slRenderPressQA(p){
     ${pl.modTrans?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modTrans)}</div>`:''}
     ${qaHtml}
     ${pl.modClose?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modClose)}</div>`:''}
+    ${slMedia([pl.modOpen, pl.modTrans, pl.modClose,
+      ...(Array.isArray(pl.openStatements)?pl.openStatements:[]).map(o=>o.text),
+      ...(Array.isArray(pl.qa)?pl.qa:[]).flatMap(x=>[x.question,x.answer])
+    ].filter(Boolean).join(' '))}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderSigning(p){
@@ -6208,6 +6310,7 @@ function slRenderSigning(p){
       ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
       <div class="sl-sign">&mdash; ${esc(pl.sign||'WCA Talent Relations')}</div>
     </div>
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderInjury(p){
@@ -6231,6 +6334,7 @@ function slRenderInjury(p){
       ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
       <div class="sl-sign">&mdash; ${esc(pl.from||'WCA Medical Staff')}</div>
     </div>
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderRankings(p){
@@ -6253,6 +6357,7 @@ function slRenderRankings(p){
     ${pl.byline?`<div class="sl-byline">${esc(pl.byline)}</div>`:''}
     ${p.body?`<div class="sl-rk-intro">${slFmt(p.body)}</div>`:''}
     <div class="sl-rk-list">${rows}</div>
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderMystery(p){
@@ -6261,6 +6366,7 @@ function slRenderMystery(p){
   return `<article class="slpost sl-mystery">${pin}
     <div class="sl-my-text">${slFmt(p.body)}</div>
     ${pl.sign?`<div class="sl-my-sign">${esc(pl.sign)}</div>`:''}
+    ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 // ---------------------------------------------------------------------------
@@ -7086,11 +7192,19 @@ let SP_KIND = 'social';
 let SP_PHOTOS = [];         // [{url, ratio}] — attached photos for the current draft
 const SP_MAX_PHOTOS = 4;
 
+// Resolves which user the Superstar Portal composer should act as: the
+// admin's own view-as target if one is active, otherwise the real signed-in
+// user. Centralized so every composer function stays consistent.
+function spActingUserId(){
+  if(IS_ADMIN && VIEW_AS_ID) return VIEW_AS_ID;
+  return CURRENT_USER ? CURRENT_USER.id : null;
+}
 async function spOwnerComposerInit(){
   const el = document.getElementById('sp-composer');
   if(!el) return;
-  if(!CURRENT_USER){ el.innerHTML=''; SP_MY_WRESTLERS=[]; return; }
-  const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', CURRENT_USER.id);
+  const actingId = spActingUserId();
+  if(!actingId){ el.innerHTML=''; SP_MY_WRESTLERS=[]; return; }
+  const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', actingId);
   const wids = (ownedRows||[]).map(r=>r.wrestler_id);
   if(!wids.length){ el.innerHTML=''; SP_MY_WRESTLERS=[]; return; }
   const { data: mine } = await sb.from('wrestlers').select('id,name').in('id', wids).order('name');
@@ -7397,9 +7511,11 @@ function spPreview(){
 async function spSubmitPost(){
   const g = spGather();
   if(g.error){ spMsg(g.error, false); return; }
+  const asUser = (IS_ADMIN && VIEW_AS_ID) ? VIEW_AS_ID : null;
   if(SP_EDITING){
     const { error } = await sb.rpc('submit_storyline_edit', {
-      p_storyline_id: SP_EDITING.id, p_title: g.title||null, p_body: g.body, p_payload: g.payload
+      p_storyline_id: SP_EDITING.id, p_title: g.title||null, p_body: g.body, p_payload: g.payload,
+      p_as_user: asUser
     });
     if(error){ spMsg('Failed: '+error.message, false); return; }
     SP_EDITING = null;
@@ -7410,7 +7526,7 @@ async function spSubmitPost(){
     const storyDate = (document.getElementById('spc_date')||{}).value || null;
     const { error } = await sb.rpc('submit_storyline', {
       p_wrestler_id: parseInt(g.wrestler_id,10), p_kind: g.kind, p_title: g.title||null,
-      p_body: g.body, p_payload: g.payload, p_story_date: storyDate
+      p_body: g.body, p_payload: g.payload, p_story_date: storyDate, p_as_user: asUser
     });
     if(error){ spMsg('Failed: '+error.message, false); return; }
     SP_PHOTOS = [];
@@ -7461,10 +7577,11 @@ function spCancelEdit(){
 
 /* ----- the owner's own posts, rendered like real feed posts with a status tag ----- */
 async function spLoadMySubmissions(){
-  if(!CURRENT_USER){ SP_MY_SUBS = []; spRenderMySubs(); return; }
+  const actingId = spActingUserId();
+  if(!actingId){ SP_MY_SUBS = []; spRenderMySubs(); return; }
   const { data, error } = await sb.from('storylines')
     .select('id,kind,title,body,payload,story_date,wrestler_id,submission_status,review_note,created_at,seed_likes,seed_dislikes,pinned')
-    .eq('submitted_by', CURRENT_USER.id)
+    .eq('submitted_by', actingId)
     .order('created_at',{ascending:false});
   SP_MY_SUBS = (!error && data) ? data : [];
   spRenderMySubs();
@@ -7701,6 +7818,7 @@ if(!isConfigured){
   applyTheme();
   applyDashboard();
   refreshUser();
+  vaInit();
   // When login finishes (token read from the URL), re-render the user chip
   // automatically — no manual page reload needed. Also clean the leftover
   // token text off the URL so it looks tidy and can't be re-triggered.
