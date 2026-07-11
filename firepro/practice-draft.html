@@ -1133,7 +1133,7 @@ async function runAiPick(seat, seatIdx){
   let pickedId=null, line='';
   if(available.length){
     try{
-      const { data, error } = await sb.functions.invoke('swift-api', { body:{
+      const { data, error } = await sb.functions.invoke('firepro-ai', { body:{
         postType:'firepro_draft', webSearch:true,
         context:{ draft:{
           budgetLeft:seat.budget, roundsLeft,
@@ -1215,7 +1215,7 @@ async function aiChatReply(fromName, message){
   const seat = responder.s, seatIdx = responder.i;
   AI_REPLYING=true;
   try{
-    const { data, error } = await sb.functions.invoke('swift-api', { body:{
+    const { data, error } = await sb.functions.invoke('firepro-ai', { body:{
       postType:'firepro_chat',
       userPrompt: message,
       context:{ chat:{
