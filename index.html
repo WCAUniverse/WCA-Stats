@@ -6791,7 +6791,7 @@ async function loadStorylines(){
   let rows = [];
   try{
     const { data, error } = await sb.from('storylines')
-      .select('id,kind,title,body,payload,story_date,pinned,is_published,seed_likes,seed_dislikes')
+      .select('id,kind,title,body,payload,story_date,pinned,is_published,seed_likes,seed_dislikes,submitted_by')
       .eq('is_published', true);
     if(error) throw error;
     rows = data || [];
@@ -6848,6 +6848,12 @@ function slEngageBar(p){
   const likeCls = mine===1 ? ' on-like' : '';
   const disCls  = mine===-1 ? ' on-dislike' : '';
   const cc = SL_CCOUNT[p.id]||0;
+  const isMyOwnerPost = CURRENT_USER && p.submitted_by && p.submitted_by === CURRENT_USER.id;
+  const editBtn = isMyOwnerPost
+    ? `<span class="sl-sharebtn" onclick="spEditFromFeed(${p.id})" title="Edit your post">
+        <i class="ti ti-pencil"></i> Edit
+      </span>`
+    : '';
   return `<div class="sl-engage">
       <span class="sl-react${likeCls}" data-react="like" data-id="${p.id}" onclick="slVote(${p.id},1)">
         <i class="ti ti-thumb-up"></i><span class="sl-cnt">${slLikeTotal(p).toLocaleString()}</span>
@@ -6861,6 +6867,7 @@ function slEngageBar(p){
       <span class="sl-sharebtn" onclick="slShare(${p.id})" title="Share this post">
         <i class="ti ti-share-3"></i> Share
       </span>
+      ${editBtn}
     </div>
     <div class="sl-comments${SL_OPEN[p.id]?' open':''}" id="sl-comments-${p.id}"></div>`;
 }
@@ -7562,6 +7569,16 @@ function spFillFromEditing(){
   SP_PHOTOS = (Array.isArray(pl.photos)?pl.photos:[]).map(p=>({url:p.url, ratio:p.ratio||'auto'}));
   spRenderPhotoThumbs();
 }
+// Called from the Edit button on a post's own card in the main feed (not the
+// composer's "Your posts" strip). Falls back to reloading submissions first
+// if they somehow aren't loaded yet (e.g. composer never got a chance to init).
+function spEditFromFeed(id){
+  if(!SP_MY_SUBS.some(x=>String(x.id)===String(id))){
+    spLoadMySubmissions().then(()=> spEditSubmission(id));
+    return;
+  }
+  spEditSubmission(id);
+}
 function spEditSubmission(id){
   const r = SP_MY_SUBS.find(x=>String(x.id)===String(id));
   if(!r) return;
@@ -7589,8 +7606,13 @@ async function spLoadMySubmissions(){
 function spRenderMySubs(){
   const box = document.getElementById('spcMySubs');
   if(!box) return;
-  if(!SP_MY_SUBS.length){ box.innerHTML=''; return; }
-  box.innerHTML = '<div class="spc-mysubs-title">Your posts</div>' + SP_MY_SUBS.map(r=>{
+  // Approved posts already appear in the main feed below (with their own Edit
+  // button via slEngageBar) — showing them here too was the duplicate-post bug.
+  // This strip is now just for what ISN'T visible anywhere else yet: pending
+  // and rejected submissions.
+  const unpublished = SP_MY_SUBS.filter(r => r.submission_status !== 'approved');
+  if(!unpublished.length){ box.innerHTML=''; return; }
+  box.innerHTML = '<div class="spc-mysubs-title">Your pending &amp; rejected posts</div>' + unpublished.map(r=>{
     const status = r.submission_status || 'pending';
     let html = slRenderPostInner(r);
     const ph = slPhotosOf(r);
