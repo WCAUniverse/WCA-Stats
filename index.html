@@ -1918,6 +1918,7 @@
   .sl-comment .sl-cmeta{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
   .sl-comment .sl-cname{font-family:'Barlow Condensed'; font-weight:600; font-size:16px; color:#fff;}
   .sl-comment .sl-cwhen{font-family:'Barlow'; font-size:12px; color:var(--muted2);}
+  .sl-comment .sl-creply-tag{font-family:'Barlow'; font-size:12px; color:var(--gold); opacity:.85;}
   .sl-comment .sl-cbody{font-family:'Barlow'; font-size:15px; line-height:1.55; color:var(--txt);
     white-space:pre-wrap; word-break:break-word;}
   .sl-comment .sl-cmine{font-family:'Barlow'; font-size:12px; color:var(--muted2);
@@ -7021,7 +7022,7 @@ function slFocusSharedPost(id){
 async function slLoadComments(id){
   try{
     const { data, error } = await sb.from('storyline_comments')
-      .select('id,user_id,is_fake,fake_name,body,created_at')
+      .select('id,user_id,is_fake,fake_name,body,created_at,parent_comment_id')
       .eq('storyline_id', id).order('created_at', { ascending:true });
     if(error) throw error;
     // resolve display names: real = display_name||username from profiles; fake = fake_name
@@ -7036,6 +7037,7 @@ async function slLoadComments(id){
       name: c.is_fake ? (c.fake_name||'Anonymous') : (nameById[c.user_id]||'Member'),
       body: c.body,
       created_at: c.created_at,
+      parentId: c.parent_comment_id || null,
       mine: !!(CURRENT_USER && !c.is_fake && c.user_id===CURRENT_USER.id)
     }));
     SL_CCOUNT[id] = SL_COMMENTS[id].length;
@@ -7078,16 +7080,27 @@ async function slRenderComments(id){
        </div>`
     : `<div class="sl-csignin">Want to join the conversation?
          <button onclick="signInDiscord()">Sign in with Discord</button> to comment.</div>`;
-  const items = list.length
-    ? list.map(c=>`<div class="sl-comment">
+  const byId = {}; list.forEach(c=>{ byId[c.id]=c; });
+  const roots = list.filter(c=>!c.parentId || !byId[c.parentId]);
+  const childrenOf = pid => list.filter(c=>c.parentId===pid);
+  const renderComment = (c, depth) => {
+    const replyTag = (c.parentId && byId[c.parentId])
+      ? `<span class="sl-creply-tag">↳ replying to ${esc(byId[c.parentId].name)}</span>` : '';
+    let html = `<div class="sl-comment"${depth?` style="margin-left:${Math.min(depth,4)*24}px"`:''}>
         <div class="sl-cmeta">
           <span class="sl-cname">${esc(c.name)}</span>
+          ${replyTag}
           <span class="sl-cwhen">${esc(slCommentWhen(c.created_at))}</span>
           ${c.mine?`<button class="sl-cmine" onclick="slDeleteComment(${id},${c.id})">delete</button>`:''}
         </div>
         <div class="sl-cbody">${slFmt(c.body)}</div>
         ${slMedia(c.body)}
-      </div>`).join('')
+      </div>`;
+    childrenOf(c.id).forEach(child => { html += renderComment(child, depth+1); });
+    return html;
+  };
+  const items = list.length
+    ? roots.map(r => renderComment(r, 0)).join('')
     : '<div class="sl-cempty">No comments yet — be the first.</div>';
   box.innerHTML = composer + `<div class="sl-clist">${items}</div>`;
   // refresh the count label on the toggle button
