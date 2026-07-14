@@ -6275,11 +6275,18 @@ function slRenderInterview(p){
   const pl = p.payload || {};
   const qa = (Array.isArray(pl.qa)?pl.qa:[]).map(x=>{
     const qn = x.qName || pl.interviewer || 'Q';
-    const an = x.aName || pl.subject || 'A';
-    const og = (!x.aName && pl.origin) ? ` <span class="sl-iv-origin">(${esc(pl.origin)})</span>` : '';
+    // new multi-answer shape, falling back to legacy single a/aName
+    const answers = (Array.isArray(x.answers) && x.answers.length)
+      ? x.answers
+      : [{ name: x.aName||'', text: x.a||'' }];
+    const aLines = answers.map(ans=>{
+      const an = ans.name || pl.subject || 'A';
+      const og = (!ans.name && pl.origin) ? ` <span class="sl-iv-origin">(${esc(pl.origin)})</span>` : '';
+      return `<div class="sl-iv-a"><span class="sl-iv-dash">A &mdash;</span><div><span class="sl-iv-who">${esc(an)}${og}:</span> ${slFmt(ans.text)}</div></div>`;
+    }).join('');
     return `<div class="sl-iv-qa">
       <div class="sl-iv-q"><span class="sl-iv-dash">Q &mdash;</span><div><span class="sl-iv-who sl-iv-qwho">${esc(qn)}:</span> ${slFmt(x.q)}</div></div>
-      <div class="sl-iv-a"><span class="sl-iv-dash">A &mdash;</span><div><span class="sl-iv-who">${esc(an)}${og}:</span> ${slFmt(x.a)}</div></div>
+      ${aLines}
     </div>`;
   }).join('');
   const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
@@ -6289,7 +6296,7 @@ function slRenderInterview(p){
     <h2 class="sl-iv-headline">${esc(p.title)}</h2>
     ${p.body?`<div class="sl-iv-intro">${slFmt(p.body)}</div>`:''}
     <div class="sl-iv-body">${qa}</div>
-    ${slMedia([p.body, ...(Array.isArray(pl.qa)?pl.qa:[]).flatMap(x=>[x.q,x.a])].filter(Boolean).join(' '))}
+    ${slMedia([p.body, ...(Array.isArray(pl.qa)?pl.qa:[]).flatMap(x=>[x.q, ...(Array.isArray(x.answers)?x.answers.map(a=>a.text):[x.a])])].filter(Boolean).join(' '))}
   ${slEngageBar(p)}</article>`;
 }
 // Assigns a rotating color class to each unique speaker (by name, in order of
