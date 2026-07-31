@@ -1399,10 +1399,19 @@
   }
   /* ===== Superstar Portal owner composer (top of Storylines) ===== */
   .spc-bar{display:flex; align-items:center; gap:12px; background:var(--panel);
-    border:1px solid var(--line); border-radius:14px; padding:14px 16px; cursor:pointer;
-    margin-bottom:18px; transition:border-color .15s;}
+    border:1px solid var(--line); border-radius:14px; padding:14px 16px;
+    margin-bottom:18px; transition:border-color .15s; flex-wrap:wrap;}
   .spc-bar:hover{border-color:var(--gold-dim);}
-  .spc-bar .spc-prompt{color:var(--muted); font-size:15px; font-family:'Barlow';}
+  .spc-bar .spc-prompt{color:var(--muted); font-size:15px; font-family:'Barlow'; white-space:nowrap;}
+  .spc-bar .spc-collapse-name{font-family:'Barlow'; font-weight:600; color:var(--txt); font-size:15px;}
+  .spc-bar .spc-collapse-pick{background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    padding:9px 12px; border-radius:8px; font-size:14px; font-family:'Barlow'; min-width:150px; cursor:pointer;}
+  .spc-bar .spc-collapse-pick:focus{outline:none; border-color:var(--gold);}
+  @media(max-width:600px){
+    .spc-bar .spc-collapse-pick{flex:1 1 100%; min-width:0;}
+    .spc-bar > span[style*="margin-left"]{flex:1 1 100%;}
+    .spc-bar .spc-post-btn{width:100%;}
+  }
   .spc-editor{background:var(--panel); border:1px solid var(--gold-dim); border-radius:14px;
     padding:18px; margin-bottom:18px;}
   .spc-kindtabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
@@ -1461,6 +1470,17 @@
   .spc-note{font-size:12px; color:var(--muted); margin-top:6px;}
   .spc-mysubs-title{font-family:'Oswald'; font-size:14px; letter-spacing:1px; text-transform:uppercase;
     color:var(--muted); margin:6px 0 12px;}
+
+  /* ===== Formatting toolbar (composer) ===== */
+  .fmt-toolbar{display:flex; flex-wrap:wrap; gap:4px; background:var(--panel2);
+    border:1px solid var(--line); border-bottom:none; border-radius:8px 8px 0 0; padding:6px; margin-top:5px;}
+  .fmt-toolbar button{background:transparent; border:1px solid transparent; color:var(--txt);
+    min-width:34px; height:32px; border-radius:6px; cursor:pointer; font-size:15px;
+    display:inline-flex; align-items:center; justify-content:center; font-family:'Barlow'; padding:0 8px;}
+  .fmt-toolbar button:hover{background:rgba(233,185,73,.12); border-color:var(--gold-dim); color:var(--gold);}
+  .fmt-toolbar button:active{transform:translateY(1px);}
+  .fmt-toolbar .fmt-sep{width:1px; background:var(--line); margin:2px 4px; align-self:stretch;}
+  .fmt-toolbar + textarea{border-radius:0 0 8px 8px !important; margin-top:0 !important;}
 
   /* Snafu Facts post type */
   .sl-snafu{ background: linear-gradient(135deg,#0d0c1f,#14121e); border:1px solid #3a2e5c; }
@@ -1938,6 +1958,18 @@
   .sl-text code, .sl-body code, .sl-cbody code{font-family:ui-monospace,Menlo,Consolas,monospace;
     font-size:.92em; background:rgba(255,255,255,.07); border:1px solid var(--line);
     border-radius:4px; padding:1px 5px;}
+  /* ===== Rich formatting tags (from the composer toolbar) — apply to every post
+     body and comment body. Attribute-free tags only; styled here, not inline. ===== */
+  .slpost big, .sl-cbody big, .spc-preview-pane big{font-size:1.25em; font-weight:600; line-height:1.3;}
+  .slpost small, .sl-cbody small, .spc-preview-pane small{font-size:.82em; color:var(--muted2,#8a8a86);}
+  .slpost blockquote, .sl-cbody blockquote, .spc-preview-pane blockquote{
+    border-left:3px solid var(--gold); padding:4px 0 4px 14px; margin:10px 0;
+    color:#d8d4c8; font-style:italic;}
+  .slpost h4, .sl-cbody h4, .spc-preview-pane h4{font-family:'Oswald',sans-serif; font-weight:600;
+    text-transform:uppercase; letter-spacing:.5px; font-size:1.05em; color:var(--gold); margin:14px 0 6px;}
+  .slpost ul, .slpost ol, .sl-cbody ul, .sl-cbody ol, .spc-preview-pane ul, .spc-preview-pane ol{
+    margin:8px 0 8px 22px;}
+  .slpost li, .sl-cbody li, .spc-preview-pane li{margin:3px 0;}
   .sl-code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.92em;
     background:rgba(255,255,255,.07); border:1px solid var(--line); border-radius:4px; padding:1px 5px;}
   .sl-pre{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.9em; line-height:1.5;
@@ -2387,6 +2419,31 @@
     #fp-portal *{animation-duration:.01s !important;}
   }
 
+  /* ===== SPONSORS & PARTNERS PAGE ===== */
+  .spo-sec{margin:0 0 44px;}
+  .spo-sec-head{border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:10px;}
+  .spo-sec-head h3{font-size:20px; color:var(--gold); letter-spacing:1.6px;}
+  .spo-sec-blurb{color:var(--muted); font-size:14px; line-height:1.5; margin:0 0 18px; max-width:780px;}
+  .spo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:16px;}
+  .spo-card{display:flex; flex-direction:column; background:linear-gradient(180deg,var(--panel2),var(--panel));
+            border:1px solid var(--line); border-radius:12px; overflow:hidden;
+            text-decoration:none; color:inherit; transition:.18s ease;}
+  a.spo-card:hover{border-color:var(--gold-dim); transform:translateY(-3px); box-shadow:0 12px 28px rgba(0,0,0,.5);}
+  a.spo-card:hover .spo-name{color:var(--gold2);}
+  .spo-logo{aspect-ratio:16/10; display:flex; align-items:center; justify-content:center;
+            background:#08080a; padding:16px;}
+  .spo-logo img{max-width:100%; max-height:100%; object-fit:contain; display:block;}
+  .spo-logo .spo-ph{color:var(--muted2); font-size:28px;}
+  .spo-meta{padding:11px 13px 13px; border-top:1px solid var(--line);}
+  .spo-name{font-family:'Oswald',sans-serif; font-size:14px; letter-spacing:1px;
+            text-transform:uppercase; color:var(--txt); transition:.18s;}
+  .spo-blurb{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.4;}
+  .spo-ext{font-size:11px; color:var(--gold-dim); margin-top:7px; letter-spacing:.5px;
+           display:flex; align-items:center; gap:4px;}
+  @media(max-width:640px){
+    .spo-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;}
+    .spo-logo{padding:12px;}
+  }
 </style>
 </head>
 <body>
@@ -2434,6 +2491,7 @@
         <a href="#roster" data-page="roster">Roster</a>
         <a href="#storylines" data-page="storylines">Storylines</a>
         <a href="#apply" data-page="apply">Apply</a>
+        <a href="#sponsors" data-page="sponsors">Sponsors</a>
         <a href="#firepro" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
       </nav>
       <div class="socials">
@@ -2662,6 +2720,14 @@
 
     <div id="apply-gate"></div>
     <div id="apply-body" style="display:none"></div>
+  </div>
+
+  <!-- ===== SPONSORS & ASSOCIATED PARTNERS ===== -->
+  <div class="page" id="page-sponsors">
+    <div class="section-title">Sponsors &amp; Partners</div>
+    <p class="sl-intro">The brands that (fictionally) keep the lights on at the WCA, plus the real
+      promotions, creators and channels we're happy to point you toward.</p>
+    <div id="sponsors-content"><div class="loading">Loading&hellip;</div></div>
   </div>
 
   <!-- ===== MY ACCOUNT (full page; reached by clicking the user chip) ===== -->
@@ -2972,17 +3038,68 @@ function escAttr(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[
 // Anything else (scripts, links-as-html, etc.) stays as harmless text.
 function slFmt(s){
   let t = esc(s);
-  const allow = ['b','strong','i','em','u','s','code','br'];
-  // Turn escaped &lt;tag&gt; / &lt;/tag&gt; back into real tags, only for allowed tags.
+  // Safe whitelist — inline + block tags, NEVER any attributes (no inline styles,
+  // no colors) so nothing can break the layout or inject. Old posts contain none
+  // of the new tags, so they render exactly as before; only posts authored with
+  // the formatting toolbar carry them.
+  const allow = ['b','strong','i','em','u','s','code','br','big','small','blockquote','h4','ul','ol','li'];
   t = t.replace(/&lt;(\/?)([a-zA-Z0-9]+)&gt;/g, (m, slash, tag)=>{
     return allow.includes(tag.toLowerCase()) ? '<'+slash+tag.toLowerCase()+'>' : m;
   });
-  // Plain newlines become line breaks too.
+  // Newlines become <br> — but not around block tags (lists/quotes/headings manage
+  // their own spacing, so a stray <br> there would double the gaps).
+  t = t.replace(/(<\/(?:li|ul|ol|blockquote|h4)>)\s*\n/gi, '$1');
+  t = t.replace(/\n(\s*<(?:li|ul|ol|\/ul|\/ol|blockquote|h4)>)/gi, '$1');
   t = t.replace(/\n/g, '<br>');
+  t = t.replace(/(<(?:ul|ol|blockquote)>)<br>/gi, '$1');
   return t;
 }
 
-// ===== BELTS: division -> image =====
+// ===== FORMATTING TOOLBAR (shared) =====
+// Returns the HTML for a Word-style toolbar bound to a textarea by id. The
+// buttons insert the same safe tags slFmt() renders. Call fmtToolbarHTML(id)
+// right above a <textarea id="id"> (the textarea should have class "fmt-ta").
+function fmtToolbarHTML(taId){
+  const b = (mode,val,title,label)=>`<button type="button" tabindex="-1" title="${title}" onmousedown="event.preventDefault()" onclick="fmtApply('${taId}','${mode}','${val}')">${label}</button>`;
+  return `<div class="fmt-toolbar">
+    ${b('wrap','b','Bold','<b>B</b>')}
+    ${b('wrap','i','Italic','<i>I</i>')}
+    ${b('wrap','u','Underline','<u>U</u>')}
+    ${b('wrap','s','Strikethrough','<s>S</s>')}
+    <span class="fmt-sep"></span>
+    ${b('wrap','big','Bigger text','A+')}
+    ${b('wrap','small','Smaller text','A&minus;')}
+    <span class="fmt-sep"></span>
+    ${b('line','h4','Heading','H')}
+    ${b('wrap','blockquote','Quote','&ldquo;&rdquo;')}
+    ${b('list','ul','Bullet list','&bull;&bull;')}
+    ${b('list','ol','Numbered list','1.')}
+    <span class="fmt-sep"></span>
+    ${b('wrap','code','Code','&lt;/&gt;')}
+  </div>`;
+}
+function fmtApply(taId, mode, tag){
+  const ta = document.getElementById(taId);
+  if(!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd, val = ta.value;
+  if(mode==='wrap'){
+    const ph = tag==='blockquote'?'quoted text':tag==='big'?'bigger':tag==='small'?'smaller':'text';
+    const sel = val.slice(s,e) || ph;
+    const open='<'+tag+'>', close='</'+tag+'>';
+    ta.value = val.slice(0,s)+open+sel+close+val.slice(e);
+    ta.focus(); ta.selectionStart=s+open.length; ta.selectionEnd=s+open.length+sel.length;
+  } else if(mode==='list'){
+    const chunk = val.slice(s,e) || 'first item\nsecond item';
+    const items = chunk.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>'  <li>'+l+'</li>').join('\n');
+    const block = '<'+tag+'>\n'+items+'\n</'+tag+'>';
+    ta.value = val.slice(0,s)+block+val.slice(e); ta.focus();
+  } else if(mode==='line'){
+    const sel = val.slice(s,e) || 'Heading';
+    const block = '<'+tag+'>'+sel+'</'+tag+'>';
+    ta.value = val.slice(0,s)+block+val.slice(e); ta.focus();
+  }
+  ta.dispatchEvent(new Event('input',{bubbles:true}));
+}
 let BELTS = {};
 async function loadBelts(){
   const {data}=await sb.from('belts').select('*');
@@ -7269,6 +7386,7 @@ let SP_MY_WRESTLERS = [];
 let SP_MY_SUBS = [];
 let SP_EDITING = null;      // the submission row being edited, or null
 let SP_KIND = 'social';
+let SP_ACTIVE_WID = null;   // which owned character is currently selected to post as
 let SP_PHOTOS = [];         // [{url, ratio}] — attached photos for the current draft
 const SP_MAX_PHOTOS = 4;
 
@@ -7306,12 +7424,19 @@ function spMsg(text, ok){
 function spRenderCollapsed(){
   const el = document.getElementById('sp-composer');
   if(!el || !SP_MY_WRESTLERS.length) return;
-  const first = SP_MY_WRESTLERS[0];
+  const multi = SP_MY_WRESTLERS.length > 1;
+  // remember which character was last chosen (used to preselect in the editor)
+  if(!SP_ACTIVE_WID) SP_ACTIVE_WID = SP_MY_WRESTLERS[0].id;
+  const picker = multi
+    ? `<select class="spc-collapse-pick" onchange="SP_ACTIVE_WID=this.value" onclick="event.stopPropagation()" aria-label="Post as which character">
+        ${SP_MY_WRESTLERS.map(w=>`<option value="${w.id}"${String(w.id)===String(SP_ACTIVE_WID)?' selected':''}>${esc(w.name)}</option>`).join('')}
+       </select>`
+    : `<span class="spc-collapse-name">${esc(SP_MY_WRESTLERS[0].name)}</span>`;
   el.innerHTML = `
-    <div class="spc-bar" onclick="spExpand()">
-      ${slAvatar(first.name)}
-      <span class="spc-prompt">What's happening, ${esc(first.name)}? Post as your character…</span>
-      <span style="margin-left:auto"><button class="spc-post-btn" style="padding:8px 18px" onclick="event.stopPropagation();spExpand()">Post</button></span>
+    <div class="spc-bar">
+      <span class="spc-prompt">Post as${multi?'':` ${esc(SP_MY_WRESTLERS[0].name)}`}:</span>
+      ${picker}
+      <span style="margin-left:auto"><button class="spc-post-btn" onclick="spExpand()">Post as character</button></span>
     </div>
     <div id="spcMySubs"></div>`;
   spRenderMySubs();
@@ -7326,8 +7451,12 @@ function spExpand(){
   const kindTabs = ['social','promo','interview'].map(k=>
     `<button class="${SP_KIND===k?'active':''}" ${editing?'disabled':''} onclick="spSetKind('${k}')">${k==='press_qa'?'Press Q&A':k.charAt(0).toUpperCase()+k.slice(1)}</button>`
   ).join('');
-  const asOptions = SP_MY_WRESTLERS.map(w=>
-    `<option value="${w.id}"${SP_EDITING && String(SP_EDITING.wrestler_id)===String(w.id)?' selected':''}>${esc(w.name)}</option>`).join('');
+  const asOptions = SP_MY_WRESTLERS.map(w=>{
+    const sel = SP_EDITING
+      ? String(SP_EDITING.wrestler_id)===String(w.id)
+      : String(SP_ACTIVE_WID)===String(w.id);
+    return `<option value="${w.id}"${sel?' selected':''}>${esc(w.name)}</option>`;
+  }).join('');
   el.innerHTML = `
     <div class="spc-editor">
       <div class="spc-tagbar">
@@ -7392,8 +7521,9 @@ function spRenderKindFields(){
       <label>Handle <span style="text-transform:none">(optional, e.g. @cobravance)</span></label>
       <input id="spc_handle" placeholder="@handle">
       <label>Post text</label>
+      ${fmtToolbarHTML('spc_body')}
       <textarea id="spc_body" maxlength="2000" placeholder="What are they posting?"></textarea>
-      <div class="spc-note">Formatting: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;u&gt;underline&lt;/u&gt;, &lt;s&gt;strike&lt;/s&gt; — renders on the site.</div>
+      <div class="spc-note">Select text, then tap a button to format it — bold, lists, quotes and more. Hit "Preview post" to see how it'll look.</div>
       <div class="spc-row">
         <div><label>Likes (flavor)</label><input id="spc_f_likes" placeholder="e.g. 4.2K"></div>
         <div><label>Replies (flavor)</label><input id="spc_f_replies" placeholder="e.g. 318"></div>
@@ -7407,8 +7537,9 @@ function spRenderKindFields(){
       <label>Setting <span style="text-transform:none">(optional eyebrow, e.g. "Backstage · WCA 49")</span></label>
       <input id="spc_setting" placeholder="Backstage · WCA 49">
       <label>Promo text <span style="text-transform:none">(write it as spoken word — blank lines separate beats)</span></label>
+      ${fmtToolbarHTML('spc_body')}
       <textarea id="spc_body" style="min-height:150px" maxlength="4000" placeholder="They told me I was finished.&#10;&#10;They were wrong."></textarea>
-      <div class="spc-note">Formatting: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt; — blank lines separate spoken beats.</div>`;
+      <div class="spc-note">Select text, then tap a button to format it. Blank lines separate spoken beats.</div>`;
   } else if(SP_KIND==='interview'){
     host.innerHTML = `
       <label>Headline / topic</label>
@@ -7422,6 +7553,7 @@ function spRenderKindFields(){
         <div><label>Subject origin <span style="text-transform:none">(optional — title/where from)</span></label><input id="spc_iv_origin" placeholder="WCA Women's Champion"></div>
       </div>
       <label>Intro <span style="text-transform:none">(optional setup paragraph above the Q&amp;A)</span></label>
+      ${fmtToolbarHTML('spc_iv_intro')}
       <textarea id="spc_iv_intro" style="min-height:60px" placeholder="We sat down with the champion days after her title defense…"></textarea>
       <label>Q&amp;A exchanges</label>
       <div class="spc-note" style="margin-bottom:6px">Each block is one question + one answer. Names default to the Interviewer / Subject above; override per line if needed.</div>
@@ -7780,6 +7912,7 @@ function activatePage(pg){
   if(pg==='leaderboard') loadLeaderboard();
   if(pg==='archive') loadArchive();
   if(pg==='apply') loadApply();
+  if(pg==='sponsors') loadSponsors();
   if(pg==='account') loadAccount();
   return true;
 }
@@ -7965,5 +8098,76 @@ if(!isConfigured){
     });
   }
 </script>
+<!-- ===== SPONSORS & PARTNERS (public page) =====
+     Reads sponsor_sections + sponsors from Supabase and renders one
+     grid of clickable logo tiles per section. Rows marked active=false
+     never reach the browser (RLS filters them server-side).
+     Requires: SUPABASE_SETUP_sponsors.sql to have been run once. -->
+<script>
+// Only ever emit http/https links — blocks javascript: and data: URLs
+// from becoming a clickable tile if one is ever typed into the admin.
+function spoSafeUrl(u){
+  u = (u||'').trim();
+  if(!u) return '';
+  if(/^\/\//.test(u)) u = 'https:' + u;
+  if(!/^https?:\/\//i.test(u)) return '';
+  return u;
+}
+function spoHost(u){
+  try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return 'Visit site'; }
+}
+function spoTile(row){
+  const link = spoSafeUrl(row.link_url);
+  const img  = row.logo_url
+    ? '<img src="'+escAttr(row.logo_url)+'" alt="'+escAttr(row.name)+'" loading="lazy" '+
+      'onerror="this.outerHTML=\'<i class=&quot;ti ti-photo spo-ph&quot;></i>\'">'
+    : '<i class="ti ti-building-store spo-ph"></i>';
+  const blurb = row.blurb ? '<div class="spo-blurb">'+esc(row.blurb)+'</div>' : '';
+  const ext   = link
+    ? '<div class="spo-ext"><i class="ti ti-external-link"></i> '+esc(spoHost(link))+'</div>'
+    : '';
+  const inner =
+    '<div class="spo-logo">'+img+'</div>'+
+    '<div class="spo-meta"><div class="spo-name">'+esc(row.name)+'</div>'+blurb+ext+'</div>';
+  return link
+    ? '<a class="spo-card" href="'+escAttr(link)+'" target="_blank" rel="noopener noreferrer nofollow">'+inner+'</a>'
+    : '<div class="spo-card">'+inner+'</div>';
+}
+async function loadSponsors(){
+  const el = document.getElementById('sponsors-content');
+  if(!el) return;
+  el.innerHTML = '<div class="loading">Loading&hellip;</div>';
+  let secs = [], items = [];
+  try{
+    const [s, i] = await Promise.all([
+      sb.from('sponsor_sections').select('*').order('sort_order',{ascending:true}),
+      sb.from('sponsors').select('*').order('sort_order',{ascending:true})
+    ]);
+    if(s.error) throw s.error;
+    if(i.error) throw i.error;
+    secs  = s.data || [];
+    items = i.data || [];
+  }catch(e){
+    el.innerHTML = '<div class="lb-empty">Couldn\'t load the sponsors page right now.</div>';
+    return;
+  }
+  // Group tiles under their section, keeping the sort order from the query.
+  const bySec = {};
+  items.forEach(r=>{ (bySec[r.section_key] = bySec[r.section_key] || []).push(r); });
+  const blocks = secs.filter(sec => (bySec[sec.key]||[]).length).map(sec=>{
+    const tiles = bySec[sec.key].map(spoTile).join('');
+    const blurb = sec.blurb ? '<p class="spo-sec-blurb">'+esc(sec.blurb)+'</p>' : '';
+    return '<div class="spo-sec">'+
+             '<div class="spo-sec-head"><h3>'+esc(sec.title)+'</h3></div>'+
+             blurb+
+             '<div class="spo-grid">'+tiles+'</div>'+
+           '</div>';
+  });
+  el.innerHTML = blocks.length
+    ? blocks.join('')
+    : '<div class="lb-empty">No sponsors or partners posted yet — check back soon.</div>';
+}
+</script>
+
 </body>
 </html>
