@@ -2456,21 +2456,53 @@
     .spo-noimg{font-size:15px;}
     .spo-blurb{font-size:12px;}
   }
-  /* dashboard sponsor strip — same boxless treatment, scaled down */
-  .dspo-strip{margin-top:40px;}
-  .dspo-row{display:flex; flex-wrap:wrap; align-items:center; gap:34px 42px; padding:10px 0 4px;}
-  .dspo-item{height:76px; max-width:186px; display:flex; align-items:center; justify-content:center;
+  /* ===== DASHBOARD SPONSOR STRIP =====
+     Two shapes, chosen per section in the admin: a static row (partners —
+     you want those readable and still) and a marquee (the fake brands —
+     an endless drift, the way a broadcast lower-third sponsor reel runs). */
+  .dspo-strip{margin-top:44px;}
+  .dspo-group{margin-top:26px;}
+  .dspo-group:first-child{margin-top:16px;}
+  .dspo-label{font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2.2px;
+              text-transform:uppercase; color:var(--muted2); margin:0 0 14px;}
+  /* fixed slot, not auto — an auto-width item measures 0 until its image
+     loads, which would wreck the marquee maths, and even slots look tidier */
+  .dspo-item{width:210px; height:104px; flex:0 0 auto;
+             display:flex; align-items:center; justify-content:center;
              background:none; border:0; border-radius:0; padding:0;
              text-decoration:none; transition:.2s ease;}
-  .dspo-item img{max-width:100%; max-height:100%; object-fit:contain; opacity:.9; transition:.2s;}
+  .dspo-item img{max-width:100%; max-height:100%; object-fit:contain; opacity:.92; transition:.2s;}
   a.dspo-item:hover{transform:translateY(-4px);}
-  a.dspo-item:hover img{opacity:1; filter:drop-shadow(0 8px 20px rgba(0,0,0,.55));}
-  .dspo-item .dspo-txt{font-family:'Oswald',sans-serif; font-size:14px; letter-spacing:1.2px;
+  a.dspo-item:hover img{opacity:1; filter:drop-shadow(0 8px 22px rgba(0,0,0,.6));}
+  .dspo-item .dspo-txt{font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:1.3px;
                        text-transform:uppercase; color:var(--muted); text-align:center; line-height:1.3;}
   a.dspo-item:hover .dspo-txt{color:var(--gold2);}
+
+  /* static row */
+  .dspo-row{display:flex; flex-wrap:wrap; align-items:center; gap:34px 56px; padding:4px 0;}
+
+  /* marquee — edges fade out so logos enter and leave instead of being cut */
+  .dspo-marquee{position:relative; overflow:hidden; padding:4px 0;
+                -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%);
+                mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%);}
+  .dspo-track{display:flex; align-items:center; gap:56px; width:max-content;
+              animation:dspo-drift var(--dspo-dur,46s) linear infinite;
+              will-change:transform;}
+  .dspo-marquee:hover .dspo-track{animation-play-state:paused;}
+  @keyframes dspo-drift{
+    from{transform:translate3d(0,0,0);}
+    to{transform:translate3d(calc(-1 * var(--dspo-unit,50%)),0,0);}
+  }
+  /* never animate for people who've asked the OS not to — becomes a swipeable row */
+  @media (prefers-reduced-motion: reduce){
+    .dspo-track{animation:none;}
+    .dspo-marquee{overflow-x:auto; mask-image:none; -webkit-mask-image:none;}
+  }
   @media(max-width:640px){
-    .dspo-row{gap:24px 26px;}
-    .dspo-item{height:54px; max-width:128px;}
+    .dspo-row{gap:24px 32px;}
+    .dspo-track{gap:32px;}
+    .dspo-item{width:132px; height:66px;}
+    .dspo-label{font-size:10px; letter-spacing:1.8px; margin-bottom:10px;}
   }
 </style>
 </head>
@@ -8227,16 +8259,75 @@ async function loadSponsors(){
 // bottom of the Dashboard. Renders nothing at all if none are flagged, if
 // the strip is switched off in the admin, or if the column doesn't exist
 // yet — so the dashboard is never broken by this.
+function dspoItem(r){
+  const link = spoSafeUrl(r.link_url);
+  const inner = r.logo_url
+    ? '<img src="'+escAttr(r.logo_url)+'" alt="'+escAttr(r.name)+'" loading="lazy" '+
+      'onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'block\'">'+
+      '<span class="dspo-txt" style="display:none">'+esc(r.name)+'</span>'
+    : '<span class="dspo-txt">'+esc(r.name)+'</span>';
+  return link
+    ? '<a class="dspo-item" href="'+escAttr(link)+'" target="_blank" rel="noopener noreferrer nofollow" title="'+escAttr(r.name)+'">'+inner+'</a>'
+    : '<div class="dspo-item" title="'+escAttr(r.name)+'">'+inner+'</div>';
+}
+
+// A CSS marquee only loops cleanly if the track is an exact whole number of
+// copies of the same set AND is wider than its container. So: render one set,
+// measure it, then repeat it enough times to overflow, and drive the keyframe
+// off that measured width. Speed stays constant (px/sec) no matter how many
+// logos there are, which is what stops 3 sponsors from crawling and 20 from
+// racing. Re-measured on resize.
+function dspoMarquee(el){
+  const set = el.getAttribute('data-set');
+  const per = parseInt(el.getAttribute('data-count'), 10) || 0;
+  if(!set || !per) return;
+  el.innerHTML = '<div class="dspo-track">'+set+'</div>';
+  const track = el.firstElementChild;
+  requestAnimationFrame(()=>{
+    const rough = track.scrollWidth;
+    if(!rough) return;
+    const need = Math.max(2, Math.ceil((el.clientWidth * 2) / rough) + 1);
+    let html = '';
+    for(let k=0;k<need;k++) html += set;
+    track.innerHTML = html;
+    requestAnimationFrame(()=>{
+      const kids = track.children;
+      if(kids.length <= per) return;
+      // Distance from copy 1 to copy 2, measured off the DOM. Using
+      // scrollWidth here would be one flex gap short and the loop would
+      // visibly hitch once per lap.
+      const unit = kids[per].offsetLeft - kids[0].offsetLeft;
+      if(!unit) return;
+      const SPEED = 42;                     // px per second — slow and calm
+      track.style.setProperty('--dspo-unit', unit + 'px');
+      track.style.setProperty('--dspo-dur', Math.max(18, Math.round(unit / SPEED)) + 's');
+    });
+  });
+}
+let _dspoResizeBound = false;
+function dspoBindResize(){
+  if(_dspoResizeBound) return;
+  _dspoResizeBound = true;
+  let t;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(t);
+    t = setTimeout(()=>{ document.querySelectorAll('.dspo-marquee').forEach(dspoMarquee); }, 250);
+  });
+}
+
 async function loadDashSponsors(){
   const host = document.getElementById('dash-sponsors');
   if(!host) return;
   host.innerHTML = '';
-  let rows = [];
+  let rows = [], secs = [];
   try{
-    const { data, error } = await sb.from('sponsors')
-      .select('*').eq('show_on_dashboard', true).order('sort_order',{ascending:true});
-    if(error) return;                 // column not added yet — stay silent
-    rows = data || [];
+    const [r, s] = await Promise.all([
+      sb.from('sponsors').select('*').eq('show_on_dashboard', true).order('sort_order',{ascending:true}),
+      sb.from('sponsor_sections').select('*').order('sort_order',{ascending:true})
+    ]);
+    if(r.error) return;                 // column not added yet — stay silent
+    rows = r.data || [];
+    secs = s.error ? [] : (s.data || []);
   }catch(e){ return; }
   if(!rows.length) return;
 
@@ -8244,15 +8335,26 @@ async function loadDashSponsors(){
   if(copy && copy.dash_on === false) return;
   const heading = (copy && copy.dash_title && String(copy.dash_title).trim()) || 'Our Sponsors';
 
-  const tiles = rows.map(r=>{
-    const link = spoSafeUrl(r.link_url);
-    const inner = r.logo_url
-      ? '<img src="'+escAttr(r.logo_url)+'" alt="'+escAttr(r.name)+'" loading="lazy" '+
-        'onerror="this.outerHTML=\'<span class=&quot;dspo-txt&quot;>'+escAttr(r.name)+'</span>\'">'
-      : '<span class="dspo-txt">'+esc(r.name)+'</span>';
-    return link
-      ? '<a class="dspo-item" href="'+escAttr(link)+'" target="_blank" rel="noopener noreferrer nofollow" title="'+escAttr(r.name)+'">'+inner+'</a>'
-      : '<div class="dspo-item" title="'+escAttr(r.name)+'">'+inner+'</div>';
+  // Group the flagged logos under their section, in section order. Anything
+  // whose section has gone missing still gets shown, at the end, statically.
+  const groups = secs.map(sec => ({
+    title: sec.title,
+    style: sec.dash_style === 'scroll' ? 'scroll' : 'static',
+    rows: rows.filter(r => r.section_key === sec.key)
+  })).filter(g => g.rows.length);
+  const orphans = rows.filter(r => !secs.some(sec => sec.key === r.section_key));
+  if(orphans.length) groups.push({ title:'', style:'static', rows:orphans });
+  if(!groups.length) return;
+
+  const showLabels = groups.length > 1;
+  const body = groups.map(g=>{
+    const items = g.rows.map(dspoItem).join('');
+    const label = (showLabels && g.title) ? '<div class="dspo-label">'+esc(g.title)+'</div>' : '';
+    const inner = g.style === 'scroll'
+      ? '<div class="dspo-marquee" data-set="'+escAttr(items)+'" data-count="'+g.rows.length+'">'+
+        '<div class="dspo-track">'+items+'</div></div>'
+      : '<div class="dspo-row">'+items+'</div>';
+    return '<div class="dspo-group">'+label+inner+'</div>';
   }).join('');
 
   host.innerHTML =
@@ -8261,8 +8363,11 @@ async function loadDashSponsors(){
         '<span class="st-rule"></span>'+
         '<button class="see-all" onclick="goPage(\'sponsors\')">all sponsors <i class="ti ti-arrow-right"></i></button>'+
       '</div>'+
-      '<div class="dspo-row">'+tiles+'</div>'+
+      body+
     '</div>';
+
+  host.querySelectorAll('.dspo-marquee').forEach(dspoMarquee);
+  dspoBindResize();
 }
 
 // This block is parsed after the main init block, so the dashboard strip and a
