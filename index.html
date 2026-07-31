@@ -7928,7 +7928,7 @@ function activatePage(pg){
   if(pg==='leaderboard') loadLeaderboard();
   if(pg==='archive') loadArchive();
   if(pg==='apply') loadApply();
-  if(pg==='sponsors') loadSponsors();
+  if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
   if(pg==='account') loadAccount();
   return true;
 }
@@ -8061,7 +8061,6 @@ if(!isConfigured){
   fpResumeExitSfx();   // continue the Fire Pro warp sound if we just came back from it
   applyTheme();
   applyDashboard();
-  loadDashSponsors();
   refreshUser();
   vaInit();
   // When login finishes (token read from the URL), re-render the user chip
@@ -8249,6 +8248,14 @@ async function loadDashSponsors(){
       '</div>'+
       '<div class="dspo-row">'+tiles+'</div>'+
     '</div>';
+}
+
+// This block is parsed after the main init block, so the dashboard strip and a
+// direct #sponsors landing have to be kicked off from here — calling them from
+// up there would hit a not-yet-defined function and abort the whole init.
+if(typeof sb !== 'undefined' && sb){
+  loadDashSponsors();
+  if((location.hash||'').slice(1).split('?')[0] === 'sponsors') loadSponsors();
 }
 </script>
 
