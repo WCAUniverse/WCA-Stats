@@ -2444,6 +2444,19 @@
     .spo-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;}
     .spo-logo{padding:12px;}
   }
+  /* dashboard sponsor strip — smaller, logo-only tiles */
+  .dspo-strip{margin-top:34px;}
+  .dspo-row{display:flex; flex-wrap:wrap; gap:12px;}
+  .dspo-item{width:132px; height:74px; display:flex; align-items:center; justify-content:center;
+             background:#08080a; border:1px solid var(--line); border-radius:10px; padding:10px;
+             transition:.18s ease; text-decoration:none; overflow:hidden;}
+  .dspo-item img{max-width:100%; max-height:100%; object-fit:contain; opacity:.85; transition:.18s;}
+  a.dspo-item:hover{border-color:var(--gold-dim); transform:translateY(-2px);}
+  a.dspo-item:hover img{opacity:1;}
+  .dspo-item .dspo-txt{font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:1px;
+                       text-transform:uppercase; color:var(--muted); text-align:center; line-height:1.3;}
+  a.dspo-item:hover .dspo-txt{color:var(--gold2);}
+  @media(max-width:640px){ .dspo-item{width:106px; height:62px; padding:8px;} }
 </style>
 </head>
 <body>
@@ -2571,6 +2584,9 @@
       <button class="see-all" onclick="goPage('storylines')">all storylines <i class="ti ti-arrow-right"></i></button>
     </div>
     <div class="dsl-grid" id="dash-storylines"><div class="dsl-empty">Loading…</div></div>
+
+    <!-- SPONSOR STRIP — filled by loadDashSponsors(); stays empty if nothing is flagged -->
+    <div id="dash-sponsors"></div>
   </div>
 
   <!-- LIVE -->
@@ -2724,8 +2740,8 @@
 
   <!-- ===== SPONSORS & ASSOCIATED PARTNERS ===== -->
   <div class="page" id="page-sponsors">
-    <div class="section-title">Sponsors &amp; Partners</div>
-    <p class="sl-intro">The brands that (fictionally) keep the lights on at the WCA, plus the real
+    <div class="section-title" id="spo-page-title">Sponsors &amp; Partners</div>
+    <p class="sl-intro" id="spo-page-intro">The brands that (fictionally) keep the lights on at the WCA, plus the real
       promotions, creators and channels we're happy to point you toward.</p>
     <div id="sponsors-content"><div class="loading">Loading&hellip;</div></div>
   </div>
@@ -8045,6 +8061,7 @@ if(!isConfigured){
   fpResumeExitSfx();   // continue the Fire Pro warp sound if we just came back from it
   applyTheme();
   applyDashboard();
+  loadDashSponsors();
   refreshUser();
   vaInit();
   // When login finishes (token read from the URL), re-render the user chip
@@ -8133,10 +8150,33 @@ function spoTile(row){
     ? '<a class="spo-card" href="'+escAttr(link)+'" target="_blank" rel="noopener noreferrer nofollow">'+inner+'</a>'
     : '<div class="spo-card">'+inner+'</div>';
 }
+// Page heading + intro paragraph are editable from the admin Sponsors tab
+// (site_settings.sponsors). If the column/row is missing we silently keep
+// whatever is already written in the HTML.
+let SPO_COPY = null;
+async function spoLoadCopy(){
+  if(SPO_COPY) return SPO_COPY;
+  try{
+    const { data, error } = await sb.from('site_settings').select('sponsors').eq('id',1).single();
+    if(error || !data) return null;
+    SPO_COPY = data.sponsors || null;
+  }catch(e){ SPO_COPY = null; }
+  return SPO_COPY;
+}
 async function loadSponsors(){
   const el = document.getElementById('sponsors-content');
   if(!el) return;
   el.innerHTML = '<div class="loading">Loading&hellip;</div>';
+  const copy = await spoLoadCopy();
+  if(copy){
+    const t = document.getElementById('spo-page-title');
+    const i = document.getElementById('spo-page-intro');
+    if(t && copy.title && String(copy.title).trim()) t.textContent = copy.title;
+    if(i && copy.intro != null){
+      const v = String(copy.intro).trim();
+      if(v){ i.textContent = v; i.style.display=''; } else { i.style.display='none'; }
+    }
+  }
   let secs = [], items = [];
   try{
     const [s, i] = await Promise.all([
@@ -8166,6 +8206,49 @@ async function loadSponsors(){
   el.innerHTML = blocks.length
     ? blocks.join('')
     : '<div class="lb-empty">No sponsors or partners posted yet — check back soon.</div>';
+}
+
+// ---- Dashboard sponsor strip ----------------------------------------
+// Renders any tile flagged show_on_dashboard as a small logo at the very
+// bottom of the Dashboard. Renders nothing at all if none are flagged, if
+// the strip is switched off in the admin, or if the column doesn't exist
+// yet — so the dashboard is never broken by this.
+async function loadDashSponsors(){
+  const host = document.getElementById('dash-sponsors');
+  if(!host) return;
+  host.innerHTML = '';
+  let rows = [];
+  try{
+    const { data, error } = await sb.from('sponsors')
+      .select('*').eq('show_on_dashboard', true).order('sort_order',{ascending:true});
+    if(error) return;                 // column not added yet — stay silent
+    rows = data || [];
+  }catch(e){ return; }
+  if(!rows.length) return;
+
+  const copy = await spoLoadCopy();
+  if(copy && copy.dash_on === false) return;
+  const heading = (copy && copy.dash_title && String(copy.dash_title).trim()) || 'Our Sponsors';
+
+  const tiles = rows.map(r=>{
+    const link = spoSafeUrl(r.link_url);
+    const inner = r.logo_url
+      ? '<img src="'+escAttr(r.logo_url)+'" alt="'+escAttr(r.name)+'" loading="lazy" '+
+        'onerror="this.outerHTML=\'<span class=&quot;dspo-txt&quot;>'+escAttr(r.name)+'</span>\'">'
+      : '<span class="dspo-txt">'+esc(r.name)+'</span>';
+    return link
+      ? '<a class="dspo-item" href="'+escAttr(link)+'" target="_blank" rel="noopener noreferrer nofollow" title="'+escAttr(r.name)+'">'+inner+'</a>'
+      : '<div class="dspo-item" title="'+escAttr(r.name)+'">'+inner+'</div>';
+  }).join('');
+
+  host.innerHTML =
+    '<div class="dspo-strip">'+
+      '<div class="section-title st-flex">'+esc(heading)+
+        '<span class="st-rule"></span>'+
+        '<button class="see-all" onclick="goPage(\'sponsors\')">all sponsors <i class="ti ti-arrow-right"></i></button>'+
+      '</div>'+
+      '<div class="dspo-row">'+tiles+'</div>'+
+    '</div>';
 }
 </script>
 
