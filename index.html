@@ -2427,12 +2427,17 @@
   .spo-sec-head{border-bottom:1px solid var(--line); padding-bottom:9px; margin-bottom:12px;}
   .spo-sec-head h3{font-size:23px; color:var(--gold); letter-spacing:1.8px;}
   .spo-sec-blurb{color:var(--muted); font-size:14px; line-height:1.5; margin:0 0 34px; max-width:820px;}
-  /* Two knobs control the whole wall — slot width and logo height. Every
-     breakpoint below just re-sets these, so resizing the sponsors page is a
-     one-number change rather than a hunt through five rules. */
-  .spo-grid{--spo-slot:320px; --spo-logo-h:200px;
+  /* Sizing is driven by three custom properties set from the admin (see
+     spoApplySizes). The BASE values below are only fallbacks for the moment
+     before settings load. Breakpoints deliberately adjust --spo-scale rather
+     than the base values, because the admin writes the bases as inline styles
+     and an inline style would otherwise beat every media query, leaving the
+     page stuck at desktop size on a phone. */
+  .spo-grid{--spo-slot-base:320px; --spo-logo-base:200px; --spo-gap:52px; --spo-scale:1;
+            --spo-slot:calc(var(--spo-slot-base) * var(--spo-scale));
+            --spo-logo-h:calc(var(--spo-logo-base) * var(--spo-scale));
             display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start;
-            gap:60px 52px; padding:12px 0 6px;}
+            gap:calc(var(--spo-gap) * 1.15) var(--spo-gap); padding:12px 0 6px;}
   .spo-card{display:flex; flex-direction:column; align-items:center; gap:14px;
             width:var(--spo-slot); background:none; border:0; padding:0;
             text-decoration:none; color:inherit; transition:.2s ease;}
@@ -2442,25 +2447,19 @@
   .spo-logo img{max-width:100%; max-height:100%; object-fit:contain; display:block; transition:.2s ease;}
   a.spo-card:hover .spo-logo img{filter:drop-shadow(0 10px 28px rgba(0,0,0,.62));}
   /* shown only when a tile has no image, so the slot is never blank */
-  .spo-noimg{font-family:'Oswald',sans-serif; font-size:24px; letter-spacing:1.8px;
+  .spo-noimg{font-family:'Oswald',sans-serif; letter-spacing:1.8px;
+             font-size:calc(24px * var(--spo-scale));
              text-transform:uppercase; color:var(--muted); text-align:center; line-height:1.25;
              transition:.2s;}
   a.spo-card:hover .spo-noimg{color:var(--gold2);}
   .spo-blurb{font-size:13.5px; color:var(--muted); text-align:center; line-height:1.45;
              max-width:calc(var(--spo-slot) - 30px);}
-  @media(max-width:1100px){
-    .spo-grid{--spo-slot:250px; --spo-logo-h:158px; gap:48px 40px;}
-    .spo-noimg{font-size:20px;}
-  }
-  @media(max-width:820px){
-    .spo-grid{--spo-slot:196px; --spo-logo-h:124px; gap:40px 30px;}
-    .spo-noimg{font-size:17px;}
-  }
+  @media(max-width:1100px){ .spo-grid{--spo-scale:.78;} }
+  @media(max-width:820px){  .spo-grid{--spo-scale:.62;} }
   @media(max-width:640px){
-    .spo-grid{--spo-slot:142px; --spo-logo-h:92px; gap:32px 22px;}
+    .spo-grid{--spo-scale:.45;}
     .spo-card{gap:9px;}
     .spo-sec-head h3{font-size:19px;}
-    .spo-noimg{font-size:15px;}
     .spo-blurb{font-size:12px;}
   }
   /* ===== DASHBOARD SPONSOR STRIP =====
@@ -2473,26 +2472,32 @@
   .dspo-label{font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:2.2px;
               text-transform:uppercase; color:var(--muted2); margin:0 0 14px;}
   /* fixed slot, not auto — an auto-width item measures 0 until its image
-     loads, which would wreck the marquee maths, and even slots look tidier */
-  .dspo-item{width:210px; height:104px; flex:0 0 auto;
+     loads, which would wreck the marquee maths, and even slots look tidier.
+     Same base/scale split as the sponsors page, for the same reason. */
+  .dspo-strip{--dspo-slot-base:210px; --dspo-logo-base:104px; --dspo-gap:56px; --dspo-scale:1;}
+  .dspo-item{width:calc(var(--dspo-slot-base) * var(--dspo-scale));
+             height:calc(var(--dspo-logo-base) * var(--dspo-scale));
+             flex:0 0 auto;
              display:flex; align-items:center; justify-content:center;
              background:none; border:0; border-radius:0; padding:0;
              text-decoration:none; transition:.2s ease;}
   .dspo-item img{max-width:100%; max-height:100%; object-fit:contain; opacity:.92; transition:.2s;}
   a.dspo-item:hover{transform:translateY(-4px);}
   a.dspo-item:hover img{opacity:1; filter:drop-shadow(0 8px 22px rgba(0,0,0,.6));}
-  .dspo-item .dspo-txt{font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:1.3px;
+  .dspo-item .dspo-txt{font-family:'Oswald',sans-serif; letter-spacing:1.3px;
+                       font-size:calc(15px * var(--dspo-scale));
                        text-transform:uppercase; color:var(--muted); text-align:center; line-height:1.3;}
   a.dspo-item:hover .dspo-txt{color:var(--gold2);}
 
   /* static row */
-  .dspo-row{display:flex; flex-wrap:wrap; align-items:center; gap:34px 56px; padding:4px 0;}
+  .dspo-row{display:flex; flex-wrap:wrap; align-items:center;
+            gap:calc(var(--dspo-gap) * .6) var(--dspo-gap); padding:4px 0;}
 
   /* marquee — edges fade out so logos enter and leave instead of being cut */
   .dspo-marquee{position:relative; overflow:hidden; padding:4px 0;
                 -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%);
                 mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%);}
-  .dspo-track{display:flex; align-items:center; gap:56px; width:max-content;
+  .dspo-track{display:flex; align-items:center; gap:var(--dspo-gap); width:max-content;
               animation:dspo-drift var(--dspo-dur,46s) linear infinite;
               will-change:transform;}
   .dspo-marquee:hover .dspo-track{animation-play-state:paused;}
@@ -2505,10 +2510,9 @@
     .dspo-track{animation:none;}
     .dspo-marquee{overflow-x:auto; mask-image:none; -webkit-mask-image:none;}
   }
+  @media(max-width:900px){ .dspo-strip{--dspo-scale:.82;} }
   @media(max-width:640px){
-    .dspo-row{gap:24px 32px;}
-    .dspo-track{gap:32px;}
-    .dspo-item{width:132px; height:66px;}
+    .dspo-strip{--dspo-scale:.63;}
     .dspo-label{font-size:10px; letter-spacing:1.8px; margin-bottom:10px;}
   }
 </style>
@@ -8207,6 +8211,32 @@ function spoTile(row){
 // (site_settings.sponsors). If the column/row is missing we silently keep
 // whatever is already written in the HTML.
 let SPO_COPY = null;
+
+// Defaults must match the CSS fallbacks above. Anything the admin hasn't set
+// falls back to these rather than to 0.
+const SPO_SIZE_DEFAULTS = {
+  page_slot: 320, page_logo: 200, page_gap: 52,
+  dash_slot: 210, dash_logo: 104, dash_gap: 56, dash_speed: 42
+};
+function spoSize(copy, key){
+  const v = copy && copy.sizes ? Number(copy.sizes[key]) : NaN;
+  return (isFinite(v) && v > 0) ? v : SPO_SIZE_DEFAULTS[key];
+}
+// Written as inline styles so they beat the stylesheet's fallbacks; the
+// breakpoints scale these via --spo-scale / --dspo-scale, never replace them.
+function spoApplySizes(el, copy, which){
+  if(!el) return;
+  if(which === 'page'){
+    el.style.setProperty('--spo-slot-base', spoSize(copy,'page_slot')+'px');
+    el.style.setProperty('--spo-logo-base', spoSize(copy,'page_logo')+'px');
+    el.style.setProperty('--spo-gap',       spoSize(copy,'page_gap')+'px');
+  } else {
+    el.style.setProperty('--dspo-slot-base', spoSize(copy,'dash_slot')+'px');
+    el.style.setProperty('--dspo-logo-base', spoSize(copy,'dash_logo')+'px');
+    el.style.setProperty('--dspo-gap',       spoSize(copy,'dash_gap')+'px');
+  }
+}
+
 async function spoLoadCopy(){
   if(SPO_COPY) return SPO_COPY;
   try{
@@ -8259,6 +8289,7 @@ async function loadSponsors(){
   el.innerHTML = blocks.length
     ? blocks.join('')
     : '<div class="lb-empty">No sponsors or partners posted yet — check back soon.</div>';
+  el.querySelectorAll('.spo-grid').forEach(g => spoApplySizes(g, copy, 'page'));
 }
 
 // ---- Dashboard sponsor strip ----------------------------------------
@@ -8305,12 +8336,13 @@ function dspoMarquee(el){
       // visibly hitch once per lap.
       const unit = kids[per].offsetLeft - kids[0].offsetLeft;
       if(!unit) return;
-      const SPEED = 42;                     // px per second — slow and calm
+      const SPEED = _dspoSpeed;             // px per second, set in the admin
       track.style.setProperty('--dspo-unit', unit + 'px');
       track.style.setProperty('--dspo-dur', Math.max(18, Math.round(unit / SPEED)) + 's');
     });
   });
 }
+let _dspoSpeed = SPO_SIZE_DEFAULTS.dash_speed;
 let _dspoResizeBound = false;
 function dspoBindResize(){
   if(_dspoResizeBound) return;
@@ -8373,6 +8405,9 @@ async function loadDashSponsors(){
       body+
     '</div>';
 
+  _dspoSpeed = spoSize(copy, 'dash_speed');
+  spoApplySizes(host.querySelector('.dspo-strip'), copy, 'dash');
+  // sizes must land before the marquee measures, or it measures the old width
   host.querySelectorAll('.dspo-marquee').forEach(dspoMarquee);
   dspoBindResize();
 }
