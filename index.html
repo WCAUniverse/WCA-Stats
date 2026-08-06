@@ -539,7 +539,8 @@
      retune them without touching this file. Defaults live in MP_DEFAULTS. */
   .mp-row{display:flex; justify-content:center; align-items:flex-start;
     gap:var(--mp-gap,10px); flex-wrap:wrap; margin-bottom:10px;}
-  .mp-wrap{display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto;}
+  .mp-wrap{display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto;
+    position:relative;}
   .mp{width:var(--mp-size,132px); height:var(--mp-size,132px); flex:0 0 auto;
     position:relative; overflow:hidden;
     border:var(--mp-border,2px) solid var(--line); border-radius:var(--mp-radius,10px);
@@ -553,25 +554,31 @@
   .bout.main .mp,.rbout.main .mp{border-color:var(--gold-dim);}
   .rside.win .mp{border-color:var(--win);}
   .mp:hover{transform:translateY(-2px);}
-  /* champion belt strip across the bottom of the square */
-  .mp-belts{position:absolute; left:0; right:0; bottom:0; height:var(--mp-belt,34px);
-    display:flex; align-items:center; justify-content:center; gap:4px; padding:0 4px;
-    background:linear-gradient(180deg,rgba(8,8,10,0) 0%,rgba(8,8,10,.72) 42%,rgba(8,8,10,.92) 100%);
-    border-top:1px solid rgba(233,185,73,.45); pointer-events:none;}
-  .mp-belts img{height:calc(var(--mp-belt,34px) - 10px); width:auto; max-width:44%;
-    object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));}
-  .mp-belts i{font-size:calc(var(--mp-belt,34px) * .5); color:var(--gold);}
+  /* Champion belt strip across the bottom of the square. It lives OUTSIDE .mp
+     (which clips its photo to the rounded corners) so the plate is free to
+     hang past the left and right edges — that overhang is deliberate. */
+  .mp-belts{position:absolute; left:0; right:0; bottom:0; height:var(--mp-belt,46px);
+    display:flex; align-items:center; justify-content:center; gap:2px;
+    background:linear-gradient(180deg,rgba(8,8,10,0) 0%,rgba(8,8,10,.55) 34%,rgba(8,8,10,.88) 100%);
+    border-bottom-left-radius:var(--mp-radius,10px); border-bottom-right-radius:var(--mp-radius,10px);
+    overflow:visible; pointer-events:none; z-index:2;}
+  .mp-belts img{height:var(--mp-belt,46px); width:auto;
+    max-width:var(--mp-belt-max,150%); object-fit:contain;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.9));}
+  .mp-belts img:not(:only-child){max-width:var(--mp-belt-max-multi,88%);}
+  .mp-belts i{font-size:calc(var(--mp-belt,46px) * .6); color:var(--gold);}
   .mp.is-champ{border-color:var(--gold);}
   /* alternate placement: belts sit under the square instead of over the photo */
-  .mp-belts-below{display:flex; align-items:center; justify-content:center; gap:5px;
-    height:calc(var(--mp-belt,34px) - 6px); width:var(--mp-size,132px);}
-  .mp-belts-below img{height:100%; width:auto; max-width:46%; object-fit:contain;}
-  .mp-belts-below i{font-size:calc(var(--mp-belt,34px) * .45); color:var(--gold);}
+  .mp-belts-below{display:flex; align-items:center; justify-content:center; gap:2px;
+    height:var(--mp-belt,46px); width:var(--mp-size,132px); overflow:visible;}
+  .mp-belts-below img{height:100%; width:auto; max-width:var(--mp-belt-max,150%); object-fit:contain;}
+  .mp-belts-below img:not(:only-child){max-width:var(--mp-belt-max-multi,88%);}
+  .mp-belts-below i{font-size:calc(var(--mp-belt,46px) * .55); color:var(--gold);}
   /* a tag/faction title belongs to the team, so it also gets one line under the row */
   .mp-teambelt{display:flex; align-items:center; justify-content:center; gap:7px; margin:6px 0 2px;
     font-family:'Barlow Condensed'; letter-spacing:2px; text-transform:uppercase;
     font-size:12px; color:var(--gold);}
-  .mp-teambelt img{height:26px; width:auto; object-fit:contain;}
+  .mp-teambelt img{height:calc(var(--mp-belt,46px) * .72); width:auto; object-fit:contain;}
   /* belt placement modes, set on <body> from the saved settings */
   body.mp-belts-below-mode .mp-belts{display:none;}
   body:not(.mp-belts-below-mode) .mp-belts-below{display:none;}
@@ -3259,7 +3266,7 @@ const MP_DEFAULTS = {
   radius:       10,     // corner rounding, px
   gap:          10,     // gap between teammates' squares, px
   belt_mode:    'over', // 'over' | 'below' | 'off'
-  belt_size:    34,     // belt strip height, px
+  belt_size:    46,     // belt strip height, px
   team_belt:    true,   // show the "… Champions" line under a title-holding team
   overrides:    {}      // { "Wrestler Name": "https://…/photo.jpg" } temporary photos
 };
@@ -3360,9 +3367,11 @@ function mpBox(name, extraDivs){
   const belts = isCh ? mpBeltImgs(divs) : '';
   const over  = isCh ? `<div class="mp-belts">${belts}</div>` : '';
   const below = isCh ? `<div class="mp-belts-below">${belts}</div>` : '';
+  // the belt strip sits outside .mp (which clips to its rounded corners) so the
+  // plate can hang past the edges of the square
   return `<div class="mp-wrap">
-    <div class="mp${isCh?' is-champ':''}" title="${esc(name)}">${inner}${over}</div>
-    ${below}
+    <div class="mp${isCh?' is-champ':''}" title="${esc(name)}">${inner}</div>
+    ${over}${below}
   </div>`;
 }
 // The row of squares for one side of a match, plus the team's title line if it holds one.
