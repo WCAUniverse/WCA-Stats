@@ -534,6 +534,59 @@
   .name-link{cursor:pointer; transition:.12s;}
   .name-link:hover{color:var(--gold);}
 
+  /* ===== MATCH PORTRAITS (square photo boxes on Events + Archive) =====
+     Every size below is driven by a CSS variable so the admin Events tab can
+     retune them without touching this file. Defaults live in MP_DEFAULTS. */
+  .mp-row{display:flex; justify-content:center; align-items:flex-start;
+    gap:var(--mp-gap,10px); flex-wrap:wrap; margin-bottom:10px;}
+  .mp-wrap{display:flex; flex-direction:column; align-items:center; gap:5px; flex:0 0 auto;}
+  .mp{width:var(--mp-size,132px); height:var(--mp-size,132px); flex:0 0 auto;
+    position:relative; overflow:hidden;
+    border:var(--mp-border,2px) solid var(--line); border-radius:var(--mp-radius,10px);
+    background:#101013; display:flex; align-items:center; justify-content:center;
+    transition:border-color .18s ease, transform .18s ease;}
+  .mp img.mp-photo{width:100%; height:100%; object-fit:cover; object-position:center top; display:block;}
+  .mp-init{font-family:'Oswald'; font-weight:600; color:var(--gold-dim); letter-spacing:2px;
+    font-size:calc(var(--mp-size,132px) * .34); line-height:1;
+    background:linear-gradient(160deg,#1c1a15,#111013);
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;}
+  .bout.main .mp,.rbout.main .mp{border-color:var(--gold-dim);}
+  .rside.win .mp{border-color:var(--win);}
+  .mp:hover{transform:translateY(-2px);}
+  /* champion belt strip across the bottom of the square */
+  .mp-belts{position:absolute; left:0; right:0; bottom:0; height:var(--mp-belt,34px);
+    display:flex; align-items:center; justify-content:center; gap:4px; padding:0 4px;
+    background:linear-gradient(180deg,rgba(8,8,10,0) 0%,rgba(8,8,10,.72) 42%,rgba(8,8,10,.92) 100%);
+    border-top:1px solid rgba(233,185,73,.45); pointer-events:none;}
+  .mp-belts img{height:calc(var(--mp-belt,34px) - 10px); width:auto; max-width:44%;
+    object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));}
+  .mp-belts i{font-size:calc(var(--mp-belt,34px) * .5); color:var(--gold);}
+  .mp.is-champ{border-color:var(--gold);}
+  /* alternate placement: belts sit under the square instead of over the photo */
+  .mp-belts-below{display:flex; align-items:center; justify-content:center; gap:5px;
+    height:calc(var(--mp-belt,34px) - 6px); width:var(--mp-size,132px);}
+  .mp-belts-below img{height:100%; width:auto; max-width:46%; object-fit:contain;}
+  .mp-belts-below i{font-size:calc(var(--mp-belt,34px) * .45); color:var(--gold);}
+  /* a tag/faction title belongs to the team, so it also gets one line under the row */
+  .mp-teambelt{display:flex; align-items:center; justify-content:center; gap:7px; margin:6px 0 2px;
+    font-family:'Barlow Condensed'; letter-spacing:2px; text-transform:uppercase;
+    font-size:12px; color:var(--gold);}
+  .mp-teambelt img{height:26px; width:auto; object-fit:contain;}
+  /* belt placement modes, set on <body> from the saved settings */
+  body.mp-belts-below-mode .mp-belts{display:none;}
+  body:not(.mp-belts-below-mode) .mp-belts-below{display:none;}
+  body.mp-belts-off .mp-belts,body.mp-belts-off .mp-belts-below,body.mp-belts-off .mp-teambelt{display:none;}
+  body.mp-belts-off .mp.is-champ{border-color:var(--line);}
+  /* master off switches — the markup is still built, it just doesn't render */
+  body.mp-off-events .bout .mp-row,body.mp-off-events .bout .mp-teambelt{display:none;}
+  body.mp-off-archive .rbout .mp-row,body.mp-off-archive .rbout .mp-teambelt{display:none;}
+  @media(max-width:640px){
+    .mp{width:var(--mp-size-sm,104px); height:var(--mp-size-sm,104px);}
+    .mp-init{font-size:calc(var(--mp-size-sm,104px) * .34);}
+    .mp-belts-below{width:var(--mp-size-sm,104px);}
+    .bout .vs-row{gap:8px;}
+  }
+
   .stream-wrap{margin:18px 0 8px;}
   .stream-frame{position:relative; padding-top:56.25%; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000;}
   .stream-frame iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
@@ -3187,6 +3240,148 @@ function beltIcon(div, cls){
   return `<i class="ti ti-trophy ${cls||'belt-ico'}" style="color:var(--gold)"></i>`;
 }
 
+/* ===================== MATCH PORTRAITS =====================
+   Square, bordered photo boxes for everyone in a match, on the Events card
+   and in the Archive. Photo order: admin override -> image_url -> avatar_url
+   -> initials box. Reigning champions get their belt across the bottom.
+
+   All sizing comes from site_settings.match_portraits (JSONB), so the admin
+   Events tab can retune it with no code change. If that column or row is
+   missing we silently fall back to MP_DEFAULTS and everything still renders.
+   ============================================================ */
+const MP_DEFAULTS = {
+  enabled:      true,   // master switch
+  on_events:    true,   // show on the Events card
+  on_archive:   true,   // show in the Archive
+  size:         132,    // square width/height, px (desktop)
+  size_sm:      104,    // square width/height, px (phones)
+  border:       2,      // border thickness, px
+  radius:       10,     // corner rounding, px
+  gap:          10,     // gap between teammates' squares, px
+  belt_mode:    'over', // 'over' | 'below' | 'off'
+  belt_size:    34,     // belt strip height, px
+  team_belt:    true,   // show the "… Champions" line under a title-holding team
+  overrides:    {}      // { "Wrestler Name": "https://…/photo.jpg" } temporary photos
+};
+let MP_CFG = Object.assign({}, MP_DEFAULTS);
+let MP_OVERRIDES_LC = {};              // lowercased name -> url, for forgiving lookups
+let CHAMP_DIVS_BY_NAME = {};           // lowercased champion name -> ['Mens', …]
+
+// Reads the saved settings and writes them out as CSS variables + body classes.
+async function loadMatchPortraits(){
+  try{
+    const { data, error } = await sb.from('site_settings').select('match_portraits').eq('id',1).single();
+    if(error) throw error;
+    if(data && data.match_portraits) MP_CFG = Object.assign({}, MP_DEFAULTS, data.match_portraits);
+  }catch(e){ MP_CFG = Object.assign({}, MP_DEFAULTS); }   // column not added yet — use defaults
+  applyMatchPortraitCfg();
+}
+function applyMatchPortraitCfg(){
+  const r = document.documentElement.style;
+  const num = (v,d)=> (isFinite(Number(v)) && Number(v)>=0) ? Number(v) : d;
+  r.setProperty('--mp-size',    num(MP_CFG.size,     MP_DEFAULTS.size)      + 'px');
+  r.setProperty('--mp-size-sm', num(MP_CFG.size_sm,  MP_DEFAULTS.size_sm)   + 'px');
+  r.setProperty('--mp-border',  num(MP_CFG.border,   MP_DEFAULTS.border)    + 'px');
+  r.setProperty('--mp-radius',  num(MP_CFG.radius,   MP_DEFAULTS.radius)    + 'px');
+  r.setProperty('--mp-gap',     num(MP_CFG.gap,      MP_DEFAULTS.gap)       + 'px');
+  r.setProperty('--mp-belt',    num(MP_CFG.belt_size,MP_DEFAULTS.belt_size) + 'px');
+  const b = document.body;
+  if(!b) return;
+  b.classList.toggle('mp-belts-below-mode', MP_CFG.belt_mode === 'below');
+  b.classList.toggle('mp-belts-off',        MP_CFG.belt_mode === 'off');
+  b.classList.toggle('mp-off-events',   MP_CFG.enabled === false || MP_CFG.on_events  === false);
+  b.classList.toggle('mp-off-archive',  MP_CFG.enabled === false || MP_CFG.on_archive === false);
+  MP_OVERRIDES_LC = {};
+  Object.keys(MP_CFG.overrides||{}).forEach(k=>{
+    const v = MP_CFG.overrides[k];
+    if(k && v) MP_OVERRIDES_LC[String(k).trim().toLowerCase()] = String(v).trim();
+  });
+}
+// Who currently holds each belt. Faction division holds a TEAM name, not a person.
+async function loadCurrentChampions(){
+  CHAMP_DIVS_BY_NAME = {};
+  try{
+    const { data, error } = await sb.from('v_current_champions').select('*');
+    if(error) throw error;
+    (data||[]).forEach(r=>{
+      const who = r.champion || r.name || r.display_name;
+      if(!who || !r.division) return;
+      const key = String(who).trim().toLowerCase();
+      (CHAMP_DIVS_BY_NAME[key] = CHAMP_DIVS_BY_NAME[key] || []).push(r.division);
+    });
+  }catch(e){ /* fail soft — no belts on the portraits, everything else still renders */ }
+}
+// First + last initial. A single name gives one letter.
+function mpInitials(name){
+  const parts = String(name||'?').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '?';
+  if(parts.length === 1) return (parts[0][0]||'?').toUpperCase();
+  return ((parts[0][0]||'') + (parts[parts.length-1][0]||'')).toUpperCase();
+}
+// Photo for a name: admin override wins, then the roster's big portrait, then the thumb.
+function mpPhotoFor(name){
+  const key = String(name||'').trim().toLowerCase();
+  if(MP_OVERRIDES_LC[key]) return MP_OVERRIDES_LC[key];
+  const w = (typeof wrestlerByName==='function') ? wrestlerByName(name) : null;
+  if(!w) return '';
+  // an override may be filed under the roster's canonical spelling instead
+  const alt = MP_OVERRIDES_LC[String(w.name||'').trim().toLowerCase()];
+  if(alt) return alt;
+  return w.image_url || w.avatar_url || '';
+}
+// Divisions this exact name currently holds (people only — Faction is handled per-team).
+function mpBeltsFor(name){
+  const key = String(name||'').trim().toLowerCase();
+  let divs = CHAMP_DIVS_BY_NAME[key];
+  if(!divs){
+    const w = (typeof wrestlerByName==='function') ? wrestlerByName(name) : null;
+    if(w) divs = CHAMP_DIVS_BY_NAME[String(w.name||'').trim().toLowerCase()];
+  }
+  return (divs||[]).filter(d=>d && d!=='Faction');
+}
+function mpBeltImgs(divs){
+  return (divs||[]).map(d=>{
+    const b = beltFor(d);
+    return b && b.image_url
+      ? `<img src="${esc(b.image_url)}" alt="${esc(d)} championship" title="${esc(d)} Championship" loading="lazy">`
+      : `<i class="ti ti-trophy" title="${esc(d)} Championship"></i>`;
+  }).join('');
+}
+// One square. extraDivs lets a team title ride along on each member's box.
+function mpBox(name, extraDivs){
+  const src  = mpPhotoFor(name);
+  const init = mpInitials(name);
+  const divs = mpBeltsFor(name).concat(extraDivs||[]);
+  const isCh = divs.length > 0;
+  const inner = src
+    ? `<img class="mp-photo" src="${esc(src)}" alt="${esc(name)}" loading="lazy"
+         onerror="this.outerHTML='<div class=\\'mp-init\\'>${esc(init)}</div>'">`
+    : `<div class="mp-init">${esc(init)}</div>`;
+  const belts = isCh ? mpBeltImgs(divs) : '';
+  const over  = isCh ? `<div class="mp-belts">${belts}</div>` : '';
+  const below = isCh ? `<div class="mp-belts-below">${belts}</div>` : '';
+  return `<div class="mp-wrap">
+    <div class="mp${isCh?' is-champ':''}" title="${esc(name)}">${inner}${over}</div>
+    ${below}
+  </div>`;
+}
+// The row of squares for one side of a match, plus the team's title line if it holds one.
+function mpRowFor(members, teamName){
+  if(MP_CFG.enabled === false) return '';
+  const list = (members||[]).filter(Boolean);
+  if(!list.length) return '';
+  // does the TEAM hold the Faction (tag) title?
+  const teamKey  = String(teamName||'').trim().toLowerCase();
+  const teamDivs = (teamName && (CHAMP_DIVS_BY_NAME[teamKey]||[]).includes('Faction')) ? ['Faction'] : [];
+  const row = `<div class="mp-row">${list.map(n=>mpBox(n, teamDivs)).join('')}</div>`;
+  if(teamDivs.length && MP_CFG.team_belt !== false){
+    const b = beltFor('Faction');
+    const ico = b && b.image_url ? `<img src="${esc(b.image_url)}" alt="">` : `<i class="ti ti-trophy"></i>`;
+    return row + `<div class="mp-teambelt">${ico}<span>Faction (Tag Team) Champions</span></div>`;
+  }
+  return row;
+}
+
 // ===== AUTH + POINTS =====
 
 // ---------- VIEW AS USER (admin-only testing tool) ----------
@@ -4931,12 +5126,14 @@ function sideLabel(s){
 function sideCellInner(side, isMain){
   if(!side) return `<div class="fname">TBD</div>`;
   const members=(side.members||[]).filter(Boolean);
+  // square portrait boxes above the names (names/team names below are unchanged)
+  const pics = mpRowFor(members, side.team_name);
   if(side.team_name){
-    let h=`<div class="fname">${esc(side.team_name)}</div>`;
+    let h=pics+`<div class="fname">${esc(side.team_name)}</div>`;
     if(members.length) h+=`<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
     return h;
   }
-  if(members.length) return members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>');
+  if(members.length) return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>');
   return `<div class="fname">TBD</div>`;
 }
 let CURRENT_EVENT = null;       // featured event row
@@ -5762,12 +5959,14 @@ function archBoutHTML(m, isMain, status, winningSide){
     if(idx>0) vs += `<div class="rvs-mid">VS</div>`;
     const isWin = !voided && winningSide!=null && Number(winningSide)===idx;
     const members=(s.members||[]).filter(Boolean);
+    // square portrait boxes above the names (names/team names below are unchanged)
+    const pics = mpRowFor(members, s.team_name);
     let nameHtml;
     if(s.team_name){
-      nameHtml = `<div class="rfname">${esc(s.team_name)}</div>`
+      nameHtml = pics + `<div class="rfname">${esc(s.team_name)}</div>`
         + (members.length?`<div class="arch-sub" style="justify-content:center">${members.map(nameLink).join(' &amp; ')}</div>`:'');
     }else if(members.length){
-      nameHtml = `<div class="rfname">${members.map(nameLink).join(' &amp; ')}</div>`;
+      nameHtml = pics + `<div class="rfname">${members.map(nameLink).join(' &amp; ')}</div>`;
     }else{
       nameHtml = `<div class="rfname">TBD</div>`;
     }
@@ -8137,10 +8336,15 @@ if(!isConfigured){
   loadFirePro();
   loadHiddenNames().then(()=>{
     loadBelts().then(()=>{
-      loadDashboard();
-      loadDashStorylines();
-      loadEvents();
-      loadLive();
+      // Match portraits need the belt images + who currently holds them, so they
+      // load inside this chain, before the Events card paints.
+      Promise.all([loadMatchPortraits(), loadCurrentChampions()]).then(()=>{
+        loadDashboard();
+        loadDashStorylines();
+        loadEvents();
+        loadLive();
+        return null;
+      });
       loadWrestlerRatings().then(()=>{
         loadDivision('Mens','mens-content');
         loadDivision('Womens','womens-content');
@@ -8157,6 +8361,10 @@ if(!isConfigured){
     // names become tappable (on first paint roster wasn't loaded yet, so they were plain).
     try{ if(typeof loadChampions==='function') loadChampions(); }catch(e){}
     try{ if(typeof loadDashboard==='function') loadDashboard(); }catch(e){}
+    // Portraits read photos off the roster, so repaint the Events card now that
+    // it's here (first paint may have raced ahead with initials only).
+    try{ if(typeof loadEvents==='function') loadEvents(); }catch(e){}
+    try{ if(typeof loadLive==='function') loadLive(); }catch(e){}
   });
   // restore the tab from the URL hash so a refresh stays put (defaults to Dashboard)
   restorePageFromHash();
