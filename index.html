@@ -2585,6 +2585,251 @@
     .dspo-label{font-size:10px; letter-spacing:1.8px; margin-bottom:10px;}
   }
 </style>
+
+<!-- ===== ROSTER STAR MAP styles ===== -->
+<style>
+/* ===================================================================
+   ROSTER STAR MAP
+   Stables render as constellations, solo competitors as lone stars.
+   Everything here is prefixed .sm- / #sm- so it can't collide with the
+   rest of the site's CSS. Scoped to the Roster tab.
+   =================================================================== */
+  #sm-wrap{margin:4px 0 0;}
+
+  .sm-viewbar{display:flex;align-items:center;gap:8px;margin:0 0 12px;flex-wrap:wrap;}
+  .sm-vbtn{
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:1.2px;
+    text-transform:uppercase;padding:7px 13px;border-radius:6px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:border-color .18s,color .18s,background .18s;
+  }
+  .sm-vbtn:hover{color:var(--txt);border-color:var(--gold-dim);}
+  .sm-vbtn.active{color:var(--gold);border-color:var(--gold);background:var(--gold-deep);}
+  .sm-viewbar .sm-note{font-family:'Barlow',sans-serif;font-size:12px;color:var(--muted2);margin-left:auto;}
+
+  /* ── the stage ─────────────────────────────────────────────── */
+  .sm-stage{
+    --sm-void:#05060c; --sm-hair:rgba(233,185,73,.26);
+    --sm-panel:rgba(9,10,16,.86); --sm-parch:#efe9db; --sm-dim:#8f8b80;
+    position:relative;width:100%;height:clamp(460px,72vh,860px);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 45%,#0a0d18 0%,#04050b 72%);
+    contain:layout paint;touch-action:pan-y;
+  }
+  .sm-stage.sm-full{
+    position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;
+    border-radius:0;border:0;z-index:9998;touch-action:none;
+  }
+  body.sm-locked{overflow:hidden;}
+  .sm-scene{position:absolute;inset:0;z-index:0;}
+  .sm-scene canvas{display:block;width:100%;height:100%;}
+  .sm-vignette{
+    position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(118% 88% at 50% 46%,transparent 24%,rgba(2,3,8,.42) 62%,rgba(2,3,8,.86) 92%,rgba(2,3,8,.95) 100%);
+  }
+  .sm-hud{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:visible;}
+  .sm-hud .sm-bracket{stroke:var(--gold);stroke-width:1.25;fill:none;opacity:0;transition:opacity .26s ease;}
+  .sm-hud .sm-reticle{stroke:var(--gold);stroke-width:1;fill:none;opacity:0;transition:opacity .18s ease;}
+  .sm-hud .sm-leader{stroke:var(--gold);stroke-width:.75;stroke-dasharray:2 3;opacity:0;}
+  .sm-hud.show-bracket .sm-bracket{opacity:.85;}
+  .sm-hud.show-reticle .sm-reticle,.sm-hud.show-reticle .sm-leader{opacity:.92;}
+
+  .sm-plate{
+    background:var(--sm-panel);border:1px solid var(--sm-hair);border-radius:10px;
+    backdrop-filter:blur(13px) saturate(120%);-webkit-backdrop-filter:blur(13px) saturate(120%);
+  }
+  .sm-eyebrow{
+    font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:2.4px;
+    text-transform:uppercase;color:var(--gold);opacity:.9;
+  }
+
+  /* ── top bar inside the stage ──────────────────────────────── */
+  .sm-topbar{
+    position:absolute;top:0;left:0;right:0;z-index:6;display:flex;
+    align-items:flex-start;justify-content:space-between;gap:12px;
+    padding:12px 14px;pointer-events:none;
+  }
+  .sm-brandline{pointer-events:none;display:flex;flex-direction:column;gap:4px;}
+  .sm-count{font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--sm-dim);}
+  .sm-tools{display:flex;gap:7px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end;}
+  .sm-chip{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;
+    background:var(--sm-panel);border:1px solid var(--sm-hair);cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif;font-size:11.5px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--sm-parch);
+    backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);
+    transition:border-color .18s,color .18s;
+  }
+  .sm-chip:hover{border-color:var(--gold);color:var(--gold);}
+  .sm-chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);}
+  .sm-chip i{font-size:14px;}
+  .sm-zoom{position:absolute;left:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;gap:6px;}
+  .sm-zoom .sm-chip{padding:8px 10px;justify-content:center;}
+
+  /* ── roster index (right rail) ─────────────────────────────── */
+  .sm-index{
+    position:absolute;top:60px;right:14px;bottom:14px;width:250px;z-index:6;
+    display:flex;flex-direction:column;overflow:hidden;
+    transition:transform .38s cubic-bezier(.22,.61,.36,1),opacity .26s ease;
+  }
+  .sm-index.hidden{transform:translateX(calc(100% + 26px));opacity:0;pointer-events:none;}
+  .sm-index-scroll{
+    overflow-y:auto;padding:10px 8px 14px;scrollbar-width:thin;
+    scrollbar-color:var(--gold-dim) transparent;overscroll-behavior:contain;
+  }
+  .sm-index-scroll::-webkit-scrollbar{width:5px;}
+  .sm-index-scroll::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:3px;}
+  .sm-grp{margin:4px 4px 12px;}
+  .sm-grp-head{
+    display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;text-align:left;
+    background:none;border:0;border-left:2px solid var(--sw,var(--gold));cursor:pointer;color:inherit;
+    transition:background .18s;
+  }
+  .sm-grp-head:hover{background:rgba(233,185,73,.09);}
+  .sm-grp-head .nm{
+    flex:1;font-family:'Oswald',sans-serif;font-weight:600;font-size:15px;line-height:1.1;
+    text-transform:uppercase;letter-spacing:.4px;color:var(--sm-parch);
+  }
+  .sm-grp-head .ct{font-family:'Barlow',sans-serif;font-size:10.5px;color:var(--sm-dim);}
+  .sm-mem{
+    display:flex;align-items:center;gap:7px;width:100%;padding:5px 8px 5px 18px;text-align:left;
+    background:none;border:0;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12.5px;
+    color:var(--sm-dim);transition:color .16s,background .16s;
+  }
+  .sm-mem:hover,.sm-mem.on{color:var(--sm-parch);background:rgba(239,233,219,.06);}
+  .sm-mem .sm-dot{width:6px;height:6px;border-radius:50%;background:var(--sw,var(--gold));flex:none;box-shadow:0 0 7px var(--sw,var(--gold));}
+  .sm-mem.inactive{opacity:.5;}
+  .sm-mem .sm-crown{color:var(--gold);font-size:12px;margin-left:auto;}
+  .sm-index-empty{padding:16px 10px;font-family:'Barlow',sans-serif;font-size:12.5px;color:var(--sm-dim);}
+
+  /* ── stable hover card ─────────────────────────────────────── */
+  .sm-teamcard{
+    position:absolute;z-index:5;min-width:196px;max-width:270px;padding:11px 13px 12px;
+    opacity:0;transform:translateY(6px);pointer-events:none;
+    transition:opacity .2s ease,transform .2s ease;
+  }
+  .sm-teamcard.on{opacity:1;transform:translateY(0);}
+  .sm-tc-name{
+    font-family:'Oswald',sans-serif;font-weight:700;font-size:21px;line-height:1;
+    text-transform:uppercase;margin:5px 0 2px;color:var(--sm-parch);
+  }
+  .sm-tc-kind{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;}
+  .sm-tc-tag{font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--sm-dim);margin-bottom:8px;}
+  .sm-teamcard dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0;}
+  .sm-teamcard dt{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--sm-dim);}
+  .sm-teamcard dd{margin:0;font-family:'Barlow',sans-serif;font-size:12px;color:var(--sm-parch);text-align:right;}
+
+  /* ── dossier (left panel) ──────────────────────────────────── */
+  .sm-dossier{
+    position:absolute;top:60px;left:14px;bottom:14px;width:352px;max-width:calc(100% - 28px);z-index:7;
+    display:flex;flex-direction:column;overflow:hidden;
+    transform:translateX(calc(-100% - 26px));opacity:0;pointer-events:none;
+    transition:transform .42s cubic-bezier(.22,.61,.36,1),opacity .3s ease;
+  }
+  .sm-dossier.on{transform:none;opacity:1;pointer-events:auto;}
+  .sm-dhead{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--sm-hair);}
+  .sm-dhead .sm-eyebrow{flex:1;}
+  .sm-dclose{background:none;border:0;color:var(--sm-dim);font-size:14px;line-height:1;padding:3px 6px;cursor:pointer;}
+  .sm-dclose:hover{color:var(--loss);}
+  .sm-dbody{
+    overflow-y:auto;padding:0 0 18px;scrollbar-width:thin;scrollbar-color:var(--gold-dim) transparent;
+    overscroll-behavior:contain;
+  }
+  .sm-dbody::-webkit-scrollbar{width:5px;}
+  .sm-dbody::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:3px;}
+
+  .sm-portrait{position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;background:#0a0d18;}
+  .sm-portrait img{width:100%;height:100%;object-fit:cover;display:block;animation:sm-develop .6s cubic-bezier(.22,.61,.36,1) both;}
+  .sm-portrait::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,transparent 46%,rgba(6,8,16,.94) 100%);
+  }
+  .sm-portrait .sm-accent{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sw,var(--gold));z-index:2;}
+  .sm-portrait .sm-init{
+    width:100%;height:100%;display:grid;place-items:center;
+    font-family:'Oswald',sans-serif;font-weight:700;font-size:64px;color:rgba(239,233,219,.85);
+    background:linear-gradient(140deg,#141826,#05060c);
+  }
+  @keyframes sm-develop{from{clip-path:inset(0 0 100% 0);filter:brightness(2.2) contrast(.5);}to{clip-path:inset(0 0 0 0);}}
+
+  .sm-dname{padding:13px 14px 0;}
+  .sm-dname h2{
+    margin:0;font-family:'Oswald',sans-serif;font-weight:700;font-size:29px;line-height:.95;
+    text-transform:uppercase;color:var(--sm-parch);
+  }
+  .sm-dname .sm-nick{margin:6px 0 0;font-family:'Barlow',sans-serif;font-size:13px;color:var(--sm-dim);font-style:italic;}
+  .sm-dmeta{display:flex;flex-wrap:wrap;gap:6px;padding:11px 14px 0;}
+  .sm-pill{
+    font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;
+    padding:4px 9px;border:1px solid var(--sm-hair);border-radius:999px;color:var(--sm-dim);background:none;
+  }
+  .sm-pill.team{border-color:var(--sw,var(--gold));color:var(--sw,var(--gold));cursor:pointer;}
+  .sm-pill.team:hover{background:rgba(233,185,73,.1);}
+  .sm-dsect{padding:14px 14px 0;}
+  .sm-dsect .pf-fields,.sm-dsect .pf-ranks{margin-top:0;}
+  .sm-bio{padding:12px 14px 0;font-family:'Barlow',sans-serif;font-size:13px;line-height:1.62;color:#cfcabc;}
+  .sm-chips{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px 0;}
+  .sm-memchip{
+    display:flex;align-items:center;gap:7px;padding:6px 10px 6px 8px;border:1px solid var(--sm-hair);
+    border-radius:999px;background:none;cursor:pointer;font-family:'Barlow',sans-serif;font-size:12px;
+    color:var(--sm-parch);transition:border-color .18s,background .18s;
+  }
+  .sm-memchip:hover{border-color:var(--sw,var(--gold));background:rgba(233,185,73,.08);}
+  .sm-memchip .sm-dot{width:7px;height:7px;border-radius:50%;background:var(--sw,var(--gold));box-shadow:0 0 8px var(--sw,var(--gold));}
+  .sm-openfull{
+    margin:14px 14px 0;display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;
+    border:1px solid var(--gold-dim);background:none;color:var(--gold);cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;
+  }
+  .sm-openfull:hover{background:var(--gold-deep);border-color:var(--gold);}
+
+  /* ── hint + loader ─────────────────────────────────────────── */
+  .sm-hint{
+    position:absolute;right:14px;bottom:12px;z-index:4;pointer-events:none;text-align:right;
+    font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:1.8px;
+    text-transform:uppercase;color:var(--sm-dim);opacity:.75;transition:opacity .6s ease;line-height:1.9;
+  }
+  .sm-hint.fade{opacity:0;}
+  .sm-loading{
+    position:absolute;inset:0;z-index:9;display:grid;place-items:center;gap:10px;
+    background:radial-gradient(70% 60% at 50% 50%,#0a0d18 0%,#04050b 72%);
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2.4px;
+    text-transform:uppercase;color:var(--gold);transition:opacity .5s ease;
+  }
+  .sm-loading.gone{opacity:0;pointer-events:none;}
+  .sm-loading .sm-inner{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:20px;}
+  .sm-spin{
+    width:26px;height:26px;border-radius:50%;border:1px solid rgba(233,185,73,.25);
+    border-top-color:var(--gold);animation:sm-spin 900ms linear infinite;
+  }
+  @keyframes sm-spin{to{transform:rotate(360deg);}}
+  .sm-legend{
+    display:flex;flex-wrap:wrap;gap:14px;margin:10px 2px 0;
+    font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--muted);
+  }
+  .sm-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sm-legend i.sm-key{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  /* ── responsive ────────────────────────────────────────────── */
+  @media(max-width:900px){
+    .sm-stage{height:clamp(420px,66vh,620px);}
+    .sm-index{top:auto;left:10px;right:10px;bottom:10px;width:auto;max-height:44%;}
+    .sm-index.hidden{transform:translateY(calc(100% + 20px));}
+    .sm-dossier{top:auto;left:10px;right:10px;bottom:10px;width:auto;max-width:none;max-height:72%;}
+    .sm-dossier{transform:translateY(calc(100% + 20px));}
+    .sm-dossier.on{transform:none;}
+    .sm-portrait{aspect-ratio:16/10;}
+    .sm-hint{display:none;}
+    .sm-teamcard{max-width:210px;}
+    .sm-topbar{padding:10px;}
+    .sm-chip span{display:none;}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .sm-portrait img{animation:none;}
+    .sm-spin{animation-duration:2.4s;}
+  }
+
+</style>
 </head>
 <body>
 
@@ -2783,7 +3028,10 @@
     <div id="archive-detail" style="display:none"></div>
   </div>
 
-  <!-- ROSTER (merged: filter by division/faction, A–Z, click for profile) -->
+  <!-- ROSTER — STAR MAP
+       Stables are constellations you can hover and click; solo competitors are
+       lone pulsing stars. The classic character-select list is still here as a
+       fallback (and for anyone whose device can't run WebGL). -->
   <div class="page" id="page-roster">
     <div class="section-title">Roster</div>
     <div class="roster-filters" id="roster-filters">
@@ -2795,25 +3043,105 @@
     </div>
     <input class="search" id="roster-search" placeholder="Search this list…" autocomplete="off">
 
-    <!-- Character-select stage: big portrait + name (left), info panel (right) -->
-    <div class="cs-stage" id="cs-stage">
-      <div class="cs-portrait" id="cs-portrait">
-        <div class="cs-photo-init" id="cs-photo-holder">WCA</div>
-        <div class="cs-nameplate" id="cs-nameplate"></div>
+    <div class="sm-viewbar">
+      <button class="sm-vbtn active" id="sm-view-map" type="button"><i class="ti ti-stars"></i> Star map</button>
+      <button class="sm-vbtn" id="sm-view-list" type="button"><i class="ti ti-layout-list"></i> List</button>
+      <span class="sm-note" id="sm-viewnote"></span>
+    </div>
+
+    <!-- ===== STAR MAP VIEW ===== -->
+    <div id="sm-wrap">
+      <div class="sm-stage" id="sm-stage">
+        <div class="sm-scene" id="sm-scene"></div>
+        <div class="sm-vignette"></div>
+
+        <!-- targeting bracket (stables) + reticle (single star) -->
+        <svg class="sm-hud" id="sm-hud" aria-hidden="true">
+          <g id="sm-bracketG">
+            <path class="sm-bracket" id="sm-bTL"></path>
+            <path class="sm-bracket" id="sm-bTR"></path>
+            <path class="sm-bracket" id="sm-bBL"></path>
+            <path class="sm-bracket" id="sm-bBR"></path>
+          </g>
+          <g id="sm-reticleG">
+            <circle class="sm-reticle" id="sm-rC" r="15"></circle>
+            <path class="sm-reticle" id="sm-rTicks"></path>
+            <path class="sm-leader" id="sm-rLead"></path>
+          </g>
+        </svg>
+
+        <div class="sm-topbar">
+          <div class="sm-brandline">
+            <span class="sm-eyebrow">Roster star map</span>
+            <span class="sm-count" id="sm-count"></span>
+          </div>
+          <div class="sm-tools">
+            <button class="sm-chip" id="sm-btn-reset" type="button" title="Back to the full map"><i class="ti ti-focus-centered"></i> <span>Full map</span></button>
+            <button class="sm-chip" id="sm-btn-index" type="button" aria-pressed="true" title="Show or hide the roster index"><i class="ti ti-list-search"></i> <span>Index</span></button>
+            <button class="sm-chip" id="sm-btn-full" type="button" title="Expand to fullscreen"><i class="ti ti-arrows-maximize"></i> <span>Expand</span></button>
+          </div>
+        </div>
+
+        <aside class="sm-index sm-plate" id="sm-index" aria-label="Roster index">
+          <div class="sm-index-scroll" id="sm-index-scroll"></div>
+        </aside>
+
+        <div class="sm-teamcard sm-plate" id="sm-teamcard" aria-hidden="true">
+          <div class="sm-tc-kind" id="sm-tc-kind">Stable</div>
+          <div class="sm-tc-name" id="sm-tc-name"></div>
+          <div class="sm-tc-tag" id="sm-tc-tag"></div>
+          <dl id="sm-tc-stats"></dl>
+        </div>
+
+        <section class="sm-dossier sm-plate" id="sm-dossier" aria-label="Selected competitor">
+          <div class="sm-dhead">
+            <span class="sm-eyebrow" id="sm-dkind">Dossier</span>
+            <button class="sm-dclose" id="sm-dclose" type="button" aria-label="Close dossier">✕</button>
+          </div>
+          <div class="sm-dbody" id="sm-dbody"></div>
+        </section>
+
+        <div class="sm-zoom">
+          <button class="sm-chip" id="sm-zin" type="button" aria-label="Zoom in" title="Zoom in"><i class="ti ti-plus"></i></button>
+          <button class="sm-chip" id="sm-zout" type="button" aria-label="Zoom out" title="Zoom out"><i class="ti ti-minus"></i></button>
+        </div>
+
+        <div class="sm-hint" id="sm-hint">Drag to orbit · click, then scroll to zoom<br>Hover a constellation · click a star</div>
+
+        <div class="sm-loading" id="sm-loading">
+          <div class="sm-inner"><span class="sm-spin"></span><span id="sm-loading-txt">Charting the roster…</span></div>
+        </div>
       </div>
-      <div class="cs-info" id="cs-info">
-        <div class="cs-empty">Pick a fighter below</div>
+
+      <div class="sm-legend">
+        <span><i class="sm-key" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></i> Reigning champion</span>
+        <span><i class="sm-key" style="background:#5DCAA5;box-shadow:0 0 8px #5DCAA5"></i> Constellation = stable</span>
+        <span><i class="sm-key" style="background:#efe9db;box-shadow:0 0 8px #efe9db"></i> Lone star = solo competitor</span>
       </div>
     </div>
 
-    <!-- Fighter-select tray -->
-    <div class="cs-tray-wrap">
-      <div class="cs-tray-label">Select a fighter</div>
-      <div class="cs-tray" id="cs-tray"><div class="loading">Loading…</div></div>
-    </div>
+    <!-- ===== CLASSIC LIST VIEW (fallback + character select) ===== -->
+    <div id="roster-listview" style="display:none">
+      <!-- Character-select stage: big portrait + name (left), info panel (right) -->
+      <div class="cs-stage" id="cs-stage">
+        <div class="cs-portrait" id="cs-portrait">
+          <div class="cs-photo-init" id="cs-photo-holder">WCA</div>
+          <div class="cs-nameplate" id="cs-nameplate"></div>
+        </div>
+        <div class="cs-info" id="cs-info">
+          <div class="cs-empty">Pick a fighter below</div>
+        </div>
+      </div>
 
-    <!-- legacy grid kept as a hidden fallback (still wired by bindRosterCards) -->
-    <div class="roster-grid" id="roster-grid" style="display:none"></div>
+      <!-- Fighter-select tray -->
+      <div class="cs-tray-wrap">
+        <div class="cs-tray-label">Select a fighter</div>
+        <div class="cs-tray" id="cs-tray"><div class="loading">Loading…</div></div>
+      </div>
+
+      <!-- legacy grid kept as a hidden fallback (still wired by bindRosterCards) -->
+      <div class="roster-grid" id="roster-grid" style="display:none"></div>
+    </div>
   </div>
 
   <!-- STORYLINES (storyline-driven content hub: social / articles / HR / timeline) -->
@@ -4202,6 +4530,33 @@ let DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
 let FACTIONS = [];       // [{name, members:[names], champion?}]
 
 let ROSTER_FILTER = 'all';
+let ROSTER_QUERY  = '';
+
+// One entry point for "the roster needs repainting". In star-map mode this
+// re-dims the sky and rebuilds the index rail; in list mode it repaints the
+// character-select grid. Every filter/search change comes through here.
+function rosterRerender(q){
+  ROSTER_QUERY = q || '';
+  if(typeof smIsMapView==='function' && smIsMapView()){
+    if(typeof smApplyFilter==='function') smApplyFilter();
+    return;
+  }
+  renderRoster(ROSTER_QUERY);
+}
+
+// Jump the Roster tab to a single wrestler. Used by the #roster?w=Name deep
+// link and by every clickable name on the site (xlinkName -> goWrestler).
+// Opens their star on the map, or their card in the list view.
+function rosterFocusName(name){
+  const w = (typeof wrestlerByName==='function') ? wrestlerByName(name) : null;
+  if(!w) return false;
+  if(typeof smIsMapView==='function' && smIsMapView() && typeof smOpenByName==='function'){
+    return smOpenByName(w.name) !== false;
+  }
+  if(typeof csSelect==='function'){ csSelect(w.name); return true; }
+  if(typeof openProfile==='function'){ openProfile(w); return true; }
+  return false;
+}
 
 async function loadRoster(){
   await loadInactiveSets();
@@ -4242,13 +4597,20 @@ async function loadRoster(){
         const members = String(f.members_txt||'')
           .split(',').map(s=>s.trim()).filter(Boolean)
           .sort((a,b)=>a.localeCompare(b));
-        return { name: f.name || 'Faction', members };
+        return { name: f.name || 'Faction', members,
+          // extra columns the star map shows on a stable's hover card
+          wins:f.wins, losses:f.losses, draws:f.draws, no_wins:f.no_wins,
+          win_pct:f.win_pct, contender_points:f.contender_points,
+          is_ready_contender:f.is_ready_contender, seed_last5:f.seed_last5 };
       }).filter(f=>f.members.length)
         .sort((a,b)=>a.name.localeCompare(b.name));
     }
   }catch(e){ /* fail soft — Factions filter just shows empty */ }
 
-  renderRoster('');
+  // Repaint whichever roster view is on screen, then re-chart the star map so a
+  // newly added wrestler or faction shows up as a new star without a refresh.
+  rosterRerender(ROSTER_QUERY);
+  try{ if(typeof smRebuild==='function') smRebuild(); }catch(e){}
 }
 
 // Which wrestlers belong to the active filter (names set), or null for "all".
@@ -4529,6 +4891,7 @@ async function renderWrestlerHistory(name, hostId){
   }
   // guard against a stale async fill after the user clicked another wrestler
   if(hostId==='cs-history' && typeof CS_SELECTED!=='undefined' && CS_SELECTED && CS_SELECTED!==name) return;
+  if(hostId==='sm-history' && typeof smCurrentName==='function' && smCurrentName() && smCurrentName()!==name) return;
   if(!rows.length){
     host.innerHTML = `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
       <div class="pf-empty">No recorded matches on file for them yet — matches appear here once a winner is saved for them.</div></div>`;
@@ -4935,32 +5298,30 @@ async function loadBetHistory(){
 // shareable / bookmarkable and survives a refresh.
 function goWrestler(name){
   if(!name) return;
-  // Show the wrestler on the BIG character-select stage (where CCMamas appears),
-  // not the small modal. Reuses csSelect() — the same thing tray icons use.
-  const showBig=()=>{
-    const w=wrestlerByName(name);
+  // record it in the URL so refresh / share / back-button all land here
+  const enc = encodeURIComponent(name);
+  if(location.hash !== '#roster?w='+enc){ history.replaceState(null,'','#roster?w='+enc); }
+  activatePage('roster');
+
+  const show = ()=>{
+    const w = wrestlerByName(name);
     if(!w) return false;
-    const realName=w.name;                 // canonical name (matches tray data-name)
-    if(typeof csSelect==='function') csSelect(realName);
-    else if(typeof openProfile==='function') openProfile(w);  // fallback, just in case
-    // bring the stage into view, then scroll the matching tray icon into the row
+    if(!rosterFocusName(w.name)) return false;
+    const onMap = (typeof smIsMapView==='function' && smIsMapView());
     requestAnimationFrame(()=>{
-      const stage=document.getElementById('cs-stage');
-      if(stage) stage.scrollIntoView({behavior:'smooth', block:'start'});
-      const icon=document.querySelector('#cs-tray .cs-icon[data-name="'+(window.CSS&&CSS.escape?CSS.escape(realName):realName)+'"]');
-      if(icon) icon.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+      const target = document.getElementById(onMap ? 'sm-wrap' : 'cs-stage');
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+      if(!onMap){
+        const sel = (window.CSS && CSS.escape) ? CSS.escape(w.name) : w.name;
+        const icon = document.querySelector('#cs-tray .cs-icon[data-name="'+sel+'"]');
+        if(icon) icon.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+      }
     });
     return true;
   };
-  const run=()=>{
-    activatePage('roster');
-    if((window._roster||[]).length){ showBig(); }
-    else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(showBig); }
-  };
-  // record it in the URL so refresh / share / back-button all land here
-  const enc=encodeURIComponent(name);
-  if(location.hash!=='#roster?w='+enc){ history.replaceState(null,'','#roster?w='+enc); }
-  run();
+
+  if((window._roster||[]).length){ show(); }
+  else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(show); }
 }
 
 // Wrap a name in a tap-to-open link ONLY if it matches a real roster wrestler.
@@ -8260,6 +8621,12 @@ function activatePage(pg){
   if(pg==='apply') loadApply();
   if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
   if(pg==='account') loadAccount();
+  // Roster star map: only run its render loop while the tab is actually open,
+  // and drop out of fullscreen when navigating away.
+  try{
+    if(pg==='roster'){ if(typeof smEnter==='function') smEnter(); }
+    else if(typeof smLeave==='function') smLeave();
+  }catch(e){}
   return true;
 }
 // On load (and on back/forward), open whatever tab the hash points to.
@@ -8279,7 +8646,7 @@ function restorePageFromHash(){
     const m=qs.match(/(?:^|&)w=([^&]*)/);
     if(m){
       const name=decodeURIComponent(m[1].replace(/\+/g,' '));
-      const openIt=()=>{ const w=wrestlerByName(name); if(w){ if(typeof csSelect==='function') csSelect(w.name); else openProfile(w); return true; } return false; };
+      const openIt=()=>rosterFocusName(name);
       if((window._roster||[]).length){ openIt(); }
       else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(openIt); }
     }
@@ -8302,14 +8669,19 @@ function goPage(pg){
     window.scrollTo({top:0,behavior:'smooth'});
   }
 }
-document.getElementById('roster-search').addEventListener('input',e=>renderRoster(e.target.value));
+let ROSTER_SEARCH_T = null;
+document.getElementById('roster-search').addEventListener('input',e=>{
+  const v = e.target.value;
+  clearTimeout(ROSTER_SEARCH_T);
+  ROSTER_SEARCH_T = setTimeout(()=>rosterRerender(v), 140);   // debounced: the list view hits the DB on select
+});
 // Roster division/faction filters
 document.querySelectorAll('#roster-filters .rfilter').forEach(b=>{
   b.onclick=()=>{
     document.querySelectorAll('#roster-filters .rfilter').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     ROSTER_FILTER=b.dataset.filter;
-    renderRoster(document.getElementById('roster-search').value);
+    rosterRerender(document.getElementById('roster-search').value);
   };
 });
 // Rankings division filter (show one block or all)
@@ -8700,6 +9072,1385 @@ if(typeof sb !== 'undefined' && sb){
   loadDashSponsors();
   if((location.hash||'').slice(1).split('?')[0] === 'sponsors') loadSponsors();
 }
+</script>
+
+<!-- ===== ROSTER STAR MAP engine ===== -->
+<script>
+/* =====================================================================
+   ROSTER STAR MAP  (public site)
+   ---------------------------------------------------------------------
+   Rebuilds the Roster tab as an interactive star map:
+     • every stable is a constellation — hover it to light the whole team,
+       click a line to open the stable
+     • every solo competitor is a lone pulsing star
+     • champions burn gold
+   The data is the same data the old roster used (window._roster, FACTIONS,
+   RANK_BY_NAME, DIV_MEMBERS), so nothing new has to be maintained: add a
+   wrestler or a faction in the admin and a new star appears.
+
+   The classic character-select list is still on the page (hidden behind the
+   "List" button) and is used automatically if WebGL isn't available.
+
+   three.js is fetched lazily from jsDelivr the first time the Roster tab is
+   opened, so it costs nothing on any other page. jsDelivr is already allowed
+   by the site's Content-Security-Policy.
+   ===================================================================== */
+(function(){
+
+const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
+
+/* ── tiny helpers ─────────────────────────────────────────────────── */
+const $  = (id) => document.getElementById(id);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const lerp  = (a,b,t) => a + (b-a) * t;
+const E = (s) => (typeof esc==='function' ? esc(s) : String(s==null?'':s));
+
+function hashStr(s){
+  let h = 2166136261;
+  s = String(s||'');
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619); }
+  return h>>>0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a>>>15, 1|a);
+    t = t + Math.imul(t ^ t>>>7, 61|t) ^ t;
+    return ((t ^ t>>>14)>>>0) / 4294967296;
+  };
+}
+function initialsOf(n){
+  return String(n||'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+function slug(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+/* FACTIONS / RANK_BY_NAME / DIV_MEMBERS / ROSTER_FILTER are declared with `let`
+   in the main script, so they live in the shared global scope but NOT on
+   window. These read them defensively in case the main script ever moves. */
+function gFactions(){ try{ return FACTIONS || []; }catch(e){ return []; } }
+function gRanks(n){ try{ return (RANK_BY_NAME && RANK_BY_NAME[n]) || []; }catch(e){ return []; } }
+function gDivs(){ try{ return DIV_MEMBERS || null; }catch(e){ return null; } }
+function gFilter(){ try{ return ROSTER_FILTER || 'all'; }catch(e){ return 'all'; } }
+function cssVar(name, fallback){
+  try{
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }catch(e){ return fallback; }
+}
+
+/* Faction colours. Assigned by hashing the stable's name, so a stable keeps
+   the same colour on every visit without anyone having to set one. */
+const PALETTE = ['#5DCAA5','#5aa9f0','#c07bf0','#f0904b','#e8556a','#3ecf8e','#7ad1e6','#d96fa8','#8ea2f0','#c9b45a'];
+
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SMALL   = window.matchMedia('(max-width:900px)').matches;
+const LOWPOWER= SMALL || (navigator.hardwareConcurrency||8) <= 4;
+
+const CFG = {
+  fieldRadius:  420,
+  soloRadius:   740,
+  memberSpread: 62,
+  flatten:      0.52,
+  backgroundStars: LOWPOWER ? 2200 : 5400,
+  fogSheets:       LOWPOWER ? 10   : 24,
+  fogDensity:   0.00085,
+  autoRotate:   !REDUCED,
+  rotateSpeed:  0.016,
+  startDistance:980
+};
+
+/* ── module state ─────────────────────────────────────────────────── */
+let THREE_LOADING = null;
+let stage, host, renderer, scene, camera, raycaster, clock;
+let starObjects = [], factionObjects = {}, fogSheets = [], driftGroups = [], pickables = [];
+let DATA = { factions:[], solo:[] };
+let built = false, booting = false, failed = false;
+let running = false, entered = false;
+let TEX_GLOW = null, TEX_POINT = null, TEX_RING = null;
+let hoverMember = null, hoverFaction = null, selMember = null, selFaction = null;
+let wheelArmed = false;
+let pendingName = null;          // a wrestler asked for before the map was ready
+let VIEW = 'map';                // 'map' | 'list'
+
+const view = {
+  theta:0.85, phi:1.18, radius:CFG.startDistance,
+  tTheta:0.85, tPhi:1.18, tRadius:CFG.fieldRadius*1.6,
+  target:null, tTarget:null, idle:0, dragging:false
+};
+
+const pointer = { x:-10, y:-10 };
+
+function stageW(){ return (stage && stage.clientWidth)  || 1; }
+function stageH(){ return (stage && stage.clientHeight) || 1; }
+
+/* ── loading three.js ─────────────────────────────────────────────── */
+function hasWebGL(){
+  try{
+    const c = document.createElement('canvas');
+    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+  }catch(e){ return false; }
+}
+function loadThree(){
+  if(window.THREE) return Promise.resolve();
+  if(THREE_LOADING) return THREE_LOADING;
+  THREE_LOADING = new Promise((res,rej)=>{
+    const s = document.createElement('script');
+    s.src = THREE_URL; s.async = true;
+    s.onload  = ()=> window.THREE ? res() : rej(new Error('three.js loaded but THREE is missing'));
+    s.onerror = ()=> rej(new Error('could not download three.js'));
+    document.head.appendChild(s);
+  });
+  return THREE_LOADING;
+}
+
+/* ── turning site data into map data ──────────────────────────────── */
+function memberOf(w, color, fid, fname){
+  const ranks = gRanks(w.name);
+  const champ = ranks.some(r=>r.champ);
+  const inactive = w.is_active===false ||
+    (typeof isInactiveWrestler==='function' && isInactiveWrestler(w.name));
+  const gold = cssVar('--gold','#E9B949');
+  return {
+    id:'w-'+slug(w.name)+'-'+(hashStr(w.name)%997),
+    name:w.name, w, ranks, champ, inactive,
+    factionId:fid, factionName:fname,
+    nickname:w.nickname||'',
+    image:w.image_url||w.avatar_url||'',
+    color: champ ? gold : (color || (inactive ? '#8f8b80' : '#efe9db'))
+  };
+}
+function factionStats(f){
+  const out = [];
+  if(f.wins!=null || f.losses!=null){
+    const d = f.draws ? ('–'+f.draws) : '';
+    out.push({label:'Record', value:(f.wins||0)+'–'+(f.losses||0)+d});
+  }
+  if(f.win_pct!=null) out.push({label:'Win rate', value:Math.round((f.win_pct||0)*100)+'%'});
+  if(f.contender_points!=null) out.push({label:'Contender pts', value:String(f.contender_points)});
+  return out;
+}
+function buildData(){
+  const roster = (window._roster||[]);
+  const claimed = new Set();
+  const factions = [];
+
+  gFactions().forEach((f,i)=>{
+    const id = 'f-'+(slug(f.name)||i);
+    const color = PALETTE[hashStr(f.name)%PALETTE.length];
+    const members = [];
+    (f.members||[]).forEach(nm=>{
+      const w = (typeof wrestlerByName==='function') ? wrestlerByName(nm) : null;
+      if(!w) return;                                   // faction member with no roster row
+      const key = w.name.toLowerCase();
+      if(claimed.has(key)) return;                     // already placed in another stable
+      claimed.add(key);
+      members.push(memberOf(w, color, id, f.name));
+    });
+    if(!members.length) return;
+    factions.push({
+      id, color, name:f.name,
+      tagline: f.is_ready_contender ? '#1 Contender' : '',
+      stats: factionStats(f),
+      members
+    });
+  });
+
+  const solo = roster
+    .filter(w => !claimed.has(w.name.toLowerCase()))
+    .sort((a,b)=>a.name.localeCompare(b.name))
+    .map(w => memberOf(w, null, null, null));
+
+  return { factions, solo };
+}
+function allMembers(){ return DATA.factions.reduce((a,f)=>a.concat(f.members), DATA.solo.slice()); }
+function findFaction(id){ return DATA.factions.find(f=>f.id===id) || null; }
+function memberByName(n){
+  const key = String(n||'').trim().toLowerCase();
+  return allMembers().find(m=>m.name.toLowerCase()===key) || null;
+}
+
+/* ── canvas textures (no image assets needed) ─────────────────────── */
+function radialTexture(stops, size){
+  size = size || 128;
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+  stops.forEach(s=>g.addColorStop(s[0],s[1]));
+  ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+  return new THREE.CanvasTexture(c);
+}
+function ringTexture(){
+  const size = 160;
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2-8,0,6.283); ctx.stroke();
+  ctx.globalAlpha = .5; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2-20,0,6.283); ctx.stroke();
+  return new THREE.CanvasTexture(c);
+}
+function cloudTexture(seed, size){
+  size = size || 192;
+  const rand = mulberry32(seed);
+  const grids = [];
+  for(let o=0;o<4;o++){
+    const g = 4<<o, arr = new Float32Array(g*g);
+    for(let i=0;i<arr.length;i++) arr[i] = rand();
+    grids.push({g,arr});
+  }
+  const sample = (gr,u,v)=>{
+    const g = gr.g, arr = gr.arr;
+    const x = u*g, y = v*g;
+    const x0 = Math.floor(x)%g, y0 = Math.floor(y)%g;
+    const x1 = (x0+1)%g, y1 = (y0+1)%g;
+    const fx = x-Math.floor(x), fy = y-Math.floor(y);
+    const sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy);
+    const a = arr[y0*g+x0], b = arr[y0*g+x1], c2 = arr[y1*g+x0], d = arr[y1*g+x1];
+    return (a*(1-sx)+b*sx)*(1-sy) + (c2*(1-sx)+d*sx)*sy;
+  };
+  const cv = document.createElement('canvas'); cv.width = cv.height = size;
+  const ctx = cv.getContext('2d');
+  const img = ctx.createImageData(size,size);
+  for(let y=0;y<size;y++){
+    for(let x=0;x<size;x++){
+      const u = x/size, v = y/size;
+      let n=0, amp=0.5, tot=0;
+      for(let o=0;o<grids.length;o++){ n += sample(grids[o],u,v)*amp; tot += amp; amp *= 0.5; }
+      n /= tot;
+      const dx = u-0.5, dy = v-0.5;
+      const fall = Math.max(0, 1 - Math.sqrt(dx*dx+dy*dy)*2);
+      const a = Math.pow(Math.max(0, n*1.55-0.2), 1.1) * Math.pow(fall, 1.55);
+      const i = (y*size+x)*4;
+      img.data[i] = img.data[i+1] = img.data[i+2] = 255;
+      img.data[i+3] = Math.min(255, a*430);
+    }
+  }
+  ctx.putImageData(img,0,0);
+  return new THREE.CanvasTexture(cv);
+}
+function labelTexture(text, color){
+  const pad = 24, h = 96;
+  const cv = document.createElement('canvas');
+  const ctx = cv.getContext('2d');
+  const font = '600 54px Oswald, Impact, sans-serif';
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(String(text).toUpperCase()).width) + pad*2;
+  cv.width = w; cv.height = h;
+  const c2 = cv.getContext('2d');
+  c2.font = font; c2.textAlign = 'center'; c2.textBaseline = 'middle';
+  c2.shadowColor = color; c2.shadowBlur = 22;
+  c2.fillStyle = '#ffffff';
+  c2.fillText(String(text).toUpperCase(), w/2, h/2+2);
+  const t = new THREE.CanvasTexture(cv);
+  t.userData = { aspect: w/h };
+  return t;
+}
+
+/* ── scene ────────────────────────────────────────────────────────── */
+function initScene(){
+  renderer = new THREE.WebGLRenderer({ antialias:!LOWPOWER, powerPreference:'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, LOWPOWER?1.5:2));
+  renderer.setSize(stageW(), stageH(), false);   // CSS sizes the canvas; this sets the backing store
+  renderer.setClearColor(0x04050b, 1);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.45;
+  host.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x06070f, CFG.fogDensity);
+  camera = new THREE.PerspectiveCamera(52, stageW()/stageH(), 1, 6000);
+  raycaster = new THREE.Raycaster();
+  raycaster.params.Line.threshold = 7;
+  clock = new THREE.Clock();
+
+  view.target  = new THREE.Vector3();
+  view.tTarget = new THREE.Vector3();
+
+  TEX_GLOW = radialTexture([
+    [0.00,'rgba(255,255,255,1)'],[0.14,'rgba(255,255,255,.85)'],
+    [0.32,'rgba(255,255,255,.28)'],[0.62,'rgba(255,255,255,.06)'],[1.00,'rgba(255,255,255,0)']
+  ],160);
+  TEX_POINT = radialTexture([
+    [0.00,'rgba(255,255,255,1)'],[0.30,'rgba(255,255,255,.55)'],[1.00,'rgba(255,255,255,0)']
+  ],64);
+  TEX_RING = ringTexture();
+
+  buildStarfield();
+  buildFog();
+}
+
+function onResize(){
+  if(!renderer) return;
+  camera.aspect = stageW()/stageH();
+  camera.updateProjectionMatrix();
+  renderer.setSize(stageW(), stageH(), false);
+}
+
+function buildStarfield(){
+  const mk = (count,rMin,rMax,size,opacity)=>{
+    const pos = new Float32Array(count*3), col = new Float32Array(count*3);
+    const rand = mulberry32(1337+count);
+    const c = new THREE.Color();
+    for(let i=0;i<count;i++){
+      const u = rand()*2-1, th = rand()*Math.PI*2, s = Math.sqrt(1-u*u);
+      const r = rMin + rand()*(rMax-rMin);
+      pos[i*3] = Math.cos(th)*s*r;
+      pos[i*3+1] = u*r*0.78;
+      pos[i*3+2] = Math.sin(th)*s*r;
+      const t = rand();
+      c.setHSL(t<0.62?0.58:(t<0.88?0.11:0.72), 0.35+rand()*0.35, 0.62+rand()*0.3);
+      col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col,3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+      size, map:TEX_POINT, vertexColors:true, transparent:true, opacity,
+      depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true, fog:false
+    }));
+    scene.add(pts);
+    return pts;
+  };
+  const n = CFG.backgroundStars;
+  driftGroups.push({obj:mk(Math.round(n*0.62),1700,3000,10,0.95), speed:0.004});
+  driftGroups.push({obj:mk(Math.round(n*0.28),900,1700,7.5,0.8),  speed:0.009});
+  driftGroups.push({obj:mk(Math.round(n*0.10),320,900,5,0.6),     speed:0.02});
+}
+
+function buildFog(){
+  const rand = mulberry32(90210);
+  const tints = [0x4a72c8,0x6a48c0,0x2f7fa8,0xb08a45,0x3560a8,0x8a4fa8];
+  const textures = [];
+  for(let i=0;i<4;i++) textures.push(cloudTexture(700+i*31));
+
+  for(let i=0;i<CFG.fogSheets;i++){
+    const size = 700 + rand()*1300;
+    const mat = new THREE.MeshBasicMaterial({
+      map:textures[i%textures.length], color:tints[Math.floor(rand()*tints.length)],
+      transparent:true, opacity:0.06+rand()*0.12, blending:THREE.AdditiveBlending,
+      depthWrite:false, side:THREE.DoubleSide, fog:true
+    });
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(size,size), mat);
+    const r = 420 + rand()*1000;
+    const u = rand()*2-1, th = rand()*Math.PI*2, s = Math.sqrt(1-u*u);
+    sheet.position.set(Math.cos(th)*s*r, u*r*0.6, Math.sin(th)*s*r);
+    sheet.rotation.set(rand()*6.283, rand()*6.283, rand()*6.283);
+    sheet.renderOrder = -1;
+    scene.add(sheet);
+    fogSheets.push({mesh:sheet, spin:(rand()-0.5)*0.012, base:mat.opacity});
+  }
+  for(let i=0;i<6;i++){
+    const size = 2600 + rand()*2200;
+    const mat = new THREE.MeshBasicMaterial({
+      map:textures[i%textures.length],
+      color:new THREE.Color().setHSL(0.6+rand()*0.14,0.55,0.42),
+      transparent:true, opacity:0.07+rand()*0.07, blending:THREE.AdditiveBlending,
+      depthWrite:false, side:THREE.DoubleSide, fog:false
+    });
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(size,size), mat);
+    const th = (i/6)*6.283 + rand()*0.5, r = 2100 + rand()*700;
+    sheet.position.set(Math.cos(th)*r, (rand()-0.5)*700, Math.sin(th)*r);
+    sheet.lookAt(0,0,0);
+    sheet.rotation.z = rand()*6.283;
+    sheet.renderOrder = -2;
+    scene.add(sheet);
+    fogSheets.push({mesh:sheet, spin:(rand()-0.5)*0.002, base:mat.opacity});
+  }
+}
+
+function addFactionNebula(center, color, seed){
+  const rand = mulberry32(seed);
+  const n = LOWPOWER ? 2 : 4;
+  for(let i=0;i<n;i++){
+    const size = 300 + rand()*380;
+    const mat = new THREE.MeshBasicMaterial({
+      map:cloudTexture(seed+i*7), color:new THREE.Color(color),
+      transparent:true, opacity:0.28+rand()*0.2, blending:THREE.AdditiveBlending,
+      depthWrite:false, side:THREE.DoubleSide, fog:true
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(size,size), mat);
+    m.position.copy(center).add(new THREE.Vector3((rand()-0.5)*100,(rand()-0.5)*70,(rand()-0.5)*100));
+    m.rotation.set(rand()*6.283, rand()*6.283, rand()*6.283);
+    m.renderOrder = -1;
+    scene.add(m);
+    fogSheets.push({mesh:m, spin:(rand()-0.5)*0.02, base:mat.opacity});
+  }
+}
+
+/* ── layout: deterministic, so the sky looks the same on every visit ── */
+function layout(data){
+  const F = data.factions.length;
+  data.factions.forEach((f,i)=>{
+    const rand = mulberry32(hashStr(f.id));
+    const y = F>1 ? 1-(i/(F-1))*2 : 0;
+    const ring = Math.sqrt(Math.max(0.06, 1-y*y));
+    const th = i*2.399963 + rand()*0.7;
+    const R = CFG.fieldRadius*(0.72+rand()*0.5);
+    f.center = new THREE.Vector3(Math.cos(th)*ring*R, y*R*CFG.flatten+(rand()-0.5)*60, Math.sin(th)*ring*R);
+    const spread = CFG.memberSpread;
+    f.members.forEach((m,j)=>{
+      const r2 = mulberry32(hashStr(m.id));
+      const a = (j/f.members.length)*6.283 + r2()*1.1;
+      const rad = spread*(0.55+r2()*0.8);
+      m.p = f.center.clone().add(new THREE.Vector3(Math.cos(a)*rad,(r2()-0.5)*spread*0.9,Math.sin(a)*rad));
+    });
+    relax(f.members, 30);
+    f.chain = nearestNeighbourChain(f.members);
+  });
+  data.solo.forEach((m,i)=>{
+    const rand = mulberry32(hashStr(m.id));
+    const n = data.solo.length;
+    const y = n>1 ? 1-(i/(n-1))*2 : 0;
+    const ring = Math.sqrt(Math.max(0.1, 1-y*y));
+    const th = i*2.399963 + rand()*1.4;
+    const R = CFG.soloRadius*(0.62+rand()*0.6);
+    m.p = new THREE.Vector3(Math.cos(th)*ring*R, y*R*CFG.flatten*0.8+(rand()-0.5)*90, Math.sin(th)*ring*R);
+  });
+}
+function relax(members, minDist){
+  for(let pass=0;pass<14;pass++){
+    for(let i=0;i<members.length;i++){
+      for(let j=i+1;j<members.length;j++){
+        const a = members[i].p, b = members[j].p;
+        const d = a.distanceTo(b);
+        if(d<minDist && d>0.001){
+          const push = b.clone().sub(a).normalize().multiplyScalar((minDist-d)*0.5);
+          b.add(push); a.sub(push);
+        }
+      }
+    }
+  }
+}
+function nearestNeighbourChain(members){
+  if(members.length<2) return members.slice();
+  const centroid = members.reduce((v,m)=>v.add(m.p.clone()), new THREE.Vector3()).divideScalar(members.length);
+  let cur = members.reduce((best,m)=> m.p.distanceTo(centroid) < best.p.distanceTo(centroid) ? m : best, members[0]);
+  const left = members.filter(m=>m!==cur), chain=[cur];
+  while(left.length){
+    let bi=0, bd=Infinity;
+    for(let i=0;i<left.length;i++){
+      const d = left[i].p.distanceTo(cur.p);
+      if(d<bd){ bd=d; bi=i; }
+    }
+    cur = left.splice(bi,1)[0];
+    chain.push(cur);
+  }
+  return chain;
+}
+
+/* ── building stars + constellations ──────────────────────────────── */
+function buildStar(m, isSolo){
+  const col = new THREE.Color(m.color);
+  const group = new THREE.Group();
+  group.position.copy(m.p);
+
+  const coreR = m.champ ? 4.2 : (isSolo ? 3.6 : 2.7);
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(coreR, 12, 12),
+    new THREE.MeshBasicMaterial({ color:0xffffff, fog:false, transparent:true })
+  );
+  group.add(core);
+
+  const glowScale = m.champ ? 80 : (isSolo ? 66 : 50);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:TEX_GLOW, color:col, transparent:true, opacity:0.85,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+  }));
+  glow.scale.setScalar(glowScale);
+  group.add(glow);
+
+  const haloScale = m.champ ? 190 : (isSolo ? 165 : 118);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:TEX_GLOW, color:col, transparent:true, opacity:isSolo?0.3:0.2,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+  }));
+  halo.scale.setScalar(haloScale);
+  group.add(halo);
+
+  // Champions get a slowly turning gold ring so they read at a glance.
+  let ring = null;
+  if(m.champ){
+    ring = new THREE.Sprite(new THREE.SpriteMaterial({
+      map:TEX_RING, color:col, transparent:true, opacity:0.42,
+      blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+    }));
+    ring.scale.setScalar(58);
+    group.add(ring);
+  }
+
+  // Invisible, still hit-testable: nothing is drawn, the ray still lands.
+  const hit = new THREE.Mesh(
+    new THREE.SphereGeometry(isSolo?20:15, 8, 8),
+    new THREE.MeshBasicMaterial({ colorWrite:false, depthWrite:false })
+  );
+  hit.userData = { kind:'member', member:m };
+  group.add(hit);
+  pickables.push(hit);
+  scene.add(group);
+
+  const rec = {
+    member:m, isSolo, group, core, glow, halo, ring, hit,
+    glowScale, haloScale,
+    phase:(hashStr(m.id)%1000)/1000*6.283,
+    speed:isSolo ? 1.5+(hashStr(m.id)%40)/60 : 0.7+(hashStr(m.id)%30)/70,
+    hot:0, dim:1, tDim:1
+  };
+  starObjects.push(rec);
+  m._star = rec;
+  return rec;
+}
+
+function buildFaction(f){
+  const col = new THREE.Color(f.color);
+  const pts = [];
+  for(let i=0;i<f.chain.length-1;i++){
+    pts.push(f.chain[i].p.x, f.chain[i].p.y, f.chain[i].p.z);
+    pts.push(f.chain[i+1].p.x, f.chain[i+1].p.y, f.chain[i+1].p.z);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts),3));
+  const lines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+    color:col, transparent:true, opacity:0.32, blending:THREE.AdditiveBlending,
+    depthWrite:false, fog:false
+  }));
+  lines.userData = { kind:'faction', faction:f };
+  scene.add(lines);
+  if(f.chain.length>1) pickables.push(lines);
+
+  const centroid = f.members.reduce((v,m)=>v.add(m.p.clone()), new THREE.Vector3()).divideScalar(f.members.length);
+  let radius = 0;
+  f.members.forEach(m=>{ radius = Math.max(radius, m.p.distanceTo(centroid)); });
+
+  const tex = labelTexture(f.name, f.color);
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, opacity:0, depthWrite:false, fog:false }));
+  const lh = 26;
+  label.scale.set(lh*tex.userData.aspect, lh, 1);
+  label.position.copy(centroid).add(new THREE.Vector3(0, radius+46, 0));
+  scene.add(label);
+
+  const spark = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:TEX_GLOW, color:0xffffff, transparent:true, opacity:0,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+  }));
+  spark.scale.setScalar(20);
+  scene.add(spark);
+
+  addFactionNebula(centroid, f.color, hashStr(f.id));
+  factionObjects[f.id] = { faction:f, lines, label, spark, centroid, radius, hot:0, t:0, dim:1, tDim:1 };
+  f.centroid = centroid; f.radius = radius;
+}
+
+function buildMap(data){
+  DATA = data;
+  layout(data);
+  data.factions.forEach(f=>{
+    f.members.forEach(m=>buildStar(m,false));
+    buildFaction(f);
+  });
+  data.solo.forEach(m=>buildStar(m,true));
+  view.tRadius = CFG.fieldRadius*1.6;
+  view.radius = CFG.startDistance*2.1;
+}
+
+function teardownMap(){
+  starObjects.forEach(s=>{
+    scene.remove(s.group);
+    s.group.traverse(o=>{
+      if(o.geometry) o.geometry.dispose();
+      if(o.material) o.material.dispose();
+    });
+  });
+  Object.keys(factionObjects).forEach(k=>{
+    const fo = factionObjects[k];
+    [fo.lines, fo.label, fo.spark].forEach(o=>{
+      if(!o) return;
+      scene.remove(o);
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){ if(o.material.map && o.material.map !== TEX_GLOW) o.material.map.dispose(); o.material.dispose(); }
+    });
+  });
+  starObjects = []; factionObjects = {}; pickables = [];
+  hoverMember = hoverFaction = selMember = selFaction = null;
+}
+
+/* ── camera ───────────────────────────────────────────────────────── */
+function updateCamera(dt){
+  if(CFG.autoRotate && view.idle>3 && !view.dragging) view.tTheta += CFG.rotateSpeed*dt;
+  const k = 1 - Math.pow(0.0016, dt);
+  view.theta  = lerp(view.theta,  view.tTheta,  k);
+  view.phi    = lerp(view.phi,    view.tPhi,    k);
+  view.radius = lerp(view.radius, view.tRadius, k);
+  view.target.lerp(view.tTarget, k);
+  const sp = Math.sin(view.phi);
+  camera.position.set(
+    view.target.x + view.radius*sp*Math.sin(view.theta),
+    view.target.y + view.radius*Math.cos(view.phi),
+    view.target.z + view.radius*sp*Math.cos(view.theta)
+  );
+  camera.lookAt(view.target);
+}
+/* Aim at a point, nudged so the subject lands where the panels aren't. */
+function focusOn(point, dist){
+  view.tRadius = clamp(dist, 90, 2200);
+  const p = point.clone();
+  const worldPerPx = 2*Math.tan(camera.fov*Math.PI/360)*view.tRadius/stageH();
+  const wide = stageW() > 780;
+  const dOn = $('sm-dossier').classList.contains('on');
+  const iOn = !$('sm-index').classList.contains('hidden');
+  if(wide){
+    const left  = dOn ? $('sm-dossier').offsetWidth + 28 : 0;
+    const right = iOn ? $('sm-index').offsetWidth + 28 : 0;
+    const shiftPx = (left-right)/2;
+    const r = new THREE.Vector3(Math.cos(view.tTheta), 0, -Math.sin(view.tTheta));
+    p.sub(r.multiplyScalar(shiftPx*worldPerPx));
+  } else if(dOn){
+    p.y -= (stageH()*0.34)*worldPerPx;
+  }
+  view.tTarget.copy(p);
+  view.idle = 0;
+}
+function resetView(){
+  view.tTarget.set(0,0,0);
+  view.tRadius = CFG.fieldRadius*1.6;
+  view.tPhi = 1.18;
+  view.idle = 0;
+}
+function zoomBy(mult){
+  view.tRadius = clamp(view.tRadius*mult, 70, 2400);
+  view.idle = 0;
+}
+
+/* ── pointer + keyboard ───────────────────────────────────────────── */
+function bindPointer(){
+  const el = renderer.domElement;
+  el.style.cursor = 'grab';
+  let down=false, moved=0, lx=0, ly=0;
+
+  const toLocal = (e)=>{
+    const r = stage.getBoundingClientRect();
+    pointer.x = ((e.clientX - r.left)/r.width)*2 - 1;
+    pointer.y = -((e.clientY - r.top)/r.height)*2 + 1;
+  };
+
+  el.addEventListener('pointerdown', e=>{
+    down = true; moved = 0; lx = e.clientX; ly = e.clientY;
+    view.dragging = true; view.idle = 0; wheelArmed = true;
+    toLocal(e);
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    el.style.cursor = 'grabbing';
+  });
+
+  el.addEventListener('pointermove', e=>{
+    toLocal(e);
+    if(down){
+      const dx = e.clientX-lx, dy = e.clientY-ly;
+      moved += Math.abs(dx)+Math.abs(dy);
+      view.tTheta -= dx*0.0042;
+      view.tPhi = clamp(view.tPhi - dy*0.0042, 0.22, Math.PI-0.22);
+      lx = e.clientX; ly = e.clientY; view.idle = 0;
+      $('sm-hint').classList.add('fade');
+    } else hoverTest();
+  });
+
+  const release = (e)=>{
+    if(down && moved<6){
+      hoverTest(); commitClick();
+      if(e && e.pointerType==='touch'){ hoverMember=null; hoverFaction=null; updateTeamCard(); }
+    }
+    down = false; view.dragging = false; el.style.cursor = 'grab';
+  };
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', ()=>{ down=false; view.dragging=false; el.style.cursor='grab'; });
+  el.addEventListener('pointerleave', ()=>{
+    if(down) return;
+    hoverMember=null; hoverFaction=null; updateTeamCard();
+  });
+
+  // Wheel only takes over the scroll once the map has been clicked, so the
+  // page still scrolls normally when someone is just passing over it.
+  el.addEventListener('wheel', e=>{
+    if(!wheelArmed && !stage.classList.contains('sm-full')) return;
+    e.preventDefault();
+    zoomBy(1 + Math.sign(e.deltaY)*0.12);
+    $('sm-hint').classList.add('fade');
+  }, { passive:false });
+
+  let pinch = 0;
+  el.addEventListener('touchmove', e=>{
+    if(e.touches.length!==2) return;
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch) zoomBy(pinch/d);
+    pinch = d;
+  }, { passive:true });
+  el.addEventListener('touchend', ()=>{ pinch = 0; });
+
+  document.addEventListener('pointerdown', e=>{
+    if(stage && !stage.contains(e.target)) wheelArmed = false;
+  });
+
+  document.addEventListener('keydown', e=>{
+    if(!running) return;
+    if(e.key==='Escape'){
+      if(stage.classList.contains('sm-full')){ setFullscreen(false); return; }
+      closeDossier(); clearSelection();
+    }
+  });
+}
+
+function hoverTest(){
+  if(!raycaster) return;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(pickables, false);
+  let hm=null, hf=null, dm=Infinity, df=Infinity;
+  for(const h of hits){
+    const u = h.object.userData;
+    if(u.kind==='member' && h.distance<dm){
+      if(u.member._star && u.member._star.tDim < 0.4) continue;   // filtered out
+      hm = u.member; dm = h.distance;
+    } else if(u.kind==='faction' && h.distance<df){
+      const fo = factionObjects[u.faction.id];
+      if(fo && fo.tDim < 0.4) continue;
+      hf = u.faction; df = h.distance;
+    }
+  }
+  if(hm && (!hf || dm <= df+30)) hf = hm.factionId ? findFaction(hm.factionId) : null;
+  else hm = null;
+  hoverMember = hm; hoverFaction = hf;
+  renderer.domElement.style.cursor = (hm||hf) ? 'pointer' : (view.dragging?'grabbing':'grab');
+  updateTeamCard();
+}
+
+function commitClick(){
+  if(hoverMember){ openMember(hoverMember); return; }
+  if(hoverFaction){ openTeam(hoverFaction); return; }
+  if($('sm-dossier').classList.contains('on')){ closeDossier(); clearSelection(); }
+  else { clearSelection(); resetView(); }
+}
+function clearSelection(){ selMember = null; selFaction = null; markIndex(null); }
+
+/* ── HUD overlay ──────────────────────────────────────────────────── */
+const SVGNS = 'http://www.w3.org/2000/svg';
+let starLabel, catLabel;
+function initHUD(){
+  starLabel = document.createElementNS(SVGNS,'text');
+  starLabel.setAttribute('class','sm-reticle');
+  starLabel.setAttribute('fill','#ffffff');
+  starLabel.setAttribute('font-family','Oswald, Impact, sans-serif');
+  starLabel.setAttribute('font-size','19');
+  starLabel.setAttribute('font-weight','600');
+  starLabel.setAttribute('letter-spacing','.5');
+  starLabel.setAttribute('stroke','rgba(4,5,11,.9)');
+  starLabel.setAttribute('stroke-width','3.5');
+  starLabel.setAttribute('paint-order','stroke');
+  $('sm-reticleG').appendChild(starLabel);
+
+  catLabel = document.createElementNS(SVGNS,'text');
+  catLabel.setAttribute('class','sm-reticle');
+  catLabel.setAttribute('fill', cssVar('--gold','#E9B949'));
+  catLabel.setAttribute('font-family','Barlow Condensed, sans-serif');
+  catLabel.setAttribute('font-size','10');
+  catLabel.setAttribute('letter-spacing','2');
+  catLabel.setAttribute('stroke','rgba(4,5,11,.9)');
+  catLabel.setAttribute('stroke-width','3');
+  catLabel.setAttribute('paint-order','stroke');
+  $('sm-reticleG').appendChild(catLabel);
+}
+function toScreen(v){
+  const p = v.clone().project(camera);
+  return { x:(p.x*0.5+0.5)*stageW(), y:(-p.y*0.5+0.5)*stageH(), vis:p.z>-1 && p.z<1 };
+}
+function updateHUD(){
+  const hud = $('sm-hud');
+  const f = hoverFaction || selFaction;
+  if(f && f.members.length){
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,any=false;
+    f.members.forEach(m=>{
+      const s = toScreen(m.p);
+      if(!s.vis) return;
+      any = true;
+      x0=Math.min(x0,s.x); y0=Math.min(y0,s.y); x1=Math.max(x1,s.x); y1=Math.max(y1,s.y);
+    });
+    if(any){
+      const pad = 38;
+      x0-=pad; y0-=pad; x1+=pad; y1+=pad;
+      const L = clamp(Math.min(x1-x0,y1-y0)*0.28, 14, 38);
+      $('sm-bTL').setAttribute('d', 'M'+x0+' '+(y0+L)+'V'+y0+'H'+(x0+L));
+      $('sm-bTR').setAttribute('d', 'M'+(x1-L)+' '+y0+'H'+x1+'V'+(y0+L));
+      $('sm-bBL').setAttribute('d', 'M'+x0+' '+(y1-L)+'V'+y1+'H'+(x0+L));
+      $('sm-bBR').setAttribute('d', 'M'+(x1-L)+' '+y1+'H'+x1+'V'+(y1-L));
+      hud.classList.add('show-bracket');
+      positionTeamCard(x0,y0,x1,y1);
+    } else hud.classList.remove('show-bracket');
+  } else hud.classList.remove('show-bracket');
+
+  const m = hoverMember || selMember;
+  if(m && m._star){
+    const s = toScreen(m.p);
+    if(s.vis){
+      $('sm-rC').setAttribute('cx',s.x); $('sm-rC').setAttribute('cy',s.y);
+      $('sm-rTicks').setAttribute('d','M'+(s.x-22)+' '+s.y+'h9M'+(s.x+13)+' '+s.y+'h9M'+s.x+' '+(s.y-22)+'v9M'+s.x+' '+(s.y+13)+'v9');
+      const lx = clamp(s.x+38, 10, stageW()-160), ly = clamp(s.y-28, 26, stageH()-22);
+      $('sm-rLead').setAttribute('d','M'+(s.x+12)+' '+(s.y-12)+'L'+(lx-5)+' '+(ly+5));
+      starLabel.setAttribute('x',lx); starLabel.setAttribute('y',ly);
+      starLabel.textContent = m.name.toUpperCase();
+      catLabel.setAttribute('x',lx+1); catLabel.setAttribute('y',ly+13);
+      catLabel.textContent = (m.champ?'CHAMPION · ':'') + (m.factionName ? m.factionName.toUpperCase() : 'SOLO COMPETITOR');
+      hud.classList.add('show-reticle');
+    } else hud.classList.remove('show-reticle');
+  } else hud.classList.remove('show-reticle');
+}
+function updateTeamCard(){
+  const card = $('sm-teamcard');
+  const f = hoverFaction;
+  if(!f){ card.classList.remove('on'); return; }
+  if(card.dataset.id !== f.id){
+    card.dataset.id = f.id;
+    card.style.borderColor = f.color+'66';
+    $('sm-tc-kind').textContent = 'Stable · ' + f.members.length + ' member' + (f.members.length>1?'s':'');
+    $('sm-tc-kind').style.color = f.color;
+    $('sm-tc-name').textContent = f.name;
+    $('sm-tc-tag').textContent = f.tagline;
+    $('sm-tc-tag').style.display = f.tagline ? '' : 'none';
+    $('sm-tc-stats').innerHTML = f.stats.map(s=>'<dt>'+E(s.label)+'</dt><dd>'+E(s.value)+'</dd>').join('');
+  }
+  card.classList.add('on');
+}
+function positionTeamCard(x0,y0,x1,y1){
+  const card = $('sm-teamcard');
+  if(!card.classList.contains('on')) return;
+  const w = card.offsetWidth, h = card.offsetHeight;
+  let x = x0, y = y0-h-12;
+  if(y < 54) y = y1+12;
+  x = clamp(x, 10, stageW()-w-10);
+  y = clamp(y, 54, stageH()-h-10);
+  card.style.left = x+'px';
+  card.style.top  = y+'px';
+}
+
+/* ── dossier ──────────────────────────────────────────────────────── */
+function openMember(m, opts){
+  if(!m) return;
+  opts = opts || {};
+  selMember = m;
+  selFaction = m.factionId ? findFaction(m.factionId) : null;
+  const w = m.w;
+  const init = initialsOf(w.name);
+
+  const theme = w.theme_song
+    ? (w.theme_url
+        ? '<a href="'+escAttr(w.theme_url)+'" target="_blank" rel="noopener noreferrer">'+E(w.theme_song)+' <i class="ti ti-external-link" style="font-size:13px"></i></a>'
+        : E(w.theme_song))
+    : '';
+  const fields = [
+    (typeof last5HTML==='function' ? last5HTML(w.last5) : ''),
+    fieldRow('Height', w.height),
+    fieldRow('Weight', w.weight),
+    fieldRow('From', w.from_loc),
+    theme ? '<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">'+theme+'</span></div>' : '',
+    fieldRow('Signatures', w.signatures),
+    fieldRow('Finishers', w.finishers),
+    fieldRow('Debut', fmtDate(w.debut_date)),
+    fieldRow('Last Match', fmtDate(w.last_match))
+  ].join('');
+
+  const gender = w.gender==='M' ? 'Mens' : w.gender==='F' ? 'Womens' : 'Intergender';
+  const initA = escAttr(init), initH = E(init);
+  const portrait = m.image
+    ? '<img src="'+escAttr(m.image)+'" alt="'+escAttr(w.name)+'" onerror="this.outerHTML=\'<div class=&quot;sm-init&quot;>'+initA+'</div>\'">'
+    : '<div class="sm-init">'+initH+'</div>';
+
+  $('sm-dkind').textContent = m.champ ? 'Reigning champion' : (m.factionName ? 'Stable member' : 'Solo competitor');
+  $('sm-dbody').innerHTML =
+    '<div class="sm-portrait" style="--sw:'+escAttr(m.color)+'"><span class="sm-accent"></span>'+portrait+'</div>'+
+    '<div class="sm-dname"><h2>'+E(w.name)+'</h2>'+
+      (m.nickname ? '<p class="sm-nick">“'+E(m.nickname)+'”</p>' : '')+'</div>'+
+    '<div class="sm-dmeta">'+
+      '<span class="sm-pill">'+E(gender)+'</span>'+
+      (m.factionName
+        ? '<button class="sm-pill team" type="button" data-team="'+escAttr(m.factionId)+'" style="--sw:'+escAttr(m.color)+'">'+E(m.factionName)+'</button>'
+        : '<span class="sm-pill">No stable</span>')+
+      (m.inactive ? '<span class="sm-pill">Inactive</span>' : '')+
+    '</div>'+
+    ((w.performer || (typeof socialIcons==='function' && socialIcons(w.socials)))
+      ? '<div class="sm-dsect"><div class="cs-performer">'+
+          (w.performer ? '<span class="perf">'+E(w.performer)+'</span>' : '')+
+          (typeof socialIcons==='function' ? socialIcons(w.socials) : '')+'</div></div>'
+      : '')+
+    ((typeof rankHTML==='function' && rankHTML(w.name)) ? '<div class="sm-dsect">'+rankHTML(w.name)+'</div>' : '')+
+    (w.bio ? '<p class="sm-bio">'+E(w.bio)+'</p>' : '')+
+    '<div class="sm-dsect"><div class="pf-fields">'+(fields || '<div class="pf-empty">No details added yet.</div>')+'</div></div>'+
+    '<button class="sm-openfull" type="button" id="sm-tolist"><i class="ti ti-id-badge-2"></i> Open full profile</button>'+
+    '<div class="sm-dsect" id="sm-history"></div>';
+
+  const teamBtn = $('sm-dbody').querySelector('.sm-pill.team');
+  if(teamBtn) teamBtn.addEventListener('click', ()=>openTeam(findFaction(teamBtn.dataset.team)));
+  const toList = $('sm-tolist');
+  if(toList) toList.addEventListener('click', ()=>{
+    setView('list');
+    if(typeof csSelect==='function') csSelect(w.name);
+    const st = $('cs-stage'); if(st) st.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  if(typeof renderWrestlerHistory==='function') renderWrestlerHistory(w.name, 'sm-history');
+
+  $('sm-dossier').classList.add('on');
+  $('sm-dbody').scrollTop = 0;
+  focusOn(m.p, m.factionId ? 150 : 190);
+  markIndex(m.id);
+
+  // keep the shareable deep link in sync (#roster?w=Name)
+  if(!opts.silent){
+    const enc = encodeURIComponent(w.name);
+    if(location.hash !== '#roster?w='+enc){
+      try{ history.replaceState(null,'','#roster?w='+enc); }catch(e){}
+    }
+  }
+}
+
+function openTeam(f){
+  if(!f) return;
+  selFaction = f; selMember = null;
+  $('sm-dkind').textContent = 'Stable';
+  $('sm-dbody').innerHTML =
+    '<div class="sm-dname" style="padding-top:16px"><h2>'+E(f.name)+'</h2>'+
+      (f.tagline ? '<p class="sm-nick">'+E(f.tagline)+'</p>' : '')+'</div>'+
+    (f.stats.length
+      ? '<div class="sm-dsect"><div class="pf-fields">'+f.stats.map(s=>
+          '<div class="pf-row"><span class="pf-lbl">'+E(s.label)+'</span><span class="pf-val">'+E(s.value)+'</span></div>').join('')+'</div></div>'
+      : '')+
+    '<div class="sm-chips">'+f.members.map(m=>
+      '<button class="sm-memchip" type="button" data-m="'+escAttr(m.id)+'" style="--sw:'+escAttr(m.color)+'">'+
+      '<span class="sm-dot"></span>'+E(m.name)+(m.champ?' <i class="ti ti-trophy" style="color:var(--gold);font-size:12px"></i>':'')+'</button>').join('')+
+    '</div>';
+  $('sm-dbody').querySelectorAll('.sm-memchip').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const m = f.members.find(x=>x.id===b.dataset.m);
+      if(m) openMember(m);
+    });
+  });
+  $('sm-dossier').classList.add('on');
+  $('sm-dbody').scrollTop = 0;
+  focusOn(f.centroid, f.radius*3.4+140);
+  markIndex(f.id);
+  if(location.hash.indexOf('#roster?w=')===0){
+    try{ history.replaceState(null,'','#roster'); }catch(e){}
+  }
+}
+
+function closeDossier(){
+  $('sm-dossier').classList.remove('on');
+  markIndex(null);
+}
+
+/* ── roster index rail ────────────────────────────────────────────── */
+function buildIndex(){
+  const wrap = $('sm-index-scroll');
+  if(!wrap) return;
+  const q = (($('roster-search')||{}).value || '').trim().toLowerCase();
+  const filter = gFilter();
+  const divs = gDivs();
+  wrap.innerHTML = '';
+  let shown = 0;
+
+  const visible = (m)=>{
+    if(filter==='Mens'   && !(divs && divs.Mens.has(m.name)))   return false;
+    if(filter==='Womens' && !(divs && divs.Womens.has(m.name))) return false;
+    if(filter==='Factions' && !m.factionId) return false;
+    if(!q) return true;
+    return m.name.toLowerCase().includes(q) ||
+           (m.nickname||'').toLowerCase().includes(q) ||
+           (m.factionName||'').toLowerCase().includes(q);
+  };
+
+  const memberBtn = (m)=>
+    '<button class="sm-mem'+(m.inactive?' inactive':'')+'" type="button" data-id="'+escAttr(m.id)+'" style="--sw:'+escAttr(m.color)+'">'+
+      '<span class="sm-dot"></span>'+E(m.name)+
+      (m.champ ? '<i class="ti ti-trophy sm-crown" title="Champion"></i>' : '')+
+    '</button>';
+
+  DATA.factions.forEach(f=>{
+    const members = f.members.filter(visible);
+    if(!members.length) return;
+    shown += members.length;
+    const g = document.createElement('div');
+    g.className = 'sm-grp';
+    g.style.setProperty('--sw', f.color);
+    g.innerHTML =
+      '<button class="sm-grp-head" type="button" data-team="'+escAttr(f.id)+'">'+
+        '<span class="nm">'+E(f.name)+'</span><span class="ct">'+members.length+'</span></button>'+
+      members.map(memberBtn).join('');
+    g.querySelector('.sm-grp-head').addEventListener('click', ()=>openTeam(f));
+    wrap.appendChild(g);
+  });
+
+  const solos = DATA.solo.filter(visible);
+  if(solos.length && filter!=='Factions'){
+    shown += solos.length;
+    const g = document.createElement('div');
+    g.className = 'sm-grp';
+    g.style.setProperty('--sw','#efe9db');
+    g.innerHTML =
+      '<div class="sm-grp-head" style="cursor:default">'+
+        '<span class="nm">Solo competitors</span><span class="ct">'+solos.length+'</span></div>'+
+      solos.map(memberBtn).join('');
+    wrap.appendChild(g);
+  }
+
+  if(!shown) wrap.innerHTML = '<div class="sm-index-empty">Nobody matches that search.</div>';
+
+  wrap.querySelectorAll('.sm-mem').forEach(b=>{
+    const m = allMembers().find(x=>x.id===b.dataset.id);
+    if(!m) return;
+    b.addEventListener('click', ()=>openMember(m));
+    b.addEventListener('mouseenter', ()=>{
+      hoverMember = m;
+      hoverFaction = m.factionId ? findFaction(m.factionId) : null;
+      updateTeamCard();
+    });
+    b.addEventListener('mouseleave', ()=>{ hoverMember=null; hoverFaction=null; updateTeamCard(); });
+  });
+
+  const total = allMembers().length;
+  const cnt = $('sm-count');
+  if(cnt){
+    cnt.textContent = (shown===total)
+      ? total+' competitors · '+DATA.factions.length+' stables'
+      : shown+' of '+total+' shown';
+  }
+}
+function markIndex(id){
+  document.querySelectorAll('#sm-index-scroll .sm-mem').forEach(b=>b.classList.toggle('on', b.dataset.id===id));
+}
+
+/* Search / division filters dim the stars that don't match instead of
+   removing them, so the sky keeps its shape. */
+function applyFilter(){
+  if(!built) return;
+  const q = (($('roster-search')||{}).value || '').trim().toLowerCase();
+  const filter = gFilter();
+  const divs = gDivs();
+  const matches = (m)=>{
+    if(filter==='Mens'   && !(divs && divs.Mens.has(m.name)))   return false;
+    if(filter==='Womens' && !(divs && divs.Womens.has(m.name))) return false;
+    if(filter==='Factions' && !m.factionId) return false;
+    if(!q) return true;
+    return m.name.toLowerCase().includes(q) ||
+           (m.nickname||'').toLowerCase().includes(q) ||
+           (m.factionName||'').toLowerCase().includes(q);
+  };
+  starObjects.forEach(s=>{ s.tDim = matches(s.member) ? 1 : 0.1; });
+  DATA.factions.forEach(f=>{
+    const fo = factionObjects[f.id];
+    if(fo) fo.tDim = f.members.some(matches) ? 1 : 0.1;
+  });
+  buildIndex();
+}
+
+/* ── animation ────────────────────────────────────────────────────── */
+function animateStars(t, dt){
+  const kk = 1 - Math.pow(0.001, dt);
+  for(const s of starObjects){
+    const hot = (hoverMember===s.member || selMember===s.member) ? 1
+      : (s.member.factionId && hoverFaction && hoverFaction.id===s.member.factionId) ? 0.55 : 0;
+    s.hot = lerp(s.hot, hot, kk);
+    s.dim = lerp(s.dim, s.tDim, 1-Math.pow(0.004, dt));
+
+    const p = 0.5 + 0.5*Math.sin(t*s.speed + s.phase);
+    const amp = s.isSolo ? 0.5 : 0.22;
+    const bright = (1 - amp*0.5) + amp*p;
+    const inact = s.member.inactive ? 0.45 : 1;
+
+    // sprites are sized in world units, so scale with distance or a star
+    // swells into a white blob as the camera closes in
+    const dist = camera.position.distanceTo(s.group.position);
+    const k = clamp(dist/620, 0.42, 2.1);
+    const D = s.dim * inact;
+
+    s.glow.material.opacity = clamp((0.5+0.3*bright + s.hot*0.22) * D, 0, 1.05);
+    s.glow.scale.setScalar(s.glowScale*k*(1 + (s.isSolo?0.2:0.08)*p + s.hot*0.22));
+    s.halo.material.opacity = ((s.isSolo?0.16:0.1) + 0.08*p + s.hot*0.1) * D;
+    s.halo.scale.setScalar(s.haloScale*k*(1+s.hot*0.14));
+    s.core.scale.setScalar((s.isSolo?1:0.9)*k*(1 + s.hot*0.5 + p*0.06));
+    s.core.material.opacity = D;
+    if(s.ring){
+      s.ring.material.opacity = (0.3 + 0.18*p + s.hot*0.3) * D;
+      s.ring.scale.setScalar(56*k*(1+0.05*p+s.hot*0.2));
+      s.ring.material.rotation = t*0.35;
+    }
+  }
+}
+function animateFactions(t, dt){
+  for(const id in factionObjects){
+    const fo = factionObjects[id];
+    const target = (hoverFaction && hoverFaction.id===id) ? 1 : (selFaction && selFaction.id===id) ? 0.7 : 0;
+    fo.hot = lerp(fo.hot, target, 1-Math.pow(0.002, dt));
+    fo.dim = lerp(fo.dim, fo.tDim, 1-Math.pow(0.004, dt));
+    fo.lines.material.opacity = (0.26 + fo.hot*0.6) * fo.dim;
+    fo.label.material.opacity = fo.hot*0.92*fo.dim;
+    fo.label.position.y = fo.centroid.y + fo.radius + 46 + fo.hot*10;
+    if(fo.hot > 0.04){
+      fo.t = (fo.t + dt*0.22) % 1;
+      const p = pathPoint(fo.faction.chain, fo.t);
+      fo.spark.position.copy(p);
+      fo.spark.material.opacity = fo.hot*0.9*fo.dim;
+      fo.spark.scale.setScalar(16 + 6*Math.sin(t*6));
+    } else fo.spark.material.opacity = 0;
+  }
+}
+let _pp = null;
+function pathPoint(chain, u){
+  if(!_pp) _pp = new THREE.Vector3();
+  if(chain.length<2) return _pp.copy(chain[0].p);
+  let total = 0; const segs = [];
+  for(let i=0;i<chain.length-1;i++){
+    const d = chain[i].p.distanceTo(chain[i+1].p);
+    segs.push(d); total += d;
+  }
+  let target = u*total;
+  for(let i=0;i<segs.length;i++){
+    if(target<=segs[i] || i===segs.length-1){
+      const k = segs[i] ? clamp(target/segs[i],0,1) : 0;
+      return _pp.copy(chain[i].p).lerp(chain[i+1].p, k);
+    }
+    target -= segs[i];
+  }
+  return _pp.copy(chain[0].p);
+}
+function animateFog(t, dt){
+  for(const s of fogSheets){
+    s.mesh.rotation.z += s.spin*dt;
+    const d = camera.position.distanceTo(s.mesh.position);
+    const near = clamp((d-130)/280, 0, 1);
+    const breathe = 0.85 + 0.15*Math.sin(t*0.25 + s.mesh.position.x*0.01);
+    s.mesh.material.opacity = s.base*breathe*(0.22+0.78*near);
+  }
+  for(const d of driftGroups) d.obj.rotation.y += d.speed*dt*0.1;
+}
+
+function tick(){
+  if(!running) return;
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t  = clock.elapsedTime;
+  view.idle += dt;
+  updateCamera(dt);
+  animateStars(t, dt);
+  animateFactions(t, dt);
+  animateFog(t, dt);
+  updateHUD();
+  renderer.render(scene, camera);
+}
+function start(){
+  if(running || !built) return;
+  running = true;
+  clock.getDelta();
+  requestAnimationFrame(tick);
+}
+function stop(){ running = false; }
+
+/* ── fullscreen ───────────────────────────────────────────────────── */
+function setFullscreen(on){
+  stage.classList.toggle('sm-full', on);
+  document.body.classList.toggle('sm-locked', on);
+  const btn = $('sm-btn-full');
+  if(btn){
+    btn.innerHTML = on
+      ? '<i class="ti ti-arrows-minimize"></i> <span>Exit</span>'
+      : '<i class="ti ti-arrows-maximize"></i> <span>Expand</span>';
+    btn.title = on ? 'Leave fullscreen' : 'Expand to fullscreen';
+  }
+  requestAnimationFrame(()=>{ onResize(); });
+}
+
+/* ── view switching (star map ⇄ list) ─────────────────────────────── */
+function setView(v, note){
+  VIEW = v;
+  const map = $('sm-wrap'), list = $('roster-listview');
+  if(map)  map.style.display  = (v==='map')  ? '' : 'none';
+  if(list) list.style.display = (v==='list') ? '' : 'none';
+  const bm = $('sm-view-map'), bl = $('sm-view-list');
+  if(bm) bm.classList.toggle('active', v==='map');
+  if(bl) bl.classList.toggle('active', v==='list');
+  const n = $('sm-viewnote');
+  if(n) n.textContent = note || '';
+  try{ localStorage.setItem('wca-roster-view', v); }catch(e){}
+
+  if(v==='map'){ boot(); }
+  else {
+    stop();
+    if(stage && stage.classList.contains('sm-full')) setFullscreen(false);
+    if(typeof renderRoster==='function') renderRoster(($('roster-search')||{}).value || '');
+  }
+}
+
+/* ── boot ─────────────────────────────────────────────────────────── */
+function fail(msg){
+  failed = true;
+  setView('list', msg);
+  const l = $('sm-loading');
+  if(l) l.classList.add('gone');
+}
+
+async function boot(){
+  if(failed || booting) return;
+  if(VIEW!=='map') return;
+  stage = $('sm-stage'); host = $('sm-scene');
+  if(!stage || !host) return;
+
+  if(built){ start(); onResize(); return; }
+  booting = true;
+
+  if(!hasWebGL()){
+    booting = false;
+    fail("Your browser can't run the star map — showing the list instead.");
+    return;
+  }
+  try{
+    await loadThree();
+  }catch(e){
+    booting = false;
+    console.warn('[starmap]', e);
+    fail("Couldn't load the star map — showing the list instead.");
+    return;
+  }
+
+  // The roster load kicks off at page boot. If it hasn't landed yet, wait for
+  // it rather than firing a second copy of the same queries.
+  if(!(window._roster||[]).length){
+    await new Promise(res=>{
+      let n = 0;
+      const iv = setInterval(()=>{
+        if((window._roster||[]).length || ++n > 60){ clearInterval(iv); res(); }
+      }, 150);
+    });
+  }
+
+  try{
+    initScene();
+    initHUD();
+    bindPointer();
+    buildMap(buildData());
+    built = true;
+    booting = false;
+    buildIndex();
+    applyFilter();
+    onResize();
+    if(VIEW==='map') start();
+
+    if(typeof ResizeObserver!=='undefined'){
+      new ResizeObserver(()=>onResize()).observe(stage);
+    } else window.addEventListener('resize', onResize);
+
+    const l = $('sm-loading');
+    if(l) setTimeout(()=>l.classList.add('gone'), 120);
+    setTimeout(()=>{ const h=$('sm-hint'); if(h) h.classList.add('fade'); }, 11000);
+
+    if(pendingName){ const n = pendingName; pendingName = null; openByName(n); }
+  }catch(e){
+    booting = false;
+    console.warn('[starmap] build failed', e);
+    fail("The star map hit a snag — showing the list instead.");
+  }
+}
+
+/* Rebuild the sky from current data (called after loadRoster refreshes). */
+function rebuild(){
+  if(!built) return;
+  teardownMap();
+  buildMap(buildData());
+  buildIndex();
+  applyFilter();
+}
+
+/* ── public entry points ──────────────────────────────────────────── */
+function openByName(name, opts){
+  if(!name) return false;
+  if(!built){ pendingName = name; boot(); return false; }
+  const m = memberByName(name);
+  if(!m) return false;
+  openMember(m, opts);
+  return true;
+}
+function isMapView(){ return VIEW==='map' && !failed; }
+
+function onEnter(){
+  entered = true;
+  if(VIEW==='map') boot();
+}
+function onLeave(){
+  entered = false;
+  stop();
+  if(stage && stage.classList.contains('sm-full')) setFullscreen(false);
+}
+
+/* Pause the loop when the tab is backgrounded — no point burning a GPU on a
+   map nobody is looking at. */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) stop();
+  else if(entered && VIEW==='map' && built) start();
+});
+
+/* ── wiring ───────────────────────────────────────────────────────── */
+function wire(){
+  stage = $('sm-stage');
+  const bm = $('sm-view-map'), bl = $('sm-view-list');
+  if(bm) bm.addEventListener('click', ()=>setView('map'));
+  if(bl) bl.addEventListener('click', ()=>setView('list'));
+  const br = $('sm-btn-reset');
+  if(br) br.addEventListener('click', ()=>{ closeDossier(); clearSelection(); resetView(); });
+  const bi = $('sm-btn-index');
+  if(bi) bi.addEventListener('click', ()=>{
+    const hidden = $('sm-index').classList.toggle('hidden');
+    bi.setAttribute('aria-pressed', String(!hidden));
+  });
+  const bf = $('sm-btn-full');
+  if(bf) bf.addEventListener('click', ()=>setFullscreen(!stage.classList.contains('sm-full')));
+  const dc = $('sm-dclose');
+  if(dc) dc.addEventListener('click', ()=>{ closeDossier(); clearSelection(); });
+  const zi = $('sm-zin'), zo = $('sm-zout');
+  if(zi) zi.addEventListener('click', ()=>zoomBy(0.78));
+  if(zo) zo.addEventListener('click', ()=>zoomBy(1.28));
+
+  // The index rail eats a lot of room on a phone — start it closed there.
+  if(SMALL){
+    $('sm-index').classList.add('hidden');
+    if(bi) bi.setAttribute('aria-pressed','false');
+  }
+
+  // remember the last view the visitor chose
+  let saved = null;
+  try{ saved = localStorage.getItem('wca-roster-view'); }catch(e){}
+  if(saved==='list') setView('list');
+
+  // Landing straight on #roster (or #roster?w=Name) means activatePage() already
+  // ran before this script was parsed, so nothing called smEnter(). Catch that.
+  const pg = $('page-roster');
+  if(pg && pg.classList.contains('active')) onEnter();
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wire);
+else wire();
+
+window.WCAStarmap = {
+  open: openByName,
+  openTeam: (id)=>openTeam(findFaction(id)),
+  reset: ()=>{ closeDossier(); clearSelection(); resetView(); },
+  rebuild, applyFilter, setView, isMapView, onEnter, onLeave,
+  get data(){ return DATA; }
+};
+
+/* Short aliases the main script calls into. */
+window.smIsMapView   = isMapView;
+window.smOpenByName  = openByName;
+window.smApplyFilter = ()=>{ if(built) applyFilter(); };
+window.smRebuild     = rebuild;
+window.smEnter       = onEnter;
+window.smLeave       = onLeave;
+window.smSetView     = setView;
+window.smCurrentName = ()=> selMember ? selMember.name : null;
+
+})();
+
 </script>
 
 </body>
