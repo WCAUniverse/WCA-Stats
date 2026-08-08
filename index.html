@@ -1926,6 +1926,10 @@
     padding:7px 14px; transition:.15s;}
   .sl-cbtn:hover{border-color:var(--gold-dim); color:var(--gold);}
   .sl-cbtn i{font-size:17px;}
+  /* archive detail: back + share on one row */
+  .arch-topbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px;}
+  .arch-share{margin-left:auto;}
+
   /* share button in the engage bar */
   .sl-sharebtn{display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     font-family:'Oswald'; font-size:13px; letter-spacing:.5px; color:var(--muted);
@@ -6366,7 +6370,14 @@ function youtubeEmbed(url){
     </div>`;
 }
 let ARCHIVE_EVENTS = [];
-async function loadArchive(){
+let ARCHIVE_PENDING = null;
+function loadArchive(){
+  if(!ARCHIVE_PENDING){
+    ARCHIVE_PENDING = archiveLoadNow().finally(()=>{ ARCHIVE_PENDING = null; });
+  }
+  return ARCHIVE_PENDING;
+}
+async function archiveLoadNow(){
   const listEl = document.getElementById('archive-list');
   const detEl  = document.getElementById('archive-detail');
   if(!listEl) return;
@@ -6405,11 +6416,41 @@ async function loadArchive(){
   }).join('') + `</div>`;
 }
 
-async function openArchiveEvent(id){
+// Back to the list. Separate from loadArchive() so the plain loader stays
+// free of URL side effects (deep-link restore calls it too).
+function archiveBackToList(){
+  if(location.hash.indexOf('#archive?') === 0){
+    try{ history.replaceState(null,'','#archive'); }catch(e){}
+  }
+  return loadArchive();
+}
+
+// opts.silent — don't touch the URL (used when restoring FROM the URL)
+async function openArchiveEvent(id, opts){
+  opts = opts || {};
   const listEl = document.getElementById('archive-list');
   const detEl  = document.getElementById('archive-detail');
+  if(!listEl || !detEl) return false;
+  // A deep link can land here before the archive list has ever been fetched.
+  if(!ARCHIVE_EVENTS || !ARCHIVE_EVENTS.length){
+    await loadArchive();
+  }
   const ev = ARCHIVE_EVENTS.find(e=>String(e.id)===String(id));
-  if(!ev) return;
+  if(!ev){
+    // Not a completed show — most likely the upcoming one, which lives on Events.
+    if(!opts.silent && typeof CURRENT_EVENT!=='undefined' && CURRENT_EVENT && String(CURRENT_EVENT.id)===String(id)){
+      goPage('events'); return true;
+    }
+    if(opts.fromLink){
+      listEl.insertAdjacentHTML('afterbegin',
+        '<div class="lb-empty">That event link doesn\'t match a show in the archive — it may have been removed.</div>');
+    }
+    return false;
+  }
+  if(!opts.silent){
+    const want = '#archive?event=' + encodeURIComponent(id);
+    if(location.hash !== want){ try{ history.replaceState(null,'',want); }catch(e){} }
+  }
   listEl.style.display='none';
   detEl.style.display='';
   detEl.innerHTML = `<div class="loading">Loading…</div>`;
@@ -6456,7 +6497,11 @@ async function openArchiveEvent(id){
 
   // hero
   const date = ev.event_date ? fmtEventDate(ev.event_date) : '';
-  let html = `<button class="arch-back" onclick="loadArchive()"><i class="ti ti-arrow-left"></i> All events</button>`;
+  let html = `<div class="arch-topbar">`+
+    `<button class="arch-back" onclick="archiveBackToList()"><i class="ti ti-arrow-left"></i> All events</button>`+
+    `<button class="arch-back arch-share" onclick="wcaShare('event', ${JSON.stringify(String(id))}, 'Share this event', ${JSON.stringify(esc(ev.name||'Event'))})">`+
+      `<i class="ti ti-share-3"></i> Share</button>`+
+  `</div>`;
   html += `<div class="event-hero">
     ${ev.poster_url?`<div class="hero-bg" style="background-image:url('${esc(ev.poster_url)}')"></div>`:''}
     <div class="hero-in">
@@ -7962,6 +8007,41 @@ async function slToggleComments(id){
 // ---- SHARE ----
 // Builds a direct link to a single post (#storylines?post=ID), copies it to the
 // clipboard, and shows a small popup with the link + the post's ID number.
+/* ── shareable links ──────────────────────────────────────────────────
+   One place that knows how to build a link to any single thing on the site.
+   The base is derived from the current directory, so it works from
+   index.html, a test copy, or a custom domain without changing.
+   ------------------------------------------------------------------- */
+function wcaShareBase(){
+  let base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  if(!base.endsWith('/')) base += '/';
+  return base;
+}
+function wcaLinkFor(kind, id){
+  const b = wcaShareBase();
+  if(kind === 'post')     return b + '#storylines?post=' + encodeURIComponent(id);
+  if(kind === 'event')    return b + '#archive?event=' + encodeURIComponent(id);
+  if(kind === 'wrestler') return b + '#roster?w=' + encodeURIComponent(id);
+  return b + '#' + encodeURIComponent(kind);
+}
+/* Copy a link and show the confirmation popup. On phones this hands off to the
+   native share sheet instead, which is what people expect there. */
+async function wcaShare(kind, id, heading, subtitle){
+  const url = wcaLinkFor(kind, id);
+  if(navigator.share && matchMedia('(max-width:820px)').matches){
+    try{ await navigator.share({ title: heading || 'WCA', url }); return; }
+    catch(e){ if(e && e.name === 'AbortError') return; }   // user dismissed the sheet
+  }
+  let copied = false;
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    }
+  }catch(e){ copied = false; }
+  wcaShowSharePopup(url, copied, heading || 'Share this', subtitle || '');
+}
+
 function slShareLink(id){
   // Build the base from the directory only — strip any filename (index.html,
   // index_Test.html, etc.) so the link is clean and works regardless of which
@@ -7976,17 +8056,9 @@ function slShareLink(id){
   return base + '#storylines?post=' + id;
 }
 async function slShare(id){
-  const url = slShareLink(id);
-  let copied = false;
-  try{
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(url);
-      copied = true;
-    }
-  }catch(e){ copied = false; }
-  slShowSharePopup(id, url, copied);
+  return wcaShare('post', id, 'Share this post', 'Post ID <b>#'+esc(String(id))+'</b>');
 }
-function slShowSharePopup(id, url, copied){
+function wcaShowSharePopup(url, copied, heading, subtitle){
   // reuse one popup element
   let pop = document.getElementById('sl-share-pop');
   if(!pop){
@@ -7999,8 +8071,8 @@ function slShowSharePopup(id, url, copied){
   pop.innerHTML = `
     <div class="ssp-card">
       <button class="ssp-x" onclick="slCloseSharePopup()" aria-label="Close"><i class="ti ti-x"></i></button>
-      <div class="ssp-h"><i class="ti ti-share-3"></i> Share this post</div>
-      <div class="ssp-id">Post ID <b>#${id}</b></div>
+      <div class="ssp-h"><i class="ti ti-share-3"></i> ${heading}</div>
+      ${subtitle?`<div class="ssp-id">${subtitle}</div>`:''}
       <div class="ssp-linkrow">
         <input class="ssp-link" id="ssp-link-input" readonly value="${esc(url)}" onclick="this.select()">
         <button class="ssp-copy" onclick="slCopyShare()">${copied?'Copied':'Copy'}</button>
@@ -8783,6 +8855,12 @@ function restorePageFromHash(){
       const openIt=()=>rosterFocusName(name);
       if((window._roster||[]).length){ openIt(); }
       else { (typeof loadRoster==='function'?loadRoster():Promise.resolve()).then(openIt); }
+    }
+    // If the hash names an event (?event=ID), open that show's archive page.
+    const me = qs.match(/(?:^|&)event=([^&]*)/);
+    if(me){
+      const eid = decodeURIComponent(me[1]);
+      if(typeof openArchiveEvent==='function') openArchiveEvent(eid, {silent:true, fromLink:true});
     }
     // If the hash names a storyline post (?post=ID), scroll to & flash it once loaded.
     const mp=qs.match(/(?:^|&)post=([^&]*)/);
