@@ -147,6 +147,17 @@ async function gather() {
   return { posts, events, wrestlers };
 }
 
+/* event_date arrives as a plain date OR a full timestamp depending on the row,
+   so parse defensively — a bad date must never print "Invalid Date" on a card. */
+function fmtCardDate(v) {
+  if (!v) return '';
+  const raw = String(v).trim();
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T12:00:00Z' : raw);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US',
+    { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
 /* Mirrors the site's own parseSides so a card never disagrees with the page. */
 function parseSides(m) {
   let sides = m.sides;
@@ -267,8 +278,7 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
       title: name,
       card: e.poster_url ? null : {          // real poster wins; otherwise draw one
         name, tagline: e.tagline || '',
-        date: e.event_date ? new Date(e.event_date + 'T12:00:00Z').toLocaleDateString('en-US',
-              { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : '',
+        date: fmtCardDate(e.event_date),
         matchCount: e.match_count || 0,
         stip: (e._main && e._main.stip) || 'Main Event',
         sides: (e._main && e._main.sides && e._main.sides.length === 2)
