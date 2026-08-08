@@ -2637,13 +2637,21 @@
   .sm-stage{
     --sm-void:#05060c; --sm-hair:rgba(233,185,73,.26);
     --sm-panel:rgba(9,10,16,.86); --sm-parch:#efe9db; --sm-dim:#8f8b80;
-    position:relative;width:100%;height:clamp(460px,72vh,860px);
+    /* 16:9 like a broadcast frame. Width is capped off the viewport HEIGHT so
+       the ratio holds on ultrawide monitors instead of flattening to a letterbox
+       — on a very wide screen the stage centres itself rather than stretching. */
+    position:relative;
+    width:100%;
+    max-width:min(100%, calc(80vh * 16 / 9));
+    margin-inline:auto;
+    aspect-ratio:16 / 9;
     border:1px solid var(--line);border-radius:14px;overflow:hidden;
     background:radial-gradient(120% 90% at 50% 45%,#0a0d18 0%,#04050b 72%);
     contain:layout paint;touch-action:pan-y;
   }
   .sm-stage.sm-full{
     position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;
+    max-width:none;margin:0;aspect-ratio:auto;      /* fullscreen fills the screen */
     border-radius:0;border:0;z-index:9998;touch-action:none;
   }
   /* fullscreen on a notched phone: keep the toolbar and player clear of it */
@@ -2899,7 +2907,7 @@
 
   /* ── responsive ────────────────────────────────────────────── */
   @media(max-width:900px){
-    .sm-stage{height:clamp(420px,66vh,620px);}
+    .sm-stage{aspect-ratio:auto;max-width:none;height:clamp(440px,68vh,640px);}
     .sm-index{top:auto;left:10px;right:10px;bottom:84px;width:auto;max-height:40%;}
     .sm-index.hidden{transform:translateY(calc(100% + 20px));}
     .sm-dossier{top:auto;left:10px;right:10px;bottom:84px;width:auto;max-width:none;max-height:66%;}
@@ -9273,9 +9281,9 @@ const SMALL   = window.matchMedia('(max-width:900px)').matches;
 const LOWPOWER= SMALL || (navigator.hardwareConcurrency||8) <= 4;
 
 const CFG = {
-  fieldRadius:  420,
-  soloRadius:   740,
-  memberSpread: 62,
+  fieldRadius:  660,
+  soloRadius:   1120,
+  memberSpread: 72,
   flatten:      0.52,
   backgroundStars: LOWPOWER ? 2200 : 5400,
   fogSheets:       LOWPOWER ? 10   : 24,
@@ -9625,7 +9633,7 @@ function addFactionNebula(center, color, seed){
    ------------------------------------------------------------------- */
 const EARTH = {
   enabled: true,
-  radius:  118,
+  radius:  150,
   tilt:    23.4 * Math.PI/180,     // the real axial tilt
   spin:    0.018,                  // radians/sec — one turn every ~6 min
   texLand:    'earth/wca-earth-land.png',
@@ -9763,9 +9771,14 @@ function layout(data){
     const ring = Math.sqrt(Math.max(0.06, 1-y*y));
     const th = i*2.399963 + rand()*0.7;
     // never inside the globe: push the nearest stables out past its horizon
-    const R = Math.max(EARTH.enabled ? EARTH.radius*2.35 : 0,
-                       CFG.fieldRadius*(0.72+rand()*0.5));
+    const R = CFG.fieldRadius*(0.72+rand()*0.5);
     f.center = new THREE.Vector3(Math.cos(th)*ring*R, y*R*CFG.flatten+(rand()-0.5)*60, Math.sin(th)*ring*R);
+    // Keep the whole constellation outside the globe. Applied AFTER the
+    // flatten above, which otherwise pulls the top and bottom stables in close.
+    if(EARTH.enabled){
+      const minR = EARTH.radius*2.1 + CFG.memberSpread*1.4;
+      if(f.center.length() < minR) f.center.setLength(minR);
+    }
     const spread = CFG.memberSpread;
     f.members.forEach((m,j)=>{
       const r2 = mulberry32(hashStr(m.id));
@@ -9784,6 +9797,10 @@ function layout(data){
     const th = i*2.399963 + rand()*1.4;
     const R = CFG.soloRadius*(0.62+rand()*0.6);
     m.p = new THREE.Vector3(Math.cos(th)*ring*R, y*R*CFG.flatten*0.8+(rand()-0.5)*90, Math.sin(th)*ring*R);
+    if(EARTH.enabled){
+      const minR = EARTH.radius*2.4;
+      if(m.p.length() < minR) m.p.setLength(minR);
+    }
   });
 }
 function relax(members, minDist){
