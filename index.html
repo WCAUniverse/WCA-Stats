@@ -1402,6 +1402,12 @@
   .cs-stage.shown .cs-info{opacity:1; transform:none;}
   .cs-info::-webkit-scrollbar{width:8px;}
   .cs-info::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  .cs-sharerow{display:flex; justify-content:flex-end; margin-bottom:10px;}
+  .cs-share{display:inline-flex; align-items:center; gap:7px; background:none;
+    border:1px solid var(--line); color:var(--muted); font-family:'Barlow Condensed';
+    font-size:12px; letter-spacing:1.4px; text-transform:uppercase; padding:7px 13px;
+    border-radius:8px; cursor:pointer; transition:.15s;}
+  .cs-share:hover{color:var(--gold); border-color:var(--gold-dim);}
   .cs-performer{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
   .cs-performer .perf{font-family:'Barlow Condensed'; font-size:14px; color:var(--muted); letter-spacing:.5px;}
   .cs-bio{font-family:'Barlow'; font-size:14px; line-height:1.6; color:var(--muted);
@@ -2881,6 +2887,8 @@
     font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;
   }
   .sm-openfull:hover{background:var(--gold-deep);border-color:var(--gold);}
+  .sm-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 14px 0;}
+  .sm-actions .sm-openfull{margin:0;}
 
   /* ── hint + loader ─────────────────────────────────────────── */
   .sm-hint{
@@ -3299,6 +3307,9 @@
     <p class="sl-intro">Apply to become an official WCA wrestler. Sign-ups are reviewed personally —
       submit a serious pro-wrestling character (representing you or fully original) and it gets created
       or imported into WWE 2K25, balanced to a hard cap of <b>85 overall</b>, then added to the roster.</p>
+    <div class="cs-sharerow" style="justify-content:flex-start">
+      <button class="cs-share" type="button" id="apply-share-btn"><i class="ti ti-share-3"></i> Share this page</button>
+    </div>
 
     <div class="apply-rules">
       <div class="apply-rule"><i class="ti ti-shield-check"></i> <span><b>Taken seriously.</b> Characters must read as legit pro wrestlers. Influences are welcome with a clear wrestling spin — no joke gimmicks.</span></div>
@@ -4914,11 +4925,16 @@ function csSelect(name){
     fieldRow('Last Match', fmtDate(w.last_match)),
   ].join('');
   document.getElementById('cs-info').innerHTML=`
+    <div class="cs-sharerow"><button class="cs-share" type="button" id="cs-share-btn"
+      data-name="${escAttr(w.name)}"><i class="ti ti-share-3"></i> Share</button></div>
     ${(w.performer||socialIcons(w.socials))?`<div class="cs-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
     ${rankHTML(w.name)}
     ${w.bio?`<div class="cs-bio">${esc(w.bio)}</div>`:''}
     <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
     <div id="cs-history"></div>`;
+  const csShare = document.getElementById('cs-share-btn');
+  if(csShare) csShare.addEventListener('click', ()=>
+    wcaShare('wrestler', csShare.dataset.name, 'Share this competitor', esc(csShare.dataset.name)));
   renderWrestlerHistory(w.name, 'cs-history');
 
   stage.classList.remove('shown');
@@ -8910,6 +8926,11 @@ function goPage(pg){
   }
 }
 let ROSTER_SEARCH_T = null;
+{ // Apply is static markup, so its share button can be wired once at load.
+  const ab = document.getElementById('apply-share-btn');
+  if(ab) ab.addEventListener('click', ()=>
+    wcaShare('apply', '', 'Share the apply page', 'Join the WCA roster'));
+}
 document.getElementById('roster-search').addEventListener('input',e=>{
   const v = e.target.value;
   clearTimeout(ROSTER_SEARCH_T);
@@ -10393,11 +10414,17 @@ function openMember(m, opts){
     ((typeof rankHTML==='function' && rankHTML(w.name)) ? '<div class="sm-dsect">'+rankHTML(w.name)+'</div>' : '')+
     (w.bio ? '<p class="sm-bio">'+E(w.bio)+'</p>' : '')+
     '<div class="sm-dsect"><div class="pf-fields">'+(fields || '<div class="pf-empty">No details added yet.</div>')+'</div></div>'+
-    '<button class="sm-openfull" type="button" id="sm-tolist"><i class="ti ti-id-badge-2"></i> Open full profile</button>'+
+    '<div class="sm-actions">'+
+      '<button class="sm-openfull" type="button" id="sm-tolist"><i class="ti ti-id-badge-2"></i> Open full profile</button>'+
+      '<button class="sm-openfull" type="button" id="sm-sharew"><i class="ti ti-share-3"></i> Share</button>'+
+    '</div>'+
     '<div class="sm-dsect" id="sm-history"></div>';
 
   const teamBtn = $('sm-dbody').querySelector('.sm-pill.team');
   if(teamBtn) teamBtn.addEventListener('click', ()=>openTeam(findFaction(teamBtn.dataset.team)));
+  const shareW = $('sm-sharew');
+  if(shareW) shareW.addEventListener('click', ()=>
+    wcaShare('wrestler', w.name, 'Share this competitor', esc(w.name)));
   const toList = $('sm-tolist');
   if(toList) toList.addEventListener('click', ()=>{
     setView('list');
