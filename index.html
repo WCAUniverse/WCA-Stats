@@ -20,7 +20,7 @@
   font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:;
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https:;
-  connect-src 'self' https://dmfbhszvrbaknaevdhxh.supabase.co wss://dmfbhszvrbaknaevdhxh.supabase.co;
+  connect-src 'self' https://dmfbhszvrbaknaevdhxh.supabase.co wss://dmfbhszvrbaknaevdhxh.supabase.co https://api.github.com;
   frame-src https://www.youtube.com https://youtube.com https://player.vimeo.com https://streamable.com https://player.twitch.tv https://www.twitch.tv;
   object-src 'none';
   manifest-src 'self';
@@ -2663,12 +2663,49 @@
   .sm-chip:hover{border-color:var(--gold);color:var(--gold);}
   .sm-chip[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);}
   .sm-chip i{font-size:14px;}
-  .sm-zoom{position:absolute;left:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;gap:6px;}
-  .sm-zoom .sm-chip{padding:8px 10px;justify-content:center;}
+  .sm-tools .sm-zbtn{padding:6px 9px;}
+
+  /* ── music player ──────────────────────────────────────────── */
+  .sm-player{
+    position:absolute;left:14px;right:14px;bottom:14px;z-index:8;
+    padding:9px 12px 8px;display:flex;flex-direction:column;gap:8px;
+  }
+  .sm-player.off{display:none;}
+  .sm-prow{display:flex;align-items:center;gap:9px;}
+  .sm-tbtn{
+    width:30px;height:30px;flex:none;display:grid;place-items:center;
+    border:1px solid var(--sm-hair);border-radius:8px;background:none;
+    color:var(--sm-dim);cursor:pointer;transition:color .16s,border-color .16s;
+  }
+  .sm-tbtn:hover{color:var(--gold);border-color:var(--gold);}
+  .sm-tbtn[aria-pressed="true"]{color:var(--gold);border-color:var(--gold);}
+  .sm-tbtn[disabled]{opacity:.35;cursor:default;}
+  .sm-tbtn[disabled]:hover{color:var(--sm-dim);border-color:var(--sm-hair);}
+  .sm-tbtn i{font-size:15px;}
+  .sm-tbtn.sm-play{width:34px;height:34px;color:var(--gold);border-color:var(--gold-dim);}
+  .sm-trackmeta{flex:1;min-width:0;}
+  .sm-trackname{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;line-height:1.1;
+    text-transform:uppercase;color:var(--sm-parch);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .sm-trackstatus{
+    font-family:'Barlow Condensed',sans-serif;font-size:9.5px;letter-spacing:1.6px;
+    text-transform:uppercase;color:var(--sm-dim);margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .sm-vol{
+    -webkit-appearance:none;appearance:none;width:84px;height:3px;border-radius:3px;
+    background:rgba(239,233,219,.2);flex:none;cursor:pointer;
+  }
+  .sm-vol::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--gold);cursor:pointer;}
+  .sm-vol::-moz-range-thumb{width:11px;height:11px;border:0;border-radius:50%;background:var(--gold);cursor:pointer;}
+  .sm-seek{position:relative;height:3px;border-radius:3px;background:rgba(239,233,219,.16);cursor:pointer;}
+  .sm-seekfill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:var(--gold);}
 
   /* ── roster index (right rail) ─────────────────────────────── */
   .sm-index{
-    position:absolute;top:60px;right:14px;bottom:14px;width:250px;z-index:6;
+    position:absolute;top:60px;right:14px;bottom:82px;width:250px;z-index:6;
     display:flex;flex-direction:column;overflow:hidden;
     transition:transform .38s cubic-bezier(.22,.61,.36,1),opacity .26s ease;
   }
@@ -2721,7 +2758,7 @@
 
   /* ── dossier (left panel) ──────────────────────────────────── */
   .sm-dossier{
-    position:absolute;top:60px;left:14px;bottom:14px;width:352px;max-width:calc(100% - 28px);z-index:7;
+    position:absolute;top:60px;left:14px;bottom:82px;width:352px;max-width:calc(100% - 28px);z-index:7;
     display:flex;flex-direction:column;overflow:hidden;
     transform:translateX(calc(-100% - 26px));opacity:0;pointer-events:none;
     transition:transform .42s cubic-bezier(.22,.61,.36,1),opacity .3s ease;
@@ -2785,7 +2822,7 @@
 
   /* ── hint + loader ─────────────────────────────────────────── */
   .sm-hint{
-    position:absolute;right:14px;bottom:12px;z-index:4;pointer-events:none;text-align:right;
+    position:absolute;left:50%;transform:translateX(-50%);bottom:88px;z-index:4;pointer-events:none;text-align:center;
     font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:1.8px;
     text-transform:uppercase;color:var(--sm-dim);opacity:.75;transition:opacity .6s ease;line-height:1.9;
   }
@@ -2813,9 +2850,9 @@
   /* ── responsive ────────────────────────────────────────────── */
   @media(max-width:900px){
     .sm-stage{height:clamp(420px,66vh,620px);}
-    .sm-index{top:auto;left:10px;right:10px;bottom:10px;width:auto;max-height:44%;}
+    .sm-index{top:auto;left:10px;right:10px;bottom:84px;width:auto;max-height:40%;}
     .sm-index.hidden{transform:translateY(calc(100% + 20px));}
-    .sm-dossier{top:auto;left:10px;right:10px;bottom:10px;width:auto;max-width:none;max-height:72%;}
+    .sm-dossier{top:auto;left:10px;right:10px;bottom:84px;width:auto;max-width:none;max-height:66%;}
     .sm-dossier{transform:translateY(calc(100% + 20px));}
     .sm-dossier.on{transform:none;}
     .sm-portrait{aspect-ratio:16/10;}
@@ -2823,6 +2860,10 @@
     .sm-teamcard{max-width:210px;}
     .sm-topbar{padding:10px;}
     .sm-chip span{display:none;}
+    .sm-player{left:8px;right:8px;bottom:8px;padding:8px 10px 7px;}
+    .sm-trackstatus{display:none;}
+    .sm-vol{width:58px;}
+    #sm-shuffle,#sm-loop{display:none;}
   }
   @media(prefers-reduced-motion:reduce){
     .sm-portrait img{animation:none;}
@@ -3078,6 +3119,8 @@
           <div class="sm-tools">
             <button class="sm-chip" id="sm-btn-reset" type="button" title="Back to the full map"><i class="ti ti-focus-centered"></i> <span>Full map</span></button>
             <button class="sm-chip" id="sm-btn-index" type="button" aria-pressed="true" title="Show or hide the roster index"><i class="ti ti-list-search"></i> <span>Index</span></button>
+            <button class="sm-chip sm-zbtn" id="sm-zout" type="button" aria-label="Zoom out" title="Zoom out"><i class="ti ti-minus"></i></button>
+            <button class="sm-chip sm-zbtn" id="sm-zin" type="button" aria-label="Zoom in" title="Zoom in"><i class="ti ti-plus"></i></button>
             <button class="sm-chip" id="sm-btn-full" type="button" title="Expand to fullscreen"><i class="ti ti-arrows-maximize"></i> <span>Expand</span></button>
           </div>
         </div>
@@ -3101,12 +3144,25 @@
           <div class="sm-dbody" id="sm-dbody"></div>
         </section>
 
-        <div class="sm-zoom">
-          <button class="sm-chip" id="sm-zin" type="button" aria-label="Zoom in" title="Zoom in"><i class="ti ti-plus"></i></button>
-          <button class="sm-chip" id="sm-zout" type="button" aria-label="Zoom out" title="Zoom out"><i class="ti ti-minus"></i></button>
-        </div>
-
         <div class="sm-hint" id="sm-hint">Drag to orbit · click, then scroll to zoom<br>Hover a constellation · click a star</div>
+
+        <!-- Reads whatever audio sits in the repo's "Star Map Music" folder. -->
+        <footer class="sm-player sm-plate off" id="sm-player">
+          <div class="sm-prow">
+            <button class="sm-tbtn" id="sm-prev" type="button" aria-label="Previous track" title="Previous"><i class="ti ti-player-track-prev-filled"></i></button>
+            <button class="sm-tbtn sm-play" id="sm-play" type="button" aria-label="Play" title="Play"><i class="ti ti-player-play-filled" id="sm-play-ico"></i></button>
+            <button class="sm-tbtn" id="sm-next" type="button" aria-label="Next track" title="Next"><i class="ti ti-player-track-next-filled"></i></button>
+            <div class="sm-trackmeta">
+              <div class="sm-trackname" id="sm-trackname">No track loaded</div>
+              <div class="sm-trackstatus" id="sm-trackstatus">Looking for music…</div>
+            </div>
+            <button class="sm-tbtn" id="sm-shuffle" type="button" aria-label="Shuffle" aria-pressed="false" title="Shuffle"><i class="ti ti-arrows-shuffle"></i></button>
+            <button class="sm-tbtn" id="sm-loop" type="button" aria-label="Repeat playlist" aria-pressed="true" title="Repeat"><i class="ti ti-repeat"></i></button>
+            <button class="sm-tbtn" id="sm-mute" type="button" aria-label="Mute" title="Mute"><i class="ti ti-volume" id="sm-mute-ico"></i></button>
+            <input class="sm-vol" id="sm-vol" type="range" min="0" max="1" step="0.01" value="0.1" aria-label="Volume">
+          </div>
+          <div class="sm-seek" id="sm-seek"><div class="sm-seekfill" id="sm-seekfill"></div></div>
+        </footer>
 
         <div class="sm-loading" id="sm-loading">
           <div class="sm-inner"><span class="sm-spin"></span><span id="sm-loading-txt">Charting the roster…</span></div>
@@ -9735,6 +9791,7 @@ function bindPointer(){
   el.addEventListener('pointerdown', e=>{
     down = true; moved = 0; lx = e.clientX; ly = e.clientY;
     view.dragging = true; view.idle = 0; wheelArmed = true;
+    maybeAutoplay();          // browsers only allow audio to start on a gesture
     toLocal(e);
     try{ el.setPointerCapture(e.pointerId); }catch(err){}
     el.style.cursor = 'grabbing';
@@ -10146,9 +10203,294 @@ function applyFilter(){
   buildIndex();
 }
 
+/* ── music ────────────────────────────────────────────────────────────
+   Plays whatever audio sits in the repo's music folder. The player asks
+   GitHub what's in there, so adding a track is just dropping a file in the
+   folder — no code change. The listing is cached for six hours so the
+   public API's 60-requests-per-hour-per-IP limit never bites.
+
+   To point this somewhere else, change MUSIC.path (or owner/repo/branch).
+   To turn the player off entirely, set MUSIC.enabled to false.
+   ------------------------------------------------------------------- */
+const MUSIC = {
+  enabled:  true,
+  owner:'WCAUniverse', repo:'WCA-Stats', branch:'main', path:'Star Map Music',
+  volume:   0.10,      // 10% — deliberately quiet, and remembered per visitor
+  loop:     true,
+  shuffle:  true,
+  reactive: true,      // the sky pulses with the track
+  autoplay: true,      // starts on the first click INSIDE the map, never on page load
+  // Manual fallback, used only if the GitHub listing fails and nothing is
+  // cached. Filenames relative to MUSIC.path, e.g. 'cold-open.mp3'.
+  tracks: []
+};
+
+const audio = new Audio();
+let playlist = [], trackIndex = 0;
+let analyser = null, freqData = null, audioLevel = 0;
+let musicReady = false, userPaused = false, autoTried = false;
+let corsRetried = false, wasPlaying = false;
+
+const AUDIO_PREFS = 'wca-starmap-audio';
+const TRACK_CACHE = 'wca-starmap-tracks';
+
+function prettyTitle(file){
+  return String(file).split('/').pop()
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/^\d+[\s._-]+/, '')          // drop a leading track number
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ').trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+function folderUrl(file){
+  const dir = MUSIC.path.split('/').map(encodeURIComponent).join('/');
+  return dir + '/' + encodeURIComponent(file);
+}
+function savePrefs(){
+  try{
+    localStorage.setItem(AUDIO_PREFS, JSON.stringify({
+      v: audio.volume, m: audio.muted, s: MUSIC.shuffle, l: MUSIC.loop, p: userPaused
+    }));
+  }catch(e){}
+}
+
+async function resolveTracks(){
+  let cached = null;
+  try{ cached = JSON.parse(localStorage.getItem(TRACK_CACHE) || 'null'); }catch(e){}
+  if(cached && cached.list && cached.list.length && (Date.now()-cached.t) < 6*3600*1000){
+    return cached.list;
+  }
+  try{
+    const dir = MUSIC.path.split('/').map(encodeURIComponent).join('/');
+    const api = 'https://api.github.com/repos/'+MUSIC.owner+'/'+MUSIC.repo+
+                '/contents/'+dir+'?ref='+encodeURIComponent(MUSIC.branch);
+    const res = await fetch(api, { headers:{ 'Accept':'application/vnd.github+json' } });
+    if(!res.ok) throw new Error(res.status+' '+res.statusText);
+    const files = await res.json();
+    const list = (Array.isArray(files)?files:[])
+      .filter(f => f.type==='file' && /\.(mp3|m4a|ogg|oga|wav|aac)$/i.test(f.name))
+      .sort((a,b)=>a.name.localeCompare(b.name, undefined, {numeric:true}))
+      .map(f => ({ title: prettyTitle(f.name), url: f.download_url }));
+    if(!list.length) throw new Error('no audio files in "'+MUSIC.path+'"');
+    try{ localStorage.setItem(TRACK_CACHE, JSON.stringify({ t:Date.now(), list })); }catch(e){}
+    return list;
+  }catch(err){
+    console.warn('[starmap] music listing failed —', err.message||err);
+    if(cached && cached.list && cached.list.length) return cached.list;   // stale beats silent
+    return (MUSIC.tracks||[]).map(f => ({ title: prettyTitle(f), url: folderUrl(f) }));
+  }
+}
+
+function shuffleInPlace(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+}
+
+async function setupMusic(){
+  if(musicReady) return;
+  musicReady = true;
+  const bar = $('sm-player');
+  if(!MUSIC.enabled){ if(bar) bar.classList.add('off'); return; }
+  if(bar) bar.classList.remove('off');
+
+  audio.preload = 'metadata';
+  audio.crossOrigin = 'anonymous';   // needed for the reactive pulse; dropped on failure
+
+  // restore what this visitor chose last time, otherwise the 10% default
+  let vol = MUSIC.volume, muted = false;
+  try{
+    const pr = JSON.parse(localStorage.getItem(AUDIO_PREFS) || 'null');
+    if(pr){
+      if(typeof pr.v === 'number') vol = clamp(pr.v, 0, 1);
+      muted = !!pr.m;
+      if(typeof pr.s === 'boolean') MUSIC.shuffle = pr.s;
+      if(typeof pr.l === 'boolean') MUSIC.loop = pr.l;
+      userPaused = !!pr.p;
+    }
+  }catch(e){}
+  audio.volume = vol;
+  audio.muted = muted;
+  const vs = $('sm-vol'); if(vs) vs.value = String(vol);
+  syncMuteIcon();
+  syncToggle('sm-shuffle', MUSIC.shuffle);
+  syncToggle('sm-loop', MUSIC.loop);
+
+  playlist = await resolveTracks();
+  if(!playlist.length){
+    setTrackText('No music yet', 'Drop audio into the "'+MUSIC.path+'" folder');
+    ['sm-play','sm-prev','sm-next'].forEach(id=>{ const b=$(id); if(b) b.disabled = true; });
+    return;
+  }
+  if(MUSIC.shuffle) shuffleInPlace(playlist);
+  loadTrack(0, false);
+}
+
+function setTrackText(name, status){
+  const n = $('sm-trackname'), st = $('sm-trackstatus');
+  if(n) n.textContent = name;
+  if(st) st.textContent = status;
+}
+function syncToggle(id, on){
+  const b = $(id);
+  if(b) b.setAttribute('aria-pressed', String(!!on));
+}
+function syncMuteIcon(){
+  const i = $('sm-mute-ico'), b = $('sm-mute');
+  const off = audio.muted || audio.volume === 0;
+  if(i) i.className = 'ti ' + (off ? 'ti-volume-off' : 'ti-volume');
+  if(b){ b.setAttribute('aria-label', off ? 'Unmute' : 'Mute'); b.title = off ? 'Unmute' : 'Mute'; }
+}
+function setPlayIcon(playing){
+  const i = $('sm-play-ico'), b = $('sm-play');
+  if(i) i.className = 'ti ' + (playing ? 'ti-player-pause-filled' : 'ti-player-play-filled');
+  if(b){ b.setAttribute('aria-label', playing ? 'Pause' : 'Play'); b.title = playing ? 'Pause' : 'Play'; }
+}
+
+function loadTrack(i, play){
+  if(!playlist.length) return;
+  trackIndex = ((i % playlist.length) + playlist.length) % playlist.length;
+  const t = playlist[trackIndex];
+  corsRetried = false;
+  audio.src = t.url;
+  setTrackText(t.title, 'Track ' + (trackIndex+1) + ' of ' + playlist.length);
+  if(play) playAudio();
+}
+
+function playAudio(){
+  if(!playlist.length) return;
+  userPaused = false;
+  audio.play().then(()=>{
+    setPlayIcon(true);
+    if(MUSIC.reactive) attachAnalyser();
+    savePrefs();
+  }).catch(err=>{
+    setPlayIcon(false);
+    console.warn('[starmap] playback blocked or file unreachable —', err && err.message);
+  });
+}
+function pauseAudio(){
+  audio.pause();
+  userPaused = true;
+  setPlayIcon(false);
+  savePrefs();
+}
+/* First real gesture inside the map: browsers won't let audio start before one. */
+function maybeAutoplay(){
+  if(autoTried || !MUSIC.autoplay || userPaused) return;
+  if(!playlist.length || !audio.src) return;
+  autoTried = true;
+  playAudio();
+}
+/* Leaving the Roster tab stops the music; coming back picks it up again. */
+function suspendMusic(){
+  if(!audio.paused){ wasPlaying = true; audio.pause(); setPlayIcon(false); }
+}
+function resumeMusic(){
+  if(wasPlaying && !userPaused){ wasPlaying = false; playAudio(); }
+}
+
+function attachAnalyser(){
+  if(analyser || !MUSIC.reactive) return;
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    const ctx = new Ctx();
+    const src = ctx.createMediaElementSource(audio);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 128;
+    analyser.smoothingTimeConstant = 0.82;
+    src.connect(analyser);
+    analyser.connect(ctx.destination);
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    if(ctx.state === 'suspended') ctx.resume();
+  }catch(err){
+    analyser = null;   // no pulse, but the music still plays
+    console.warn('[starmap] audio analysis unavailable —', err && err.message);
+  }
+}
+function readAudioLevel(){
+  if(!analyser || audio.paused){ audioLevel = lerp(audioLevel, 0, 0.05); return; }
+  analyser.getByteFrequencyData(freqData);
+  let sum = 0;
+  for(let i=0;i<freqData.length;i++) sum += freqData[i];
+  audioLevel = lerp(audioLevel, clamp((sum/freqData.length)/255*1.6, 0, 1), 0.12);
+}
+
+function wireMusic(){
+  const on = (id, ev, fn)=>{ const el = $(id); if(el) el.addEventListener(ev, fn); };
+
+  on('sm-play','click', ()=>{ if(audio.paused) playAudio(); else pauseAudio(); });
+  on('sm-next','click', ()=>loadTrack(trackIndex+1, !audio.paused || !userPaused));
+  on('sm-prev','click', ()=>{
+    // a common convention: restart the track first, skip back only if it just started
+    if(audio.currentTime > 3){ audio.currentTime = 0; return; }
+    loadTrack(trackIndex-1, !audio.paused || !userPaused);
+  });
+  on('sm-shuffle','click', ()=>{
+    MUSIC.shuffle = !MUSIC.shuffle;
+    syncToggle('sm-shuffle', MUSIC.shuffle);
+    if(MUSIC.shuffle && playlist.length>1){
+      const cur = playlist[trackIndex];
+      shuffleInPlace(playlist);
+      trackIndex = playlist.indexOf(cur);     // keep playing what's playing
+      setTrackText(cur.title, 'Track ' + (trackIndex+1) + ' of ' + playlist.length);
+    }
+    savePrefs();
+  });
+  on('sm-loop','click', ()=>{
+    MUSIC.loop = !MUSIC.loop;
+    syncToggle('sm-loop', MUSIC.loop);
+    savePrefs();
+  });
+  on('sm-mute','click', ()=>{ audio.muted = !audio.muted; syncMuteIcon(); savePrefs(); });
+  on('sm-vol','input', e=>{
+    audio.volume = clamp(parseFloat(e.target.value)||0, 0, 1);
+    if(audio.volume > 0) audio.muted = false;
+    syncMuteIcon(); savePrefs();
+  });
+  on('sm-seek','click', e=>{
+    if(!audio.duration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    audio.currentTime = clamp((e.clientX - r.left)/r.width, 0, 1) * audio.duration;
+  });
+
+  audio.addEventListener('timeupdate', ()=>{
+    const fill = $('sm-seekfill');
+    if(fill && audio.duration) fill.style.width = (audio.currentTime/audio.duration*100)+'%';
+  });
+  audio.addEventListener('ended', ()=>{
+    const last = trackIndex === playlist.length-1;
+    if(last && !MUSIC.loop){ setPlayIcon(false); return; }
+    loadTrack(trackIndex+1, true);
+  });
+  audio.addEventListener('play',  ()=>setPlayIcon(true));
+  audio.addEventListener('pause', ()=>setPlayIcon(false));
+  audio.addEventListener('error', ()=>{
+    // crossOrigin is only there for the reactive pulse. If a host doesn't send
+    // CORS headers the load fails outright — so drop it and try the track again.
+    if(audio.crossOrigin && !corsRetried){
+      corsRetried = true;
+      MUSIC.reactive = false;
+      audio.crossOrigin = null;
+      const src = audio.src;
+      audio.src = src;
+      audio.load();
+      if(!userPaused) audio.play().catch(()=>{});
+      return;
+    }
+    console.warn('[starmap] could not load track', playlist[trackIndex] && playlist[trackIndex].url);
+    if(playlist.length > 1) loadTrack(trackIndex+1, !userPaused);
+    else setTrackText('Track unavailable', 'Check the file in "'+MUSIC.path+'"');
+  });
+}
+
+
 /* ── animation ────────────────────────────────────────────────────── */
 function animateStars(t, dt){
   const kk = 1 - Math.pow(0.001, dt);
+  const beat = 1 + audioLevel*0.45;          // the sky breathes with the track
   for(const s of starObjects){
     const hot = (hoverMember===s.member || selMember===s.member) ? 1
       : (s.member.factionId && hoverFaction && hoverFaction.id===s.member.factionId) ? 0.55 : 0;
@@ -10166,9 +10508,9 @@ function animateStars(t, dt){
     const k = clamp(dist/620, 0.42, 2.1);
     const D = s.dim * inact;
 
-    s.glow.material.opacity = clamp((0.5+0.3*bright + s.hot*0.22) * D, 0, 1.05);
-    s.glow.scale.setScalar(s.glowScale*k*(1 + (s.isSolo?0.2:0.08)*p + s.hot*0.22));
-    s.halo.material.opacity = ((s.isSolo?0.16:0.1) + 0.08*p + s.hot*0.1) * D;
+    s.glow.material.opacity = clamp((0.5+0.3*bright + s.hot*0.22) * D * beat, 0, 1.05);
+    s.glow.scale.setScalar(s.glowScale*k*(1 + (s.isSolo?0.2:0.08)*p + s.hot*0.22)*(1 + audioLevel*0.12));
+    s.halo.material.opacity = ((s.isSolo?0.16:0.1) + 0.08*p + s.hot*0.1) * D * beat;
     s.halo.scale.setScalar(s.haloScale*k*(1+s.hot*0.14));
     s.core.scale.setScalar((s.isSolo?1:0.9)*k*(1 + s.hot*0.5 + p*0.06));
     s.core.material.opacity = D;
@@ -10185,7 +10527,7 @@ function animateFactions(t, dt){
     const target = (hoverFaction && hoverFaction.id===id) ? 1 : (selFaction && selFaction.id===id) ? 0.7 : 0;
     fo.hot = lerp(fo.hot, target, 1-Math.pow(0.002, dt));
     fo.dim = lerp(fo.dim, fo.tDim, 1-Math.pow(0.004, dt));
-    fo.lines.material.opacity = (0.26 + fo.hot*0.6) * fo.dim;
+    fo.lines.material.opacity = (0.26 + fo.hot*0.6 + audioLevel*0.09) * fo.dim;
     fo.label.material.opacity = fo.hot*0.92*fo.dim;
     fo.label.position.y = fo.centroid.y + fo.radius + 46 + fo.hot*10;
     if(fo.hot > 0.04){
@@ -10222,7 +10564,7 @@ function animateFog(t, dt){
     const d = camera.position.distanceTo(s.mesh.position);
     const near = clamp((d-130)/280, 0, 1);
     const breathe = 0.85 + 0.15*Math.sin(t*0.25 + s.mesh.position.x*0.01);
-    s.mesh.material.opacity = s.base*breathe*(0.22+0.78*near);
+    s.mesh.material.opacity = s.base*breathe*(0.22+0.78*near)*(1 + audioLevel*0.4);
   }
   for(const d of driftGroups) d.obj.rotation.y += d.speed*dt*0.1;
 }
@@ -10233,6 +10575,7 @@ function tick(){
   const dt = Math.min(clock.getDelta(), 0.05);
   const t  = clock.elapsedTime;
   view.idle += dt;
+  readAudioLevel();
   updateCamera(dt);
   animateStars(t, dt);
   animateFactions(t, dt);
@@ -10278,6 +10621,7 @@ function setView(v, note){
   if(v==='map'){ boot(); }
   else {
     stop();
+    suspendMusic();
     if(stage && stage.classList.contains('sm-full')) setFullscreen(false);
     if(typeof renderRoster==='function') renderRoster(($('roster-search')||{}).value || '');
   }
@@ -10341,6 +10685,8 @@ async function boot(){
       new ResizeObserver(()=>onResize()).observe(stage);
     } else window.addEventListener('resize', onResize);
 
+    setupMusic();
+
     const l = $('sm-loading');
     if(l) setTimeout(()=>l.classList.add('gone'), 120);
     setTimeout(()=>{ const h=$('sm-hint'); if(h) h.classList.add('fade'); }, 11000);
@@ -10375,11 +10721,12 @@ function isMapView(){ return VIEW==='map' && !failed; }
 
 function onEnter(){
   entered = true;
-  if(VIEW==='map') boot();
+  if(VIEW==='map'){ boot(); resumeMusic(); }
 }
 function onLeave(){
   entered = false;
   stop();
+  suspendMusic();
   if(stage && stage.classList.contains('sm-full')) setFullscreen(false);
 }
 
@@ -10410,6 +10757,7 @@ function wire(){
   const zi = $('sm-zin'), zo = $('sm-zout');
   if(zi) zi.addEventListener('click', ()=>zoomBy(0.78));
   if(zo) zo.addEventListener('click', ()=>zoomBy(1.28));
+  wireMusic();
 
   // The index rail eats a lot of room on a phone — start it closed there.
   if(SMALL){
@@ -10448,6 +10796,9 @@ window.smEnter       = onEnter;
 window.smLeave       = onLeave;
 window.smSetView     = setView;
 window.smCurrentName = ()=> selMember ? selMember.name : null;
+window.smMusic       = { get audio(){ return audio; }, get playlist(){ return playlist; },
+                         play:playAudio, pause:pauseAudio, next:()=>loadTrack(trackIndex+1,true),
+                         prev:()=>loadTrack(trackIndex-1,true) };
 
 })();
 
