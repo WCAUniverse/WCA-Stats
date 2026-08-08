@@ -2622,6 +2622,151 @@
   }
 </style>
 
+<!-- ===== HOME PAGE styles ===== -->
+<style>
+/* ===================================================================
+   HOME — the arrival page.
+   Deep space up top, the site's own materials as you descend. Text is
+   deliberately sparse at any one moment: sections fade up as you scroll
+   so nothing reads as a wall. All copy comes from site_settings.home.
+   =================================================================== */
+  #page-home{padding:0;}
+  .hm-wrap{position:relative;}
+
+  /* ── hero ─────────────────────────────────────────────────────── */
+  .hm-hero{
+    position:relative;min-height:clamp(560px,86vh,900px);
+    display:grid;place-items:center;text-align:center;
+    overflow:hidden;margin:-18px -18px 0;padding:80px 22px 120px;
+  }
+  .hm-stars{position:absolute;inset:0;z-index:0;display:block;width:100%;height:100%;}
+  .hm-hero::after{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(120% 70% at 50% 8%,rgba(233,185,73,.10),transparent 58%),
+      radial-gradient(100% 60% at 50% 100%,var(--bg) 4%,transparent 62%);
+  }
+  .hm-hero-in{position:relative;z-index:2;max-width:820px;}
+  .hm-kicker{
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:5px;
+    text-transform:uppercase;color:var(--gold);margin-bottom:20px;opacity:.95;
+  }
+  .hm-title{
+    font-family:'Oswald',sans-serif;font-weight:700;
+    font-size:clamp(38px,7.2vw,86px);line-height:.98;letter-spacing:-.5px;
+    text-transform:uppercase;color:#fff;margin:0 0 22px;
+    text-shadow:0 0 60px rgba(233,185,73,.18);
+  }
+  .hm-sub{
+    font-family:'Barlow',sans-serif;font-size:clamp(15px,1.9vw,19px);
+    line-height:1.72;color:#b9b5ab;max-width:620px;margin:0 auto 32px;
+  }
+  .hm-cta{
+    display:inline-flex;align-items:center;gap:10px;padding:14px 30px;
+    border:1px solid var(--gold);border-radius:10px;background:rgba(233,185,73,.07);
+    color:var(--gold);font-family:'Oswald',sans-serif;font-size:14px;
+    letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+    transition:background .2s,transform .2s;
+  }
+  .hm-cta:hover{background:rgba(233,185,73,.16);transform:translateY(-2px);}
+
+  /* live state strip — reads the event data, never hand-maintained */
+  .hm-now{
+    display:inline-flex;align-items:center;gap:10px;margin:0 0 26px;padding:8px 16px;
+    border:1px solid var(--line);border-radius:999px;background:rgba(8,9,14,.6);
+    font-family:'Barlow Condensed',sans-serif;font-size:12.5px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);backdrop-filter:blur(8px);
+  }
+  .hm-now b{color:var(--gold);font-weight:600;}
+  .hm-now .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .hm-now.live .dot{background:var(--loss);animation:hm-pulse 1.4s ease-in-out infinite;}
+  .hm-now.live{border-color:var(--loss);color:#f2f2f0;}
+  @keyframes hm-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(1.5);}}
+
+  .hm-scroll{
+    position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;
+    font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--muted2,#6b6862);
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    animation:hm-float 2.6s ease-in-out infinite;pointer-events:none;
+  }
+  .hm-scroll i{font-size:16px;}
+  @keyframes hm-float{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,7px);}}
+
+  /* ── scroll reveal ────────────────────────────────────────────── */
+  .hm-rise{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1);}
+  .hm-rise.in{opacity:1;transform:none;}
+  .hm-rise.d1{transition-delay:.09s;} .hm-rise.d2{transition-delay:.18s;} .hm-rise.d3{transition-delay:.27s;}
+  @media(prefers-reduced-motion:reduce){
+    .hm-rise{opacity:1;transform:none;transition:none;}
+    .hm-scroll{animation:none;}
+  }
+
+  /* ── sections ─────────────────────────────────────────────────── */
+  .hm-sec{position:relative;padding:clamp(64px,10vh,120px) 0;}
+  .hm-sec + .hm-sec{border-top:1px solid var(--line);}
+  .hm-eyebrow{
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:4px;
+    text-transform:uppercase;color:var(--gold);margin-bottom:14px;
+  }
+  .hm-h2{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:clamp(26px,4vw,42px);
+    line-height:1.06;text-transform:uppercase;color:#fff;margin:0 0 18px;
+  }
+  .hm-p{font-family:'Barlow',sans-serif;font-size:16px;line-height:1.78;color:#b9b5ab;max-width:640px;margin:0 0 16px;}
+
+  .hm-blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:34px;}
+  .hm-block{
+    padding:26px 24px;border:1px solid var(--line);border-radius:14px;
+    background:linear-gradient(180deg,rgba(255,255,255,.026),transparent);
+    position:relative;overflow:hidden;
+  }
+  .hm-block::before{
+    content:"";position:absolute;left:24px;top:0;width:34px;height:2px;background:var(--gold);
+  }
+  .hm-block h3{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:20px;text-transform:uppercase;
+    color:#fff;margin:10px 0 10px;letter-spacing:.4px;
+  }
+  .hm-block p{font-family:'Barlow',sans-serif;font-size:14.5px;line-height:1.7;color:#a6a29a;margin:0;}
+
+  /* the coins section — the one that converts */
+  .hm-coins{position:relative;}
+  .hm-coins::before{
+    content:"";position:absolute;inset:-40px -18px;z-index:-1;pointer-events:none;
+    background:radial-gradient(70% 100% at 20% 40%,rgba(233,185,73,.07),transparent 62%);
+  }
+  .hm-quote{
+    margin:26px 0 0;padding:24px 26px;border-left:3px solid var(--gold);
+    background:linear-gradient(90deg,rgba(233,185,73,.09),transparent);
+    border-radius:0 12px 12px 0;
+  }
+  .hm-quote p{
+    font-family:'Oswald',sans-serif;font-weight:500;font-size:clamp(17px,2.3vw,24px);
+    line-height:1.42;color:#fff;margin:0;
+  }
+
+  .hm-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:32px;}
+  .hm-card{
+    display:block;text-align:left;padding:22px 20px;border:1px solid var(--line);
+    border-radius:12px;background:var(--panel);cursor:pointer;
+    transition:border-color .2s,transform .2s,background .2s;
+  }
+  .hm-card:hover{border-color:var(--gold-dim);transform:translateY(-3px);background:var(--panel2);}
+  .hm-card i{font-size:22px;color:var(--gold);}
+  .hm-card h3{font-family:'Oswald',sans-serif;font-weight:600;font-size:17px;text-transform:uppercase;color:#fff;margin:12px 0 7px;}
+  .hm-card p{font-family:'Barlow',sans-serif;font-size:13.5px;line-height:1.62;color:var(--muted);margin:0;}
+
+  .hm-apply{text-align:center;}
+  .hm-apply .hm-p{margin-left:auto;margin-right:auto;}
+
+  @media(max-width:860px){
+    .hm-blocks,.hm-cards{grid-template-columns:1fr;}
+    .hm-hero{min-height:clamp(480px,80vh,700px);padding:60px 16px 100px;}
+  }
+
+</style>
+
 <!-- ===== ROSTER STAR MAP styles ===== -->
 <style>
 /* ===================================================================
