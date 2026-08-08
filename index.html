@@ -2703,6 +2703,25 @@
   .sm-seek{position:relative;height:3px;border-radius:3px;background:rgba(239,233,219,.16);cursor:pointer;}
   .sm-seekfill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:var(--gold);}
 
+  /* popped out: the bar leaves the star map and floats over every tab */
+  .sm-player.popped{
+    position:fixed;right:16px;bottom:16px;left:auto;
+    width:min(380px,calc(100vw - 32px));z-index:9990;
+    box-shadow:0 18px 44px rgba(0,0,0,.55);
+    animation:sm-pop-in .32s cubic-bezier(.22,.61,.36,1) both;
+  }
+  @keyframes sm-pop-in{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+  .sm-player.leaving{opacity:0;transition:opacity .5s ease;pointer-events:none;}
+  .sm-player.popped .sm-poplabel{display:block;}
+  .sm-poplabel{
+    display:none;font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2.2px;
+    text-transform:uppercase;color:var(--gold);opacity:.8;margin-bottom:1px;
+  }
+  /* with the bar gone, the panels can use the full height of the stage */
+  .sm-stage.sm-noplayer .sm-index,
+  .sm-stage.sm-noplayer .sm-dossier{bottom:14px;}
+  .sm-stage.sm-noplayer .sm-hint{bottom:16px;}
+
   /* ── roster index (right rail) ─────────────────────────────── */
   .sm-index{
     position:absolute;top:60px;right:14px;bottom:82px;width:250px;z-index:6;
@@ -2861,6 +2880,10 @@
     .sm-topbar{padding:10px;}
     .sm-chip span{display:none;}
     .sm-player{left:8px;right:8px;bottom:8px;padding:8px 10px 7px;}
+    .sm-player.popped{left:8px;right:8px;bottom:8px;width:auto;}
+    body.sm-popped{padding-bottom:86px;}
+    .sm-stage.sm-noplayer .sm-index,
+    .sm-stage.sm-noplayer .sm-dossier{bottom:10px;}
     .sm-trackstatus{display:none;}
     .sm-vol{width:58px;}
     #sm-shuffle,#sm-loop{display:none;}
@@ -3153,11 +3176,13 @@
             <button class="sm-tbtn sm-play" id="sm-play" type="button" aria-label="Play" title="Play"><i class="ti ti-player-play-filled" id="sm-play-ico"></i></button>
             <button class="sm-tbtn" id="sm-next" type="button" aria-label="Next track" title="Next"><i class="ti ti-player-track-next-filled"></i></button>
             <div class="sm-trackmeta">
+              <div class="sm-poplabel">Star map music</div>
               <div class="sm-trackname" id="sm-trackname">No track loaded</div>
               <div class="sm-trackstatus" id="sm-trackstatus">Looking for music…</div>
             </div>
             <button class="sm-tbtn" id="sm-shuffle" type="button" aria-label="Shuffle" aria-pressed="false" title="Shuffle"><i class="ti ti-arrows-shuffle"></i></button>
             <button class="sm-tbtn" id="sm-loop" type="button" aria-label="Repeat playlist" aria-pressed="true" title="Repeat"><i class="ti ti-repeat"></i></button>
+            <button class="sm-tbtn" id="sm-popout" type="button" aria-label="Pop out player" aria-pressed="false" title="Pop out — keep playing on other pages"><i class="ti ti-picture-in-picture-on" id="sm-popout-ico"></i></button>
             <button class="sm-tbtn" id="sm-mute" type="button" aria-label="Mute" title="Mute"><i class="ti ti-volume" id="sm-mute-ico"></i></button>
             <input class="sm-vol" id="sm-vol" type="range" min="0" max="1" step="0.01" value="0.1" aria-label="Volume">
           </div>
@@ -3518,6 +3543,9 @@ function fpEnter(ev){
   if(!portal) return;
   // close the mobile menu if it's open
   document.getElementById('headRight')?.classList.remove('open');
+  // Fire Pro is its own page with its own music player — fade the star map's
+  // player out so the two never overlap and it doesn't fight the warp sound.
+  try{ if(typeof smStopMusicForExit==='function') smStopMusicForExit(); }catch(e){}
   // play the warp sound effect IF a file has been added (silent otherwise)
   const sfx = document.getElementById('fp-warp-sfx');
   if(sfx && sfx.getAttribute('src')){
@@ -10230,8 +10258,10 @@ let playlist = [], trackIndex = 0;
 let analyser = null, freqData = null, audioLevel = 0;
 let musicReady = false, userPaused = false, autoTried = false;
 let corsRetried = false, wasPlaying = false;
+let popped = false, poppedBeforeFullscreen = false;
 
 const AUDIO_PREFS = 'wca-starmap-audio';
+const POPOUT_KEY  = 'wca-starmap-popout';
 const TRACK_CACHE = 'wca-starmap-tracks';
 
 function prettyTitle(file){
@@ -10385,10 +10415,66 @@ function maybeAutoplay(){
 }
 /* Leaving the Roster tab stops the music; coming back picks it up again. */
 function suspendMusic(){
+  if(popped) return;          // popped out = follows the visitor, keeps playing
   if(!audio.paused){ wasPlaying = true; audio.pause(); setPlayIcon(false); }
 }
 function resumeMusic(){
   if(wasPlaying && !userPaused){ wasPlaying = false; playAudio(); }
+}
+
+/* ── pop-out ──────────────────────────────────────────────────────────
+   Popping out moves the actual bar element onto <body>, so it floats above
+   whichever tab the visitor is on. The <audio> object was never in the DOM
+   to begin with, so playback isn't interrupted by the move. Fire Pro is a
+   separate page with its own player, so the bar never goes there — see
+   stopMusicForExit().
+   ------------------------------------------------------------------- */
+function setPopout(on, opts){
+  const bar = $('sm-player');
+  if(!bar) return;
+  opts = opts || {};
+  popped = !!on;
+  const st = $('sm-stage');
+  if(popped){
+    if(bar.parentNode !== document.body) document.body.appendChild(bar);
+    bar.classList.add('popped');
+    document.body.classList.add('sm-popped');
+    if(st) st.classList.add('sm-noplayer');
+  } else {
+    if(st && bar.parentNode !== st) st.appendChild(bar);
+    bar.classList.remove('popped');
+    document.body.classList.remove('sm-popped');
+    if(st) st.classList.remove('sm-noplayer');
+  }
+  const b = $('sm-popout'), i = $('sm-popout-ico');
+  if(i) i.className = 'ti ' + (popped ? 'ti-picture-in-picture-off' : 'ti-picture-in-picture-on');
+  if(b){
+    b.setAttribute('aria-pressed', String(popped));
+    b.setAttribute('aria-label', popped ? 'Dock player back into the star map' : 'Pop out player');
+    b.title = popped ? 'Put it back on the star map' : 'Pop out — keep playing on other pages';
+  }
+  if(!opts.silent){ try{ localStorage.setItem(POPOUT_KEY, popped ? '1' : '0'); }catch(e){} }
+}
+
+/* Fire Pro warps to its own document, which has its own music. Fade ours out
+   so the two never overlap and the warp sound isn't fighting a hard cut. */
+function stopMusicForExit(){
+  const bar = $('sm-player');
+  if(bar) bar.classList.add('leaving');
+  if(!audio || audio.paused) return;
+  const restore = audio.volume;
+  const step = Math.max(0.01, restore/12);
+  const iv = setInterval(()=>{
+    const v = audio.volume - step;
+    if(v <= 0.01){
+      clearInterval(iv);
+      audio.pause();
+      audio.volume = restore;      // keep the saved preference honest
+      setPlayIcon(false);
+    } else audio.volume = v;
+  }, 55);
+  // hard stop in case the navigation is slower than the fade
+  setTimeout(()=>{ try{ clearInterval(iv); audio.pause(); audio.volume = restore; }catch(e){} }, 1200);
 }
 
 function attachAnalyser(){
@@ -10443,6 +10529,17 @@ function wireMusic(){
     MUSIC.loop = !MUSIC.loop;
     syncToggle('sm-loop', MUSIC.loop);
     savePrefs();
+  });
+  on('sm-popout','click', ()=>{
+    const next = !popped;
+    setPopout(next);
+    // Docking from another tab would just make the bar vanish into a hidden
+    // page, so take the visitor back to the map it belongs to.
+    if(!next){
+      const pg = $('page-roster');
+      if(pg && !pg.classList.contains('active') && typeof activatePage==='function') activatePage('roster');
+      if(VIEW !== 'map') setView('map');
+    }
   });
   on('sm-mute','click', ()=>{ audio.muted = !audio.muted; syncMuteIcon(); savePrefs(); });
   on('sm-vol','input', e=>{
@@ -10593,6 +10690,10 @@ function stop(){ running = false; }
 
 /* ── fullscreen ───────────────────────────────────────────────────── */
 function setFullscreen(on){
+  // A floating bar would sit behind the fullscreen stage, so tuck it back in
+  // while expanded and pop it out again on the way out.
+  if(on && popped){ poppedBeforeFullscreen = true; setPopout(false, {silent:true}); }
+  else if(!on && poppedBeforeFullscreen){ poppedBeforeFullscreen = false; setPopout(true, {silent:true}); }
   stage.classList.toggle('sm-full', on);
   document.body.classList.toggle('sm-locked', on);
   const btn = $('sm-btn-full');
@@ -10774,6 +10875,16 @@ function wire(){
   // ran before this script was parsed, so nothing called smEnter(). Catch that.
   const pg = $('page-roster');
   if(pg && pg.classList.contains('active')) onEnter();
+
+  // The visitor had the player popped out last time: bring the bar back on any
+  // tab, with its playlist loaded and ready. It stays paused — audio can't
+  // start without a gesture, and starting it uninvited would be rude anyway.
+  let wantPop = null;
+  try{ wantPop = localStorage.getItem(POPOUT_KEY); }catch(e){}
+  if(wantPop === '1' && MUSIC.enabled){
+    setupMusic();
+    setPopout(true, {silent:true});
+  }
 }
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wire);
@@ -10796,7 +10907,9 @@ window.smEnter       = onEnter;
 window.smLeave       = onLeave;
 window.smSetView     = setView;
 window.smCurrentName = ()=> selMember ? selMember.name : null;
+window.smStopMusicForExit = stopMusicForExit;
 window.smMusic       = { get audio(){ return audio; }, get playlist(){ return playlist; },
+                         get popped(){ return popped; }, popout:setPopout,
                          play:playAudio, pause:pauseAudio, next:()=>loadTrack(trackIndex+1,true),
                          prev:()=>loadTrack(trackIndex-1,true) };
 
