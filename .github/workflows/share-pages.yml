@@ -4,8 +4,11 @@
 # Runs every 6 hours, on every push to index.html, and whenever you press the
 # button yourself: Actions tab -> "Build share pages" -> Run workflow.
 #
-# It commits only when something actually changed, so it won't spam the repo
-# and won't trigger a Pages rebuild for nothing.
+# It commits only when something actually changed, so it won't spam the repo.
+#
+# NOTE: the commit message must NOT contain [skip ci] — that stops GitHub Pages
+# from publishing the new files, so they'd sit in the repo and 404 on the site.
+# The paths: filter below is what prevents a loop, not [skip ci].
 # ============================================================================
 name: Build share pages
 
@@ -49,7 +52,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes — nothing to commit."
           else
-            git commit -m "Rebuild share pages [skip ci]"
+            git commit -m "Rebuild share pages"
             # another run may have pushed while we were building
             git pull --rebase --autostash origin main || true
             git push
