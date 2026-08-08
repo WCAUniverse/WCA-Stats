@@ -3013,6 +3013,55 @@
   <div id="config-error"></div>
 
   <!-- LANDING / DASHBOARD -->
+  <!-- HOME — the arrival page. Copy is admin-editable (site_settings.home);
+       the "what's on now" strip reads live event data, so it never goes stale. -->
+  <div class="page" id="page-home">
+    <div class="hm-wrap">
+      <section class="hm-hero">
+        <canvas class="hm-stars" id="hm-stars"></canvas>
+        <div class="hm-hero-in">
+          <div class="hm-kicker" id="hm-kicker">World Championship Alliance</div>
+          <h1 class="hm-title" id="hm-title">Every star is a competitor</h1>
+          <div id="hm-now-wrap"></div>
+          <p class="hm-sub" id="hm-sub"></p>
+          <button class="hm-cta" id="hm-cta" type="button"><i class="ti ti-arrow-right"></i> <span>Explore the roster</span></button>
+        </div>
+        <div class="hm-scroll"><span>Scroll</span><i class="ti ti-chevron-down"></i></div>
+      </section>
+
+      <section class="hm-sec">
+        <div class="hm-rise"><div class="hm-eyebrow">What this is</div></div>
+        <div class="hm-blocks">
+          <div class="hm-block hm-rise d1"><h3 id="hm-b1t"></h3><p id="hm-b1b"></p></div>
+          <div class="hm-block hm-rise d2"><h3 id="hm-b2t"></h3><p id="hm-b2b"></p></div>
+          <div class="hm-block hm-rise d3"><h3 id="hm-b3t"></h3><p id="hm-b3b"></p></div>
+        </div>
+      </section>
+
+      <section class="hm-sec hm-coins">
+        <div class="hm-rise">
+          <div class="hm-eyebrow">If you make an account</div>
+          <h2 class="hm-h2" id="hm-coins-title"></h2>
+          <p class="hm-p" id="hm-coins-body"></p>
+        </div>
+        <div class="hm-quote hm-rise d1"><p id="hm-coins-high"></p></div>
+      </section>
+
+      <section class="hm-sec">
+        <div class="hm-rise"><h2 class="hm-h2" id="hm-start-title"></h2></div>
+        <div class="hm-cards" id="hm-cards"></div>
+      </section>
+
+      <section class="hm-sec hm-apply">
+        <div class="hm-rise">
+          <h2 class="hm-h2" id="hm-apply-title"></h2>
+          <p class="hm-p" id="hm-apply-body"></p>
+          <button class="hm-cta" id="hm-apply-btn" type="button"><i class="ti ti-user-plus"></i> <span>Apply to join</span></button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <div class="page active" id="page-dash">
 
     <!-- ARENA FLOOR: Titantron hero + side rail -->
@@ -8854,8 +8903,8 @@ function toggleNav(){
 // Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
 function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
-  // 'account' has no nav button (reached via the user chip) — allow it through.
-  if(!btn && pg!=='account') return false;
+  // 'account' (user chip) and 'home' (the logo) have no nav button — allow them.
+  if(!btn && pg!=='account' && pg!=='home') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -8876,6 +8925,8 @@ function activatePage(pg){
   try{
     if(pg==='roster'){ if(typeof smEnter==='function') smEnter(); }
     else if(typeof smLeave==='function') smLeave();
+    if(pg==='home'){ if(typeof homeEnter==='function') homeEnter(); }
+    else if(typeof homeLeave==='function') homeLeave();
   }catch(e){}
   return true;
 }
@@ -8888,8 +8939,18 @@ function restorePageFromHash(){
   const qs = qIdx>=0 ? raw.slice(qIdx+1) : '';
   if(pg && document.querySelector('nav [data-page="'+pg+'"]')){
     activatePage(pg);
-  } else if(pg==='account'){
-    activatePage('account');
+  } else if(pg==='account' || pg==='home'){
+    activatePage(pg);
+  } else if(!pg){
+    // No hash at all. First-time visitors land on Home, which explains what
+    // WCA is; anyone who has been here before goes straight to the Dashboard.
+    let seen = null;
+    try{ seen = localStorage.getItem('wca-seen-home'); }catch(e){}
+    if(!seen){
+      try{ localStorage.setItem('wca-seen-home','1'); }catch(e){}
+      activatePage('home');
+      try{ history.replaceState(null,'','#home'); }catch(e){}
+    }
   }
   // If the hash names a wrestler (?w=Name), show them on the big stage once ready.
   if(qs){
@@ -9333,6 +9394,246 @@ if(typeof sb !== 'undefined' && sb){
   loadDashSponsors();
   if((location.hash||'').slice(1).split('?')[0] === 'sponsors') loadSponsors();
 }
+</script>
+
+<!-- ===== HOME PAGE engine ===== -->
+<script>
+/* =====================================================================
+   HOME PAGE
+   The arrival experience: a starfield you fall through, then the site's
+   own materials as you descend. Every word is admin-editable
+   (site_settings.home); the only thing that isn't is the "what's on now"
+   strip, which reads live event data so it can never go stale.
+   ===================================================================== */
+(function(){
+
+const HOME_DEFAULTS = {
+  hero_kicker:'World Championship Alliance',
+  hero_title:'Every star is a competitor',
+  hero_sub:'A living pro wrestling universe built in WWE 2K25, where the roster is the community — and every show is scored, ranked and remembered.',
+  cta_label:'Explore the roster', cta_page:'roster',
+  b1_title:'The Show',   b1_body:'WCA runs live events on Twitch and YouTube. Real matches, real finishes, championships that change hands and rivalries that carry from show to show.',
+  b2_title:'The Roster', b2_body:'Every competitor represents someone from the community. They have records, rankings, title reigns and match histories going back years.',
+  b3_title:'The Site',   b3_body:'This is the record book. Every match ever fought, every title change, every stable — tracked, ranked and searchable.',
+  coins_title:'How the coins work',
+  coins_body:"Making an account gets you $25,000. It is not real money — it is how you get skin in the game. Before each match, betting opens. Pick a side, stake what you want. Everyone who backs the winner splits the losing side's pool. Back the loser and your stake is gone. While a show is live you also earn $1,000 an hour just for being here.",
+  coins_highlight:'Every show crowns a Betting Champion — whoever made the most profit that night. Balances do not carry over. Which means someone who signed up an hour ago can beat someone who has been here since WCA 1.',
+  start_title:'Start anywhere',
+  apply_title:'Want your own character?',
+  apply_body:'Bring a wrestler into the WCA. Applications are read personally, built in WWE 2K25, and added to the roster.',
+  apply_label:'Apply to join'
+};
+
+let HOME = Object.assign({}, HOME_DEFAULTS);
+let homeLoaded = false, starsRAF = 0, starsCanvas = null;
+
+const $h = (id) => document.getElementById(id);
+const setText = (id, v) => { const el = $h(id); if(el) el.textContent = v || ''; };
+
+/* ── copy ─────────────────────────────────────────────────────────── */
+async function loadHomeCopy(){
+  if(homeLoaded || !window.sb) return;
+  homeLoaded = true;
+  try{
+    const { data, error } = await sb.from('site_settings').select('home').eq('id',1).single();
+    if(!error && data && data.home && typeof data.home === 'object'){
+      Object.keys(HOME_DEFAULTS).forEach(k=>{
+        const v = data.home[k];
+        if(typeof v === 'string' && v.trim()) HOME[k] = v.trim();
+      });
+    }
+  }catch(e){ /* defaults stand — the page must never render empty */ }
+  paintHome();
+}
+
+function paintHome(){
+  setText('hm-kicker', HOME.hero_kicker);
+  setText('hm-title',  HOME.hero_title);
+  setText('hm-sub',    HOME.hero_sub);
+  setText('hm-b1t', HOME.b1_title); setText('hm-b1b', HOME.b1_body);
+  setText('hm-b2t', HOME.b2_title); setText('hm-b2b', HOME.b2_body);
+  setText('hm-b3t', HOME.b3_title); setText('hm-b3b', HOME.b3_body);
+  setText('hm-coins-title', HOME.coins_title);
+  setText('hm-coins-body',  HOME.coins_body);
+  setText('hm-coins-high',  HOME.coins_highlight);
+  setText('hm-start-title', HOME.start_title);
+  setText('hm-apply-title', HOME.apply_title);
+  setText('hm-apply-body',  HOME.apply_body);
+  const cta = $h('hm-cta'); if(cta) cta.querySelector('span').textContent = HOME.cta_label;
+  const ab  = $h('hm-apply-btn'); if(ab) ab.querySelector('span').textContent = HOME.apply_label;
+  paintCards();
+}
+
+/* Fixed destinations — these describe the site's own sections, so they're
+   part of the layout rather than something to maintain as copy. */
+const HOME_CARDS = [
+  { page:'roster',     icon:'ti-stars',       title:'The Roster',    body:'Every competitor and stable, mapped as a constellation you can fly through.' },
+  { page:'rankings',   icon:'ti-trophy',      title:'Rankings',      body:'Champions, contenders and division records — who is next in line for a title shot.' },
+  { page:'storylines', icon:'ti-news',        title:'Storylines',    body:'Headlines, promos and dirt from around the Alliance. The story between the shows.' },
+  { page:'events',     icon:'ti-calendar-event', title:'Events',     body:'The next show — full card, start time and where to watch it live.' },
+  { page:'archive',    icon:'ti-archive',     title:'Archive',       body:'Every event in the books, with results, ratings and final standings.' },
+  { page:'leaderboard',icon:'ti-coins',       title:'Leaderboard',   body:'How the community is doing — coins, streaks and standings across the season.' }
+];
+function paintCards(){
+  const wrap = $h('hm-cards');
+  if(!wrap) return;
+  wrap.innerHTML = HOME_CARDS.map((c,i)=>
+    `<button class="hm-card hm-rise d${(i%3)+1}" type="button" data-page="${c.page}">
+       <i class="ti ${c.icon}"></i>
+       <h3>${typeof esc==='function'?esc(c.title):c.title}</h3>
+       <p>${typeof esc==='function'?esc(c.body):c.body}</p>
+     </button>`).join('');
+  wrap.querySelectorAll('.hm-card').forEach(b=>{
+    b.addEventListener('click', ()=>goPage(b.dataset.page));
+  });
+  observeRises();
+}
+
+/* ── "what's on now" — derived, never hand-maintained ─────────────── */
+async function paintNow(){
+  const wrap = $h('hm-now-wrap');
+  if(!wrap) return;
+  let ev = null;
+  try{
+    if(typeof CURRENT_EVENT!=='undefined' && CURRENT_EVENT) ev = CURRENT_EVENT;
+    else if(typeof loadFeaturedData==='function'){ await loadFeaturedData(); ev = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null; }
+  }catch(e){}
+  if(!ev){ wrap.innerHTML = ''; return; }
+
+  const name = ev.name || 'the next show';
+  const when = ev.event_date ? new Date(ev.event_date) : null;
+  const now  = new Date();
+  let live = false, msg;
+
+  if(when && !isNaN(when)){
+    const diff = when - now;
+    const HOUR = 3600e3;
+    if(diff <= 0 && diff > -6*HOUR){ live = true; msg = `<b>Live now</b> · ${escH(name)}`; }
+    else if(diff > 0){
+      const d = Math.floor(diff/(24*HOUR)), h = Math.floor((diff%(24*HOUR))/HOUR);
+      const away = d > 0 ? `${d} day${d===1?'':'s'}` : (h > 0 ? `${h} hour${h===1?'':'s'}` : 'Today');
+      msg = `Next show · <b>${escH(name)}</b> · ${away === 'Today' ? 'today' : 'in ' + away}`;
+    } else msg = `Latest show · <b>${escH(name)}</b>`;
+  } else msg = `Next show · <b>${escH(name)}</b>`;
+
+  wrap.innerHTML = `<button class="hm-now${live?' live':''}" type="button" id="hm-now-btn">
+    <span class="dot"></span><span>${msg}</span></button>`;
+  const b = $h('hm-now-btn');
+  if(b) b.addEventListener('click', ()=>goPage(live ? 'live' : 'events'));
+}
+function escH(s){ return typeof esc==='function' ? esc(s) : String(s==null?'':s); }
+
+/* ── starfield ────────────────────────────────────────────────────── */
+function startStars(){
+  const cv = $h('hm-stars');
+  if(!cv) return;
+  starsCanvas = cv;
+  const ctx = cv.getContext('2d');
+  if(!ctx) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let w = 0, h = 0, stars = [], dpr = Math.min(window.devicePixelRatio||1, 2);
+
+  function size(){
+    const r = cv.getBoundingClientRect();
+    w = Math.max(1, r.width); h = Math.max(1, r.height);
+    cv.width = w*dpr; cv.height = h*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const count = Math.round(Math.min(300, (w*h)/5200));
+    stars = [];
+    for(let i=0;i<count;i++){
+      const depth = Math.random();
+      stars.push({
+        x: Math.random()*w, y: Math.random()*h,
+        r: 0.4 + depth*1.5, depth,
+        tw: Math.random()*6.283, sp: 0.6 + Math.random()*1.4
+      });
+    }
+  }
+  size();
+  const ro = (typeof ResizeObserver!=='undefined') ? new ResizeObserver(size) : null;
+  if(ro) ro.observe(cv); else window.addEventListener('resize', size);
+
+  const gold = (typeof cssVarSafe==='function') ? cssVarSafe('--gold','#E9B949') : '#E9B949';
+  let t0 = performance.now();
+  function frame(now){
+    if(!document.getElementById('page-home').classList.contains('active')){ starsRAF = 0; return; }
+    const dt = Math.min((now - t0)/1000, 0.05); t0 = now;
+    ctx.clearRect(0,0,w,h);
+    for(const s of stars){
+      if(!reduced){
+        s.tw += dt*s.sp;
+        s.y += dt*(2 + s.depth*9);              // a slow fall, as if descending
+        if(s.y > h + 4){ s.y = -4; s.x = Math.random()*w; }
+      }
+      const a = 0.28 + 0.55*(0.5 + 0.5*Math.sin(s.tw)) * (0.4 + s.depth*0.6);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, 6.283);
+      ctx.fillStyle = s.depth > 0.86 ? gold : '#ffffff';
+      ctx.globalAlpha = a;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    starsRAF = requestAnimationFrame(frame);
+  }
+  if(!starsRAF) starsRAF = requestAnimationFrame(frame);
+}
+function stopStars(){ if(starsRAF){ cancelAnimationFrame(starsRAF); starsRAF = 0; } }
+function cssVarSafe(n,f){
+  try{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v||f; }
+  catch(e){ return f; }
+}
+
+/* ── reveal on scroll ─────────────────────────────────────────────── */
+let riseObs = null;
+function observeRises(){
+  if(typeof IntersectionObserver === 'undefined'){
+    document.querySelectorAll('#page-home .hm-rise').forEach(el=>el.classList.add('in'));
+    return;
+  }
+  if(!riseObs){
+    riseObs = new IntersectionObserver((entries)=>{
+      entries.forEach(en=>{
+        if(en.isIntersecting){ en.target.classList.add('in'); riseObs.unobserve(en.target); }
+      });
+    }, { rootMargin:'0px 0px -12% 0px', threshold:0.08 });
+  }
+  document.querySelectorAll('#page-home .hm-rise:not(.in)').forEach(el=>riseObs.observe(el));
+}
+
+/* ── lifecycle ────────────────────────────────────────────────────── */
+function homeEnter(){
+  paintHome();
+  loadHomeCopy();
+  paintNow();
+  startStars();
+  requestAnimationFrame(observeRises);
+}
+function homeLeave(){ stopStars(); }
+
+function wireHome(){
+  const cta = $h('hm-cta');
+  if(cta) cta.addEventListener('click', ()=>goPage(HOME.cta_page || 'roster'));
+  const ab = $h('hm-apply-btn');
+  if(ab) ab.addEventListener('click', ()=>goPage('apply'));
+  // The logo is the way back — the convention everyone already knows.
+  const logo = document.querySelector('.brand');
+  if(logo){
+    logo.style.cursor = 'pointer';
+    logo.setAttribute('title','Back to the start');
+    logo.addEventListener('click', ()=>goPage('home'));
+  }
+  paintHome();
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHome);
+else wireHome();
+
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopStars(); });
+
+window.homeEnter = homeEnter;
+window.homeLeave = homeLeave;
+
+})();
+
 </script>
 
 <!-- ===== ROSTER STAR MAP engine ===== -->
