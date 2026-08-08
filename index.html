@@ -3405,7 +3405,9 @@ if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 // into the stylesheet above — it can never go blank from a theme error.
 const THEME_KEYS = ['bg','panel','panel2','line','gold','gold-dim','gold-deep',
   'win','loss','teal','txt','muted','accent',
-  'ink','marble','au','au-bright','au-deep'];
+  'ink','marble','au','au-bright','au-deep',
+  // Roster star map globe — set in the admin's Appearance tab
+  'earth-ocean','earth-land','earth-border','earth-marker'];
 // Apply admin-managed site layout: merch link, nav button order/visibility,
 // and social icon order/visibility. Falls back to the HTML defaults.
 async function loadMerchLink(){
@@ -4707,12 +4709,21 @@ async function loadRoster(){
   FACTIONS = [];
   try{
     const {data:fr}=await sb.from('v_faction_rankings').select('*');
+    // Star map colours live on the factions table itself. Fetched separately so
+    // v_faction_rankings doesn't have to be rebuilt to expose the new column;
+    // if the column doesn't exist yet this just no-ops and colours stay automatic.
+    let FAC_COLOR = {};
+    try{
+      const {data:fc} = await sb.from('factions').select('name,color');
+      (fc||[]).forEach(r=>{ if(r && r.color) FAC_COLOR[String(r.name||'').toLowerCase()] = r.color; });
+    }catch(e){ /* column not added yet — automatic colours */ }
     if(fr && fr.length){
       FACTIONS = fr.filter(f=>f.is_hidden!==true).map(f=>{
         const members = String(f.members_txt||'')
           .split(',').map(s=>s.trim()).filter(Boolean)
           .sort((a,b)=>a.localeCompare(b));
         return { name: f.name || 'Faction', members,
+          color: f.color || FAC_COLOR[String(f.name||'').toLowerCase()] || null,
           // extra columns the star map shows on a stable's hover card
           wins:f.wins, losses:f.losses, draws:f.draws, no_wins:f.no_wins,
           win_pct:f.win_pct, contender_points:f.contender_points,
@@ -9351,7 +9362,12 @@ function buildData(){
 
   gFactions().forEach((f,i)=>{
     const id = 'f-'+(slug(f.name)||i);
-    const color = PALETTE[hashStr(f.name)%PALETTE.length];
+    // Admin-set colour wins; otherwise derive one from the name so a stable
+    // still looks deliberate and stays the same on every visit.
+    const custom = String(f.color||'').trim();
+    const color = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(custom)
+      ? custom
+      : PALETTE[hashStr(f.name)%PALETTE.length];
     const members = [];
     (f.members||[]).forEach(nm=>{
       const w = (typeof wrestlerByName==='function') ? wrestlerByName(nm) : null;
@@ -9592,6 +9608,152 @@ function addFactionNebula(center, color, seed){
   }
 }
 
+/* ── the globe ────────────────────────────────────────────────────────
+   WCA stands for World Championship Alliance, so the map orbits a world.
+
+   It's a real sphere with real geography: country outlines traced from
+   Natural Earth data, baked into two alpha masks (land + borders) that get
+   TINTED at runtime rather than having colours painted into them. That's why
+   the ocean, land, outlines and marker are all live-editable from the admin
+   Appearance tab — the textures never have to be regenerated.
+
+   Three shells, largest last so the transparent ones sort correctly:
+     1. ocean   — the solid body
+     2. land    — landmass silhouette, tinted
+     3. borders — country outlines, tinted, additive so they glow a little
+   Plus an atmosphere shell rendered back-side-out for the rim halo.
+   ------------------------------------------------------------------- */
+const EARTH = {
+  enabled: true,
+  radius:  118,
+  tilt:    23.4 * Math.PI/180,     // the real axial tilt
+  spin:    0.018,                  // radians/sec — one turn every ~6 min
+  texLand:    'earth/wca-earth-land.png',
+  texBorders: 'earth/wca-earth-borders.png'
+};
+
+/* WCA is based in New York — the marker is a small easter egg. */
+const HOME_CITY = { name:'New York', lat: 40.7128, lon: -74.0060 };
+
+let earthGroup = null, earthSpin = null, homeMarker = null, homePulse = 0;
+
+/* Lat/lon -> a point on THREE.SphereGeometry, matching how its default UVs
+   lay an equirectangular texture over the sphere. Verified against the land
+   mask before shipping: New York, London and Tokyo all land on land. */
+function latLonToVec3(lat, lon, r){
+  const u = (lon + 180) / 360;          // 0 at the left edge of the texture
+  const v = (90 - lat) / 180;           // 0 at the north pole
+  const theta = v * Math.PI;
+  const phi   = u * Math.PI * 2;
+  return new THREE.Vector3(
+    -r * Math.cos(phi) * Math.sin(theta),
+     r * Math.cos(theta),
+     r * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+function earthColor(key, fallback){
+  const v = cssVar('--' + key, '');
+  return (v && /^#?[0-9a-f]{3,8}$/i.test(v.trim())) ? v.trim() : fallback;
+}
+
+function buildEarth(){
+  if(!EARTH.enabled) return;
+
+  earthGroup = new THREE.Group();
+  earthSpin  = new THREE.Group();          // everything that turns with the planet
+  earthGroup.rotation.z = EARTH.tilt;
+  earthGroup.add(earthSpin);
+  scene.add(earthGroup);
+
+  const R = EARTH.radius;
+  const seg = LOWPOWER ? [40, 26] : [64, 40];
+
+  // 1 ── ocean
+  const ocean = new THREE.Mesh(
+    new THREE.SphereGeometry(R, seg[0], seg[1]),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(earthColor('earth-ocean', '#0a1a33')), fog:false })
+  );
+  earthSpin.add(ocean);
+
+  // 2+3 ── land and borders, as tinted alpha masks
+  const loader = new THREE.TextureLoader();
+  const shell = (url, colorKey, fallback, scale, opacity, additive) => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(earthColor(colorKey, fallback)),
+      transparent:true, opacity, depthWrite:false, fog:false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending
+    });
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(R*scale, seg[0], seg[1]), mat);
+    earthSpin.add(mesh);
+    loader.load(url,
+      tex => { mat.map = tex; mat.needsUpdate = true; },
+      undefined,
+      () => { mesh.visible = false; }      // texture missing: skip this shell, keep the planet
+    );
+    return mesh;
+  };
+  shell(EARTH.texLand,    'earth-land',   '#1a2a42', 1.001, 1.00, false);
+  shell(EARTH.texBorders, 'earth-border', '#E9B949', 1.003, 0.85, true);
+
+  // 4 ── atmosphere: a slightly larger shell turned inside out, so we only
+  //      see its far side and it reads as a halo around the edge
+  const atmoCol = new THREE.Color(earthColor('earth-border', '#E9B949'));
+  const atmo = new THREE.Mesh(
+    new THREE.SphereGeometry(R*1.10, seg[0], seg[1]),
+    new THREE.MeshBasicMaterial({
+      color: atmoCol, transparent:true, opacity:0.10, side:THREE.BackSide,
+      blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+    })
+  );
+  earthGroup.add(atmo);
+
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:TEX_GLOW, color:atmoCol, transparent:true, opacity:0.16,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+  }));
+  glow.scale.setScalar(R*4.2);
+  earthGroup.add(glow);
+
+  // 5 ── the New York marker, parented to the spin group so it travels with
+  //      the surface and disappears round the back like it should
+  const markCol = new THREE.Color(earthColor('earth-marker', '#E24B4A'));
+  homeMarker = new THREE.Group();
+  homeMarker.position.copy(latLonToVec3(HOME_CITY.lat, HOME_CITY.lon, R*1.008));
+  const dot = new THREE.Mesh(
+    new THREE.SphereGeometry(1.7, 10, 10),
+    new THREE.MeshBasicMaterial({ color:markCol, fog:false })
+  );
+  homeMarker.add(dot);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:TEX_GLOW, color:markCol, transparent:true, opacity:0.9,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false
+  }));
+  halo.scale.setScalar(16);
+  homeMarker.add(halo);
+  homeMarker.userData.halo = halo;
+  earthSpin.add(homeMarker);
+}
+
+function animateEarth(t, dt){
+  if(!earthSpin) return;
+  if(!REDUCED) earthSpin.rotation.y += EARTH.spin * dt;
+
+  // the marker breathes, and fades out as it rotates around the far side
+  if(homeMarker){
+    homePulse = 0.5 + 0.5*Math.sin(t*1.9);
+    const halo = homeMarker.userData.halo;
+    const world = homeMarker.getWorldPosition(_earthTmp);
+    const toCam = camera.position.clone().sub(world).normalize();
+    const facing = world.clone().sub(earthGroup.position).normalize().dot(toCam);
+    const vis = clamp((facing + 0.05) * 3.2, 0, 1);
+    halo.material.opacity = (0.45 + 0.5*homePulse) * vis;
+    halo.scale.setScalar(13 + 5*homePulse);
+    homeMarker.children[0].visible = vis > 0.02;
+  }
+}
+let _earthTmp = null;
+
 /* ── layout: deterministic, so the sky looks the same on every visit ── */
 function layout(data){
   const F = data.factions.length;
@@ -9600,7 +9762,9 @@ function layout(data){
     const y = F>1 ? 1-(i/(F-1))*2 : 0;
     const ring = Math.sqrt(Math.max(0.06, 1-y*y));
     const th = i*2.399963 + rand()*0.7;
-    const R = CFG.fieldRadius*(0.72+rand()*0.5);
+    // never inside the globe: push the nearest stables out past its horizon
+    const R = Math.max(EARTH.enabled ? EARTH.radius*2.35 : 0,
+                       CFG.fieldRadius*(0.72+rand()*0.5));
     f.center = new THREE.Vector3(Math.cos(th)*ring*R, y*R*CFG.flatten+(rand()-0.5)*60, Math.sin(th)*ring*R);
     const spread = CFG.memberSpread;
     f.members.forEach((m,j)=>{
@@ -9758,6 +9922,8 @@ function buildFaction(f){
 function buildMap(data){
   DATA = data;
   layout(data);
+  _earthTmp = new THREE.Vector3();
+  buildEarth();
   data.factions.forEach(f=>{
     f.members.forEach(m=>buildStar(m,false));
     buildFaction(f);
@@ -9784,6 +9950,14 @@ function teardownMap(){
       if(o.material){ if(o.material.map && o.material.map !== TEX_GLOW) o.material.map.dispose(); o.material.dispose(); }
     });
   });
+  if(earthGroup){
+    scene.remove(earthGroup);
+    earthGroup.traverse(o=>{
+      if(o.geometry) o.geometry.dispose();
+      if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); }
+    });
+    earthGroup = earthSpin = homeMarker = null;
+  }
   starObjects = []; factionObjects = {}; pickables = [];
   hoverMember = hoverFaction = selMember = selFaction = null;
 }
@@ -9806,7 +9980,8 @@ function updateCamera(dt){
 }
 /* Aim at a point, nudged so the subject lands where the panels aren't. */
 function focusOn(point, dist){
-  view.tRadius = clamp(dist, 90, 2200);
+  // don't let the camera push inside the planet when focusing a near star
+  view.tRadius = clamp(dist, EARTH.enabled ? EARTH.radius*1.25 : 90, 2200);
   const p = point.clone();
   const worldPerPx = 2*Math.tan(camera.fov*Math.PI/360)*view.tRadius/stageH();
   const wide = stageW() > 780;
@@ -10708,6 +10883,7 @@ function tick(){
   updateCamera(dt);
   animateStars(t, dt);
   animateFactions(t, dt);
+  animateEarth(t, dt);
   animateFog(t, dt);
   updateHUD();
   renderer.render(scene, camera);
