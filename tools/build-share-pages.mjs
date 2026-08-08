@@ -101,13 +101,24 @@ async function gather() {
     try { return await p; }
     catch (e) { console.warn(`  ! ${label} skipped — ${e.message}`); return []; }
   };
-  const [posts, events, wrestlers] = await Promise.all([
+  const [posts, events, wrestlers, posters] = await Promise.all([
     soft('storylines', q(cred, 'storylines',
       'id,kind,title,body,payload,story_date,is_published', '&is_published=eq.true')),
     soft('events',     q(cred, 'v_archive_events', '*')),
     soft('wrestlers',  q(cred, 'wrestlers',
-      'name,nickname,bio,image_url,avatar_url,is_active,from_loc,finishers'))
+      'name,nickname,bio,image_url,avatar_url,is_active,from_loc,finishers')),
+    // v_archive_events doesn't pass poster_url through, so the posters come
+    // straight off the events table and get merged in by id below. Doing it
+    // here means the view never has to be rebuilt.
+    soft('posters',    q(cred, 'events', 'id,poster_url'))
   ]);
+  const posterById = {};
+  for (const e of posters || []) if (e && e.poster_url) posterById[String(e.id)] = e.poster_url;
+  for (const e of events || []) {
+    if (e && !e.poster_url && posterById[String(e.id)]) e.poster_url = posterById[String(e.id)];
+  }
+  const withPoster = (events || []).filter(e => e && e.poster_url).length;
+  console.log(`  events with a poster: ${withPoster}/${(events || []).length}`);
   return { posts, events, wrestlers };
 }
 
