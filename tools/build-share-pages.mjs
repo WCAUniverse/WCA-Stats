@@ -27,6 +27,7 @@
  * ==========================================================================*/
 
 import { readFile, writeFile, mkdir, rm } from 'fs/promises';
+import { renderEventCard } from './event-card.mjs';
 import { existsSync } from 'fs';
 import path from 'path';
 
@@ -101,7 +102,7 @@ async function gather() {
     try { return await p; }
     catch (e) { console.warn(`  ! ${label} skipped — ${e.message}`); return []; }
   };
-  const [posts, events, wrestlers, posters] = await Promise.all([
+  const [posts, events, wrestlers, posters, matches] = await Promise.all([
     soft('storylines', q(cred, 'storylines',
       'id,kind,title,body,payload,story_date,is_published', '&is_published=eq.true')),
     soft('events',     q(cred, 'v_archive_events', '*')),
@@ -110,7 +111,10 @@ async function gather() {
     // v_archive_events doesn't pass poster_url through, so the posters come
     // straight off the events table and get merged in by id below. Doing it
     // here means the view never has to be rebuilt.
-    soft('posters',    q(cred, 'events', 'id,poster_url'))
+    soft('posters',    q(cred, 'events', 'id,poster_url')),
+    // main-event line-ups, for the generated share cards
+    soft('matches',    q(cred, 'event_matches',
+      'event_id,slot,sides,side_a,side_b,side_a_extra,side_b_extra,match_type,match_title'))
   ]);
   const posterById = {};
   for (const e of posters || []) if (e && e.poster_url) posterById[String(e.id)] = e.poster_url;
@@ -119,7 +123,41 @@ async function gather() {
   }
   const withPoster = (events || []).filter(e => e && e.poster_url).length;
   console.log(`  events with a poster: ${withPoster}/${(events || []).length}`);
+
+  // Attach each event's main event, matching how the site picks it: slot 1 if
+  // there is one, otherwise the first match listed.
+  const byEvent = {};
+  for (const m of matches || []) (byEvent[String(m.event_id)] ||= []).push(m);
+  const photoFor = {};
+  for (const w of wrestlers || []) {
+    const url = w.image_url || w.avatar_url;
+    if (w.name && url) photoFor[String(w.name).trim().toLowerCase()] = url;
+  }
+  for (const e of events || []) {
+    const list = (byEvent[String(e.id)] || []).sort((a, b) => (a.slot || 0) - (b.slot || 0));
+    if (!list.length) continue;
+    const main = list.find(m => m.slot === 1) || list[0];
+    e._main = { stip: main.match_title || (main.match_type && main.match_type !== 'Singles' ? main.match_type : ''),
+                sides: parseSides(main).slice(0, 2).map(side => {
+                  const nm = (side.team_name || (side.members || []).join(' & ') || '').trim();
+                  const solo = (side.members || []).length === 1 ? side.members[0] : null;
+                  return { name: nm || 'TBA', photo: solo ? photoFor[solo.trim().toLowerCase()] : null };
+                }) };
+  }
   return { posts, events, wrestlers };
+}
+
+/* Mirrors the site's own parseSides so a card never disagrees with the page. */
+function parseSides(m) {
+  let sides = m.sides;
+  if (typeof sides === 'string') { try { sides = JSON.parse(sides); } catch { sides = null; } }
+  if (Array.isArray(sides) && sides.length) return sides;
+  const a = [m.side_a, m.side_a_extra].filter(Boolean);
+  const b = [m.side_b, m.side_b_extra].filter(Boolean);
+  const out = [];
+  if (a.length) out.push({ team_name: '', members: a });
+  if (b.length) out.push({ team_name: '', members: b });
+  return out.length ? out : [];
 }
 
 /* ── the page template ──────────────────────────────────────────────── */
@@ -227,6 +265,15 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
     out.push({
       dir: `event/${e.id}`,
       title: name,
+      card: e.poster_url ? null : {          // real poster wins; otherwise draw one
+        name, tagline: e.tagline || '',
+        date: e.event_date ? new Date(e.event_date + 'T12:00:00Z').toLocaleDateString('en-US',
+              { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : '',
+        matchCount: e.match_count || 0,
+        stip: (e._main && e._main.stip) || 'Main Event',
+        sides: (e._main && e._main.sides && e._main.sides.length === 2)
+          ? e._main.sides : [{ name: name }, { name: 'WCA' }]
+      },
       kicker: e.tagline ? String(e.tagline) : 'Event',
       description: bits.length
         ? `${name} — ${bits.join(', ')}. Full card, results and final standings.`
@@ -283,10 +330,24 @@ async function main() {
   if (existsSync(OUT_DIR)) await rm(OUT_DIR, { recursive: true, force: true });
 
   const counts = {};
+  const FONTS = [path.join(ROOT, 'tools/fonts/Oswald-Bold.ttf'),
+                 path.join(ROOT, 'tools/fonts/BarlowCondensed.ttf')];
+  let drawn = 0;
   for (const e of entries) {
     const canonical = `${BASE}s/${e.dir}/`;
     const dir = path.join(OUT_DIR, ...e.dir.split('/'));
     await mkdir(dir, { recursive: true });
+    // Draw a share card for any event without its own poster: main-event
+    // competitors left and right, event name in the middle. Portraits are used
+    // where they exist and names stand in where they don't, so the back
+    // catalogue produces a real card instead of the generic brand image.
+    if (e.card) {
+      try {
+        await writeFile(path.join(dir, 'card.png'), await renderEventCard(e.card, FONTS));
+        e.image = canonical + 'card.png';
+        drawn++;
+      } catch (err) { console.warn(`  ! card for ${e.dir} — ${err.message}`); }
+    }
     await writeFile(path.join(dir, 'index.html'), page({ ...e, canonical, body: e.description }), 'utf8');
     const k = e.dir.split('/')[0];
     counts[k] = (counts[k] || 0) + 1;
@@ -310,6 +371,7 @@ ${urls.map(u => `  <url><loc>${esc(u.loc)}</loc>` +
   console.log('\nShare pages written:');
   for (const [k, v] of Object.entries(counts).sort()) console.log(`  ${k.padEnd(10)} ${v}`);
   console.log(`  ${'TOTAL'.padEnd(10)} ${entries.length}`);
+  console.log(`Event cards drawn: ${drawn}`);
   console.log('sitemap.xml + robots.txt written.');
 }
 
