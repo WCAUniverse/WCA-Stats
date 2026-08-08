@@ -6499,7 +6499,8 @@ async function openArchiveEvent(id, opts){
   const date = ev.event_date ? fmtEventDate(ev.event_date) : '';
   let html = `<div class="arch-topbar">`+
     `<button class="arch-back" onclick="archiveBackToList()"><i class="ti ti-arrow-left"></i> All events</button>`+
-    `<button class="arch-back arch-share" onclick="wcaShare('event', ${JSON.stringify(String(id))}, 'Share this event', ${JSON.stringify(esc(ev.name||'Event'))})">`+
+    `<button class="arch-back arch-share" id="arch-share-btn" type="button"`+
+      ` data-eid="${escAttr(String(id))}" data-ename="${escAttr(ev.name||'Event')}">`+
       `<i class="ti ti-share-3"></i> Share</button>`+
   `</div>`;
   html += `<div class="event-hero">
@@ -6558,6 +6559,11 @@ async function openArchiveEvent(id, opts){
   }
 
   detEl.innerHTML = html;
+  const shareBtn = document.getElementById('arch-share-btn');
+  if(shareBtn){
+    shareBtn.addEventListener('click', ()=>
+      wcaShare('event', shareBtn.dataset.eid, 'Share this event', shareBtn.dataset.ename));
+  }
   bindNameLinks(detEl);
 }
 
@@ -8056,7 +8062,12 @@ async function wcaShare(kind, id, heading, subtitle){
       copied = true;
     }
   }catch(e){ copied = false; }
-  wcaShowSharePopup(url, copied, heading || 'Share this', subtitle || '');
+  try{
+    wcaShowSharePopup(url, copied, heading || 'Share this', subtitle || '');
+  }catch(e){
+    // last resort — never leave the click looking like nothing happened
+    window.prompt('Copy this link:', url);
+  }
 }
 
 function slShareLink(id){
