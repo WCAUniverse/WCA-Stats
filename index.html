@@ -303,26 +303,6 @@
   .row{display:flex; align-items:center; gap:14px; padding:9px 14px; border-radius:8px;}
   .row.champ{background:var(--gold-deep); border:1px solid var(--gold); margin:0 6px 6px;}
   .row.alt{background:rgba(255,255,255,.02);}
-
-  html:not([data-backdrop="off"]) .row{
-    background-color:rgba(4,6,11,.55);
-    background-image:
-      radial-gradient(44% 130% at -6% 50%, var(--pl-a), transparent 62%),
-      radial-gradient(44% 130% at 106% 50%, var(--pl-b), transparent 62%);
-    border:1px solid rgba(255,255,255,.05);
-    margin:0 6px 5px;
-    transition:border-color .18s ease, background-color .18s ease;
-  }
-  html:not([data-backdrop="off"]) .row.alt{background-color:rgba(8,11,19,.60);}
-  html:not([data-backdrop="off"]) .row:hover{
-    border-color:var(--line);
-    background-color:rgba(10,14,24,.72);
-  }
-  /* the champion keeps its gold, just seated on the same dark base */
-  html:not([data-backdrop="off"]) .row.champ{
-    background-color:rgba(6,8,14,.72);
-    border-color:var(--gold);
-  }
   .rank{width:26px; text-align:center; font-family:'Oswald'; font-size:16px; color:var(--muted); flex-shrink:0;}
   .row.champ .rank{color:var(--gold);}
   /* graduated rank emphasis for the top 5 */
@@ -2152,6 +2132,8 @@
   html[data-backdrop="space-nebula"]{ --pl-a:rgba(84,60,168,.50); --pl-b:rgba(34,86,168,.46); --pl-void:#05060d; }
 
   html:not([data-backdrop="off"]) .hero,
+  html:not([data-backdrop="off"]) .cn-card,
+  html:not([data-backdrop="off"]) .chs-block,
   html:not([data-backdrop="off"]) .champ-card,
   html:not([data-backdrop="off"]) .division,
   html:not([data-backdrop="off"]) .bout,
@@ -2177,6 +2159,65 @@
       radial-gradient(58% 120% at 110% 50%, var(--pl-b), transparent 66%);
     border-color:var(--line);
     border-radius:10px;
+  }
+  /* A held title still gets its gold edge — the champion should stand out
+     from the rows below it, just not by being a flat white slab. */
+  html:not([data-backdrop="off"]) .cn-card{
+    border-color:var(--au,var(--gold));
+    border-radius:14px;
+  }
+  html:not([data-backdrop="off"]) .cn-card.vacant{
+    border-color:var(--line);
+    opacity:.8;
+  }
+
+  /* ── LEGIBILITY ON THE DARK PANELS ────────────────────────────────
+     The old marble was a light stone, so faint gold labels and a 7%-opacity
+     belt watermark read fine on it. On black they disappear. These lift the
+     symbols and thicken the type — only while a space backdrop is on. */
+  html:not([data-backdrop="off"]) .champ-card .belt,
+  html:not([data-backdrop="off"]) .champ-card.bet .belt{
+    color:rgba(var(--gold-rgb),.30);
+    text-shadow:0 0 26px rgba(var(--gold-rgb),.30);
+  }
+  html:not([data-backdrop="off"]) .champ-card.chat .belt{
+    color:rgba(145,70,255,.34);
+    text-shadow:0 0 26px rgba(145,70,255,.32);
+  }
+  /* belt artwork on the rankings cards was washing out against the void */
+  html:not([data-backdrop="off"]) .cn-belt-img,
+  html:not([data-backdrop="off"]) .chs-belt-img,
+  html:not([data-backdrop="off"]) .row img[class*="belt"]{
+    filter:brightness(1.45) contrast(1.12) drop-shadow(0 2px 8px rgba(0,0,0,.85));
+  }
+  html:not([data-backdrop="off"]) .cn-belt{
+    background:rgba(var(--gold-rgb),.22);
+    box-shadow:0 0 20px -6px rgba(var(--gold-rgb),.45);
+  }
+  /* type: heavier weight and a touch brighter, so nothing dissolves */
+  html:not([data-backdrop="off"]) .champ-card .lbl,
+  html:not([data-backdrop="off"]) .cn-div{
+    color:var(--gold);
+    font-weight:600;
+    text-shadow:0 2px 10px rgba(0,0,0,.9);
+  }
+  html:not([data-backdrop="off"]) .champ-card .who,
+  html:not([data-backdrop="off"]) .cn-name{
+    font-weight:700;
+    text-shadow:0 2px 14px rgba(0,0,0,.95);
+  }
+  html:not([data-backdrop="off"]) .champ-card .meta,
+  html:not([data-backdrop="off"]) .cn-since{
+    color:#b6b2a6;
+    text-shadow:0 1px 8px rgba(0,0,0,.9);
+  }
+  html:not([data-backdrop="off"]) .cn-def{
+    color:var(--gold);
+    font-weight:600;
+  }
+  html:not([data-backdrop="off"]) .div-head h3,
+  html:not([data-backdrop="off"]) .section-title{
+    text-shadow:0 2px 12px rgba(0,0,0,.9);
   }
 
   /* ── SPACE BACKDROP ON ────────────────────────────────────────────
