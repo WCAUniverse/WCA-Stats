@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-backdrop="space-fire" data-surface="solid">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2123,6 +2123,55 @@
       repeating-linear-gradient(60deg, rgba(255,255,255,.01) 0 1px, transparent 1px 120px);
     opacity:.7;
   }
+  /* ── PANEL SURFACES IN SPACE MODE ─────────────────────────────────
+     Two distant light sources — ocean blue from one edge, ember from the
+     other — with the middle falling to true black. The marble rule above is
+     untouched, so Plain returns every panel to stone.
+     The two lights are variables so the backdrop style can recolour them. */
+  html{ --pl-a:rgba(30,96,168,.52); --pl-b:rgba(214,86,26,.50); --pl-void:#04060b; }
+  html[data-backdrop="space-nebula"]{ --pl-a:rgba(84,60,168,.50); --pl-b:rgba(34,86,168,.46); --pl-void:#05060d; }
+
+  html:not([data-backdrop="off"]) .hero,
+  html:not([data-backdrop="off"]) .champ-card,
+  html:not([data-backdrop="off"]) .division,
+  html:not([data-backdrop="off"]) .bout,
+  html:not([data-backdrop="off"]) .event-hero,
+  html:not([data-backdrop="off"]) .modal-box,
+  html:not([data-backdrop="off"]) .af-section,
+  html:not([data-backdrop="off"]) .countdown,
+  html:not([data-backdrop="off"]) .apply-rule,
+  html:not([data-backdrop="off"]) .legend.legend-big,
+  html:not([data-backdrop="off"]) .slpost,
+  html:not([data-backdrop="off"]) .search,
+  html:not([data-backdrop="off"]) .dash-tron,
+  html:not([data-backdrop="off"]) .dash-rail-card,
+  html:not([data-backdrop="off"]) .dsl-card{
+    background-color:var(--pl-void);
+    background-image:
+      radial-gradient(1px 1px at 16% 26%, rgba(255,255,255,.55), transparent),
+      radial-gradient(1px 1px at 52% 40%, rgba(255,255,255,.28), transparent),
+      radial-gradient(1px 1px at 36% 76%, rgba(255,255,255,.30), transparent),
+      radial-gradient(1px 1px at 88% 60%, rgba(255,200,140,.45), transparent),
+      radial-gradient(1px 1px at 68% 14%, rgba(255,255,255,.24), transparent),
+      radial-gradient(58% 120% at -10% 50%, var(--pl-a), transparent 66%),
+      radial-gradient(58% 120% at 110% 50%, var(--pl-b), transparent 66%);
+    border-color:var(--line);
+    border-radius:10px;
+  }
+
+  /* ── SPACE BACKDROP ON ────────────────────────────────────────────
+     The marble hall is the *original* look and stays exactly as it is when
+     the backdrop is off. With the space backdrop on, its gold light and
+     veining are retired — they tinted everything warm and washed the planet
+     out. This is the whole reason the setting is a switch and not a rewrite. */
+  html:not([data-backdrop="off"]) body{
+    background: var(--ink);
+    background-attachment:fixed;
+  }
+  html:not([data-backdrop="off"]) body::before{
+    background: radial-gradient(150% 130% at 50% 0%, transparent 62%, rgba(0,0,0,.55) 100%);
+    opacity:1;
+  }
   .wrap,.toast{position:relative; z-index:1;}
   /* Space backdrop. Fixed behind the whole site; content sits above it. */
   /* ── SURFACE STYLE ─────────────────────────────────────────────
@@ -2737,21 +2786,32 @@
 
   /* ── sections ─────────────────────────────────────────────────── */
   .hm-sec{position:relative;padding:clamp(64px,10vh,120px) 0;}
+  /* Text sat straight on the starfield and fought it. A soft dark scrim,
+     wider than the text and fully faded at the edges, keeps every line
+     readable without drawing a visible box. */
+  .hm-sec::before{
+    content:"";position:absolute;left:-6vw;right:-6vw;top:0;bottom:0;z-index:-1;
+    background:radial-gradient(58% 76% at 34% 50%,rgba(4,5,10,.80),rgba(4,5,10,.45) 55%,transparent 82%);
+    pointer-events:none;
+  }
+  .hm-sec.hm-apply::before{background:radial-gradient(56% 78% at 50% 50%,rgba(4,5,10,.80),rgba(4,5,10,.42) 56%,transparent 82%);}
   .hm-sec + .hm-sec{border-top:1px solid var(--line);}
   .hm-eyebrow{
-    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:4px;
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:4px;
     text-transform:uppercase;color:var(--gold);margin-bottom:14px;
+    text-shadow:0 2px 12px rgba(0,0,0,.9);
   }
   .hm-h2{
     font-family:'Oswald',sans-serif;font-weight:600;font-size:clamp(26px,4vw,42px);
     line-height:1.06;text-transform:uppercase;color:#fff;margin:0 0 18px;
   }
-  .hm-p{font-family:'Barlow',sans-serif;font-size:16px;line-height:1.78;color:#b9b5ab;max-width:640px;margin:0 0 16px;}
+  .hm-p{font-family:'Barlow',sans-serif;font-size:16px;line-height:1.78;color:#c6c9d2;max-width:640px;margin:0 0 16px;text-shadow:0 1px 10px rgba(0,0,0,.8);}
 
   .hm-blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:34px;}
   .hm-block{
     padding:26px 24px;border:1px solid var(--line);border-radius:14px;
-    background:linear-gradient(180deg,rgba(255,255,255,.026),transparent);
+    background:linear-gradient(180deg,rgba(10,13,22,.72),rgba(6,8,14,.55));
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
     position:relative;overflow:hidden;
   }
   .hm-block::before{
@@ -9606,7 +9666,7 @@ const LOW = window.matchMedia('(max-width:820px)').matches ||
 /* Each page sees the planet from somewhere else. x/y are fractions of the
    viewport, r is a fraction of its diagonal, so it holds on any screen. */
 const POV = {
-  home:        { x:0.50, y:1.78, r:0.78, hue:212, tilt:-0.15 },
+  home:        { x:0.50, y:1.52, r:0.86, hue:212, tilt:-0.15 },
   dash:        { x:1.18, y:0.30, r:0.62, hue:206, tilt: 0.35 },
   live:        { x:-0.12, y:0.86, r:0.70, hue:352, tilt:-0.40 },
   events:      { x:0.86, y:1.30, r:0.78, hue:198, tilt: 0.10 },
@@ -9641,11 +9701,18 @@ function build(){
   }
   const fn = LOW ? 7 : 13;
   fog = [];
+  const style = document.documentElement.dataset.backdrop || 'space-fire';
   for(let i=0;i<fn;i++){
+    // 'fire' takes its colours from the logo — ocean blue and ember, kept apart
+    // so they read as two light sources rather than one purple blend.
+    let hue;
+    if(style === 'space-nebula') hue = rand(190,300);
+    else hue = (i % 3 === 0) ? rand(14,34) : rand(196,224);
     fog.push({
       x:Math.random(), y:Math.random(),
-      r:rand(0.22,0.62), hue:rand(190,300),
-      a:rand(0.030,0.085), sp:rand(0.006,0.026),
+      r:rand(0.22,0.62), hue,
+      a:rand(0.030, style === 'space-nebula' ? 0.085 : 0.075),
+      sp:rand(0.006,0.026),
       dir:Math.random()<0.5?-1:1, ph:Math.random()*6.283
     });
   }
@@ -9759,7 +9826,7 @@ function drawPlanet(time){
     const idx = Math.floor(((time*0.012) % 1) * globeFrames.length) % globeFrames.length;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = 0.72;
     ctx.drawImage(globeFrames[idx], cx-R, cy-R, R*2, R*2);
     ctx.restore();
   }
@@ -9772,6 +9839,17 @@ function drawPlanet(time){
   rim.addColorStop(1, `hsla(${pov.hue},85%,78%,0.30)`);
   ctx.fillStyle = rim;
   ctx.beginPath(); ctx.arc(cx,cy,R*1.005,0,6.283); ctx.fill();
+
+  // In logo mode a sun burns off one side, so the far limb catches fire —
+  // the same corona the WCA mark has around its planet.
+  if((document.documentElement.dataset.backdrop || 'space-fire') !== 'space-nebula'){
+    const fire = ctx.createRadialGradient(cx+R*0.72, cy-R*0.10, R*0.10, cx, cy, R*1.14);
+    fire.addColorStop(0,   'rgba(255,150,50,0.30)');
+    fire.addColorStop(0.5, 'rgba(226,90,26,0.12)');
+    fire.addColorStop(1,   'rgba(226,90,26,0)');
+    ctx.fillStyle = fire;
+    ctx.beginPath(); ctx.arc(cx,cy,R*1.14,0,6.283); ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -9826,10 +9904,13 @@ function start(){ if(!raf){ t0 = performance.now(); raf = requestAnimationFrame(
 function stop(){ if(raf){ cancelAnimationFrame(raf); raf = 0; } }
 
 /* The Roster runs the real 3D star map — one space scene at a time. */
+let lastStyle = null;
 function setPage(pg){
   if(!cv) return;
+  const style = document.documentElement.dataset.backdrop || 'space-fire';
+  if(style !== lastStyle){ lastStyle = style; if(ready) build(); }
   const off = (pg === 'roster');
-  cv.style.opacity = off ? '0' : '1';
+  cv.style.opacity = (off || style === 'off') ? '0' : '1';
   if(off){ stop(); return; }
   const p = POV[pg] || DEFAULT_POV;
   povTarget = Object.assign({}, p);
