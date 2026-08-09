@@ -9739,17 +9739,17 @@ const LOW = window.matchMedia('(max-width:820px)').matches ||
 /* Each page sees the planet from somewhere else. x/y are fractions of the
    viewport, r is a fraction of its diagonal, so it holds on any screen. */
 const POV = {
-  home:        { x:0.50, y:1.52, r:0.86, hue:212, tilt:-0.15 },
-  dash:        { x:1.18, y:0.30, r:0.62, hue:206, tilt: 0.35 },
-  live:        { x:-0.12, y:0.86, r:0.70, hue:352, tilt:-0.40 },
-  events:      { x:0.86, y:1.30, r:0.78, hue:198, tilt: 0.10 },
-  rankings:    { x:-0.18, y:0.24, r:0.58, hue: 44, tilt: 0.25 },
-  leaderboard: { x:1.24, y:1.10, r:0.66, hue:168, tilt:-0.28 },
-  archive:     { x:0.14, y:1.44, r:0.84, hue:262, tilt: 0.18 },
-  storylines:  { x:1.10, y:0.72, r:0.54, hue:288, tilt:-0.22 },
-  apply:       { x:0.50, y:1.52, r:0.74, hue:150, tilt: 0.06 },
-  sponsors:    { x:-0.16, y:1.18, r:0.62, hue: 30, tilt: 0.30 },
-  account:     { x:1.16, y:1.34, r:0.70, hue:222, tilt:-0.12 }
+  home:        { x:0.50, y:1.16, r:0.80, hue:212, tilt:-0.15 },
+  dash:        { x:0.92, y:0.46, r:0.58, hue:206, tilt: 0.35 },
+  live:        { x:0.10, y:0.70, r:0.62, hue:352, tilt:-0.40 },
+  events:      { x:0.80, y:1.02, r:0.70, hue:198, tilt: 0.10 },
+  rankings:    { x:0.06, y:0.34, r:0.54, hue: 44, tilt: 0.25 },
+  leaderboard: { x:0.94, y:0.92, r:0.60, hue:168, tilt:-0.28 },
+  archive:     { x:0.18, y:1.08, r:0.74, hue:262, tilt: 0.18 },
+  storylines:  { x:0.90, y:0.60, r:0.52, hue:288, tilt:-0.22 },
+  apply:       { x:0.50, y:1.18, r:0.68, hue:150, tilt: 0.06 },
+  sponsors:    { x:0.08, y:0.94, r:0.58, hue: 30, tilt: 0.30 },
+  account:     { x:0.92, y:1.06, r:0.64, hue:222, tilt:-0.12 }
 };
 const DEFAULT_POV = POV.dash;
 let pov = Object.assign({}, DEFAULT_POV);   // eased toward the target
@@ -9789,7 +9789,35 @@ function build(){
       dir:Math.random()<0.5?-1:1, ph:Math.random()*6.283
     });
   }
+  bakeBackdrop();
+  planetLayer = null; planetKey = '';   // sizes changed — drop the cached body
   ready = true;
+}
+
+let bgLayer = null;
+function bakeBackdrop(){
+  bgLayer = document.createElement('canvas');
+  bgLayer.width = Math.round(W*dpr); bgLayer.height = Math.round(H*dpr);
+  const b = bgLayer.getContext('2d');
+  b.setTransform(dpr,0,0,dpr,0,0);
+
+  b.globalCompositeOperation = 'lighter';
+  for(const f of fog){
+    const fx = f.x*W, fy = f.y*H, fr = f.r*Math.max(W,H);
+    const g = b.createRadialGradient(fx,fy,0, fx,fy,fr);
+    g.addColorStop(0,   `hsla(${f.hue},72%,58%,${f.a})`);
+    g.addColorStop(0.45,`hsla(${f.hue},72%,52%,${f.a*0.38})`);
+    g.addColorStop(1,   `hsla(${f.hue},72%,45%,0)`);
+    b.fillStyle = g;
+    b.beginPath(); b.arc(fx,fy,fr,0,6.283); b.fill();
+  }
+  b.globalCompositeOperation = 'source-over';
+  for(const s of stars){
+    b.globalAlpha = (0.30 + 0.55*Math.abs(Math.sin(s.tw))) * (0.35 + s.d*0.65);
+    b.fillStyle = s.d > 0.9 ? '#E9B949' : '#dfe6f5';
+    b.beginPath(); b.arc(s.x, s.y, s.r, 0, 6.283); b.fill();
+  }
+  b.globalAlpha = 1;
 }
 
 /* ── country outlines ─────────────────────────────────────────────
@@ -9855,10 +9883,28 @@ function loadGlobeMask(){
 }
 
 /* the planet: a body with a lit limb and an atmosphere that catches the light */
+let planetLayer = null, planetKey = '';
 function drawPlanet(time){
   const diag = Math.hypot(W,H);
   const cx = pov.x*W, cy = pov.y*H, R = pov.r*diag*0.5;
   if(R <= 0) return;
+
+  // The body only changes while the viewpoint is easing between pages.
+  // Cache it, and redraw only when it has actually moved.
+  const key = [cx|0, cy|0, R|0, pov.hue|0].join(',');
+  if(key !== planetKey || !planetLayer){
+    planetKey = key;
+    planetLayer = document.createElement('canvas');
+    planetLayer.width = Math.round(W*dpr); planetLayer.height = Math.round(H*dpr);
+    const pc = planetLayer.getContext('2d');
+    pc.setTransform(dpr,0,0,dpr,0,0);
+    paintPlanetBody(pc, cx, cy, R, time);
+  }
+  ctx.drawImage(planetLayer, 0, 0, W, H);
+  drawPlanetOutlines(cx, cy, R, time);
+}
+
+function paintPlanetBody(ctx, cx, cy, R, time){
 
   // atmosphere halo
   const halo = ctx.createRadialGradient(cx,cy,R*0.93, cx,cy,R*1.16);
@@ -9894,7 +9940,10 @@ function drawPlanet(time){
   }
   ctx.restore();
 
-  // country outlines, turning slowly
+}
+
+function drawPlanetOutlines(cx, cy, R, time){
+  // country outlines, turning slowly — the one thing drawn every frame
   if(globeFrames && globeFrames.length){
     // Stepping straight from one pre-rendered frame to the next reads as a
     // stutter. Blending the two nearest frames by how far between them we are
@@ -9946,38 +9995,11 @@ function frame(now){
 
   ctx.clearRect(0,0,W,H);
 
-  // volumetric fog
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for(const f of fog){
-    if(!REDUCED){ f.ph += dt*f.sp*f.dir; }
-    const fx = (f.x + Math.cos(f.ph)*0.05)*W;
-    const fy = (f.y + Math.sin(f.ph*0.8)*0.04)*H;
-    const fr = f.r*Math.max(W,H)*(0.85 + 0.15*Math.sin(f.ph*1.3));
-    const g = ctx.createRadialGradient(fx,fy,0, fx,fy,fr);
-    g.addColorStop(0,   `hsla(${f.hue},72%,58%,${f.a})`);
-    g.addColorStop(0.45,`hsla(${f.hue},72%,52%,${f.a*0.38})`);
-    g.addColorStop(1,   `hsla(${f.hue},72%,45%,0)`);
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(fx,fy,fr,0,6.283); ctx.fill();
-  }
-  ctx.restore();
+  // stars and nebula are a single baked image — the only thing that
+  // actually animates now is the planet, which is what should be moving
+  if(bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
 
   drawPlanet(time);
-
-  // stars on top of the fog, behind nothing
-  ctx.save();
-  for(const s of stars){
-    if(!REDUCED){
-      s.tw += dt*s.sp;
-      s.y += dt*(1.5 + s.d*6);
-      if(s.y > H+3){ s.y = -3; s.x = Math.random()*W; }
-    }
-    ctx.globalAlpha = (0.22 + 0.5*(0.5+0.5*Math.sin(s.tw))) * (0.35 + s.d*0.65);
-    ctx.fillStyle = s.d > 0.9 ? '#E9B949' : '#dfe6f5';
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
-  }
-  ctx.restore();
 
   raf = requestAnimationFrame(frame);
 }
