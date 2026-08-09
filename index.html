@@ -2125,6 +2125,35 @@
   }
   .wrap,.toast{position:relative; z-index:1;}
   /* Space backdrop. Fixed behind the whole site; content sits above it. */
+  /* ── SURFACE STYLE ─────────────────────────────────────────────
+     Set from the admin (Appearance -> Surface style). 'solid' is the
+     original opaque look; the others let the space backdrop show through
+     the boxes to varying degrees. Because every panel already paints with
+     var(--panel), these three lines restyle the entire site. */
+  html[data-surface="orbital"]{
+    --panel:  rgba(13,15,24,.74);
+    --panel2: rgba(19,22,34,.80);
+  }
+  html[data-surface="glass"]{
+    --panel:  rgba(13,15,24,.52);
+    --panel2: rgba(19,22,34,.60);
+  }
+  html[data-surface="glass"] .card,
+  html[data-surface="glass"] .panel,
+  html[data-surface="glass"] .division,
+  html[data-surface="glass"] .arch-card,
+  html[data-surface="glass"] .acc-card,
+  html[data-surface="glass"] .bout,
+  html[data-surface="glass"] .apply-rule,
+  html[data-surface="glass"] .hm-block,
+  html[data-surface="glass"] .hm-card,
+  html[data-surface="glass"] .sl-post{
+    backdrop-filter:blur(13px) saturate(118%);
+    -webkit-backdrop-filter:blur(13px) saturate(118%);
+  }
+  /* Backdrop off — plain colour, no animation. */
+  html[data-backdrop="off"] #wca-space{opacity:0 !important;}
+
   #wca-space{
     position:fixed; inset:0; width:100%; height:100%;
     z-index:0; pointer-events:none; display:block;
@@ -2648,8 +2677,7 @@
   .hm-hero::after{
     content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
     background:
-      radial-gradient(120% 80% at 50% 6%,rgba(90,140,200,.10),transparent 62%),
-      linear-gradient(180deg,transparent 55%,var(--bg) 100%);
+      radial-gradient(130% 90% at 50% 4%,rgba(90,140,200,.07),transparent 66%);
   }
   .hm-hero-in{position:relative;z-index:2;max-width:820px;}
   .hm-kicker{
@@ -3686,6 +3714,9 @@ async function applyTheme(){
     if(error || !data || !data.theme) return;
     const t = data.theme;
     const root = document.documentElement;
+    // Non-colour appearance settings ride along in the same theme record.
+    document.documentElement.dataset.surface  = (t && t.surface)  || 'solid';
+    document.documentElement.dataset.backdrop = (t && t.backdrop) || 'space';
     THEME_KEYS.forEach(k=>{
       if(t[k]) root.style.setProperty('--'+k, t[k]);
     });
@@ -9575,7 +9606,7 @@ const LOW = window.matchMedia('(max-width:820px)').matches ||
 /* Each page sees the planet from somewhere else. x/y are fractions of the
    viewport, r is a fraction of its diagonal, so it holds on any screen. */
 const POV = {
-  home:        { x:0.50, y:1.62, r:0.92, hue:212, tilt:-0.15 },
+  home:        { x:0.50, y:1.78, r:0.78, hue:212, tilt:-0.15 },
   dash:        { x:1.18, y:0.30, r:0.62, hue:206, tilt: 0.35 },
   live:        { x:-0.12, y:0.86, r:0.70, hue:352, tilt:-0.40 },
   events:      { x:0.86, y:1.30, r:0.78, hue:198, tilt: 0.10 },
@@ -9621,6 +9652,68 @@ function build(){
   ready = true;
 }
 
+/* ── country outlines ─────────────────────────────────────────────
+   Same equirectangular mask the star map globe uses (earth/wca-earth-borders.png).
+   Projecting it onto a sphere is per-pixel work, so we pre-render a ring of
+   rotation frames once and then blit whichever one the rotation lands on.
+   Costs nothing per frame, and degrades to no outlines if the file is missing. */
+const GLOBE_FRAMES = LOW ? 18 : 30;
+const GLOBE_SIZE   = LOW ? 176 : 248;
+let globeFrames = null;
+
+function buildGlobeFrames(src){
+  const off = document.createElement('canvas');
+  off.width = src.width; off.height = src.height;
+  const octx = off.getContext('2d');
+  octx.drawImage(src, 0, 0);
+  let mask;
+  try{ mask = octx.getImageData(0,0,src.width,src.height); }catch(e){ return; }  // tainted
+  const mw = src.width, mh = src.height, md = mask.data;
+
+  const frames = [];
+  const S = GLOBE_SIZE, R = S/2;
+  for(let f=0; f<GLOBE_FRAMES; f++){
+    const lonOff = (f/GLOBE_FRAMES)*Math.PI*2;
+    const c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const cc = c.getContext('2d');
+    const img = cc.createImageData(S,S);
+    const d = img.data;
+    for(let y=0; y<S; y++){
+      const ny = (y - R)/R;
+      for(let x=0; x<S; x++){
+        const nx = (x - R)/R;
+        const d2 = nx*nx + ny*ny;
+        if(d2 > 1) continue;                       // outside the sphere
+        const nz = Math.sqrt(1 - d2);
+        const lat = Math.asin(-ny);
+        const lon = Math.atan2(nx, nz) + lonOff;
+        let u = (lon/(Math.PI*2)) % 1; if(u < 0) u += 1;
+        const v = 0.5 - lat/Math.PI;
+        const sx = Math.min(mw-1, (u*mw)|0), sy = Math.min(mh-1, (v*mh)|0);
+        const a = md[(sy*mw + sx)*4 + 3];
+        if(!a) continue;
+        // fade toward the limb so the far side doesn't read as a flat sticker
+        const edge = Math.min(1, nz*2.1);
+        const i = (y*S + x)*4;
+        d[i] = 233; d[i+1] = 185; d[i+2] = 73;
+        d[i+3] = a*edge*0.85;
+      }
+    }
+    cc.putImageData(img,0,0);
+    frames.push(c);
+  }
+  globeFrames = frames;
+}
+
+function loadGlobeMask(){
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload  = ()=>{ try{ buildGlobeFrames(img); }catch(e){} };
+  img.onerror = ()=>{};                        // no outlines, planet still fine
+  img.src = 'earth/wca-earth-borders.png';
+}
+
 /* the planet: a body with a lit limb and an atmosphere that catches the light */
 function drawPlanet(time){
   const diag = Math.hypot(W,H);
@@ -9629,8 +9722,8 @@ function drawPlanet(time){
 
   // atmosphere halo
   const halo = ctx.createRadialGradient(cx,cy,R*0.93, cx,cy,R*1.16);
-  halo.addColorStop(0,   `hsla(${pov.hue},70%,60%,0.16)`);
-  halo.addColorStop(0.45,`hsla(${pov.hue},70%,55%,0.06)`);
+  halo.addColorStop(0,   `hsla(${pov.hue},78%,64%,0.22)`);
+  halo.addColorStop(0.35,`hsla(${pov.hue},76%,58%,0.09)`);
   halo.addColorStop(1,   `hsla(${pov.hue},70%,50%,0)`);
   ctx.fillStyle = halo;
   ctx.beginPath(); ctx.arc(cx,cy,R*1.16,0,6.283); ctx.fill();
@@ -9638,10 +9731,11 @@ function drawPlanet(time){
   // body — lit from the upper left, falling into shadow
   const lx = cx - R*0.52*Math.cos(pov.tilt), ly = cy - R*0.52*Math.sin(pov.tilt+0.9);
   const body = ctx.createRadialGradient(lx,ly,R*0.05, cx,cy,R*1.02);
-  body.addColorStop(0,   `hsla(${pov.hue},44%,26%,0.95)`);
-  body.addColorStop(0.42,`hsla(${pov.hue},46%,15%,0.95)`);
-  body.addColorStop(0.78,`hsla(${pov.hue},48%,7%,0.96)`);
-  body.addColorStop(1,   `hsla(${pov.hue},50%,3%,0.98)`);
+  body.addColorStop(0,   `hsla(${pov.hue},48%,30%,0.82)`);
+  body.addColorStop(0.35,`hsla(${pov.hue},48%,20%,0.80)`);
+  body.addColorStop(0.62,`hsla(${pov.hue},50%,12%,0.78)`);
+  body.addColorStop(0.85,`hsla(${pov.hue},52%,6%,0.74)`);
+  body.addColorStop(1,   `hsla(${pov.hue},54%,3%,0.68)`);
   ctx.fillStyle = body;
   ctx.beginPath(); ctx.arc(cx,cy,R,0,6.283); ctx.fill();
 
@@ -9653,12 +9747,22 @@ function drawPlanet(time){
     const off = (i/6 - 0.5)*R*1.7 + Math.sin(time*0.05 + i)*R*0.02;
     const g = ctx.createLinearGradient(cx, cy+off-R*0.10, cx, cy+off+R*0.10);
     g.addColorStop(0,   `hsla(${pov.hue+i*7},60%,60%,0)`);
-    g.addColorStop(0.5, `hsla(${pov.hue+i*7},60%,60%,${0.030 + (i%2)*0.016})`);
+    g.addColorStop(0.5, `hsla(${pov.hue+i*7},60%,62%,${0.018 + (i%2)*0.010})`);
     g.addColorStop(1,   `hsla(${pov.hue+i*7},60%,60%,0)`);
     ctx.fillStyle = g;
     ctx.fillRect(cx-R, cy+off-R*0.10, R*2, R*0.20);
   }
   ctx.restore();
+
+  // country outlines, turning slowly
+  if(globeFrames && globeFrames.length){
+    const idx = Math.floor(((time*0.012) % 1) * globeFrames.length) % globeFrames.length;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(globeFrames[idx], cx-R, cy-R, R*2, R*2);
+    ctx.restore();
+  }
 
   // bright rim on the lit edge
   ctx.save();
@@ -9738,6 +9842,7 @@ function init(){
   ctx = cv.getContext('2d');
   if(!ctx){ cv.style.display = 'none'; return; }
   build();
+  loadGlobeMask();
   if(typeof ResizeObserver !== 'undefined') new ResizeObserver(build).observe(cv);
   else window.addEventListener('resize', build);
   const active = document.querySelector('.page.active');
