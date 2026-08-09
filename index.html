@@ -303,6 +303,26 @@
   .row{display:flex; align-items:center; gap:14px; padding:9px 14px; border-radius:8px;}
   .row.champ{background:var(--gold-deep); border:1px solid var(--gold); margin:0 6px 6px;}
   .row.alt{background:rgba(255,255,255,.02);}
+
+  html:not([data-backdrop="off"]) .row{
+    background-color:rgba(4,6,11,.55);
+    background-image:
+      radial-gradient(44% 130% at -6% 50%, var(--pl-a), transparent 62%),
+      radial-gradient(44% 130% at 106% 50%, var(--pl-b), transparent 62%);
+    border:1px solid rgba(255,255,255,.05);
+    margin:0 6px 5px;
+    transition:border-color .18s ease, background-color .18s ease;
+  }
+  html:not([data-backdrop="off"]) .row.alt{background-color:rgba(8,11,19,.60);}
+  html:not([data-backdrop="off"]) .row:hover{
+    border-color:var(--line);
+    background-color:rgba(10,14,24,.72);
+  }
+  /* the champion keeps its gold, just seated on the same dark base */
+  html:not([data-backdrop="off"]) .row.champ{
+    background-color:rgba(6,8,14,.72);
+    border-color:var(--gold);
+  }
   .rank{width:26px; text-align:center; font-family:'Oswald'; font-size:16px; color:var(--muted); flex-shrink:0;}
   .row.champ .rank{color:var(--gold);}
   /* graduated rank emphasis for the top 5 */
@@ -9724,7 +9744,7 @@ function build(){
    Projecting it onto a sphere is per-pixel work, so we pre-render a ring of
    rotation frames once and then blit whichever one the rotation lands on.
    Costs nothing per frame, and degrades to no outlines if the file is missing. */
-const GLOBE_FRAMES = LOW ? 18 : 30;
+const GLOBE_FRAMES = LOW ? 24 : 48;
 const GLOBE_SIZE   = LOW ? 176 : 248;
 let globeFrames = null;
 
@@ -9823,11 +9843,20 @@ function drawPlanet(time){
 
   // country outlines, turning slowly
   if(globeFrames && globeFrames.length){
-    const idx = Math.floor(((time*0.012) % 1) * globeFrames.length) % globeFrames.length;
+    // Stepping straight from one pre-rendered frame to the next reads as a
+    // stutter. Blending the two nearest frames by how far between them we are
+    // makes the turn continuous without rendering any more of them.
+    const n = globeFrames.length;
+    const pos = ((time * 0.012) % 1) * n;
+    const i0 = Math.floor(pos) % n;
+    const i1 = (i0 + 1) % n;
+    const f = pos - Math.floor(pos);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.72;
-    ctx.drawImage(globeFrames[idx], cx-R, cy-R, R*2, R*2);
+    ctx.globalAlpha = 0.72 * (1 - f);
+    ctx.drawImage(globeFrames[i0], cx-R, cy-R, R*2, R*2);
+    ctx.globalAlpha = 0.72 * f;
+    ctx.drawImage(globeFrames[i1], cx-R, cy-R, R*2, R*2);
     ctx.restore();
   }
 
