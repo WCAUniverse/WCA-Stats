@@ -95,10 +95,9 @@
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
-    background:
-      radial-gradient(1100px 560px at 82% -8%, var(--glow-gold), transparent 60%),
-      radial-gradient(840px 460px at -8% 8%, var(--glow-accent), transparent 55%),
-      var(--bg);
+    /* The animated backdrop supplies the atmosphere now, so the old static
+       glows are gone — two light sources fought each other. */
+    background: var(--bg);
     background-attachment:fixed;
     color:var(--txt); font-family:'Barlow',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;}
   h1,h2,h3,.disp{font-family:'Oswald',sans-serif; font-weight:600; letter-spacing:.5px; text-transform:uppercase;}
@@ -2125,6 +2124,12 @@
     opacity:.7;
   }
   .wrap,.toast{position:relative; z-index:1;}
+  /* Space backdrop. Fixed behind the whole site; content sits above it. */
+  #wca-space{
+    position:fixed; inset:0; width:100%; height:100%;
+    z-index:0; pointer-events:none; display:block;
+    transition:opacity .5s ease;
+  }
   .modal-overlay{z-index:600;}
   header{position:sticky; top:0; z-index:50;}
 
@@ -2643,8 +2648,8 @@
   .hm-hero::after{
     content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
     background:
-      radial-gradient(120% 70% at 50% 8%,rgba(233,185,73,.10),transparent 58%),
-      radial-gradient(100% 60% at 50% 100%,var(--bg) 4%,transparent 62%);
+      radial-gradient(120% 80% at 50% 6%,rgba(90,140,200,.10),transparent 62%),
+      linear-gradient(180deg,transparent 55%,var(--bg) 100%);
   }
   .hm-hero-in{position:relative;z-index:2;max-width:820px;}
   .hm-kicker{
@@ -3092,6 +3097,9 @@
 </style>
 </head>
 <body>
+<!-- Site-wide space backdrop: stars, nebula fog, and the planet limb.
+     Each page views it from a different angle (see spaceSetPage). -->
+<canvas id="wca-space" aria-hidden="true"></canvas>
 
 <!-- View As banner — hidden unless an admin has an active view-as session
      going (set in sessionStorage by vaStart()). Always visible while active,
@@ -3163,8 +3171,7 @@
   <div class="page" id="page-home">
     <div class="hm-wrap">
       <section class="hm-hero">
-        <canvas class="hm-stars" id="hm-stars"></canvas>
-        <div class="hm-hero-in">
+            <div class="hm-hero-in">
           <div class="hm-kicker" id="hm-kicker">World Championship Alliance</div>
           <h1 class="hm-title" id="hm-title">Every star is a competitor</h1>
           <div id="hm-now-wrap"></div>
@@ -9072,6 +9079,7 @@ function activatePage(pg){
     else if(typeof smLeave==='function') smLeave();
     if(pg==='home'){ if(typeof homeEnter==='function') homeEnter(); }
     else if(typeof homeLeave==='function') homeLeave();
+    if(typeof spaceSetPage==='function') spaceSetPage(pg);
   }catch(e){}
   return true;
 }
@@ -9541,6 +9549,217 @@ if(typeof sb !== 'undefined' && sb){
 }
 </script>
 
+<!-- ===== SPACE BACKDROP ===== -->
+<script>
+/* =====================================================================
+   SPACE BACKDROP — site-wide
+   One fixed canvas behind every page: drifting stars, volumetric nebula
+   fog, and the limb of a planet. Each page views that planet from a
+   different angle, so moving around the site feels like moving in orbit
+   rather than flipping tabs.
+
+   2D canvas on purpose. The Roster's star map already holds a WebGL
+   context, and a second one would fight it for GPU on weaker machines —
+   so this layer switches itself off on the Roster and lets the real
+   3D map take over.
+   ===================================================================== */
+(function(){
+
+const CV_ID = 'wca-space';
+let cv, ctx, W = 0, H = 0, dpr = 1, raf = 0, t0 = 0;
+let stars = [], fog = [], ready = false;
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LOW = window.matchMedia('(max-width:820px)').matches ||
+            (navigator.hardwareConcurrency || 8) <= 4;
+
+/* Each page sees the planet from somewhere else. x/y are fractions of the
+   viewport, r is a fraction of its diagonal, so it holds on any screen. */
+const POV = {
+  home:        { x:0.50, y:1.62, r:0.92, hue:212, tilt:-0.15 },
+  dash:        { x:1.18, y:0.30, r:0.62, hue:206, tilt: 0.35 },
+  live:        { x:-0.12, y:0.86, r:0.70, hue:352, tilt:-0.40 },
+  events:      { x:0.86, y:1.30, r:0.78, hue:198, tilt: 0.10 },
+  rankings:    { x:-0.18, y:0.24, r:0.58, hue: 44, tilt: 0.25 },
+  leaderboard: { x:1.24, y:1.10, r:0.66, hue:168, tilt:-0.28 },
+  archive:     { x:0.14, y:1.44, r:0.84, hue:262, tilt: 0.18 },
+  storylines:  { x:1.10, y:0.72, r:0.54, hue:288, tilt:-0.22 },
+  apply:       { x:0.50, y:1.52, r:0.74, hue:150, tilt: 0.06 },
+  sponsors:    { x:-0.16, y:1.18, r:0.62, hue: 30, tilt: 0.30 },
+  account:     { x:1.16, y:1.34, r:0.70, hue:222, tilt:-0.12 }
+};
+const DEFAULT_POV = POV.dash;
+let pov = Object.assign({}, DEFAULT_POV);   // eased toward the target
+let povTarget = Object.assign({}, DEFAULT_POV);
+
+const lerp = (a,b,t) => a + (b-a)*t;
+const rand = (a,b) => a + Math.random()*(b-a);
+
+function build(){
+  const r = cv.getBoundingClientRect();
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  dpr = Math.min(window.devicePixelRatio || 1, LOW ? 1.25 : 1.75);
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const n = Math.round(Math.min(LOW ? 130 : 320, (W*H)/(LOW ? 9000 : 5200)));
+  stars = [];
+  for(let i=0;i<n;i++){
+    const depth = Math.random();
+    stars.push({ x:Math.random()*W, y:Math.random()*H, d:depth,
+                 r:0.35 + depth*1.45, tw:Math.random()*6.283, sp:0.5+Math.random()*1.3 });
+  }
+  const fn = LOW ? 7 : 13;
+  fog = [];
+  for(let i=0;i<fn;i++){
+    fog.push({
+      x:Math.random(), y:Math.random(),
+      r:rand(0.22,0.62), hue:rand(190,300),
+      a:rand(0.030,0.085), sp:rand(0.006,0.026),
+      dir:Math.random()<0.5?-1:1, ph:Math.random()*6.283
+    });
+  }
+  ready = true;
+}
+
+/* the planet: a body with a lit limb and an atmosphere that catches the light */
+function drawPlanet(time){
+  const diag = Math.hypot(W,H);
+  const cx = pov.x*W, cy = pov.y*H, R = pov.r*diag*0.5;
+  if(R <= 0) return;
+
+  // atmosphere halo
+  const halo = ctx.createRadialGradient(cx,cy,R*0.93, cx,cy,R*1.16);
+  halo.addColorStop(0,   `hsla(${pov.hue},70%,60%,0.16)`);
+  halo.addColorStop(0.45,`hsla(${pov.hue},70%,55%,0.06)`);
+  halo.addColorStop(1,   `hsla(${pov.hue},70%,50%,0)`);
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(cx,cy,R*1.16,0,6.283); ctx.fill();
+
+  // body — lit from the upper left, falling into shadow
+  const lx = cx - R*0.52*Math.cos(pov.tilt), ly = cy - R*0.52*Math.sin(pov.tilt+0.9);
+  const body = ctx.createRadialGradient(lx,ly,R*0.05, cx,cy,R*1.02);
+  body.addColorStop(0,   `hsla(${pov.hue},44%,26%,0.95)`);
+  body.addColorStop(0.42,`hsla(${pov.hue},46%,15%,0.95)`);
+  body.addColorStop(0.78,`hsla(${pov.hue},48%,7%,0.96)`);
+  body.addColorStop(1,   `hsla(${pov.hue},50%,3%,0.98)`);
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,6.283); ctx.fill();
+
+  // banding, so it reads as a world rather than a disc
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,6.283); ctx.clip();
+  ctx.globalCompositeOperation = 'lighter';
+  for(let i=0;i<6;i++){
+    const off = (i/6 - 0.5)*R*1.7 + Math.sin(time*0.05 + i)*R*0.02;
+    const g = ctx.createLinearGradient(cx, cy+off-R*0.10, cx, cy+off+R*0.10);
+    g.addColorStop(0,   `hsla(${pov.hue+i*7},60%,60%,0)`);
+    g.addColorStop(0.5, `hsla(${pov.hue+i*7},60%,60%,${0.030 + (i%2)*0.016})`);
+    g.addColorStop(1,   `hsla(${pov.hue+i*7},60%,60%,0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(cx-R, cy+off-R*0.10, R*2, R*0.20);
+  }
+  ctx.restore();
+
+  // bright rim on the lit edge
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const rim = ctx.createRadialGradient(cx,cy,R*0.965, cx,cy,R*1.005);
+  rim.addColorStop(0, `hsla(${pov.hue},80%,70%,0)`);
+  rim.addColorStop(1, `hsla(${pov.hue},85%,78%,0.30)`);
+  ctx.fillStyle = rim;
+  ctx.beginPath(); ctx.arc(cx,cy,R*1.005,0,6.283); ctx.fill();
+  ctx.restore();
+}
+
+function frame(now){
+  if(!ready){ raf = requestAnimationFrame(frame); return; }
+  const dt = Math.min((now - t0)/1000, 0.05); t0 = now;
+  const time = now/1000;
+
+  // ease toward this page's viewpoint — the drift between pages IS the effect
+  const k = 1 - Math.pow(0.0008, dt);
+  ['x','y','r','hue','tilt'].forEach(p => { pov[p] = lerp(pov[p], povTarget[p], k); });
+
+  ctx.clearRect(0,0,W,H);
+
+  // volumetric fog
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for(const f of fog){
+    if(!REDUCED){ f.ph += dt*f.sp*f.dir; }
+    const fx = (f.x + Math.cos(f.ph)*0.05)*W;
+    const fy = (f.y + Math.sin(f.ph*0.8)*0.04)*H;
+    const fr = f.r*Math.max(W,H)*(0.85 + 0.15*Math.sin(f.ph*1.3));
+    const g = ctx.createRadialGradient(fx,fy,0, fx,fy,fr);
+    g.addColorStop(0,   `hsla(${f.hue},72%,58%,${f.a})`);
+    g.addColorStop(0.45,`hsla(${f.hue},72%,52%,${f.a*0.38})`);
+    g.addColorStop(1,   `hsla(${f.hue},72%,45%,0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(fx,fy,fr,0,6.283); ctx.fill();
+  }
+  ctx.restore();
+
+  drawPlanet(time);
+
+  // stars on top of the fog, behind nothing
+  ctx.save();
+  for(const s of stars){
+    if(!REDUCED){
+      s.tw += dt*s.sp;
+      s.y += dt*(1.5 + s.d*6);
+      if(s.y > H+3){ s.y = -3; s.x = Math.random()*W; }
+    }
+    ctx.globalAlpha = (0.22 + 0.5*(0.5+0.5*Math.sin(s.tw))) * (0.35 + s.d*0.65);
+    ctx.fillStyle = s.d > 0.9 ? '#E9B949' : '#dfe6f5';
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+  }
+  ctx.restore();
+
+  raf = requestAnimationFrame(frame);
+}
+
+function start(){ if(!raf){ t0 = performance.now(); raf = requestAnimationFrame(frame); } }
+function stop(){ if(raf){ cancelAnimationFrame(raf); raf = 0; } }
+
+/* The Roster runs the real 3D star map — one space scene at a time. */
+function setPage(pg){
+  if(!cv) return;
+  const off = (pg === 'roster');
+  cv.style.opacity = off ? '0' : '1';
+  if(off){ stop(); return; }
+  const p = POV[pg] || DEFAULT_POV;
+  povTarget = Object.assign({}, p);
+  start();
+}
+
+function init(){
+  cv = document.getElementById(CV_ID);
+  if(!cv) return;
+  ctx = cv.getContext('2d');
+  if(!ctx){ cv.style.display = 'none'; return; }
+  build();
+  if(typeof ResizeObserver !== 'undefined') new ResizeObserver(build).observe(cv);
+  else window.addEventListener('resize', build);
+  const active = document.querySelector('.page.active');
+  const pg = active ? active.id.replace(/^page-/,'') : 'dash';
+  pov = Object.assign({}, POV[pg] || DEFAULT_POV);
+  setPage(pg);
+}
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) stop();
+  else if(cv && cv.style.opacity !== '0') start();
+});
+
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+window.spaceSetPage = setPage;
+
+})();
+
+</script>
+
 <!-- ===== HOME PAGE engine ===== -->
 <script>
 /* =====================================================================
@@ -9768,6 +9987,11 @@ function wireHome(){
     logo.addEventListener('click', ()=>goPage('home'));
   }
   paintHome();
+  // Landing straight on #home means activatePage() already ran before this
+  // script was parsed, so nothing called homeEnter(). Catch that — the same
+  // trap the star map hit: routing happens before these modules load.
+  const pg = document.getElementById('page-home');
+  if(pg && pg.classList.contains('active')) homeEnter();
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHome);
 else wireHome();
