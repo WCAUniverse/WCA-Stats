@@ -9815,31 +9815,33 @@ if(!isConfigured){
 }
 </script>
 
-<!-- PWA: register the service worker (enables install + offline fallback).
-     Safe to fail silently — the site works exactly the same without it. -->
+<!-- SERVICE WORKER: REMOVED ON PURPOSE.
+     The worker cached the site and kept serving an old index.html, so uploads
+     appeared to do nothing — two copies were found wedged on "trying to
+     install", which is why several fixes never reached the browser at all.
+     For a site whose content comes live from Supabase, offline caching buys
+     very little and costs a class of bug that is near-impossible to diagnose
+     from a screenshot. This actively removes any worker still registered and
+     clears its caches, so every visitor self-heals on their next load. -->
 <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg=>{
-        // Check for a new version on every load and take it immediately.
-        // Without this the worker keeps serving the cached index.html and an
-        // uploaded change never appears, however many times it's re-uploaded.
-        reg.update().catch(()=>{});
-        reg.addEventListener('updatefound', ()=>{
-          const sw = reg.installing;
-          if(!sw) return;
-          sw.addEventListener('statechange', ()=>{
-            if(sw.state === 'installed' && navigator.serviceWorker.controller){
-              location.reload();          // new file is ready — use it now
-            }
-          });
-        });
-      }).catch(() => {});
-      let reloaded = false;
-      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-        if(reloaded) return; reloaded = true; location.reload();
-      });
-    });
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      let had = false;
+      regs.forEach(r=>{ had = true; r.unregister().catch(()=>{}); });
+      if (had && window.caches) {
+        caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))).catch(()=>{});
+      }
+      // One reload once the stale worker is gone, so this visit gets the real
+      // files rather than whatever it was holding.
+      if (had) {
+        let done = false;
+        try{ done = sessionStorage.getItem('wca-sw-cleared') === '1'; }catch(e){}
+        if (!done) {
+          try{ sessionStorage.setItem('wca-sw-cleared','1'); }catch(e){}
+          setTimeout(()=>location.reload(true), 300);
+        }
+      }
+    }).catch(()=>{});
   }
 </script>
 <!-- ===== SPONSORS & PARTNERS (public page) =====
