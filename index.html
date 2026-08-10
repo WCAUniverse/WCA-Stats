@@ -9820,7 +9820,25 @@ if(!isConfigured){
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then(reg=>{
+        // Check for a new version on every load and take it immediately.
+        // Without this the worker keeps serving the cached index.html and an
+        // uploaded change never appears, however many times it's re-uploaded.
+        reg.update().catch(()=>{});
+        reg.addEventListener('updatefound', ()=>{
+          const sw = reg.installing;
+          if(!sw) return;
+          sw.addEventListener('statechange', ()=>{
+            if(sw.state === 'installed' && navigator.serviceWorker.controller){
+              location.reload();          // new file is ready — use it now
+            }
+          });
+        });
+      }).catch(() => {});
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        if(reloaded) return; reloaded = true; location.reload();
+      });
     });
   }
 </script>
@@ -10646,7 +10664,8 @@ window.renderPersonalDashboard = function(){
 
 const PER_DESKTOP = 5, PER_MOBILE = 3;
 let TL_EVENTS = [], TL_PAGE = 0, TL_OPEN = null, TL_LOADED = false, TL_ERROR = null;
-window.WCA_BUILD = 'timeline-2026-08-10c';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'timeline-2026-08-10d';   // check with: console.log(WCA_BUILD)
+let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
    Run wcaTimelineCheck() in the console. */
@@ -10690,9 +10709,11 @@ async function tlLoad(){
     // broken while the data was fine all along.
     let rows = [];
     const arch = await sb.from('v_archive_events').select('*');
+    TL_DIAG = `view: ${arch.error ? 'ERROR '+arch.error.message : (arch.data||[]).length+' rows'}`;
     if(!arch.error && (arch.data||[]).length) rows = arch.data;
     else {
       const tbl = await sb.from('events').select('*');   // fallback, e.g. for admins
+      TL_DIAG += ` · table: ${tbl.error ? 'ERROR '+tbl.error.message : (tbl.data||[]).length+' rows'}`;
       if(tbl.error) throw tbl.error;
       rows = (tbl.data||[]).filter(e => !e.is_featured && e.is_hidden !== true);
     }
@@ -10759,7 +10780,7 @@ function tlDrawRoute(){
   if(!slice.length){
     const why = TL_ERROR
       ? `Couldn't load the shows — ${E(TL_ERROR)}`
-      : 'No shows recorded yet';
+      : `No shows loaded yet · build ${E(window.WCA_BUILD||'?')} · ${E(TL_DIAG||'reading…')}`;
     const t = document.createElementNS('http://www.w3.org/2000/svg','text');
     t.setAttribute('x', W/2); t.setAttribute('y', H/2);
     t.setAttribute('text-anchor','middle'); t.setAttribute('class','tl-lab');
