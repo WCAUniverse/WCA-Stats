@@ -10646,6 +10646,24 @@ window.renderPersonalDashboard = function(){
 
 const PER_DESKTOP = 5, PER_MOBILE = 3;
 let TL_EVENTS = [], TL_PAGE = 0, TL_OPEN = null, TL_LOADED = false, TL_ERROR = null;
+window.WCA_BUILD = 'timeline-2026-08-10c';   // check with: console.log(WCA_BUILD)
+
+/* One command that answers "what does the database actually give this page?"
+   Run wcaTimelineCheck() in the console. */
+window.wcaTimelineCheck = async function(){
+  const out = {};
+  for(const src of ['v_archive_events','events']){
+    try{
+      const { data, error } = await sb.from(src).select('*');
+      out[src] = error ? ('ERROR: ' + error.message) : ((data||[]).length + ' rows');
+      if(!error && (data||[]).length) out[src+'_first'] = (data[0].name || '(no name column)');
+    }catch(e){ out[src] = 'THREW: ' + (e.message||e); }
+  }
+  out.build = window.WCA_BUILD;
+  out.loadedIntoTimeline = TL_EVENTS.length + ' events';
+  console.table(out);
+  return out;
+};
 const TL_CACHE = {};          // event id -> { matches, winners }
 
 const $t = (id) => document.getElementById(id);
@@ -10692,7 +10710,7 @@ async function tlLoad(){
       .sort((a,b) => tlShowNo(a) - tlShowNo(b));        // WCA 1 first — a story reads forward
     TL_PAGE = pageCount() - 1;                          // open on the most recent page
     TL_ERROR = null;
-    if(!TL_EVENTS.length) TL_ERROR = 'no shows came back from the database';
+    if(!TL_EVENTS.length) TL_ERROR = 'the database returned no shows — run wcaTimelineCheck() in the console';
   }catch(e){
     TL_EVENTS = [];
     TL_ERROR = e && (e.message || String(e));
