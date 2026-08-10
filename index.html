@@ -3018,7 +3018,7 @@
   /* ── the route ─────────────────────────────────────────────────── */
   .tl-stage{
     position:relative;width:100%;height:clamp(380px,54vh,520px);
-    overflow:hidden;
+    overflow:visible;z-index:2;
   }
   .tl-route{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
   .tl-path-done{stroke:var(--gold);stroke-width:2;fill:none;opacity:.55;}
@@ -10104,7 +10104,9 @@ const CAM_DEFAULTS = {
   leaderboard: { x:0.88, y:0.86, r:0.50, hue:168 },
   archive:     { x:0.20, y:0.98, r:0.58, hue:262 },
   storylines:  { x:0.86, y:0.56, r:0.44, hue:288 },
-  timeline:    { x:0.14, y:0.30, r:0.42, hue:196 },
+  // The Timeline is a journey between stars — a planet parked in the corner
+  // fights that, so this page shows open space only.
+  timeline:    { x:0.06, y:0.16, r:0.26, hue:196, planet:false },
   apply:       { x:0.50, y:1.04, r:0.54, hue:150 },
   sponsors:    { x:0.14, y:0.88, r:0.48, hue: 30 },
   account:     { x:0.88, y:0.96, r:0.52, hue:222 }
@@ -10113,7 +10115,8 @@ function camFor(pg){
   let saved = null;
   try{ saved = (window.SITE_CAMERA || {})[pg]; }catch(e){}
   const d = CAM_DEFAULTS[pg] || CAM_DEFAULTS.dash;
-  const c = Object.assign({ tilt:0.20, spin:-74, roll:0 }, d, saved || {});
+  const c = Object.assign({ tilt:0.20, spin:-74, roll:0, planet:true }, d, saved || {});
+  c.planet = (c.planet !== false);        // anything but an explicit false shows it
   return c;
 }
 const POV = {
@@ -10265,6 +10268,7 @@ function loadGlobeMask(){
 /* the planet: a body with a lit limb and an atmosphere that catches the light */
 let planetLayer = null, planetKey = '';
 function drawPlanet(time){
+  if(pov.planet === false) return;      // open space on this page
   const diag = Math.hypot(W,H);
   const cx = pov.x*W, cy = pov.y*H, R = pov.r*diag*0.5;
   if(R <= 0) return;
@@ -10433,6 +10437,7 @@ function setPage(pg){
   // The camera moves between pages; the globe itself stays put and never
   // spins, so there's no drifting texture — only a change of viewpoint.
   povTarget = camFor(pg);
+  pov.planet = povTarget.planet;   // a boolean, so it switches rather than eases
   start();
 }
 
@@ -10917,6 +10922,11 @@ function tlWire(){
   if(l) l.addEventListener('click', ()=>tlGoPage(pageCount()-1));
   if(b) b.addEventListener('click', tlClose);
   window.addEventListener('resize', ()=>{ if($t('page-timeline')?.classList.contains('active')) tlRenderRoute(); });
+  // Landing straight on #timeline means activatePage() already ran before this
+  // script was parsed, so nothing called timelineEnter(). Same trap the star
+  // map and the Home page both hit.
+  const pg = $t('page-timeline');
+  if(pg && pg.classList.contains('active')) timelineEnter();
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tlWire);
 else tlWire();
