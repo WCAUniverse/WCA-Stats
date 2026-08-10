@@ -10634,7 +10634,7 @@ window.renderPersonalDashboard = function(){
 (function(){
 
 const PER_DESKTOP = 5, PER_MOBILE = 3;
-let TL_EVENTS = [], TL_PAGE = 0, TL_OPEN = null, TL_LOADED = false;
+let TL_EVENTS = [], TL_PAGE = 0, TL_OPEN = null, TL_LOADED = false, TL_ERROR = null;
 const TL_CACHE = {};          // event id -> { matches, winners }
 
 const $t = (id) => document.getElementById(id);
@@ -10654,17 +10654,24 @@ async function tlLoad(){
   if(TL_LOADED || !window.sb) return;
   TL_LOADED = true;
   try{
-    const { data, error } = await sb.from('events')
-      .select('id,name,summary,show_number,event_date,replay_url,tagline,is_featured');
+    // select('*') on purpose. Naming columns means the whole query is rejected
+    // if one of them doesn't exist yet — `summary` and `show_number` only
+    // appear once SUPABASE_SETUP_timeline.sql has been run, and asking for
+    // them early returned nothing at all instead of the events themselves.
+    const { data, error } = await sb.from('events').select('*');
     if(error) throw error;
     TL_EVENTS = (data||[])
-      .filter(e => !e.is_featured)               // the upcoming show isn't history yet
-      .sort((a,b) => tlShowNo(a) - tlShowNo(b)); // WCA 1 first — a story reads forward
-    // open on the most recent page, but let people walk back from there
-    TL_PAGE = pageCount() - 1;
+      // Same rule the Archive uses, no stricter. An is_published check here
+      // would silently drop the WCA 1-33 shells, which is exactly the kind of
+      // invented filter that makes a page look broken when the data is fine.
+      .filter(e => !e.is_featured && e.is_hidden !== true)
+      .sort((a,b) => tlShowNo(a) - tlShowNo(b));        // WCA 1 first — a story reads forward
+    TL_PAGE = pageCount() - 1;                          // open on the most recent page
+    TL_ERROR = null;
   }catch(e){
     TL_EVENTS = [];
-    console.warn('[timeline]', e.message || e);
+    TL_ERROR = e && (e.message || String(e));
+    console.warn('[timeline] could not load events —', TL_ERROR);
   }
   tlRenderRoute();
 }
@@ -10679,7 +10686,10 @@ function tlRenderRoute(){
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
   if(!slice.length){
-    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" class="tl-lab">No shows recorded yet</text>`;
+    const why = TL_ERROR
+      ? `Couldn't load the shows — ${E(TL_ERROR)}`
+      : 'No shows recorded yet';
+    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" class="tl-lab">${E(why)}</text>`;
     tlRenderBar();
     return;
   }
