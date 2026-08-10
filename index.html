@@ -38,13 +38,13 @@
      The image must be an absolute URL (relative paths are ignored) and
      is 1200x630, the size every platform crops to.
      ══════════════════════════════════════════════════════════════ -->
-<meta name="description" content="The World Championship Alliance — a live pro wrestling universe. Championship divisions, full roster stats, event results, storylines, and coins on the line.">
+<meta name="description" content="The World Championship Alliance — a live pro wrestling universe. Championship divisions, full roster stats, event results, storylines, and money on the line.">
 <link rel="canonical" href="https://wcauniverse.github.io/WCA-Stats/">
 
 <meta property="og:type"         content="website">
 <meta property="og:site_name"    content="World Championship Alliance">
 <meta property="og:title"        content="WCA — World Championship Alliance">
-<meta property="og:description"  content="A live pro wrestling universe. Championship divisions, roster stats, storylines, and coins on the line.">
+<meta property="og:description"  content="A live pro wrestling universe. Championship divisions, roster stats, storylines, and money on the line.">
 <meta property="og:url"          content="https://wcauniverse.github.io/WCA-Stats/">
 <meta property="og:image"        content="https://wcauniverse.github.io/WCA-Stats/share/wca-share-card.png">
 <meta property="og:image:width"  content="1200">
@@ -54,7 +54,7 @@
 
 <meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:title"       content="WCA — World Championship Alliance">
-<meta name="twitter:description" content="A live pro wrestling universe. Championship divisions, roster stats, storylines, and coins on the line.">
+<meta name="twitter:description" content="A live pro wrestling universe. Championship divisions, roster stats, storylines, and money on the line.">
 <meta name="twitter:image"       content="https://wcauniverse.github.io/WCA-Stats/share/wca-share-card.png">
 
 <!-- PWA: lets the site install to the home screen and open fullscreen like an app -->
@@ -2305,24 +2305,35 @@
   .navdrop-trigger{display:inline-flex;align-items:center;gap:5px;}
   .navdrop-trigger i{font-size:13px;transition:transform .18s ease;}
   .navdrop.open .navdrop-trigger i{transform:rotate(180deg);}
+  /* The open item stays lit while its menu is showing, so it reads as one
+     piece with the panel below it. */
+  .navdrop.open > .navdrop-trigger{background:var(--panel2);color:var(--gold);}
   .navdrop-menu{
-    position:absolute;top:100%;left:0;min-width:230px;z-index:60;
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    padding:6px;margin-top:8px;box-shadow:0 18px 40px -18px rgba(0,0,0,.8);
+    position:absolute;top:100%;left:0;min-width:210px;z-index:60;
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:8px 0;margin-top:6px;box-shadow:0 22px 46px -18px rgba(0,0,0,.85);
     opacity:0;visibility:hidden;transform:translateY(-6px);
     transition:opacity .16s ease,transform .16s ease,visibility .16s;
   }
   .navdrop.open .navdrop-menu{opacity:1;visibility:visible;transform:none;}
   .navdrop-menu a{
-    display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:7px;
-    white-space:nowrap;border:0;
+    display:block;padding:11px 18px;border-radius:0;white-space:nowrap;border:0;
+    font-size:13.5px;letter-spacing:.6px;text-transform:none;color:var(--txt);
   }
-  .navdrop-menu a i{margin-right:7px;font-size:14px;}
-  .navdrop-menu a span{
-    font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--muted);
-    letter-spacing:0;text-transform:none;
+  .navdrop-menu a:hover{background:rgba(255,255,255,.05);color:var(--gold);}
+  .navdrop-trigger.nav-islive{color:var(--loss)!important;}
+  .navdrop-trigger.nav-islive::before{
+    content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--loss);margin-right:7px;vertical-align:middle;
+    animation:navlive 1.4s ease-in-out infinite;
   }
-  .navdrop-menu a:hover{background:var(--panel2);}
+  .navdrop-menu a.live-now{color:var(--loss);font-weight:600;}
+  .navdrop-menu a.live-now::before{
+    content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--loss);margin-right:8px;vertical-align:middle;
+    animation:navlive 1.4s ease-in-out infinite;
+  }
+  @keyframes navlive{0%,100%{opacity:1}50%{opacity:.3}}
   @media(max-width:900px){
     .navdrop{display:block;width:100%;}
     .navdrop-menu{
@@ -2331,7 +2342,7 @@
       max-height:0;overflow:hidden;transition:max-height .22s ease;
     }
     .navdrop.open .navdrop-menu{max-height:220px;}
-    .navdrop-menu a span{display:none;}
+    .navdrop-menu a{padding:9px 14px;}
   }
 
   #wca-space{
@@ -2954,7 +2965,7 @@
   }
   .hm-block p{font-family:'Barlow',sans-serif;font-size:14.5px;line-height:1.7;color:#a6a29a;margin:0;}
 
-  /* the coins section — the one that converts */
+  /* the money explainer — the section that converts */
   .hm-coins{position:relative;}
   .hm-coins::before{
     content:"";position:absolute;inset:-40px -18px;z-index:-1;pointer-events:none;
@@ -3499,15 +3510,15 @@
     <div class="head-right" id="headRight">
       <nav>
         <a href="#storylines" data-page="storylines" class="active">Feed</a>
-        <a href="#live" data-page="live" id="nav-live-btn">Live</a>
-        <!-- Events holds the upcoming show and everything already in the books.
-             The trigger keeps data-page="events" so activatePage, the admin's
-             nav-order settings and every existing #events link still work. -->
+        <!-- Everything show-related lives here. The trigger keeps
+             data-page="events" so activatePage, the admin's nav-order
+             settings and every existing #events link still work. -->
         <div class="navdrop" id="navdrop-events">
           <a href="#events" data-page="events" class="navdrop-trigger" aria-haspopup="true" aria-expanded="false">Events <i class="ti ti-chevron-down"></i></a>
           <div class="navdrop-menu" role="menu">
-            <a href="#events" data-page="events" role="menuitem"><i class="ti ti-calendar-event"></i> Upcoming<span>The next show and its card</span></a>
-            <a href="#archive" data-page="archive" role="menuitem"><i class="ti ti-archive"></i> Past Events<span>Results, standings and ratings</span></a>
+            <a href="#events" data-page="events" role="menuitem">Upcoming Events</a>
+            <a href="#archive" data-page="archive" role="menuitem">Past Events</a>
+            <a href="#live" data-page="live" id="nav-live-btn" role="menuitem">Watch Live</a>
           </div>
         </div>
         <a href="#rankings" data-page="rankings">Rankings</a>
@@ -3631,7 +3642,7 @@
             <p class="hero-sub" id="hero-sub">
               The home of the World Championship Alliance — live events, championship divisions,
               and a full roster of competitors. Watch live, follow the rankings, and put your
-              coins on the line.
+              money on the line.
             </p>
             <div class="hero-cta">
               <button class="hbtn primary" id="hero-btn1" data-page="events" onclick="goPage(this.getAttribute('data-page'))"><i class="ti ti-broadcast"></i> <span class="hbtn-label">Watch &amp; Bet</span></button>
@@ -4715,7 +4726,7 @@ function renderUserChip(){
       </div>
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
       <div class="navdrop-menu umenu" role="menu">
-        <a href="#dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> My Dashboard<span>Your coins, bets and standing</span></a>
+        <a href="#dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> My Dashboard<span>Your money, bets and standing</span></a>
         <a href="#account" role="menuitem" onclick="openAccount();return false;"><i class="ti ti-user-cog"></i> Account settings<span>Profile and sign-in</span></a>
       </div>
     </div>`;
@@ -6467,6 +6478,7 @@ async function loadLive(){
   // nothing live at all
   if(!ev){
     if(navBtn) navBtn.classList.remove('is-live');
+    setNavLive(false);
     el.innerHTML='<div class="event-empty">Nothing live right now — check back for the next event.</div>';
     return;
   }
@@ -6480,6 +6492,7 @@ async function loadLive(){
 
   const liveMatch = liveSlot!=null ? CURRENT_MATCHES.find(m=>m.slot===liveSlot) : null;
   if(navBtn) navBtn.classList.toggle('is-live', !!liveMatch);
+  setNavLive(!!liveMatch);
 
   // stream block (reuses existing embed)
   const stream = streamEmbed(ev.stream_url);
@@ -9503,6 +9516,23 @@ document.addEventListener('click', e=>{
 });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') wcaCloseDrops(); });
 
+/* When a show is on, the Events item turns into a pulsing LIVE link that
+   goes straight to the broadcast. The rest of the time it's the menu. */
+function setNavLive(on){
+  const drop = document.getElementById('navdrop-events');
+  const trig = drop && drop.querySelector('.navdrop-trigger');
+  const item = document.getElementById('nav-live-btn');
+  if(item) item.classList.toggle('live-now', !!on);
+  if(!trig) return;
+  if(on){
+    trig.innerHTML = 'Live Now <i class="ti ti-chevron-down"></i>';
+    trig.classList.add('nav-islive');
+  } else {
+    trig.innerHTML = 'Events <i class="ti ti-chevron-down"></i>';
+    trig.classList.remove('nav-islive');
+  }
+}
+
 function toggleNav(){
   document.getElementById('headRight')?.classList.toggle('open');
 }
@@ -10429,7 +10459,7 @@ window.spaceRefresh = function(){
 /* =====================================================================
    PERSONAL DASHBOARD
    Dashboard moved off the nav bar and into the user menu, so what it shows
-   changed with it: your coins, how your betting is actually going, where
+   changed with it: your balance, how your betting is actually going, where
    you sit against everyone else, and what's next.
 
    Champions and division standings were removed rather than relocated —
@@ -10500,7 +10530,7 @@ async function renderDashYou(){
   }
 
   host.innerHTML = `<div class="dyou-grid">
-    ${statCard('Coins', money(bal), 'to bet with')}
+    ${statCard('Balance', money(bal), 'to bet with')}
     ${statCard('Leaderboard', rank ? '#'+rank : '—', total ? 'of '+total+' players' : '')}
     ${statCard('Betting record', settled.length ? won+'–'+(settled.length-won) : '—',
        rate != null ? rate+'% of your last '+settled.length : 'no settled bets yet')}
@@ -10901,7 +10931,7 @@ const HOME_DEFAULTS = {
   b1_title:'The Show',   b1_body:'WCA runs live events on Twitch and YouTube. Real matches, real finishes, championships that change hands and rivalries that carry from show to show.',
   b2_title:'The Roster', b2_body:'Every competitor represents someone from the community. They have records, rankings, title reigns and match histories going back years.',
   b3_title:'The Site',   b3_body:'This is the record book. Every match ever fought, every title change, every stable — tracked, ranked and searchable.',
-  coins_title:'How the coins work',
+  coins_title:'How the money works',
   coins_body:"Making an account gets you $25,000. It is not real money — it is how you get skin in the game. Before each match, betting opens. Pick a side, stake what you want. Everyone who backs the winner splits the losing side's pool. Back the loser and your stake is gone. While a show is live you also earn $1,000 an hour just for being here.",
   coins_highlight:'Every show crowns a Betting Champion — whoever made the most profit that night. Balances do not carry over. Which means someone who signed up an hour ago can beat someone who has been here since WCA 1.',
   start_title:'Start anywhere',
@@ -10958,7 +10988,7 @@ const HOME_CARDS = [
   { page:'storylines', icon:'ti-news',        title:'Storylines',    body:'Headlines, promos and dirt from around the Alliance. The story between the shows.' },
   { page:'events',     icon:'ti-calendar-event', title:'Events',     body:'The next show — full card, start time and where to watch it live.' },
   { page:'archive',    icon:'ti-archive',     title:'Archive',       body:'Every event in the books, with results, ratings and final standings.' },
-  { page:'leaderboard',icon:'ti-coins',       title:'Leaderboard',   body:'How the community is doing — coins, streaks and standings across the season.' }
+  { page:'leaderboard',icon:'ti-coins',       title:'Leaderboard',   body:'How the community is doing — money, streaks and standings across the season.' }
 ];
 function paintCards(){
   const wrap = $h('hm-cards');
