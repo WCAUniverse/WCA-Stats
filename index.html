@@ -2308,6 +2308,7 @@
   /* The open item stays lit while its menu is showing, so it reads as one
      piece with the panel below it. */
   .navdrop.open > .navdrop-trigger{background:var(--panel2);color:var(--gold);}
+  .navdrop.has-active > .navdrop-trigger{color:var(--gold);}
   .navdrop-menu{
     position:absolute;top:100%;left:0;min-width:210px;z-index:60;
     background:var(--panel2);border:1px solid var(--line);border-radius:10px;
@@ -3509,18 +3510,13 @@
     <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
     <div class="head-right" id="headRight">
       <nav>
+        <!-- Flat list on purpose. Dropdown groups are built at runtime from the
+             admin's saved layout (Admin -> Layout), so they can be created,
+             renamed, reordered and refilled without editing this markup. -->
         <a href="#storylines" data-page="storylines" class="active">Feed</a>
-        <!-- Everything show-related lives here. The trigger keeps
-             data-page="events" so activatePage, the admin's nav-order
-             settings and every existing #events link still work. -->
-        <div class="navdrop" id="navdrop-events">
-          <a href="#events" data-page="events" class="navdrop-trigger" aria-haspopup="true" aria-expanded="false">Events <i class="ti ti-chevron-down"></i></a>
-          <div class="navdrop-menu" role="menu">
-            <a href="#events" data-page="events" role="menuitem">Upcoming Events</a>
-            <a href="#archive" data-page="archive" role="menuitem">Past Events</a>
-            <a href="#live" data-page="live" id="nav-live-btn" role="menuitem">Watch Live</a>
-          </div>
-        </div>
+        <a href="#events" data-page="events">Upcoming Events</a>
+        <a href="#archive" data-page="archive">Past Events</a>
+        <a href="#live" data-page="live" id="nav-live-btn">Watch Live</a>
         <a href="#rankings" data-page="rankings">Rankings</a>
         <a href="#leaderboard" data-page="leaderboard">Leaderboard</a>
         <a href="#roster" data-page="roster">Roster</a>
@@ -4071,55 +4067,93 @@ async function loadMerchLink(){
   // social order + visibility
   applyLayout(document.querySelector('.socials'), 'a[data-social]', 'social', row.social_layout);
 }
-// Reorder + show/hide children of `container` matching `selector`, keyed by
-// data-<attr>, according to `layout` = [{key,hidden}]. Items not in the
-// layout stay in their original order at the end and remain visible.
+// Rebuild `container` from a saved layout.
 //
-// IMPORTANT: only DIRECT children are reordered. Links that live inside a
-// dropdown menu carry data-page too, and re-appending them to the nav would
-// tear them out of their menu and strand them on the bar — which is exactly
-// what happened when the Events dropdown was added.
+// A layout entry is either an ITEM  {key, hidden}
+//                    or a GROUP {group:"Events", hidden, items:[{key,hidden}]}.
+// Groups become dropdown menus, built here rather than written into the HTML,
+// so the admin can create, rename, reorder and refill them freely.
+//
+// Anything not mentioned stays visible and goes to the end, so adding a new
+// page to the site never makes it disappear from the nav.
 function applyLayout(container, selector, attr, layout){
   if(!container || !Array.isArray(layout) || !layout.length) return;
-  const items = Array.from(container.querySelectorAll(selector));
-  // A key can appear twice — the Events trigger and the "Upcoming Events"
-  // row inside its menu share data-page="events". The top-level element must
-  // win the lookup, or ordering silently targets the menu row and the
-  // dropdown never moves.
+
+  // Collect the real elements first — they carry click handlers and ids, so
+  // they're moved, never recreated.
   const byKey = {};
-  items.forEach(el=>{ if(!el.closest('.navdrop-menu')) byKey[el.getAttribute('data-'+attr)] = el; });
-  items.forEach(el=>{
+  container.querySelectorAll(selector).forEach(el=>{
     const k = el.getAttribute('data-'+attr);
-    if(!byKey[k]) byKey[k] = el;          // menu-only pages (Past Events, Watch Live)
+    if(k && !byKey[k]) byKey[k] = el;
   });
+  // Tear down any groups from a previous run, rescuing their children.
+  container.querySelectorAll('.navdrop').forEach(d=>{
+    d.querySelectorAll(selector).forEach(a=>container.appendChild(a));
+    d.remove();
+  });
+
   const used = new Set();
+  const show = (el, hidden)=>{
+    // Fire Pro's visibility belongs to loadFirePro() — only honour "hidden".
+    if(el.id === 'nav-firepro'){ if(hidden) el.style.display = 'none'; }
+    else el.style.display = hidden ? 'none' : '';
+  };
+
   layout.forEach(entry=>{
-    const el = byKey[entry && entry.key];
+    if(!entry) return;
+
+    if(entry.group){
+      const kids = (entry.items||[]).map(it=>{
+        const el = byKey[it && it.key];
+        if(el){ used.add(it.key); show(el, it.hidden); }
+        return el;
+      }).filter(Boolean);
+      if(!kids.length) return;                       // empty group: draw nothing
+
+      const drop = document.createElement('div');
+      drop.className = 'navdrop';
+      if(entry.hidden) drop.style.display = 'none';
+      const trig = document.createElement('a');
+      trig.className = 'navdrop-trigger';
+      trig.href = '#';
+      trig.setAttribute('aria-haspopup','true');
+      trig.setAttribute('aria-expanded','false');
+      trig.setAttribute('data-group', entry.group);
+      trig.innerHTML = esc(entry.group) + ' <i class="ti ti-chevron-down"></i>';
+      const menu = document.createElement('div');
+      menu.className = 'navdrop-menu';
+      menu.setAttribute('role','menu');
+      kids.forEach(el=>{ el.setAttribute('role','menuitem'); menu.appendChild(el); });
+      drop.appendChild(trig); drop.appendChild(menu);
+      container.appendChild(drop);
+      return;
+    }
+
+    const el = byKey[entry.key];
     if(!el) return;
     used.add(entry.key);
-    // Fire Pro's visibility is owned by loadFirePro() (enabled toggle) — only
-    // honor a "hidden" layout choice here; never force it visible.
-    if(el.id==='nav-firepro'){
-      if(entry.hidden) el.style.display='none';
-    } else {
-      el.style.display = entry.hidden ? 'none' : '';
-    }
-    // Pages that now live INSIDE a dropdown (Past Events, Watch Live) can
-    // still be hidden from the saved layout, but they must not drag the whole
-    // Events dropdown around the bar — their position is inside the menu.
-    if(el.closest('.navdrop-menu')) return;
-    container.appendChild(el.closest('.navdrop') || el);
+    show(el, entry.hidden);
+    container.appendChild(el);
   });
-  // anything not mentioned in the layout: leave visible, push to the end
-  items.forEach(el=>{
-    const k = el.getAttribute('data-'+attr);
-    if(!used.has(k)){
-      if(el.id!=='nav-firepro') el.style.display='';
-      if(el.closest('.navdrop-menu')) return;
-      container.appendChild(el.closest('.navdrop') || el);
-    }
+
+  // never leave a page stranded
+  Object.keys(byKey).forEach(k=>{
+    if(used.has(k)) return;
+    const el = byKey[k];
+    show(el, false);
+    container.appendChild(el);
+  });
+
+  markNavGroupActive();
+}
+
+/* A group trigger lights up when the page you're on lives inside it. */
+function markNavGroupActive(){
+  document.querySelectorAll('nav .navdrop').forEach(d=>{
+    d.classList.toggle('has-active', !!d.querySelector('[data-page].active'));
   });
 }
+
 
 async function applyTheme(){
   if(!sb) return;
@@ -9540,18 +9574,20 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') wcaCloseDrops(); 
 /* When a show is on, the Events item turns into a pulsing LIVE link that
    goes straight to the broadcast. The rest of the time it's the menu. */
 function setNavLive(on){
-  const drop = document.getElementById('navdrop-events');
-  const trig = drop && drop.querySelector('.navdrop-trigger');
   const item = document.getElementById('nav-live-btn');
   if(item) item.classList.toggle('live-now', !!on);
-  if(!trig) return;
-  if(on){
-    trig.innerHTML = 'Live Now <i class="ti ti-chevron-down"></i>';
-    trig.classList.add('nav-islive');
-  } else {
-    trig.innerHTML = 'Events <i class="ti ti-chevron-down"></i>';
-    trig.classList.remove('nav-islive');
+  if(!item) return;
+  // Groups are built from the saved layout now, so find whichever one holds
+  // the Live link rather than assuming a fixed id.
+  const drop = item.closest('.navdrop');
+  const trig = drop && drop.querySelector('.navdrop-trigger');
+  if(!trig){                      // Live sits on the bar on its own
+    item.classList.toggle('nav-islive', !!on);
+    return;
   }
+  const label = trig.getAttribute('data-group') || 'Events';
+  trig.innerHTML = (on ? 'Live Now' : esc(label)) + ' <i class="ti ti-chevron-down"></i>';
+  trig.classList.toggle('nav-islive', !!on);
 }
 
 function toggleNav(){
@@ -9565,6 +9601,7 @@ function activatePage(pg){
   if(!btn && pg!=='account' && pg!=='home' && pg!=='dash') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
+  if(typeof markNavGroupActive==='function') setTimeout(markNavGroupActive,0);
   if(btn) btn.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
