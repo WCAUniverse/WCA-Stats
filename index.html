@@ -4074,11 +4074,24 @@ async function loadMerchLink(){
 // Reorder + show/hide children of `container` matching `selector`, keyed by
 // data-<attr>, according to `layout` = [{key,hidden}]. Items not in the
 // layout stay in their original order at the end and remain visible.
+//
+// IMPORTANT: only DIRECT children are reordered. Links that live inside a
+// dropdown menu carry data-page too, and re-appending them to the nav would
+// tear them out of their menu and strand them on the bar — which is exactly
+// what happened when the Events dropdown was added.
 function applyLayout(container, selector, attr, layout){
   if(!container || !Array.isArray(layout) || !layout.length) return;
   const items = Array.from(container.querySelectorAll(selector));
+  // A key can appear twice — the Events trigger and the "Upcoming Events"
+  // row inside its menu share data-page="events". The top-level element must
+  // win the lookup, or ordering silently targets the menu row and the
+  // dropdown never moves.
   const byKey = {};
-  items.forEach(el=>{ byKey[el.getAttribute('data-'+attr)] = el; });
+  items.forEach(el=>{ if(!el.closest('.navdrop-menu')) byKey[el.getAttribute('data-'+attr)] = el; });
+  items.forEach(el=>{
+    const k = el.getAttribute('data-'+attr);
+    if(!byKey[k]) byKey[k] = el;          // menu-only pages (Past Events, Watch Live)
+  });
   const used = new Set();
   layout.forEach(entry=>{
     const el = byKey[entry && entry.key];
@@ -4091,12 +4104,20 @@ function applyLayout(container, selector, attr, layout){
     } else {
       el.style.display = entry.hidden ? 'none' : '';
     }
-    container.appendChild(el);   // re-append in saved order
+    // Pages that now live INSIDE a dropdown (Past Events, Watch Live) can
+    // still be hidden from the saved layout, but they must not drag the whole
+    // Events dropdown around the bar — their position is inside the menu.
+    if(el.closest('.navdrop-menu')) return;
+    container.appendChild(el.closest('.navdrop') || el);
   });
   // anything not mentioned in the layout: leave visible, push to the end
   items.forEach(el=>{
     const k = el.getAttribute('data-'+attr);
-    if(!used.has(k)){ if(el.id!=='nav-firepro') el.style.display=''; container.appendChild(el); }
+    if(!used.has(k)){
+      if(el.id!=='nav-firepro') el.style.display='';
+      if(el.closest('.navdrop-menu')) return;
+      container.appendChild(el.closest('.navdrop') || el);
+    }
   });
 }
 
