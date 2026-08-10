@@ -3133,6 +3133,15 @@
     margin:0;max-width:660px;
   }
   .tl-nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;}
+  .tl-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:10px 0 4px;}
+  .tl-listrow{display:flex;align-items:center;gap:10px;padding:10px 12px;text-align:left;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;color:var(--txt);}
+  .tl-listrow:hover{border-color:var(--gold-dim);}
+  .tl-listno{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:5px;
+    background:var(--panel2);color:var(--gold);font-family:'Barlow Condensed';font-size:12px;flex:none;}
+  .tl-listname{font-family:'Oswald',sans-serif;font-size:14px;}
+  .tl-listtag{font-family:'Barlow',sans-serif;font-size:12px;color:var(--muted);
+    margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%;}
   .tl-empty{
     font-family:'Barlow',sans-serif;font-size:14px;color:var(--muted);
     padding:20px 0;font-style:italic;
@@ -3612,6 +3621,8 @@
         <button class="tl-btn go" id="tl-next" type="button">Later ▶</button>
         <button class="tl-btn tl-latest" id="tl-latest" type="button">Jump to latest ▶▶</button>
       </div>
+
+      <div id="tl-fallback"></div>
 
       <section class="tl-record" id="tl-record" aria-live="polite">
         <button class="tl-back" id="tl-back" type="button">↑ Back to the line</button>
@@ -10678,6 +10689,34 @@ async function tlLoad(){
 
 /* ── the route ────────────────────────────────────────────────────── */
 function tlRenderRoute(){
+  try{ tlDrawRoute(); }
+  catch(err){
+    console.error('[timeline] route failed —', err);
+    tlFallbackList(err && (err.message || String(err)));
+  }
+}
+
+/* Plain list of shows. Used when the star route can't draw for any reason —
+   an empty page is never the right answer when the data is there. */
+function tlFallbackList(reason){
+  const host = $t('tl-fallback');
+  if(!host) return;
+  if(!TL_EVENTS.length){ host.innerHTML = ''; return; }
+  host.innerHTML =
+    (reason ? `<div class="tl-empty">Star route unavailable (${E(reason)}) — showing the list.</div>` : '') +
+    `<div class="tl-list">` + TL_EVENTS.map(e=>{
+      const no = tlShowNo(e);
+      return `<button class="tl-listrow" data-id="${E(e.id)}">
+        <span class="tl-listno">${no>0?no:'—'}</span>
+        <span class="tl-listname">${E(e.name)}</span>
+        <span class="tl-listtag">${E(e.tagline||'')}</span>
+      </button>`;
+    }).join('') + `</div>`;
+  host.querySelectorAll('.tl-listrow').forEach(b=>
+    b.addEventListener('click', ()=>tlOpen(b.dataset.id)));
+}
+
+function tlDrawRoute(){
   const svg = $t('tl-route');
   if(!svg) return;
   const per = perPage();
@@ -10689,7 +10728,11 @@ function tlRenderRoute(){
     const why = TL_ERROR
       ? `Couldn't load the shows — ${E(TL_ERROR)}`
       : 'No shows recorded yet';
-    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" class="tl-lab">${E(why)}</text>`;
+    const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x', W/2); t.setAttribute('y', H/2);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('class','tl-lab');
+    t.textContent = why;
+    svg.textContent = ''; svg.appendChild(t);
     tlRenderBar();
     return;
   }
@@ -10715,7 +10758,11 @@ function tlRenderRoute(){
   const ahead = curve([pts[pts.length-1], trail]);
 
   const sel = TL_OPEN;
-  svg.innerHTML =
+  // Built as a string then parsed as a real SVG document below. Assigning
+  // innerHTML directly on an <svg> element is unreliable — the markup can be
+  // parsed as HTML, producing elements that exist in the DOM but never paint,
+  // which looks exactly like an empty page.
+  const markup =
     `<path class="tl-path-done" d="${done}"/>` +
     `<path class="tl-path-ahead" d="${ahead}"/>` +
     pts.map(p=>{
@@ -10733,7 +10780,18 @@ function tlRenderRoute(){
       </g>`;
     }).join('');
 
-  svg.querySelectorAll('.tl-star').forEach(g=>{
+  const doc = new DOMParser().parseFromString(
+    `<svg xmlns="http://www.w3.org/2000/svg">${markup}</svg>`, 'image/svg+xml');
+  svg.textContent = '';
+  Array.from(doc.documentElement.childNodes).forEach(n=>svg.appendChild(n));
+
+  // If nothing actually landed in the DOM, show the list instead of nothing.
+  const drawn = svg.querySelectorAll('.tl-star');
+  const fb = $t('tl-fallback');
+  if(!drawn.length && slice.length){ tlFallbackList('no stars rendered'); return; }
+  if(fb) fb.innerHTML = '';
+
+  drawn.forEach(g=>{
     const open = ()=>{ tlSfx('select'); tlOpen(g.dataset.id); };
     g.addEventListener('click', open);
     g.addEventListener('keydown', ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); open(); }});
