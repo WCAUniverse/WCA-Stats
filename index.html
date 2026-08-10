@@ -10665,20 +10665,34 @@ async function tlLoad(){
   if(TL_LOADED || !window.sb) return;
   TL_LOADED = true;
   try{
-    // select('*') on purpose. Naming columns means the whole query is rejected
-    // if one of them doesn't exist yet — `summary` and `show_number` only
-    // appear once SUPABASE_SETUP_timeline.sql has been run, and asking for
-    // them early returned nothing at all instead of the events themselves.
-    const { data, error } = await sb.from('events').select('*');
-    if(error) throw error;
-    TL_EVENTS = (data||[])
-      // Same rule the Archive uses, no stricter. An is_published check here
-      // would silently drop the WCA 1-33 shells, which is exactly the kind of
-      // invented filter that makes a page look broken when the data is fine.
-      .filter(e => !e.is_featured && e.is_hidden !== true)
+    // Read from v_archive_events, the SAME view the Archive uses. Querying the
+    // `events` TABLE directly returns an empty array for signed-out visitors —
+    // no error, just nothing — because row-level security only exposes the
+    // view publicly. That silent empty result is what made this page look
+    // broken while the data was fine all along.
+    let rows = [];
+    const arch = await sb.from('v_archive_events').select('*');
+    if(!arch.error && (arch.data||[]).length) rows = arch.data;
+    else {
+      const tbl = await sb.from('events').select('*');   // fallback, e.g. for admins
+      if(tbl.error) throw tbl.error;
+      rows = (tbl.data||[]).filter(e => !e.is_featured && e.is_hidden !== true);
+    }
+
+    // `summary` and `show_number` live on the events table and may not be in
+    // the view. Fetch them separately and merge; if that read is blocked too,
+    // the Timeline still lists every show, just without the written summaries.
+    const extra = {};
+    try{
+      const { data: ex } = await sb.from('events').select('id,summary,show_number,tagline');
+      (ex||[]).forEach(r=>{ extra[String(r.id)] = r; });
+    }catch(_){ /* summaries stay empty */ }
+
+    TL_EVENTS = rows.map(e => Object.assign({}, e, extra[String(e.id)] || {}))
       .sort((a,b) => tlShowNo(a) - tlShowNo(b));        // WCA 1 first — a story reads forward
     TL_PAGE = pageCount() - 1;                          // open on the most recent page
     TL_ERROR = null;
+    if(!TL_EVENTS.length) TL_ERROR = 'no shows came back from the database';
   }catch(e){
     TL_EVENTS = [];
     TL_ERROR = e && (e.message || String(e));
