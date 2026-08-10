@@ -2933,6 +2933,150 @@
 
 </style>
 
+<!-- ===== TIMELINE styles ===== -->
+<style>
+/* ===================================================================
+   TIMELINE — the WCA story, travelled as a star route.
+   Events are stars strung along a curved path. Five to a screen on
+   desktop, three on a phone; the arrows slide the field along rather
+   than swapping pages. Clicking a star opens its full record — a
+   scrolling column, not a pop-up.
+   =================================================================== */
+  #page-timeline{padding:0;}
+  .tl-wrap{position:relative;}
+
+  /* ── the route ─────────────────────────────────────────────────── */
+  .tl-stage{
+    position:relative;width:100%;height:clamp(380px,54vh,520px);
+    overflow:hidden;
+  }
+  .tl-route{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+  .tl-path-done{stroke:var(--gold);stroke-width:2;fill:none;opacity:.55;}
+  .tl-path-ahead{stroke:#8ea3b8;stroke-width:1.4;fill:none;opacity:.30;stroke-dasharray:4 8;}
+
+  .tl-star{cursor:pointer;}
+  .tl-star .halo{opacity:0;transition:opacity .25s ease;}
+  .tl-star:hover .halo,.tl-star.on .halo{opacity:1;}
+  .tl-star .core{transition:r .25s ease,fill .25s ease;}
+  .tl-lab{
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;
+    text-transform:uppercase;fill:#8ea3b8;pointer-events:none;
+  }
+  .tl-star.on .tl-lab{fill:var(--gold);}
+  .tl-name{
+    font-family:'Oswald',sans-serif;font-size:15px;fill:#e8edf3;
+    pointer-events:none;opacity:0;transition:opacity .25s ease;
+  }
+  .tl-star.on .tl-name,.tl-star:hover .tl-name{opacity:1;}
+  .tl-meta{
+    font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1.6px;
+    fill:#5f7a8c;pointer-events:none;opacity:0;transition:opacity .25s ease;
+  }
+  .tl-star.on .tl-meta{opacity:1;}
+
+  .tl-era{
+    position:absolute;left:22px;top:16px;z-index:3;
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--teal,#5DCAA5);
+  }
+  .tl-count{
+    position:absolute;right:22px;top:16px;z-index:3;
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);
+  }
+
+  /* ── paging ────────────────────────────────────────────────────── */
+  .tl-bar{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:14px 22px 4px;
+  }
+  .tl-btn{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 15px;
+    border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:1.6px;
+    text-transform:uppercase;color:var(--muted);transition:.16s;
+  }
+  .tl-btn:hover:not(:disabled){color:var(--gold);border-color:var(--gold-dim);}
+  .tl-btn:disabled{opacity:.35;cursor:default;}
+  .tl-btn.go{color:var(--teal,#5DCAA5);border-color:rgba(93,202,165,.4);}
+  .tl-dots{display:flex;gap:5px;align-items:center;}
+  .tl-dot{
+    width:7px;height:7px;border-radius:50%;background:rgba(142,163,184,.32);
+    cursor:pointer;transition:.16s;border:0;padding:0;
+  }
+  .tl-dot.on{width:22px;border-radius:4px;background:var(--gold);}
+  .tl-latest{margin-left:auto;}
+
+  /* ── the record ────────────────────────────────────────────────── */
+  .tl-record{
+    display:none;padding:6px 22px 60px;
+    animation:tl-fade .45s cubic-bezier(.22,.61,.36,1) both;
+  }
+  .tl-record.on{display:block;}
+  @keyframes tl-fade{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  .tl-back{
+    display:inline-flex;align-items:center;gap:8px;background:none;border:0;cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--teal,#5DCAA5);padding:6px 0;margin-bottom:10px;
+  }
+  .tl-back:hover{color:var(--gold);}
+  .tl-rec-title{
+    font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,40px);
+    line-height:1.04;color:#fff;margin:0 0 6px;
+  }
+  .tl-rec-meta{
+    font-family:'Barlow Condensed',sans-serif;font-size:11.5px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);margin-bottom:18px;
+  }
+  .tl-summary{
+    font-family:'Barlow',sans-serif;font-size:15px;line-height:1.78;color:#c2ccd6;
+    max-width:680px;border-left:2px solid var(--gold-dim);padding-left:16px;margin:0 0 28px;
+  }
+  .tl-cardhead{
+    font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--muted2,#6f7d8a);margin-bottom:12px;
+  }
+  .tl-match{border-top:1px solid var(--line);padding:16px 0;}
+  .tl-match.title{
+    border-top-color:var(--gold-dim);
+    background:linear-gradient(90deg,rgba(233,185,73,.055),transparent 62%);
+    margin:0 -12px;padding-left:12px;padding-right:12px;
+  }
+  .tl-badge{
+    display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:9.5px;
+    letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);
+    border:1px solid var(--line);border-radius:3px;padding:4px 8px;margin-bottom:9px;
+  }
+  .tl-badge.gold{color:var(--gold);border-color:var(--gold-dim);}
+  .tl-bout{
+    font-family:'Barlow',sans-serif;font-size:clamp(17px,2.1vw,21px);line-height:1.36;
+    color:#9fb0bd;margin-bottom:7px;
+  }
+  .tl-bout .w{color:#fff;font-weight:600;}
+  .tl-match.title .tl-bout .w{font-weight:700;}
+  .tl-bout .l{color:#c5cdd6;}
+  .tl-bout .j{color:var(--muted2,#6f7d8a);font-size:.72em;}
+  .tl-bout .via{color:var(--teal,#5DCAA5);font-size:.72em;}
+  .tl-match.title .tl-bout .via{color:var(--gold);}
+  .tl-note{
+    font-family:'Barlow',sans-serif;font-size:13.5px;line-height:1.72;color:#93a1ae;
+    margin:0;max-width:660px;
+  }
+  .tl-nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px;}
+  .tl-empty{
+    font-family:'Barlow',sans-serif;font-size:14px;color:var(--muted);
+    padding:20px 0;font-style:italic;
+  }
+
+  @media(max-width:860px){
+    .tl-stage{height:clamp(320px,44vh,400px);}
+    .tl-bar{padding:12px 14px 4px;}
+    .tl-record{padding:6px 14px 50px;}
+    .tl-latest{margin-left:0;}
+  }
+
+</style>
+
 <!-- ===== ROSTER STAR MAP styles ===== -->
 <style>
 /* ===================================================================
@@ -3302,6 +3446,7 @@
         <a href="#rankings" data-page="rankings">Rankings</a>
         <a href="#leaderboard" data-page="leaderboard">Leaderboard</a>
         <a href="#archive" data-page="archive">Archive</a>
+        <a href="#timeline" data-page="timeline">Timeline</a>
         <a href="#roster" data-page="roster">Roster</a>
         <a href="#storylines" data-page="storylines">Storylines</a>
         <a href="#apply" data-page="apply">Apply</a>
@@ -3371,6 +3516,34 @@
           <p class="hm-p" id="hm-apply-body"></p>
           <button class="hm-cta" id="hm-apply-btn" type="button"><i class="ti ti-user-plus"></i> <span>Apply to join</span></button>
         </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- TIMELINE — the WCA story travelled as a star route. Reads events,
+       event_matches and recorded winners; nothing is maintained twice. -->
+  <div class="page" id="page-timeline">
+    <div class="tl-wrap">
+      <div class="section-title">Timeline</div>
+      <p class="sl-intro">Every WCA show, in order, with what happened and why it mattered.
+        Travel the line and click a star to open that night's record.</p>
+
+      <div class="tl-stage" id="tl-stage">
+        <div class="tl-era" id="tl-era"></div>
+        <div class="tl-count" id="tl-count"></div>
+        <svg class="tl-route" id="tl-route" viewBox="0 0 1000 400" aria-label="WCA event timeline"></svg>
+      </div>
+
+      <div class="tl-bar">
+        <button class="tl-btn" id="tl-prev" type="button">◀ Earlier</button>
+        <div class="tl-dots" id="tl-dots"></div>
+        <button class="tl-btn go" id="tl-next" type="button">Later ▶</button>
+        <button class="tl-btn tl-latest" id="tl-latest" type="button">Jump to latest ▶▶</button>
+      </div>
+
+      <section class="tl-record" id="tl-record" aria-live="polite">
+        <button class="tl-back" id="tl-back" type="button">↑ Back to the line</button>
+        <div id="tl-rec-body"></div>
       </section>
     </div>
   </div>
@@ -9245,6 +9418,8 @@ function activatePage(pg){
     else if(typeof smLeave==='function') smLeave();
     if(pg==='home'){ if(typeof homeEnter==='function') homeEnter(); }
     else if(typeof homeLeave==='function') homeLeave();
+    if(pg==='timeline'){ if(typeof timelineEnter==='function') timelineEnter(); }
+    else if(typeof timelineLeave==='function') timelineLeave();
     if(typeof spaceSetPage==='function') spaceSetPage(pg);
   }catch(e){}
   return true;
@@ -9757,6 +9932,7 @@ const CAM_DEFAULTS = {
   leaderboard: { x:0.88, y:0.86, r:0.50, hue:168 },
   archive:     { x:0.20, y:0.98, r:0.58, hue:262 },
   storylines:  { x:0.86, y:0.56, r:0.44, hue:288 },
+  timeline:    { x:0.14, y:0.30, r:0.42, hue:196 },
   apply:       { x:0.50, y:1.04, r:0.54, hue:150 },
   sponsors:    { x:0.14, y:0.88, r:0.48, hue: 30 },
   account:     { x:0.88, y:0.96, r:0.52, hue:222 }
@@ -9765,7 +9941,7 @@ function camFor(pg){
   let saved = null;
   try{ saved = (window.SITE_CAMERA || {})[pg]; }catch(e){}
   const d = CAM_DEFAULTS[pg] || CAM_DEFAULTS.dash;
-  const c = Object.assign({ tilt:0.20 }, d, saved || {});
+  const c = Object.assign({ tilt:0.20, spin:-74, roll:0 }, d, saved || {});
   return c;
 }
 const POV = {
@@ -9852,7 +10028,10 @@ function bakeBackdrop(){
    Projecting it onto a sphere is per-pixel work, so we pre-render a ring of
    rotation frames once and then blit whichever one the rotation lands on.
    Costs nothing per frame, and degrades to no outlines if the file is missing. */
-const GLOBE_FRAMES = 1;   // static globe — one orientation is all we need
+/* A ring of pre-rendered orientations. The globe never animates through
+   them — each page just picks the one matching its Spin setting, so any
+   longitude can be made to face the viewer at no per-frame cost. */
+const GLOBE_FRAMES = LOW ? 24 : 36;
 const GLOBE_SIZE   = LOW ? 176 : 248;
 let globeFrames = null;
 
@@ -9868,8 +10047,7 @@ function buildGlobeFrames(src){
   const frames = [];
   const S = GLOBE_SIZE, R = S/2;
   for(let f=0; f<GLOBE_FRAMES; f++){
-    // Turn the globe so New York sits on the centre meridian facing us.
-    const lonOff = HOME_CITY.lon * Math.PI/180;
+    const lonOff = (f/GLOBE_FRAMES)*Math.PI*2;
     const c = document.createElement('canvas');
     c.width = S; c.height = S;
     const cc = c.getContext('2d');
@@ -9921,7 +10099,7 @@ function drawPlanet(time){
 
   // The body only changes while the viewpoint is easing between pages.
   // Cache it, and redraw only when it has actually moved.
-  const key = [cx|0, cy|0, R|0, pov.hue|0].join(',');
+  const key = [cx|0, cy|0, R|0, pov.hue|0, Math.round(pov.spin||0), Math.round(pov.roll||0)].join(',');
   if(key !== planetKey || !planetLayer){
     planetKey = key;
     planetLayer = document.createElement('canvas');
@@ -9973,29 +10151,46 @@ function paintPlanetBody(ctx, cx, cy, R, time){
 }
 
 function drawPlanetOutlines(cx, cy, R, time){
+  const spin = ((pov.spin || 0) % 360 + 360) % 360;   // which longitude faces us
+  const roll = (pov.roll || 0) * Math.PI/180;         // rotation of the whole disc
+
   if(globeFrames && globeFrames.length){
+    const idx = Math.round(spin/360 * globeFrames.length) % globeFrames.length;
     ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(roll);
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.72;
-    ctx.drawImage(globeFrames[0], cx-R, cy-R, R*2, R*2);
+    ctx.drawImage(globeFrames[idx], -R, -R, R*2, R*2);
     ctx.restore();
   }
 
-  // New York, where WCA is based. With the globe fixed facing it, the marker
-  // sits on the centre meridian, lifted by its latitude.
+  // New York, tracked through both controls. Hidden when the spin has taken
+  // it round the far side, since a marker floating over the wrong ocean is
+  // worse than no marker.
   const lat = HOME_CITY.lat * Math.PI/180;
-  const mx = cx, my = cy - Math.sin(lat)*R;
-  const pulse = 0.5 + 0.5*Math.sin(time*1.8);
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  const halo = ctx.createRadialGradient(mx,my,0, mx,my, 16 + 6*pulse);
-  halo.addColorStop(0, `rgba(233,185,73,${0.55 + 0.30*pulse})`);
-  halo.addColorStop(1, 'rgba(233,185,73,0)');
-  ctx.fillStyle = halo;
-  ctx.beginPath(); ctx.arc(mx,my, 16 + 6*pulse, 0, 6.283); ctx.fill();
-  ctx.fillStyle = '#fff2cf';
-  ctx.beginPath(); ctx.arc(mx,my, 2.1, 0, 6.283); ctx.fill();
-  ctx.restore();
+  const dLon = (HOME_CITY.lon - spin) * Math.PI/180;
+  const nx = Math.cos(lat)*Math.sin(dLon);
+  const ny = -Math.sin(lat);
+  const nz = Math.cos(lat)*Math.cos(dLon);
+  if(nz > 0.04){
+    const rx = nx*Math.cos(roll) - ny*Math.sin(roll);
+    const ry = nx*Math.sin(roll) + ny*Math.cos(roll);
+    const mx = cx + rx*R, my = cy + ry*R;
+    const pulse = 0.5 + 0.5*Math.sin(time*1.8);
+    const fade = Math.min(1, nz*3);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const halo = ctx.createRadialGradient(mx,my,0, mx,my, 16 + 6*pulse);
+    halo.addColorStop(0, `rgba(233,185,73,${(0.55 + 0.30*pulse)*fade})`);
+    halo.addColorStop(1, 'rgba(233,185,73,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(mx,my, 16 + 6*pulse, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = '#fff2cf';
+    ctx.beginPath(); ctx.arc(mx,my, 2.1, 0, 6.283); ctx.fill();
+    ctx.restore();
+  }
 
   // bright rim on the lit edge
   ctx.save();
@@ -10102,6 +10297,327 @@ window.spaceRefresh = function(){
   planetLayer = null; planetKey = '';
   setPage(pg);
 };
+
+})();
+
+</script>
+
+<!-- ===== TIMELINE engine ===== -->
+<script>
+/* =====================================================================
+   TIMELINE
+   The WCA story as a star route. Events are stars on a curved path,
+   five to a screen (three on a phone). The arrows slide the field along
+   rather than swapping pages, so it reads as one continuous journey.
+   Clicking a star opens that show's record — summary, then every match
+   with how it was won and why it mattered.
+
+   All of it is read from data that already exists: events (name,
+   summary, show_number), event_matches (sides, type, championship,
+   finish, notes) and match_betting.winner_idx for who won. Filling in a
+   card in the admin updates this page; nothing is maintained twice.
+   ===================================================================== */
+(function(){
+
+const PER_DESKTOP = 5, PER_MOBILE = 3;
+let TL_EVENTS = [], TL_PAGE = 0, TL_OPEN = null, TL_LOADED = false;
+const TL_CACHE = {};          // event id -> { matches, winners }
+
+const $t = (id) => document.getElementById(id);
+const perPage = () => window.matchMedia('(max-width:860px)').matches ? PER_MOBILE : PER_DESKTOP;
+const pageCount = () => Math.max(1, Math.ceil(TL_EVENTS.length / perPage()));
+const E = (s) => (typeof esc === 'function' ? esc(s) : String(s == null ? '' : s));
+
+/* Show number: the column when set, otherwise the digits in the name —
+   the same rule the admin uses, so both agree on the order. */
+function tlShowNo(e){
+  if(e && e.show_number != null && !isNaN(+e.show_number)) return +e.show_number;
+  const m = String((e && e.name) || '').match(/\d+/);
+  return m ? +m[0] : -1;
+}
+
+async function tlLoad(){
+  if(TL_LOADED || !window.sb) return;
+  TL_LOADED = true;
+  try{
+    const { data, error } = await sb.from('events')
+      .select('id,name,summary,show_number,event_date,replay_url,tagline,is_featured');
+    if(error) throw error;
+    TL_EVENTS = (data||[])
+      .filter(e => !e.is_featured)               // the upcoming show isn't history yet
+      .sort((a,b) => tlShowNo(a) - tlShowNo(b)); // WCA 1 first — a story reads forward
+    // open on the most recent page, but let people walk back from there
+    TL_PAGE = pageCount() - 1;
+  }catch(e){
+    TL_EVENTS = [];
+    console.warn('[timeline]', e.message || e);
+  }
+  tlRenderRoute();
+}
+
+/* ── the route ────────────────────────────────────────────────────── */
+function tlRenderRoute(){
+  const svg = $t('tl-route');
+  if(!svg) return;
+  const per = perPage();
+  const slice = TL_EVENTS.slice(TL_PAGE*per, TL_PAGE*per + per);
+  const W = 1000, H = 400;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  if(!slice.length){
+    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" class="tl-lab">No shows recorded yet</text>`;
+    tlRenderBar();
+    return;
+  }
+
+  // A gentle curve rather than a straight line — the path wanders as it climbs.
+  const pts = slice.map((e,i)=>{
+    const t = slice.length === 1 ? 0.5 : i/(slice.length-1);
+    return { e, x: 90 + t*(W-180), y: 250 - t*90 + Math.sin(t*Math.PI*1.6 + TL_PAGE)*34 };
+  });
+  const curve = (arr)=>{
+    if(arr.length < 2) return '';
+    let d = `M${arr[0].x} ${arr[0].y}`;
+    for(let i=0;i<arr.length-1;i++){
+      const a = arr[i], b = arr[i+1], mx = (a.x+b.x)/2;
+      d += ` C${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`;
+    }
+    return d;
+  };
+  // the line runs off both edges so the journey clearly continues
+  const lead  = { x: -60, y: pts[0].y + 26 };
+  const trail = { x: W+60, y: pts[pts.length-1].y - 26 };
+  const done  = curve([lead].concat(pts));
+  const ahead = curve([pts[pts.length-1], trail]);
+
+  const sel = TL_OPEN;
+  svg.innerHTML =
+    `<path class="tl-path-done" d="${done}"/>` +
+    `<path class="tl-path-ahead" d="${ahead}"/>` +
+    pts.map(p=>{
+      const e = p.e, no = tlShowNo(e);
+      const on = sel && String(sel) === String(e.id);
+      const nm = (e.tagline || '').trim() || (e.name||'').replace(/^WCA\s*\d+\s*[—:-]?\s*/i,'').trim();
+      return `<g class="tl-star${on?' on':''}" data-id="${E(e.id)}" role="button" tabindex="0"
+                 aria-label="${E(e.name)}">
+        <circle class="halo" cx="${p.x}" cy="${p.y}" r="26" fill="rgba(233,185,73,.14)"/>
+        <circle class="halo" cx="${p.x}" cy="${p.y}" r="13" fill="rgba(233,185,73,.28)"/>
+        <circle class="core" cx="${p.x}" cy="${p.y}" r="${on?6:4}" fill="${on?'#fff6dc':'#c9d4e0'}"/>
+        <text class="tl-lab" x="${p.x}" y="${p.y-30}" text-anchor="middle">${E(e.name)}</text>
+        ${nm ? `<text class="tl-name" x="${p.x}" y="${p.y+34}" text-anchor="middle">${E(nm)}</text>` : ''}
+        <text class="tl-meta" x="${p.x}" y="${p.y+54}" text-anchor="middle">${no>0?('SHOW '+no):''}</text>
+      </g>`;
+    }).join('');
+
+  svg.querySelectorAll('.tl-star').forEach(g=>{
+    const open = ()=>{ tlSfx('select'); tlOpen(g.dataset.id); };
+    g.addEventListener('click', open);
+    g.addEventListener('keydown', ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); open(); }});
+  });
+
+  const era = $t('tl-era'), cnt = $t('tl-count');
+  if(era){
+    const yrs = slice.map(e=>e.event_date ? new Date(e.event_date).getFullYear() : null).filter(Boolean);
+    era.textContent = yrs.length ? (yrs[0] === yrs[yrs.length-1] ? String(yrs[0]) : yrs[0]+' — '+yrs[yrs.length-1]) : 'The WCA story';
+  }
+  if(cnt){
+    const a = TL_PAGE*per + 1, b = Math.min(TL_EVENTS.length, TL_PAGE*per + per);
+    cnt.textContent = `Shows ${a}–${b} of ${TL_EVENTS.length}`;
+  }
+  tlRenderBar();
+}
+
+function tlRenderBar(){
+  const bar = $t('tl-dots');
+  if(!bar) return;
+  const n = pageCount();
+  // a dot per page, but keep it sane once there are a lot of them
+  const maxDots = 12;
+  let pages = [];
+  if(n <= maxDots) pages = Array.from({length:n},(_,i)=>i);
+  else {
+    const set = new Set([0, n-1, TL_PAGE, TL_PAGE-1, TL_PAGE+1]);
+    pages = [...set].filter(i=>i>=0 && i<n).sort((a,b)=>a-b);
+  }
+  bar.innerHTML = pages.map(i=>
+    `<button class="tl-dot${i===TL_PAGE?' on':''}" data-p="${i}" aria-label="Page ${i+1}"></button>`).join('');
+  bar.querySelectorAll('.tl-dot').forEach(b=>
+    b.addEventListener('click', ()=>tlGoPage(+b.dataset.p)));
+
+  const prev = $t('tl-prev'), next = $t('tl-next');
+  if(prev){ prev.disabled = TL_PAGE <= 0; }
+  if(next){ next.disabled = TL_PAGE >= n-1; }
+}
+
+function tlGoPage(p){
+  const n = pageCount();
+  const np = Math.max(0, Math.min(n-1, p));
+  if(np === TL_PAGE) return;
+  TL_PAGE = np;
+  tlSfx('travel');
+  tlRenderRoute();
+}
+
+/* ── the record ───────────────────────────────────────────────────── */
+async function tlFetchEvent(id){
+  if(TL_CACHE[id]) return TL_CACHE[id];
+  const out = { matches: [], winners: {} };
+  try{
+    const [{ data: ms }, { data: mb }] = await Promise.all([
+      sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
+      sb.from('match_betting').select('slot,winner_idx').eq('event_id', id)
+    ]);
+    out.matches = ms || [];
+    (mb||[]).forEach(r=>{ if(r.winner_idx != null) out.winners[r.slot] = r.winner_idx; });
+  }catch(e){ console.warn('[timeline]', e.message || e); }
+  TL_CACHE[id] = out;
+  return out;
+}
+
+/* One field of entrants with a single winner — no losers recorded. */
+const TL_POOL = /rumble|battle royal|gauntlet|chamber|money in the bank/i;
+
+function tlSideName(side){
+  if(!side) return '';
+  const t = (side.team_name||'').trim();
+  if(t) return t;
+  return (side.members||[]).filter(Boolean).join(' & ');
+}
+
+function tlBoutHTML(m, winIdx){
+  const sides = (typeof parseSides === 'function') ? parseSides(m) : [];
+  const isPool = TL_POOL.test(m.match_type || '') || sides.length === 1;
+  const champ = (m.championship || '').trim();
+  const type  = (m.match_type || '').trim();
+  const stip  = (m.stipulation || '').trim();
+
+  const badges = [];
+  if(champ) badges.push(`<span class="tl-badge gold">★ ${E(champ)} Championship</span>`);
+  if(type && !/^singles$/i.test(type)) badges.push(`<span class="tl-badge">${E(type)}</span>`);
+  if(stip) badges.push(`<span class="tl-badge">${E(stip)}</span>`);
+
+  let bout;
+  if(winIdx == null){
+    // no winner recorded — still show who was in it
+    const names = sides.map(tlSideName).filter(Boolean);
+    bout = names.length
+      ? `<span class="l">${names.map(E).join('</span> <span class="j">vs</span> <span class="l">')}</span>`
+      : '<span class="j">Match details not recorded yet</span>';
+  } else if(isPool){
+    bout = `<span class="w">${E(tlSideName(sides[winIdx]))}</span> <span class="j">won</span>`
+         + (m.finish ? ` <span class="j">by</span> <span class="via">${E(m.finish)}</span>` : '');
+  } else {
+    const losers = sides.filter((_,i)=>i!==winIdx).map(tlSideName).filter(Boolean);
+    bout = `<span class="w">${E(tlSideName(sides[winIdx]))}</span>`
+         + ` <span class="j">defeated</span> <span class="l">${E(losers.join(' & ')) || '—'}</span>`
+         + (m.finish ? ` <span class="j">via</span> <span class="via">${E(m.finish)}</span>` : '')
+         + (champ && winIdx != null ? ` <span class="j">to win the title</span>` : '');
+  }
+
+  return `<div class="tl-match${champ?' title':''}">
+    ${badges.join(' ')}
+    <div class="tl-bout">${bout}</div>
+    ${m.notes ? `<p class="tl-note">${E(m.notes)}</p>` : ''}
+  </div>`;
+}
+
+async function tlOpen(id){
+  const ev = TL_EVENTS.find(e=>String(e.id)===String(id));
+  if(!ev) return;
+  TL_OPEN = ev.id;
+  const rec = $t('tl-record');
+  const body = $t('tl-rec-body');
+  if(!rec || !body) return;
+
+  body.innerHTML = '<div class="tl-empty">Opening the record…</div>';
+  rec.classList.add('on');
+  tlRenderRoute();
+  rec.scrollIntoView({ behavior:'smooth', block:'start' });
+
+  const { matches, winners } = await tlFetchEvent(ev.id);
+  if(String(TL_OPEN) !== String(ev.id)) return;      // moved on while loading
+
+  const idx = TL_EVENTS.findIndex(e=>String(e.id)===String(ev.id));
+  const prev = idx > 0 ? TL_EVENTS[idx-1] : null;
+  const next = idx < TL_EVENTS.length-1 ? TL_EVENTS[idx+1] : null;
+  const dateTxt = ev.event_date ? (typeof fmtDate==='function' ? fmtDate(ev.event_date) : '') : '';
+  const bits = [dateTxt, matches.length ? matches.length + ' matches' : ''].filter(Boolean);
+
+  body.innerHTML =
+    `<h2 class="tl-rec-title">${E(ev.name)}${ev.tagline?' — '+E(ev.tagline):''}</h2>` +
+    `<div class="tl-rec-meta">${E(bits.join(' · '))}</div>` +
+    (ev.summary ? `<p class="tl-summary">${E(ev.summary)}</p>` : '') +
+    (matches.length ? `<div class="tl-cardhead">The card</div>` +
+        matches.map(m=>tlBoutHTML(m, winners[m.slot] != null ? winners[m.slot] : null)).join('')
+      : `<div class="tl-empty">This show hasn't been written up yet.</div>`) +
+    `<div class="tl-nav">` +
+      (prev ? `<button class="tl-btn" data-go="${E(prev.id)}">◀ ${E(prev.name)}</button>` : '') +
+      (next ? `<button class="tl-btn go" data-go="${E(next.id)}">${E(next.name)} ▶</button>` : '') +
+      (ev.replay_url ? `<a class="tl-btn" href="${escAttr(ev.replay_url)}" target="_blank" rel="noopener">Watch on YouTube ↗</a>` : '') +
+    `</div>`;
+
+  body.querySelectorAll('[data-go]').forEach(b=>
+    b.addEventListener('click', ()=>{
+      const target = b.dataset.go;
+      // follow the story into the next page of the route if needed
+      const i = TL_EVENTS.findIndex(e=>String(e.id)===String(target));
+      if(i >= 0) TL_PAGE = Math.floor(i / perPage());
+      tlSfx('travel');
+      tlOpen(target);
+    }));
+}
+
+function tlClose(){
+  TL_OPEN = null;
+  const rec = $t('tl-record');
+  if(rec) rec.classList.remove('on');
+  tlSfx('back');
+  tlRenderRoute();
+  const st = $t('tl-stage');
+  if(st) st.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ── sound ────────────────────────────────────────────────────────── */
+/* Optional files in an sfx/ folder. Silent if they aren't there, and tied
+   to the star map player's volume so muting the music mutes these too. */
+const TL_SFX = { travel:'sfx/travel.mp3', select:'sfx/select.mp3', back:'sfx/back.mp3' };
+const tlSounds = {};
+function tlSfx(kind){
+  const src = TL_SFX[kind];
+  if(!src) return;
+  try{
+    let a = tlSounds[kind];
+    if(!a){
+      a = tlSounds[kind] = new Audio(src);
+      a.preload = 'auto';
+      a.addEventListener('error', ()=>{ tlSounds[kind] = null; TL_SFX[kind] = null; });
+    }
+    const mus = window.smMusic && window.smMusic.audio;
+    if(mus && mus.muted) return;
+    a.volume = Math.min(0.5, (mus ? mus.volume : 0.1) * 1.6);
+    a.currentTime = 0;
+    a.play().catch(()=>{});
+  }catch(e){}
+}
+
+/* ── wiring ───────────────────────────────────────────────────────── */
+function tlWire(){
+  const p = $t('tl-prev'), n = $t('tl-next'), l = $t('tl-latest'), b = $t('tl-back');
+  if(p) p.addEventListener('click', ()=>tlGoPage(TL_PAGE-1));
+  if(n) n.addEventListener('click', ()=>tlGoPage(TL_PAGE+1));
+  if(l) l.addEventListener('click', ()=>tlGoPage(pageCount()-1));
+  if(b) b.addEventListener('click', tlClose);
+  window.addEventListener('resize', ()=>{ if($t('page-timeline')?.classList.contains('active')) tlRenderRoute(); });
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tlWire);
+else tlWire();
+
+window.timelineEnter = function(){
+  tlLoad();
+  if(TL_LOADED) tlRenderRoute();
+  // the star map's player follows the visitor, so it's already here if popped out
+};
+window.timelineLeave = function(){};
 
 })();
 
