@@ -10541,7 +10541,10 @@ async function renderDashYou(){
   if(!host) return;
 
   // Signed out: say what an account gets you rather than showing empty boxes.
-  if(!window.MY_PROFILE || !MY_PROFILE.id){
+  // MY_PROFILE is a `let`, so it never appears on window — testing
+  // window.MY_PROFILE always failed and signed-in users saw the
+  // signed-out state. Same bug that stopped the Timeline loading.
+  if(typeof MY_PROFILE === 'undefined' || !MY_PROFILE || !MY_PROFILE.id){
     host.innerHTML = `<div class="dyou-signin">
       <p>Sign in to get <b>$25,000</b> to bet with, a place on the leaderboard, and a
          record of every pick you've made.</p>
@@ -10600,7 +10603,10 @@ async function renderDashYou(){
 async function renderDashBets(){
   const host = $d('dash-bets');
   if(!host) return;
-  if(!window.MY_PROFILE || !MY_PROFILE.id){ host.innerHTML = ''; return; }
+  // MY_PROFILE is a `let`, so it never appears on window — testing
+  // window.MY_PROFILE always failed and signed-in users saw the
+  // signed-out state. Same bug that stopped the Timeline loading.
+  if(typeof MY_PROFILE === 'undefined' || !MY_PROFILE || !MY_PROFILE.id){ host.innerHTML = ''; return; }
 
   let bets = [];
   try{
@@ -10701,7 +10707,10 @@ function tlShowNo(e){
 }
 
 async function tlLoad(){
-  if(TL_LOADED || !window.sb) return;
+  // `sb` is declared with `let`, so it is NOT a property of window — the old
+  // `!window.sb` guard was always true and this returned before querying
+  // anything, which is why the page sat on "reading…" forever.
+  if(TL_LOADED || typeof sb === 'undefined' || !sb) return;
   TL_LOADED = true;
   try{
     // Read from v_archive_events, the SAME view the Archive uses. Querying the
@@ -10710,10 +10719,18 @@ async function tlLoad(){
     // view publicly. That silent empty result is what made this page look
     // broken while the data was fine all along.
     let rows = [];
-    const arch = await sb.from('v_archive_events').select('*');
-    TL_DIAG = `view: ${arch.error ? 'ERROR '+arch.error.message : (arch.data||[]).length+' rows'}`;
-    if(!arch.error && (arch.data||[]).length) rows = arch.data;
-    else {
+    // Try the dedicated Timeline view first (SUPABASE_SETUP_timeline_view.sql).
+    // It exposes exactly what this page needs and is granted to anon, so RLS
+    // on the underlying tables can't quietly empty the page.
+    const tl = await sb.from('v_timeline_events').select('*');
+    if(!tl.error && (tl.data||[]).length){
+      TL_DIAG = `timeline view: ${(tl.data||[]).length} rows`;
+      rows = tl.data;
+    }
+    const arch = rows.length ? {data:[],error:null} : await sb.from('v_archive_events').select('*');
+    if(!rows.length) TL_DIAG = `archive view: ${arch.error ? 'ERROR '+arch.error.message : (arch.data||[]).length+' rows'}`;
+    if(!rows.length && !arch.error && (arch.data||[]).length) rows = arch.data;
+    else if(!rows.length){
       const tbl = await sb.from('events').select('*');   // fallback, e.g. for admins
       TL_DIAG += ` · table: ${tbl.error ? 'ERROR '+tbl.error.message : (tbl.data||[]).length+' rows'}`;
       if(tbl.error) throw tbl.error;
@@ -10900,12 +10917,20 @@ async function tlFetchEvent(id){
   if(TL_CACHE[id]) return TL_CACHE[id];
   const out = { matches: [], winners: {} };
   try{
-    const [{ data: ms }, { data: mb }] = await Promise.all([
-      sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
-      sb.from('match_betting').select('slot,winner_idx').eq('event_id', id)
-    ]);
-    out.matches = ms || [];
-    (mb||[]).forEach(r=>{ if(r.winner_idx != null) out.winners[r.slot] = r.winner_idx; });
+    // The Timeline view carries the winner already; fall back to the tables
+    // if it isn't installed yet.
+    const tv = await sb.from('v_timeline_matches').select('*').eq('event_id', id).order('slot');
+    if(!tv.error && (tv.data||[]).length){
+      out.matches = tv.data;
+      tv.data.forEach(r=>{ if(r.winner_idx != null) out.winners[r.slot] = r.winner_idx; });
+    } else {
+      const [{ data: ms }, { data: mb }] = await Promise.all([
+        sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
+        sb.from('match_betting').select('slot,winner_idx').eq('event_id', id)
+      ]);
+      out.matches = ms || [];
+      (mb||[]).forEach(r=>{ if(r.winner_idx != null) out.winners[r.slot] = r.winner_idx; });
+    }
   }catch(e){ console.warn('[timeline]', e.message || e); }
   TL_CACHE[id] = out;
   return out;
@@ -11101,7 +11126,7 @@ const setText = (id, v) => { const el = $h(id); if(el) el.textContent = v || '';
 
 /* ── copy ─────────────────────────────────────────────────────────── */
 async function loadHomeCopy(){
-  if(homeLoaded || !window.sb) return;
+  if(homeLoaded || typeof sb === 'undefined' || !sb) return;   // same reason as the Timeline
   homeLoaded = true;
   try{
     const { data, error } = await sb.from('site_settings').select('home').eq('id',1).single();
