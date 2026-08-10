@@ -2276,6 +2276,64 @@
   /* Backdrop off — plain colour, no animation. */
   html[data-backdrop="off"] #wca-space{opacity:0 !important;}
 
+  /* ── personal dashboard ───────────────────────────────────────── */
+  .dyou-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+  .dyou-card{padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel);}
+  .dyou-lbl{font-family:'Barlow Condensed',sans-serif;font-size:10.5px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .dyou-val{font-family:'Oswald',sans-serif;font-weight:600;font-size:26px;line-height:1;}
+  .dyou-sub{font-family:'Barlow',sans-serif;font-size:12px;color:var(--muted);margin-top:6px;}
+  .dyou-signin{padding:20px;border:1px solid var(--line);border-radius:10px;background:var(--panel);}
+  .dyou-signin p{font-family:'Barlow',sans-serif;font-size:14.5px;line-height:1.7;color:var(--muted);margin:0 0 14px;max-width:520px;}
+  .dyou-empty{font-family:'Barlow',sans-serif;font-size:14px;color:var(--muted);padding:16px 0;}
+  .dbet-list{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);}
+  .dbet-row{display:flex;align-items:center;gap:14px;padding:11px 15px;border-top:1px solid var(--line);}
+  .dbet-row:first-child{border-top:0;}
+  .dbet-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .dbet-pick{font-family:'Oswald',sans-serif;font-size:14.5px;color:var(--txt);}
+  .dbet-match{font-family:'Barlow',sans-serif;font-size:12px;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dbet-stake{font-family:'Barlow',sans-serif;font-size:13px;color:var(--muted);flex:none;}
+  .dbet-state{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.4px;
+    text-transform:uppercase;flex:none;color:var(--muted);}
+  .dbet-state.win{color:var(--win);} .dbet-state.loss{color:var(--loss);}
+  .dbet-state.pending{color:var(--gold);}
+  @media(max-width:640px){ .dbet-match{display:none;} }
+
+  /* ── nav dropdown ─────────────────────────────────────────────── */
+  .navdrop{position:relative;display:inline-flex;}
+  .navdrop-trigger{display:inline-flex;align-items:center;gap:5px;}
+  .navdrop-trigger i{font-size:13px;transition:transform .18s ease;}
+  .navdrop.open .navdrop-trigger i{transform:rotate(180deg);}
+  .navdrop-menu{
+    position:absolute;top:100%;left:0;min-width:230px;z-index:60;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:6px;margin-top:8px;box-shadow:0 18px 40px -18px rgba(0,0,0,.8);
+    opacity:0;visibility:hidden;transform:translateY(-6px);
+    transition:opacity .16s ease,transform .16s ease,visibility .16s;
+  }
+  .navdrop.open .navdrop-menu{opacity:1;visibility:visible;transform:none;}
+  .navdrop-menu a{
+    display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:7px;
+    white-space:nowrap;border:0;
+  }
+  .navdrop-menu a i{margin-right:7px;font-size:14px;}
+  .navdrop-menu a span{
+    font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--muted);
+    letter-spacing:0;text-transform:none;
+  }
+  .navdrop-menu a:hover{background:var(--panel2);}
+  @media(max-width:900px){
+    .navdrop{display:block;width:100%;}
+    .navdrop-menu{
+      position:static;opacity:1;visibility:visible;transform:none;
+      border:0;box-shadow:none;background:none;margin:0;padding:0 0 0 14px;
+      max-height:0;overflow:hidden;transition:max-height .22s ease;
+    }
+    .navdrop.open .navdrop-menu{max-height:220px;}
+    .navdrop-menu a span{display:none;}
+  }
+
   #wca-space{
     position:fixed; inset:0; width:100%; height:100%;
     z-index:0; pointer-events:none; display:block;
@@ -3440,15 +3498,22 @@
     <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
     <div class="head-right" id="headRight">
       <nav>
-        <a href="#dash" data-page="dash" class="active">Dashboard</a>
+        <a href="#storylines" data-page="storylines" class="active">Feed</a>
         <a href="#live" data-page="live" id="nav-live-btn">Live</a>
-        <a href="#events" data-page="events">Events</a>
+        <!-- Events holds the upcoming show and everything already in the books.
+             The trigger keeps data-page="events" so activatePage, the admin's
+             nav-order settings and every existing #events link still work. -->
+        <div class="navdrop" id="navdrop-events">
+          <a href="#events" data-page="events" class="navdrop-trigger" aria-haspopup="true" aria-expanded="false">Events <i class="ti ti-chevron-down"></i></a>
+          <div class="navdrop-menu" role="menu">
+            <a href="#events" data-page="events" role="menuitem"><i class="ti ti-calendar-event"></i> Upcoming<span>The next show and its card</span></a>
+            <a href="#archive" data-page="archive" role="menuitem"><i class="ti ti-archive"></i> Past Events<span>Results, standings and ratings</span></a>
+          </div>
+        </div>
         <a href="#rankings" data-page="rankings">Rankings</a>
         <a href="#leaderboard" data-page="leaderboard">Leaderboard</a>
-        <a href="#archive" data-page="archive">Archive</a>
-        <a href="#timeline" data-page="timeline">Timeline</a>
         <a href="#roster" data-page="roster">Roster</a>
-        <a href="#storylines" data-page="storylines">Storylines</a>
+        <a href="#timeline" data-page="timeline">Timeline</a>
         <a href="#apply" data-page="apply">Apply</a>
         <a href="#sponsors" data-page="sponsors">Sponsors</a>
         <a href="#firepro" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
@@ -3591,14 +3656,24 @@
       </aside>
     </div>
 
-    <div class="section-title">Current Champions</div>
-    <div class="champ-grid" id="champ-cards"><div class="loading">Loading…</div></div>
-
-    <div class="section-title st-flex">Division Standings — top 3
+    <!-- YOUR NUMBERS — the reason this page is personal now. Champions and
+         standings moved off it entirely: Rankings already shows both in
+         more detail, so repeating them here was duplicate upkeep. -->
+    <div class="section-title st-flex" id="dash-you-title">Your standing
       <span class="st-rule"></span>
-      <button class="see-all" onclick="goPage('rankings')">see full standings <i class="ti ti-arrow-right"></i></button>
+      <button class="see-all" onclick="goPage('leaderboard')">full leaderboard <i class="ti ti-arrow-right"></i></button>
     </div>
-    <div id="contenders"><div class="loading">Loading…</div></div>
+    <div id="dash-you"><div class="loading">Loading…</div></div>
+
+    <div class="section-title st-flex">Your recent bets
+      <span class="st-rule"></span>
+      <button class="see-all" onclick="openAccount()">full history <i class="ti ti-arrow-right"></i></button>
+    </div>
+    <div id="dash-bets"><div class="loading">Loading…</div></div>
+
+    <!-- Champions and standings still get a way in, just not a copy of them -->
+    <div class="champ-grid" id="champ-cards" style="display:none"></div>
+    <div id="contenders" style="display:none"></div>
 
     <!-- TOP STORYLINES (1 pinned + 3 recent) — at the bottom -->
     <div class="section-title st-flex">From Backstage
@@ -3813,9 +3888,10 @@
 
   <!-- STORYLINES (storyline-driven content hub: social / articles / HR / timeline) -->
   <div class="page" id="page-storylines">
-    <div class="section-title">Storylines</div>
-    <p class="sl-intro">The ongoing story of the WCA — social-media drama, breaking news,
-      official announcements, and a dated timeline of how every beat unfolded.</p>
+    <div class="section-title">Feed</div>
+    <p class="sl-intro">What's happening in the WCA right now — social-media drama, breaking
+      news, official announcements and reaction, newest first. For the history of how it all
+      got here, head to the <a href="#timeline" data-page="timeline">Timeline</a>.</p>
     <div class="roster-filters" id="sl-filters">
       <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
       <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
@@ -4627,8 +4703,10 @@ function renderUserChip(){
   const ava = avaSrc
     ? `<img class="uava" src="${esc(avaSrc)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
     : `<div class="uava-init">${init}</div>`;
-  box.innerHTML = `<div class="user-chip">
-      <div class="uchip-main" onclick="openAccount()" title="My account" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+  // The chip now opens a small menu — Dashboard moved off the nav bar and
+  // lives here, where a personal page belongs.
+  box.innerHTML = `<div class="user-chip navdrop" id="userMenu">
+      <div class="uchip-main navdrop-trigger" onclick="toggleUserMenu(event)" title="My account" style="display:flex;align-items:center;gap:10px;cursor:pointer">
         ${ava}
         <div class="ucol">
           <span class="ubal">${fmtMoney(MY_PROFILE.balance)}</span>
@@ -4636,6 +4714,10 @@ function renderUserChip(){
         </div>
       </div>
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
+      <div class="navdrop-menu umenu" role="menu">
+        <a href="#dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> My Dashboard<span>Your coins, bets and standing</span></a>
+        <a href="#account" role="menuitem" onclick="openAccount();return false;"><i class="ti ti-user-cog"></i> Account settings<span>Profile and sign-in</span></a>
+      </div>
     </div>`;
 }
 
@@ -9388,14 +9470,48 @@ document.querySelectorAll('nav a[data-page], nav button[data-page]').forEach(b=>
   };
 });
 // Mobile nav: toggle the collapsed menu open/closed.
+/* Dropdowns in the header. Click to open, click anywhere else or press
+   Escape to close, and following any link inside closes it too. On phones
+   the nav menu is already a stacked list, so these expand in place. */
+function wcaCloseDrops(except){
+  document.querySelectorAll('.navdrop.open').forEach(d=>{
+    if(d !== except){
+      d.classList.remove('open');
+      const t = d.querySelector('.navdrop-trigger');
+      if(t) t.setAttribute('aria-expanded','false');
+    }
+  });
+}
+function wcaToggleDrop(drop, ev){
+  if(ev) ev.preventDefault();
+  const open = !drop.classList.contains('open');
+  wcaCloseDrops(drop);
+  drop.classList.toggle('open', open);
+  const t = drop.querySelector('.navdrop-trigger');
+  if(t) t.setAttribute('aria-expanded', String(open));
+}
+function toggleUserMenu(ev){
+  const d = document.getElementById('userMenu');
+  if(d) wcaToggleDrop(d, ev);
+}
+document.addEventListener('click', e=>{
+  const trigger = e.target.closest('.navdrop-trigger');
+  const drop = trigger && trigger.closest('.navdrop');
+  if(drop && drop.id !== 'userMenu'){ wcaToggleDrop(drop, e); return; }
+  if(e.target.closest('.navdrop-menu')){ wcaCloseDrops(); return; }  // followed a link
+  if(!e.target.closest('.navdrop')) wcaCloseDrops();
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') wcaCloseDrops(); });
+
 function toggleNav(){
   document.getElementById('headRight')?.classList.toggle('open');
 }
 // Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
 function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
-  // 'account' (user chip) and 'home' (the logo) have no nav button — allow them.
-  if(!btn && pg!=='account' && pg!=='home') return false;
+  // Pages reached without a nav button: account and the personal dashboard
+  // (both from the user chip) and home (the logo).
+  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -9420,6 +9536,7 @@ function activatePage(pg){
     else if(typeof homeLeave==='function') homeLeave();
     if(pg==='timeline'){ if(typeof timelineEnter==='function') timelineEnter(); }
     else if(typeof timelineLeave==='function') timelineLeave();
+    if(pg==='dash' && typeof renderPersonalDashboard==='function') renderPersonalDashboard();
     if(typeof spaceSetPage==='function') spaceSetPage(pg);
   }catch(e){}
   return true;
@@ -9433,7 +9550,7 @@ function restorePageFromHash(){
   const qs = qIdx>=0 ? raw.slice(qIdx+1) : '';
   if(pg && document.querySelector('nav [data-page="'+pg+'"]')){
     activatePage(pg);
-  } else if(pg==='account' || pg==='home'){
+  } else if(pg==='account' || pg==='home' || pg==='dash'){
     activatePage(pg);
   } else if(!pg){
     // No hash at all. First-time visitors land on Home, which explains what
@@ -9444,6 +9561,11 @@ function restorePageFromHash(){
       try{ localStorage.setItem('wca-seen-home','1'); }catch(e){}
       activatePage('home');
       try{ history.replaceState(null,'','#home'); }catch(e){}
+    } else {
+      // Been here before — straight to the Feed, which reads like a timeline
+      // of what's happened since their last visit.
+      activatePage('storylines');
+      try{ history.replaceState(null,'','#storylines'); }catch(e){}
     }
   }
   // If the hash names a wrestler (?w=Name), show them on the big stage once ready.
@@ -10296,6 +10418,143 @@ window.spaceRefresh = function(){
   pov = Object.assign({}, camFor(pg));
   planetLayer = null; planetKey = '';
   setPage(pg);
+};
+
+})();
+
+</script>
+
+<!-- ===== PERSONAL DASHBOARD ===== -->
+<script>
+/* =====================================================================
+   PERSONAL DASHBOARD
+   Dashboard moved off the nav bar and into the user menu, so what it shows
+   changed with it: your coins, how your betting is actually going, where
+   you sit against everyone else, and what's next.
+
+   Champions and division standings were removed rather than relocated —
+   Rankings already shows both in more detail, and keeping two copies of
+   the same thing is upkeep with no payoff.
+   ===================================================================== */
+(function(){
+
+const $d = (id) => document.getElementById(id);
+const money = (n) => (typeof fmtMoney === 'function' ? fmtMoney(n) : '$' + Math.round(n||0).toLocaleString());
+
+function statCard(label, value, sub, tone){
+  const col = tone === 'up' ? 'var(--win)' : tone === 'down' ? 'var(--loss)' : 'var(--txt)';
+  return `<div class="dyou-card">
+    <div class="dyou-lbl">${typeof esc==='function'?esc(label):label}</div>
+    <div class="dyou-val" style="color:${col}">${value}</div>
+    ${sub ? `<div class="dyou-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+async function renderDashYou(){
+  const host = $d('dash-you');
+  if(!host) return;
+
+  // Signed out: say what an account gets you rather than showing empty boxes.
+  if(!window.MY_PROFILE || !MY_PROFILE.id){
+    host.innerHTML = `<div class="dyou-signin">
+      <p>Sign in to get <b>$25,000</b> to bet with, a place on the leaderboard, and a
+         record of every pick you've made.</p>
+      <button class="hbtn primary" onclick="(typeof openLogin==='function'?openLogin():goPage('account'))">
+        <i class="ti ti-login"></i> <span class="hbtn-label">Sign in</span></button>
+    </div>`;
+    return;
+  }
+
+  const bal = Number(MY_PROFILE.balance || 0);
+  const life = Number(MY_PROFILE.lifetime_winnings || 0);
+  let rank = null, total = null, bets = [];
+
+  try{
+    // where they sit — counted rather than fetched whole, so this stays cheap
+    const { count: ahead } = await sb.from('profiles')
+      .select('id', { count:'exact', head:true }).gt('lifetime_winnings', life);
+    const { count: all } = await sb.from('profiles')
+      .select('id', { count:'exact', head:true });
+    if(ahead != null) rank = ahead + 1;
+    if(all != null) total = all;
+  }catch(e){}
+
+  try{
+    const { data } = await sb.from('v_my_bet_history')
+      .select('*').order('created_at',{ascending:false}).limit(50);
+    bets = data || [];
+  }catch(e){}
+
+  const settled = bets.filter(b=>b.settled);
+  const won = settled.filter(b=>b.won).length;
+  const rate = settled.length ? Math.round(won/settled.length*100) : null;
+  const net = settled.reduce((a,b)=>a + Number(b.net_profit||0), 0);
+
+  // current streak, most recent first
+  let streak = 0, streakUp = null;
+  for(const b of settled){
+    const w = !!b.won;
+    if(streakUp === null){ streakUp = w; streak = 1; }
+    else if(w === streakUp) streak++;
+    else break;
+  }
+
+  host.innerHTML = `<div class="dyou-grid">
+    ${statCard('Coins', money(bal), 'to bet with')}
+    ${statCard('Leaderboard', rank ? '#'+rank : '—', total ? 'of '+total+' players' : '')}
+    ${statCard('Betting record', settled.length ? won+'–'+(settled.length-won) : '—',
+       rate != null ? rate+'% of your last '+settled.length : 'no settled bets yet')}
+    ${statCard('Net from bets', (net>=0?'+':'') + money(Math.abs(net)),
+       'across your last '+settled.length+' settled', net>0?'up':net<0?'down':'')}
+    ${streak > 1 ? statCard('Current streak', streak + (streakUp?' wins':' losses'),
+       streakUp?'keep it going':'due one', streakUp?'up':'down') : ''}
+  </div>`;
+}
+
+async function renderDashBets(){
+  const host = $d('dash-bets');
+  if(!host) return;
+  if(!window.MY_PROFILE || !MY_PROFILE.id){ host.innerHTML = ''; return; }
+
+  let bets = [];
+  try{
+    const { data } = await sb.from('v_my_bet_history')
+      .select('*').order('created_at',{ascending:false}).limit(6);
+    bets = data || [];
+  }catch(e){}
+
+  if(!bets.length){
+    host.innerHTML = `<div class="dyou-empty">You haven't placed a bet yet.
+      Betting opens on each match before it starts —
+      <a href="#events" data-page="events" onclick="goPage('events');return false;">see what's next</a>.</div>`;
+    return;
+  }
+
+  host.innerHTML = `<div class="dbet-list">` + bets.map(b=>{
+    const stake = Number(b.amount||0);
+    const net = Number(b.net_profit||0);
+    const state = !b.settled
+      ? `<span class="dbet-state pending">Pending</span>`
+      : b.voided
+        ? `<span class="dbet-state">Refunded</span>`
+        : b.won
+          ? `<span class="dbet-state win">Won +${money(net)}</span>`
+          : `<span class="dbet-state loss">Lost ${money(stake)}</span>`;
+    const pick = b.side_label || b.pick || '—';
+    return `<div class="dbet-row">
+      <div class="dbet-main">
+        <span class="dbet-pick">${typeof esc==='function'?esc(pick):pick}</span>
+        <span class="dbet-match">${typeof esc==='function'?esc(b.match_label||b.event_name||''):''}</span>
+      </div>
+      <span class="dbet-stake">${money(stake)}</span>
+      ${state}
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+window.renderPersonalDashboard = function(){
+  renderDashYou();
+  renderDashBets();
 };
 
 })();
