@@ -2487,10 +2487,13 @@
     .dh-panel{padding:18px 15px 26px;}
   }
 
-  /* Replay sits above the event hero on a past show — it's the first thing
-     most people want. Slight top margin so it clears the back/share bar. */
-  .arch-replay-top{margin:4px 0 18px;}
-  .arch-replay-top .replay-wrap{margin:0;}
+  /* Replay sits under the event title on a past show. The shared .replay-wrap
+     is height-driven (720px tall, so 1280 wide), which overflows a narrower
+     content column — here it's width-driven and centred instead. */
+  .arch-replay-top{margin:2px auto 22px; width:100%; display:flex; justify-content:center;}
+  .arch-replay-top .replay-wrap{margin:0; width:min(100%, 960px); max-width:100%;}
+  .arch-replay-top .stream-frame{height:auto; width:100%; aspect-ratio:16/9; padding-top:0;}
+  .arch-replay-top .replay-link{display:flex; justify-content:center; margin-top:8px;}
 
   #wca-space{
     position:fixed; inset:0; width:100%; height:100%;
@@ -4751,6 +4754,7 @@ function applyMatchPortraitCfg(){
 // Who currently holds each belt. Faction division holds a TEAM name, not a person.
 async function loadCurrentChampions(){
   CHAMP_DIVS_BY_NAME = {};
+  MP_CANON = {};                 // roster may have loaded since — re-resolve names
   try{
     const { data, error } = await sb.from('v_current_champions').select('*');
     if(error) throw error;
@@ -4780,13 +4784,46 @@ function mpPhotoFor(name){
   if(alt) return alt;
   return w.image_url || w.avatar_url || '';
 }
-// Divisions this exact name currently holds (people only — Faction is handled per-team).
+// Resolve any spelling of a name to the roster's canonical one. wrestlerByName
+// already understands aliases, so "Stella" and "ParallaxStella" both land on
+// the same wrestler — this just caches that and lowercases the answer.
+let MP_CANON = {};
+function mpCanon(n){
+  const raw = String(n||'').trim().toLowerCase();
+  if(!raw) return '';
+  if(MP_CANON[raw] !== undefined) return MP_CANON[raw];
+  const w = (typeof wrestlerByName === 'function') ? wrestlerByName(n) : null;
+  const out = (w && w.name) ? String(w.name).trim().toLowerCase() : raw;
+  // only cache once the roster is actually loaded, or we'd freeze the misses
+  if(typeof window !== 'undefined' && window._roster && window._roster.length) MP_CANON[raw] = out;
+  return out;
+}
+function mpSamePerson(a, b){
+  if(!a || !b) return false;
+  const x = mpCanon(a), y = mpCanon(b);
+  return !!x && x === y;
+}
+
+// When set, portraits show who held each belt AT THAT SHOW instead of today's
+// champions: { Mens:'Name', Womens:'Name', Faction:'Team' }. Null = present day.
+let MP_ASOF = null;
+
+// Divisions this name held (people only — Faction is handled per-team).
 function mpBeltsFor(name){
-  const key = String(name||'').trim().toLowerCase();
-  let divs = CHAMP_DIVS_BY_NAME[key];
-  if(!divs){
-    const w = (typeof wrestlerByName==='function') ? wrestlerByName(name) : null;
-    if(w) divs = CHAMP_DIVS_BY_NAME[String(w.name||'').trim().toLowerCase()];
+  let divs;
+  if(MP_ASOF){
+    divs = Object.keys(MP_ASOF).filter(d => mpSamePerson(MP_ASOF[d], name));
+  } else {
+    const key = String(name||'').trim().toLowerCase();
+    divs = CHAMP_DIVS_BY_NAME[key];
+    if(!divs){
+      // The ledger may file a champion under an alias ("Stella") while the card
+      // uses the full name ("ParallaxStella"). Resolving only the card's name
+      // was the old bug — both sides have to go through the roster.
+      for(const k in CHAMP_DIVS_BY_NAME){
+        if(mpSamePerson(k, name)){ divs = CHAMP_DIVS_BY_NAME[k]; break; }
+      }
+    }
   }
   return (divs||[]).filter(d=>d && d!=='Faction');
 }
@@ -4823,9 +4860,17 @@ function mpRowFor(members, teamName){
   if(MP_CFG.enabled === false) return '';
   const list = (members||[]).filter(Boolean);
   if(!list.length) return '';
-  // does the TEAM hold the Faction (tag) title?
-  const teamKey  = String(teamName||'').trim().toLowerCase();
-  const teamDivs = (teamName && (CHAMP_DIVS_BY_NAME[teamKey]||[]).includes('Faction')) ? ['Faction'] : [];
+  // does the TEAM hold the Faction (tag) title — at this show, or right now?
+  const teamDivs = (function(){
+    if(!teamName) return [];
+    if(MP_ASOF) return mpSamePerson(MP_ASOF['Faction'], teamName) ? ['Faction'] : [];
+    const teamKey = String(teamName).trim().toLowerCase();
+    if((CHAMP_DIVS_BY_NAME[teamKey]||[]).includes('Faction')) return ['Faction'];
+    for(const k in CHAMP_DIVS_BY_NAME){
+      if((CHAMP_DIVS_BY_NAME[k]||[]).includes('Faction') && mpSamePerson(k, teamName)) return ['Faction'];
+    }
+    return [];
+  })();
   const row = `<div class="mp-row">${list.map(n=>mpBox(n, teamDivs)).join('')}</div>`;
   if(teamDivs.length && MP_CFG.team_belt !== false){
     const b = beltFor('Faction');
@@ -4833,6 +4878,72 @@ function mpRowFor(members, teamName){
     return row + `<div class="mp-teambelt">${ico}<span>Faction (Tag Team) Champions</span></div>`;
   }
   return row;
+}
+
+// ===== WHO HELD THE BELTS AT A PAST SHOW =====
+// A 2023 card should show the 2023 champion, not today's. The manual
+// `title_history` ledger is the source of truth (same table the Champions
+// section uses). Reigns are matched by real date where the rows have one,
+// otherwise by show number parsed out of "WCA 34"-style won_at/lost_at text.
+let TITLE_HISTORY = null;
+async function loadTitleHistory(){
+  if(TITLE_HISTORY) return TITLE_HISTORY;
+  try{
+    const { data, error } = await sb.from('title_history').select('*')
+      .order('division',{ascending:true}).order('sort_order',{ascending:true});
+    TITLE_HISTORY = error ? [] : (data||[]);
+  }catch(e){ TITLE_HISTORY = []; }
+  return TITLE_HISTORY;
+}
+function mpShowNum(txt){
+  const m = String(txt||'').match(/(?:wca\s*)?#?\s*(\d{1,3})\b/i);
+  return m ? Number(m[1]) : null;
+}
+function mpVacated(txt){ return /vacat/i.test(String(txt||'')); }
+
+// Returns { Mens:'Name', … } for the show, or null when history can't place it.
+async function championsAsOf(ev){
+  const rows = await loadTitleHistory();
+  if(!rows.length) return null;
+
+  const evDate = Date.parse(ev.event_date || ev.completed_at || '');
+  const evShow = (ev.show_number != null && ev.show_number !== '')
+    ? Number(ev.show_number) : mpShowNum(ev.name);
+
+  // Pick one measuring stick and use it for every reign, so a mix of dated and
+  // show-numbered rows can't be compared against each other.
+  const datedRows = rows.filter(r=>!isNaN(Date.parse(r.won_date||'')));
+  const showRows  = rows.filter(r=>mpShowNum(r.won_at) != null);
+  let mode = null, point = null;
+  if(!isNaN(evDate) && datedRows.length >= showRows.length){ mode = 'date'; point = evDate; }
+  else if(evShow != null && showRows.length){ mode = 'show'; point = evShow; }
+  else if(!isNaN(evDate) && datedRows.length){ mode = 'date'; point = evDate; }
+  if(!mode) return null;
+
+  const startOf = (r)=> mode === 'date'
+    ? (isNaN(Date.parse(r.won_date||'')) ? null : Date.parse(r.won_date))
+    : mpShowNum(r.won_at);
+  const endOf = (r)=>{
+    if(mode === 'date'){ const t = Date.parse(r.lost_date||''); return isNaN(t) ? null : t; }
+    return mpShowNum(r.lost_at);
+  };
+
+  const byDiv = {};
+  rows.forEach(r=>{ if(r.division && r.champion) (byDiv[r.division] = byDiv[r.division]||[]).push(r); });
+
+  const out = {};
+  Object.keys(byDiv).forEach(div=>{
+    // last reign that had already started by this show
+    let pick = null;
+    byDiv[div].forEach(r=>{ const s = startOf(r); if(s != null && s <= point) pick = r; });
+    if(!pick) return;
+    const e = endOf(pick);
+    // ended before the show, or vacated with no successor yet → nobody holds it
+    if(e != null && e <= point) return;
+    if(e == null && mpVacated(mode === 'date' ? pick.lost_date : pick.lost_at)) return;
+    out[div] = pick.champion;
+  });
+  return Object.keys(out).length ? out : null;
 }
 
 // ===== AUTH + POINTS =====
@@ -7447,14 +7558,6 @@ async function openArchiveEvent(id, opts){
       ` data-eid="${escAttr(String(id))}" data-ename="${escAttr(ev.name||'Event')}">`+
       `<i class="ti ti-share-3"></i> Share</button>`+
   `</div>`;
-  // REPLAY FIRST. Most people opening a past show came to watch it, so the
-  // player sits above the hero rather than below it — no scrolling to find it.
-  // The event name is immediately underneath, so nothing is lost.
-  if(ev.replay_url){
-    const embed = youtubeEmbed(ev.replay_url);
-    if(embed) html += `<div class="arch-replay-top">${embed}</div>`;
-  }
-
   html += `<div class="event-hero">
     ${ev.poster_url?`<div class="hero-bg" style="background-image:url('${esc(ev.poster_url)}')"></div>`:''}
     <div class="hero-in">
@@ -7466,13 +7569,27 @@ async function openArchiveEvent(id, opts){
     </div>
   </div>`;
 
+  // The replay sits directly under the event title, centred — high enough to
+  // watch without scrolling, but after the visitor knows which show they're on.
+  if(ev.replay_url){
+    const embed = youtubeEmbed(ev.replay_url);
+    if(embed) html += `<div class="arch-replay-top">${embed}</div>`;
+  }
+
   // results card (read-only)
+  // Belts on these portraits should reflect who held them AT THIS SHOW. If the
+  // ledger can't place the show, show no belts rather than today's champions —
+  // a wrong belt reads as a fact, a missing one only reads as unknown.
   if(matches.length){
+    let asOf = null;
+    try{ asOf = await championsAsOf(ev); }catch(e){}
+    MP_ASOF = asOf || {};
     html += `<div class="section-title">Results</div>`;
     html += matches.map((m,i)=>{
       const isMain = m.slot===1 || (i===0 && !matches.some(x=>x.slot===1));
       return archBoutHTML(m, isMain, statusBySlot[m.slot], winBySlot[m.slot]);
     }).join('');
+    MP_ASOF = null;                       // back to present day for every other page
   }
 
   // final standings (from event_results)
