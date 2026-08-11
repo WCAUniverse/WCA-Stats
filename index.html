@@ -4347,7 +4347,7 @@ function rowHTML(p, idx, isChamp, div){
     ${champ?'<span class="dots-end"></span>':(inactive?'<span class="dots-end"></span>':dots(p.contender_points||0))}
   </div>`;
 }
-function esc(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function esc(s){if(Array.isArray(s))s=s.join(', ');if(s!=null&&typeof s!=='string')s=String(s);return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 // Like esc() but ALSO escapes single quotes and backticks. Use this for any value
 // placed inside an HTML attribute, especially inline event handlers, so a value
 // containing a quote can never "break out" and run as code.
@@ -10696,7 +10696,10 @@ const TL_CACHE = {};          // event id -> { matches, winners }
 const $t = (id) => document.getElementById(id);
 const perPage = () => window.matchMedia('(max-width:860px)').matches ? PER_MOBILE : PER_DESKTOP;
 const pageCount = () => Math.max(1, Math.ceil(TL_EVENTS.length / perPage()));
-const E = (s) => (typeof esc === 'function' ? esc(s) : String(s == null ? '' : s));
+// esc() calls .replace() on what it's given, so a number (an event id, a
+// show number) throws and takes the whole render down. Coerce first.
+const E = (s) => { const t = (s == null ? '' : String(s));
+  return (typeof esc === 'function') ? esc(t) : t; };
 
 /* Show number: the column when set, otherwise the digits in the name —
    the same rule the admin uses, so both agree on the order. */
@@ -11364,7 +11367,8 @@ const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js
 const $  = (id) => document.getElementById(id);
 const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
 const lerp  = (a,b,t) => a + (b-a) * t;
-const E = (s) => (typeof esc==='function' ? esc(s) : String(s==null?'':s));
+const E = (s) => { const t = (s == null ? '' : String(s));
+  return (typeof esc==='function') ? esc(t) : t; };   // numbers must be coerced — esc() calls .replace()
 
 function hashStr(s){
   let h = 2166136261;
