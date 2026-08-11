@@ -2487,6 +2487,11 @@
     .dh-panel{padding:18px 15px 26px;}
   }
 
+  /* Replay sits above the event hero on a past show — it's the first thing
+     most people want. Slight top margin so it clears the back/share bar. */
+  .arch-replay-top{margin:4px 0 18px;}
+  .arch-replay-top .replay-wrap{margin:0;}
+
   #wca-space{
     position:fixed; inset:0; width:100%; height:100%;
     z-index:0; pointer-events:none; display:block;
@@ -7304,7 +7309,7 @@ function youtubeEmbed(url){
   }
   const src=`https://www.youtube.com/embed/${id}`;
   return `<div class="replay-wrap">
-      <div class="stream-frame"><iframe src="${esc(src)}" allowfullscreen scrolling="no" allow="autoplay; encrypted-media; fullscreen"></iframe></div>
+      <div class="stream-frame"><iframe src="${esc(src)}" title="Event replay" allowfullscreen scrolling="no" allow="autoplay; encrypted-media; fullscreen"></iframe></div>
       <a class="replay-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-brand-youtube"></i> Watch on YouTube</a>
     </div>`;
 }
@@ -7442,6 +7447,14 @@ async function openArchiveEvent(id, opts){
       ` data-eid="${escAttr(String(id))}" data-ename="${escAttr(ev.name||'Event')}">`+
       `<i class="ti ti-share-3"></i> Share</button>`+
   `</div>`;
+  // REPLAY FIRST. Most people opening a past show came to watch it, so the
+  // player sits above the hero rather than below it — no scrolling to find it.
+  // The event name is immediately underneath, so nothing is lost.
+  if(ev.replay_url){
+    const embed = youtubeEmbed(ev.replay_url);
+    if(embed) html += `<div class="arch-replay-top">${embed}</div>`;
+  }
+
   html += `<div class="event-hero">
     ${ev.poster_url?`<div class="hero-bg" style="background-image:url('${esc(ev.poster_url)}')"></div>`:''}
     <div class="hero-in">
@@ -7452,12 +7465,6 @@ async function openArchiveEvent(id, opts){
       ${chatChampion?`<div class="ev-champ ev-chatchamp"><i class="ti ti-crown"></i> Chat Champion · <b>${esc(chatChampion)}</b></div>`:''}
     </div>
   </div>`;
-
-  // YouTube replay (if posted)
-  if(ev.replay_url){
-    const embed = youtubeEmbed(ev.replay_url);
-    if(embed){ html += `<div class="section-title">Watch the Replay</div>` + embed; }
-  }
 
   // results card (read-only)
   if(matches.length){
