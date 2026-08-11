@@ -2354,6 +2354,139 @@
     .navdrop-menu a{padding:9px 14px;}
   }
 
+  /* ===== DASHBOARD HUB ================================================
+     Identity strip, tab bar and the Overview cards. Sized off the approved
+     mockup: the strip carries who you are and the two numbers you check
+     most, then tabs take the depth. */
+  .dh-id{
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+    padding:22px 26px;border:1px solid var(--line);border-radius:14px 14px 0 0;
+    border-bottom:0;background:var(--panel2);
+  }
+  .dh-av{
+    width:74px;height:74px;border-radius:50%;flex:0 0 74px;overflow:hidden;
+    border:1px solid var(--gold-dim);background:var(--panel);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald',sans-serif;font-size:26px;color:var(--gold);letter-spacing:1px;
+  }
+  .dh-av img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dh-who{min-width:0;flex:1 1 220px;}
+  .dh-name{
+    font-family:'Oswald',sans-serif;font-size:clamp(24px,3.2vw,34px);line-height:1.1;
+    color:var(--txt);margin:0 0 4px;overflow-wrap:anywhere;
+  }
+  .dh-sub{
+    font-family:'Barlow Condensed',sans-serif;font-size:12.5px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .dh-figs{display:flex;gap:34px;margin-left:auto;text-align:right;}
+  .dh-fig-lbl{
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2.4px;
+    text-transform:uppercase;color:var(--muted);margin-bottom:2px;
+  }
+  .dh-fig-val{font-family:'Oswald',sans-serif;font-size:clamp(22px,2.8vw,30px);line-height:1.1;color:var(--txt);}
+  .dh-fig-val.gold{color:var(--gold);}
+
+  .dh-tabs{
+    display:flex;gap:4px;flex-wrap:wrap;
+    border:1px solid var(--line);border-top:0;border-bottom:0;
+    background:var(--panel2);padding:0 14px;
+  }
+  .dh-tab{
+    background:none;border:0;cursor:pointer;padding:14px 16px;
+    font-family:'Barlow',sans-serif;font-size:15px;color:var(--muted);
+    border-bottom:2px solid transparent;
+  }
+  .dh-tab:hover{color:var(--txt);}
+  .dh-tab.on{color:var(--gold);border-bottom-color:var(--gold);}
+  .dh-panel{
+    display:none;padding:24px 26px 30px;
+    border:1px solid var(--line);border-top:1px solid var(--line);
+    border-radius:0 0 14px 14px;background:var(--panel);
+  }
+  .dh-panel.on{display:block;}
+  .dh-lbl{
+    font-family:'Barlow Condensed',sans-serif;font-size:11.5px;letter-spacing:2.4px;
+    text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+  }
+
+  /* NEEDS YOU NOW — gold box, absent entirely when there is nothing pending */
+  .dh-needs{
+    border:1px solid var(--gold-dim);border-radius:10px;padding:16px 20px;
+    background:linear-gradient(90deg,rgba(233,185,73,.07),transparent 70%);
+    margin-bottom:24px;
+  }
+  .dh-needs-lbl{
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2.4px;
+    text-transform:uppercase;color:var(--gold);margin-bottom:7px;
+  }
+  .dh-needs-txt{font-family:'Barlow',sans-serif;font-size:17px;line-height:1.5;color:var(--txt);}
+  .dh-needs-txt b{color:#fff;}
+  .dh-needs-txt .dim{color:var(--muted);}
+  .dh-needs-txt a{color:var(--gold);}
+
+  .dh-cols{display:grid;grid-template-columns:1fr;gap:22px;}
+  @media(min-width:820px){ .dh-cols{grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);} }
+  .dh-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:var(--panel2);height:100%;}
+
+  /* character card */
+  .dh-char{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;}
+  .dh-portrait{
+    width:104px;height:118px;flex:0 0 104px;border-radius:8px;overflow:hidden;
+    border:1px solid var(--gold-dim);background:var(--panel);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald',sans-serif;font-size:28px;color:var(--muted);
+  }
+  .dh-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dh-char-body{min-width:0;flex:1 1 200px;}
+  .dh-char-name{font-family:'Oswald',sans-serif;font-size:clamp(22px,2.6vw,28px);line-height:1.15;color:var(--txt);margin:0 0 4px;}
+  .dh-char-meta{
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+  }
+  .dh-streak{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .dh-sq{
+    width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+    font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.5px;
+    border:1px solid transparent;
+  }
+  .dh-sq.w{background:rgba(45,140,90,.28);border-color:rgba(45,140,90,.55);color:#8ee0b4;}
+  .dh-sq.l{background:rgba(170,50,50,.26);border-color:rgba(170,50,50,.55);color:#f0a0a0;}
+  .dh-sq.n,.dh-sq.d{background:rgba(140,150,165,.18);border-color:rgba(140,150,165,.4);color:#c4ced8;}
+  .dh-tally{font-family:'Barlow',sans-serif;font-size:15.5px;color:var(--txt);}
+  .dh-tally .dim{color:var(--muted);}
+
+  /* betting summary rows */
+  .dh-rows{display:flex;flex-direction:column;}
+  .dh-row{
+    display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+    padding:11px 0;border-top:1px solid var(--line);
+    font-family:'Barlow',sans-serif;font-size:15.5px;
+  }
+  .dh-row:first-child{border-top:0;}
+  .dh-row .k{color:var(--muted);}
+  .dh-row .v{color:var(--txt);font-size:16.5px;}
+  .dh-row .v.up{color:var(--win);} .dh-row .v.down{color:var(--loss);} .dh-row .v.gold{color:var(--gold);}
+
+  .dh-empty{
+    font-family:'Barlow',sans-serif;font-size:15px;line-height:1.7;color:var(--muted);
+  }
+  .dh-empty b{color:var(--txt);}
+  .dh-signed-out{
+    border:1px solid var(--line);border-radius:14px;padding:34px 30px;
+    background:var(--panel2);text-align:center;
+  }
+  .dh-signed-out p{font-family:'Barlow',sans-serif;font-size:17px;line-height:1.7;color:var(--txt);max-width:52ch;margin:0 auto 18px;}
+
+  @media(max-width:640px){
+    .dh-id{padding:18px 16px;gap:14px;}
+    .dh-av{width:56px;height:56px;flex:0 0 56px;font-size:20px;}
+    .dh-figs{margin-left:0;width:100%;gap:26px;text-align:left;}
+    .dh-tabs{padding:0 6px;}
+    .dh-tab{padding:12px 10px;font-size:14px;}
+    .dh-panel{padding:18px 15px 26px;}
+  }
+
   #wca-space{
     position:fixed; inset:0; width:100%; height:100%;
     z-index:0; pointer-events:none; display:block;
@@ -3719,31 +3852,70 @@
     <!-- YOUR NUMBERS — the reason this page is personal now. Champions and
          standings moved off it entirely: Rankings already shows both in
          more detail, so repeating them here was duplicate upkeep. -->
-    <div class="section-title st-flex" id="dash-you-title">Your standing
-      <span class="st-rule"></span>
-      <button class="see-all" onclick="goPage('leaderboard')">full leaderboard <i class="ti ti-arrow-right"></i></button>
-    </div>
-    <div id="dash-you"><div class="loading">Loading…</div></div>
+    <!-- ===== THE HUB =====
+         Identity strip is always on screen whichever tab is open. Overview
+         carries only live things; everything else lives behind a tab so the
+         page opens on what needs doing rather than on a wall of panels.
+         "From Backstage" and the sponsor strip were REMOVED — this is the
+         visitor's own page, and the Feed already carries the storylines. -->
+    <div class="dh-signed-out" id="dh-signedout" style="display:none"></div>
 
-    <div class="section-title st-flex">Your recent bets
-      <span class="st-rule"></span>
-      <button class="see-all" onclick="openAccount()">full history <i class="ti ti-arrow-right"></i></button>
-    </div>
-    <div id="dash-bets"><div class="loading">Loading…</div></div>
+    <div id="dh-hub">
+      <div class="dh-id" id="dh-id"></div>
 
-    <!-- Champions and standings still get a way in, just not a copy of them -->
+      <div class="dh-tabs" id="dh-tabs" role="tablist">
+        <button class="dh-tab on" type="button" role="tab" data-dtab="overview">Overview</button>
+        <button class="dh-tab" type="button" role="tab" data-dtab="character">My Character</button>
+        <button class="dh-tab" type="button" role="tab" data-dtab="betting">Betting</button>
+        <button class="dh-tab" type="button" role="tab" data-dtab="settings">Settings</button>
+      </div>
+
+      <!-- OVERVIEW — live things only -->
+      <section class="dh-panel on" id="dpanel-overview" role="tabpanel">
+        <!-- hides entirely when nothing is pending, rather than sitting empty -->
+        <div id="dh-needs"></div>
+        <div class="dh-cols">
+          <div class="dh-col">
+            <div class="dh-lbl">Your character</div>
+            <div id="dh-char-card"><div class="loading">Loading…</div></div>
+          </div>
+          <div class="dh-col">
+            <div class="dh-lbl">Betting</div>
+            <div id="dh-bet-card"><div class="loading">Loading…</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MY CHARACTER — the fuller version -->
+      <section class="dh-panel" id="dpanel-character" role="tabpanel">
+        <div id="dh-char-full"><div class="loading">Loading…</div></div>
+        <div id="dh-char-history"></div>
+      </section>
+
+      <!-- BETTING — the existing standing grid and bet list, unchanged -->
+      <section class="dh-panel" id="dpanel-betting" role="tabpanel">
+        <div class="section-title st-flex" id="dash-you-title">Your standing
+          <span class="st-rule"></span>
+          <button class="see-all" onclick="goPage('leaderboard')">full leaderboard <i class="ti ti-arrow-right"></i></button>
+        </div>
+        <div id="dash-you"><div class="loading">Loading…</div></div>
+
+        <div class="section-title st-flex">Your recent bets
+          <span class="st-rule"></span>
+          <button class="see-all" onclick="goPage('events')">what's next <i class="ti ti-arrow-right"></i></button>
+        </div>
+        <div id="dash-bets"><div class="loading">Loading…</div></div>
+      </section>
+
+      <!-- SETTINGS — the account page, rendered in place rather than duplicated -->
+      <section class="dh-panel" id="dpanel-settings" role="tabpanel">
+        <div id="dh-settings-body"><div class="loading">Loading…</div></div>
+      </section>
+    </div>
+
+    <!-- Kept (hidden) because other code still addresses them -->
     <div class="champ-grid" id="champ-cards" style="display:none"></div>
     <div id="contenders" style="display:none"></div>
-
-    <!-- TOP STORYLINES (1 pinned + 3 recent) — at the bottom -->
-    <div class="section-title st-flex">From Backstage
-      <span class="st-rule"></span>
-      <button class="see-all" onclick="goPage('storylines')">all storylines <i class="ti ti-arrow-right"></i></button>
-    </div>
-    <div class="dsl-grid" id="dash-storylines"><div class="dsl-empty">Loading…</div></div>
-
-    <!-- SPONSOR STRIP — filled by loadDashSponsors(); stays empty if nothing is flagged -->
-    <div id="dash-sponsors"></div>
   </div>
 
   <!-- LIVE -->
@@ -5895,9 +6067,17 @@ function closeAccount(){ if(typeof goPage==='function') goPage('dashboard'); }
 // Page-activate hook calls this too (so a refresh on #account rebuilds it).
 async function loadAccount(){ renderAccountPage(false); }
 
-async function renderAccountPage(firstTime){
-  const host = document.getElementById('account-page-body');
+// hostId lets the dashboard's Settings tab render this same content in place
+// rather than keeping a second copy of the account markup in sync.
+async function renderAccountPage(firstTime, hostId){
+  const id = hostId || 'account-page-body';
+  const host = document.getElementById(id);
   if(!host) return;
+  // This markup uses fixed element ids (acc-name-input and friends), so it can
+  // only live in one place at a time. Clear the other host or getElementById
+  // starts returning the copy the visitor isn't looking at.
+  const other = document.getElementById(id === 'account-page-body' ? 'dh-settings-body' : 'account-page-body');
+  if(other) other.innerHTML = '';
   if(!CURRENT_USER){
     host.innerHTML = `<div class="acc-empty">Sign in to view your account.</div>`;
     return;
@@ -10724,10 +10904,346 @@ async function renderDashBets(){
   }).join('') + `</div>`;
 }
 
+/* ===================================================================
+   THE HUB — identity strip, tabs, and the Overview cards.
+   Everything here reads data that already exists. The profile↔wrestler
+   link comes from `wrestler_owners` (auth_id → wrestler_id), which the
+   Account page already uses, so no schema change was needed.
+   =================================================================== */
+
+const E = (s) => (typeof esc === 'function' ? esc(s) : String(s == null ? '' : s));
+let DH_TAB = 'overview';
+let DH_CHAR = null;        // the signed-in visitor's wrestler row, once loaded
+let DH_CHAR_DONE = false;
+
+function signedIn(){
+  // MY_PROFILE is a `let`, so it is NOT on window — see the trap list.
+  return !(typeof MY_PROFILE === 'undefined' || !MY_PROFILE || !MY_PROFILE.id);
+}
+
+/* ---- identity strip ---- */
+async function renderDhId(){
+  const host = $d('dh-id');
+  if(!host || !signedIn()) return;
+
+  const name = MY_PROFILE.display_name || MY_PROFILE.username || 'Member';
+  const init = (typeof initialsOf === 'function' ? initialsOf(name)
+    : name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
+  const avaSrc = MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url;   // same order as Account
+  const av = avaSrc
+    ? `<img src="${typeof escAttr==='function'?escAttr(avaSrc):avaSrc}" alt=""
+         onerror="this.parentNode.textContent='${E(init)}'">`
+    : E(init);
+
+  let provider = '';
+  try{
+    provider = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER &&
+      CURRENT_USER.app_metadata && CURRENT_USER.app_metadata.provider) || '';
+  }catch(e){}
+
+  // "member since WCA 34" — the last show that had happened when they joined.
+  // Falls back to the join date if shows can't be read.
+  let since = '';
+  try{
+    const joined = MY_PROFILE.created_at || (typeof CURRENT_USER!=='undefined' && CURRENT_USER && CURRENT_USER.created_at);
+    if(joined){
+      const { data } = await sb.from('events')
+        .select('show_number,event_date').not('show_number','is',null)
+        .lte('event_date', joined).order('event_date',{ascending:false}).limit(1);
+      if(data && data[0] && data[0].show_number) since = 'Member since WCA ' + data[0].show_number;
+      else since = 'Member since ' + new Date(joined).toLocaleDateString(undefined,{month:'short',year:'numeric'});
+    }
+  }catch(e){}
+
+  let rank = null;
+  try{
+    const life = Number(MY_PROFILE.lifetime_winnings || 0);
+    const { count } = await sb.from('profiles')
+      .select('id',{count:'exact',head:true}).gt('lifetime_winnings', life);
+    if(count != null) rank = count + 1;
+  }catch(e){}
+
+  const sub = [provider ? provider : '', since].filter(Boolean).join(' · ');
+
+  host.innerHTML = `
+    <div class="dh-av">${av}</div>
+    <div class="dh-who">
+      <h2 class="dh-name">${E(name)}</h2>
+      ${sub ? `<div class="dh-sub">${E(sub)}</div>` : ''}
+    </div>
+    <div class="dh-figs">
+      <div>
+        <div class="dh-fig-lbl">Balance</div>
+        <div class="dh-fig-val gold">${money(MY_PROFILE.balance || 0)}</div>
+      </div>
+      <div>
+        <div class="dh-fig-lbl">Rank</div>
+        <div class="dh-fig-val">${rank ? '#'+rank : '—'}</div>
+      </div>
+    </div>`;
+}
+
+/* ---- the visitor's character, via wrestler_owners ---- */
+async function loadDhCharacter(){
+  if(DH_CHAR_DONE) return DH_CHAR;
+  DH_CHAR_DONE = true;
+  try{
+    const uid = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) ? CURRENT_USER.id : null;
+    if(!uid) return null;
+    const { data: owns } = await sb.from('wrestler_owners')
+      .select('wrestler_id').eq('auth_id', uid);
+    const ids = (owns||[]).map(o=>o.wrestler_id).filter(Boolean);
+    if(!ids.length) return null;
+    const { data: ws } = await sb.from('wrestlers').select('*').in('id', ids);
+    DH_CHAR = (ws && ws[0]) || null;
+  }catch(e){ DH_CHAR = null; }
+  return DH_CHAR;
+}
+
+// division standing + recent form for a character
+async function charStats(w){
+  const out = { rank:null, champion:false, points:0, wins:0, losses:0, nowins:0, last:[] };
+  if(!w) return out;
+  const div = w.gender === 'M' ? 'Mens' : w.gender === 'F' ? 'Womens' : 'Intergender';
+  out.division = div;
+  try{
+    const { data } = await sb.from('v_division_rankings').select('*').eq('division', div);
+    const rows = data || [];
+    const mine = rows.find(r=>r.name === w.name);
+    if(mine){
+      out.champion = !!mine.is_champion;
+      out.points = Number(mine.contender_points||0);
+      out.wins = Number(mine.wins||0);
+      out.losses = Number(mine.losses||0);
+      out.nowins = Number(mine.no_wins||0);
+      if(!mine.is_champion && typeof sortRanked === 'function'){
+        const ranked = sortRanked(rows.filter(r=>!r.is_champion));
+        const i = ranked.findIndex(r=>r.name === w.name);
+        if(i >= 0) out.rank = i + 1;
+      }
+    }
+  }catch(e){}
+  try{
+    const { data } = await sb.from('v_match_history').select('result,event_date,slot')
+      .eq('participant', w.name)
+      .order('event_date',{ascending:false}).order('slot',{ascending:false}).limit(5);
+    out.last = (data||[]).map(r=>r.result).filter(Boolean).reverse();
+  }catch(e){}
+  return out;
+}
+
+function portraitHTML(w){
+  const src = w.image_url || w.avatar_url || '';
+  const init = (w.name||'?').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  return `<div class="dh-portrait">${ src
+    ? `<img src="${typeof escAttr==='function'?escAttr(src):src}" alt="${E(w.name)}"
+         onerror="this.parentNode.textContent='${E(init)}'">`
+    : E(init) }</div>`;
+}
+
+function applyPitch(){
+  return `<div class="dh-card"><div class="dh-empty">
+    <p style="margin:0 0 14px">You don't have a character on the roster yet. WCA characters are
+    played by community members — <b>apply and you get written into the show</b>, with your own
+    record, ranking and match history on this page.</p>
+    <button class="hbtn primary" onclick="goPage('apply')">
+      <i class="ti ti-user-plus"></i> <span class="hbtn-label">Apply to WCA</span></button>
+  </div></div>`;
+}
+
+async function renderDhCharCard(){
+  const host = $d('dh-char-card');
+  if(!host) return;
+  const w = await loadDhCharacter();
+  if(!w){ host.innerHTML = applyPitch(); return; }
+  const s = await charStats(w);
+  const standing = s.champion ? 'Champion'
+    : s.rank ? 'Rank #' + s.rank : 'Unranked';
+  const streak = s.last.length
+    ? `<div class="dh-streak">${s.last.map(r=>{
+        const c = r==='W'?'w':r==='L'?'l':r==='D'?'d':'n';
+        return `<span class="dh-sq ${c}" title="${E(r)}">${E(r)}</span>`;
+      }).join('')}</div>` : '';
+  const tally = [
+    s.wins ? s.wins+'W' : '', s.losses ? s.losses+'L' : '', s.nowins ? s.nowins+'NW' : ''
+  ].filter(Boolean).join(' · ');
+
+  host.innerHTML = `<div class="dh-card"><div class="dh-char">
+    ${portraitHTML(w)}
+    <div class="dh-char-body">
+      <h3 class="dh-char-name">${E(w.name)}</h3>
+      <div class="dh-char-meta">${E(s.division)} Division · ${E(standing)}</div>
+      ${streak}
+      <div class="dh-tally">${ tally || '<span class="dim">No recorded matches yet</span>' }
+        ${ s.points ? ` <span class="dim">·</span> ${s.points} contender point${s.points===1?'':'s'}` : '' }</div>
+    </div>
+  </div></div>`;
+}
+
+/* ---- betting summary card ---- */
+async function betSummary(){
+  let bets = [];
+  try{
+    const { data } = await sb.from('v_my_bet_history')
+      .select('*').order('created_at',{ascending:false}).limit(50);
+    bets = data || [];
+  }catch(e){}
+  const settled = bets.filter(b=>b.settled && !b.voided);
+  const won = settled.filter(b=>b.won).length;
+  const net = settled.reduce((a,b)=>a + Number(b.net_profit||0), 0);
+  let streak = 0, up = null;
+  for(const b of settled){
+    const w = !!b.won;
+    if(up === null){ up = w; streak = 1; }
+    else if(w === up) streak++;
+    else break;
+  }
+  return { open: bets.filter(b=>!b.settled).length, settled:settled.length, won, net, streak, up };
+}
+
+// How many times they've been Betting Champion. There is no column on the
+// profile for this — the reigns table is the record, keyed by username.
+async function eventTitles(){
+  try{
+    const who = MY_PROFILE.username || MY_PROFILE.display_name;
+    if(!who) return 0;
+    const { count } = await sb.from('betting_champion_reigns')
+      .select('username',{count:'exact',head:true}).eq('username', who);
+    return count || 0;
+  }catch(e){ return 0; }
+}
+
+async function renderDhBetCard(){
+  const host = $d('dh-bet-card');
+  if(!host) return;
+  const s = await betSummary();
+  const titles = await eventTitles();
+  const row = (k,v,cls)=>`<div class="dh-row"><span class="k">${k}</span><span class="v ${cls||''}">${v}</span></div>`;
+  host.innerHTML = `<div class="dh-card"><div class="dh-rows">
+    ${row('Record', s.settled ? s.won+'–'+(s.settled-s.won) : '—')}
+    ${row('Net profit', (s.net>=0?'+':'-') + money(Math.abs(s.net)), s.net>0?'up':s.net<0?'down':'')}
+    ${row('Streak', s.streak>1 ? s.streak+(s.up?' wins':' losses') : '—', s.streak>1?(s.up?'up':'down'):'')}
+    ${titles ? row('Event titles', titles, 'gold') : ''}
+  </div></div>`;
+}
+
+/* ---- NEEDS YOU NOW ---- */
+async function renderDhNeeds(){
+  const host = $d('dh-needs');
+  if(!host) return;
+  host.innerHTML = '';                       // absent, not an empty box
+  let next = null;
+  try{
+    const today = new Date().toISOString().slice(0,10);
+    const { data } = await sb.from('events')
+      .select('id,name,event_date,show_number')
+      .gte('event_date', today).order('event_date',{ascending:true}).limit(1);
+    next = (data && data[0]) || null;
+  }catch(e){}
+
+  let openBets = 0;
+  try{ openBets = (await betSummary()).open; }catch(e){}
+
+  const bits = [];
+  if(next){
+    const days = Math.round((new Date(next.event_date) - new Date()) / 86400000);
+    const when = days <= 0 ? '<b>today</b>' : days === 1 ? '<b>tomorrow</b>' : `in <b>${days} days</b>`;
+    bits.push(`${E(next.name)} is ${when}.`);
+  }
+  if(openBets) bits.push(`<span class="dim">You have ${openBets} open bet${openBets===1?'':'s'}.</span>`);
+
+  if(!bits.length) return;                   // nothing pending — stay hidden
+  host.innerHTML = `<div class="dh-needs">
+    <div class="dh-needs-lbl">Needs you now</div>
+    <div class="dh-needs-txt">${bits.join(' ')}
+      <a href="#events" onclick="goPage('events');return false;">See the card →</a></div>
+  </div>`;
+}
+
+/* ---- My Character tab ---- */
+async function renderDhCharFull(){
+  const host = $d('dh-char-full'), hist = $d('dh-char-history');
+  if(!host) return;
+  const w = await loadDhCharacter();
+  if(!w){ host.innerHTML = applyPitch(); if(hist) hist.innerHTML=''; return; }
+  const s = await charStats(w);
+  const standing = s.champion ? 'Champion' : s.rank ? 'Rank #' + s.rank : 'Unranked';
+  host.innerHTML = `<div class="dh-char" style="margin-bottom:18px">
+    ${portraitHTML(w)}
+    <div class="dh-char-body">
+      <h3 class="dh-char-name">${E(w.name)}</h3>
+      <div class="dh-char-meta">${E(s.division)} Division · ${E(standing)}${
+        s.points ? ' · ' + s.points + ' contender points' : ''}</div>
+      <div class="dh-tally">${
+        [s.wins?s.wins+'W':'', s.losses?s.losses+'L':'', s.nowins?s.nowins+'NW':'']
+          .filter(Boolean).join(' · ') || '<span class="dim">No recorded matches yet</span>'}</div>
+      <button class="hbtn" style="margin-top:14px"
+        onclick="(typeof goWrestler==='function'?goWrestler('${(w.name||'').replace(/'/g,"\\'")}'):goPage('roster'))">
+        <i class="ti ti-external-link"></i> <span class="hbtn-label">Public profile</span></button>
+    </div>
+  </div>`;
+  if(hist && typeof renderWrestlerHistory === 'function'){
+    hist.innerHTML = '<div id="dh-mh"></div>';
+    renderWrestlerHistory(w.name, 'dh-mh');
+  }
+}
+
+/* ---- tabs ---- */
+function dhShow(tab){
+  DH_TAB = tab;
+  document.querySelectorAll('#dh-tabs .dh-tab').forEach(b=>
+    b.classList.toggle('on', b.dataset.dtab === tab));
+  ['overview','character','betting','settings'].forEach(t=>{
+    const p = $d('dpanel-'+t);
+    if(p) p.classList.toggle('on', t === tab);
+  });
+  if(tab === 'character') renderDhCharFull();
+  if(tab === 'betting'){ renderDashYou(); renderDashBets(); }
+  if(tab === 'settings' && typeof renderAccountPage === 'function'){
+    renderAccountPage(false, 'dh-settings-body');
+  }
+}
+
+document.addEventListener('click', (ev)=>{
+  const b = ev.target.closest('#dh-tabs .dh-tab');
+  if(b) dhShow(b.dataset.dtab);
+});
+
 window.renderPersonalDashboard = function(){
-  renderDashYou();
-  renderDashBets();
+  const hub = $d('dh-hub'), out = $d('dh-signedout');
+
+  if(!signedIn()){
+    if(hub) hub.style.display = 'none';
+    if(out){
+      out.style.display = '';
+      out.innerHTML = `<p>Sign in to get <b>$25,000</b> to bet with, a place on the leaderboard,
+        and a record of every pick you've made.</p>
+        <button class="hbtn primary" onclick="(typeof signInDiscord==='function'?signInDiscord():goPage('account'))">
+          <i class="ti ti-login"></i> <span class="hbtn-label">Sign in</span></button>`;
+    }
+    return;
+  }
+
+  if(out) out.style.display = 'none';
+  if(hub) hub.style.display = '';
+  DH_CHAR_DONE = false;                 // re-check ownership on each visit
+
+  renderDhId();
+  renderDhNeeds();
+  renderDhCharCard();
+  renderDhBetCard();
+  dhShow(DH_TAB);
 };
+
+/* Self-boot. If someone lands straight on #dash the router has already run by
+   the time this script parses, so its enter hook never fires. The star map,
+   Home and the Timeline all shipped broken this way. */
+function dhBoot(){
+  const pg = $d('page-dash');
+  if(pg && pg.classList.contains('active')) window.renderPersonalDashboard();
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dhBoot);
+else dhBoot();
 
 })();
 
