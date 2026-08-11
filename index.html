@@ -3016,13 +3016,53 @@
   .tl-wrap{position:relative;}
 
   /* ── the route ─────────────────────────────────────────────────── */
+  /* The frame from the concept: nebula wash in two corners and a scatter of
+     fixed stars. Deliberately NO opaque base colour — the site's own space
+     backdrop shows through underneath, so the two layers read as one sky. */
   .tl-stage{
     position:relative;width:100%;height:clamp(380px,54vh,520px);
-    overflow:visible;z-index:2;
+    overflow:hidden;z-index:2;
+    border:1px solid var(--line);border-radius:12px;
+    background-image:
+      radial-gradient(700px 300px at 20% 82%, rgba(30,80,140,.30), transparent 60%),
+      radial-gradient(500px 250px at 85% 14%, rgba(120,55,25,.16), transparent 65%),
+      radial-gradient(1px 1px at 12% 22%, #fff, transparent),
+      radial-gradient(1px 1px at 38% 68%, #fff, transparent),
+      radial-gradient(1px 1px at 62% 18%, #cfe, transparent),
+      radial-gradient(1px 1px at 82% 74%, #fff, transparent),
+      radial-gradient(1px 1px at 28% 88%, #fff, transparent),
+      radial-gradient(1px 1px at 92% 44%, var(--gold), transparent),
+      radial-gradient(1px 1px at 54% 40%, #fff, transparent),
+      radial-gradient(1px 1px at 71% 58%, rgba(255,255,255,.7), transparent);
   }
   .tl-route{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
-  .tl-path-done{stroke:var(--gold);stroke-width:2;fill:none;opacity:.55;}
-  .tl-path-ahead{stroke:#8ea3b8;stroke-width:1.4;fill:none;opacity:.30;stroke-dasharray:4 8;}
+
+  /* The travelled line is ONE path with the road ahead drawn beneath it. The
+     gold part is revealed by stroke-dashoffset as the traveller moves, so the
+     trail always ends exactly under the comet. */
+  .tl-path-ahead{stroke:#8ea3b8;stroke-width:1.5;fill:none;opacity:.30;stroke-dasharray:3 5;}
+  .tl-path-done{stroke:url(#tl-trail);stroke-width:2.5;fill:none;stroke-linecap:round;}
+  .tl-g0{stop-color:var(--gold);stop-opacity:0;}
+  .tl-g1{stop-color:var(--gold);stop-opacity:.30;}
+  .tl-g2{stop-color:#fff6dc;stop-opacity:.95;}
+
+  /* the traveller — a shooting star sitting at the head of the trail */
+  .tl-comet{pointer-events:none;}
+  .tl-comet .h3{fill:rgba(233,185,73,.14);}
+  .tl-comet .h2{fill:rgba(233,185,73,.35);}
+  .tl-comet .h1{fill:#fff6dc;}
+  .tl-comet .h3,.tl-comet .h2{animation:tl-pulse 3.2s ease-in-out infinite;transform-origin:center;}
+  .tl-comet .h2{animation-delay:-1.1s;}
+  @keyframes tl-pulse{0%,100%{opacity:.75;}50%{opacity:1;}}
+  @media(prefers-reduced-motion:reduce){
+    .tl-comet .h3,.tl-comet .h2{animation:none;}
+  }
+
+  .tl-hint{
+    position:absolute;left:20px;bottom:14px;z-index:3;pointer-events:none;
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.6px;
+    text-transform:uppercase;color:#5f7a8c;
+  }
 
   .tl-star{cursor:pointer;}
   .tl-star .halo{opacity:0;transition:opacity .25s ease;}
@@ -3045,12 +3085,12 @@
   .tl-star.on .tl-meta{opacity:1;}
 
   .tl-era{
-    position:absolute;left:22px;top:16px;z-index:3;
+    position:absolute;right:22px;top:16px;z-index:3;
     font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;
     text-transform:uppercase;color:var(--teal,#5DCAA5);
   }
   .tl-count{
-    position:absolute;right:22px;top:16px;z-index:3;
+    position:absolute;left:22px;top:16px;z-index:3;
     font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;
     text-transform:uppercase;color:var(--muted);
   }
@@ -3078,18 +3118,34 @@
   .tl-latest{margin-left:auto;}
 
   /* ── the record ────────────────────────────────────────────────── */
+  /* Arriving at a star. A framed panel in the same sky as the route, but the
+     PAGE scrolls rather than the panel — note text is unconstrained and an
+     inner scrollbar buries it on a phone. */
   .tl-record{
-    display:none;padding:6px 22px 60px;
+    display:none;padding:22px 26px 34px;margin-top:14px;
+    border:1px solid var(--line);border-radius:12px;
+    background-image:
+      radial-gradient(700px 350px at 80% 4%, rgba(233,185,73,.09), transparent 62%),
+      radial-gradient(600px 300px at 10% 96%, rgba(30,80,140,.24), transparent 62%),
+      radial-gradient(1px 1px at 22% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 68% 74%, #fff, transparent),
+      radial-gradient(1px 1px at 88% 26%, var(--gold), transparent);
     animation:tl-fade .45s cubic-bezier(.22,.61,.36,1) both;
   }
   .tl-record.on{display:block;}
   @keyframes tl-fade{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  .tl-recbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
   .tl-back{
     display:inline-flex;align-items:center;gap:8px;background:none;border:0;cursor:pointer;
     font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2.5px;
-    text-transform:uppercase;color:var(--teal,#5DCAA5);padding:6px 0;margin-bottom:10px;
+    text-transform:uppercase;color:var(--teal,#5DCAA5);padding:6px 0;
   }
   .tl-back:hover{color:var(--gold);}
+  .tl-recpos{
+    font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .tl-recpos::before{content:'|';color:var(--line);margin-right:12px;}
   .tl-rec-title{
     font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,40px);
     line-height:1.04;color:#fff;margin:0 0 6px;
@@ -3150,7 +3206,10 @@
   @media(max-width:860px){
     .tl-stage{height:clamp(320px,44vh,400px);}
     .tl-bar{padding:12px 14px 4px;}
-    .tl-record{padding:6px 14px 50px;}
+    .tl-record{padding:18px 15px 28px;}
+    .tl-hint{left:14px;bottom:10px;font-size:10px;letter-spacing:1.2px;}
+    .tl-era,.tl-count{top:12px;}
+    .tl-era{right:14px;} .tl-count{left:14px;}
     .tl-latest{margin-left:0;}
   }
 
@@ -3613,6 +3672,7 @@
         <div class="tl-era" id="tl-era"></div>
         <div class="tl-count" id="tl-count"></div>
         <svg class="tl-route" id="tl-route" viewBox="0 0 1000 400" aria-label="WCA event timeline"></svg>
+        <div class="tl-hint">◀ ▶ &nbsp;Travel the line &nbsp;·&nbsp; click a star to arrive</div>
       </div>
 
       <div class="tl-bar">
@@ -3625,7 +3685,10 @@
       <div id="tl-fallback"></div>
 
       <section class="tl-record" id="tl-record" aria-live="polite">
-        <button class="tl-back" id="tl-back" type="button">↑ Back to the line</button>
+        <div class="tl-recbar">
+          <button class="tl-back" id="tl-back" type="button">↑ Back to the line</button>
+          <span class="tl-recpos" id="tl-recpos"></span>
+        </div>
         <div id="tl-rec-body"></div>
       </section>
     </div>
@@ -10672,7 +10735,22 @@ window.renderPersonalDashboard = function(){
 
 const PER_DESKTOP = 5, PER_MOBILE = 3;
 let TL_EVENTS = [], TL_PAGE = 0, TL_OPEN = null, TL_LOADED = false, TL_ERROR = null;
-window.WCA_BUILD = 'timeline-2026-08-10d';   // check with: console.log(WCA_BUILD)
+
+/* ── the traveller ────────────────────────────────────────────────────
+   A shooting star sits at the head of the gold trail. TL_T is how far
+   along the drawn route it has got, 0 at the left edge and 1 at the
+   right. Moving it is the whole animation: the trail is the same path
+   revealed by stroke-dashoffset, so the tail can never drift off the
+   comet no matter how the curve is shaped. */
+let TL_T = 1;          // where the traveller is now
+let TL_PTS = [];       // the stars drawn on this page, in order
+let TL_STAR_T = [];    // each star's position along the route, same order
+let TL_ANIM = null;    // in-flight requestAnimationFrame
+let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next draw
+const TL_REDUCED = (window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
+
+window.WCA_BUILD = 'timeline-2026-08-11a';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
@@ -10791,6 +10869,87 @@ function tlFallbackList(reason){
     b.addEventListener('click', ()=>tlOpen(b.dataset.id)));
 }
 
+/* Put the traveller at t along the route and reveal exactly that much trail. */
+function tlSetT(t){
+  TL_T = Math.max(0, Math.min(1, t));
+  const path = $t('tl-done'), comet = $t('tl-comet');
+  if(!path || !path.getTotalLength) return;
+  let L = 0;
+  try{ L = path.getTotalLength(); }catch(e){ return; }
+  if(!L) return;                       // page hidden — nothing to measure against
+  path.style.strokeDasharray  = L + ' ' + L;
+  path.style.strokeDashoffset = String(L * (1 - TL_T));
+  if(comet){
+    try{
+      const p = path.getPointAtLength(L * TL_T);
+      comet.setAttribute('transform', `translate(${p.x} ${p.y})`);
+      comet.style.opacity = '1';
+    }catch(e){}
+  }
+}
+
+/* Where does each star sit along the route? The curve is drawn through the
+   stars, so walking the path and keeping the closest sample to each one is
+   both exact enough and immune to however the curve is shaped later. */
+function tlMeasureStars(){
+  TL_STAR_T = [];
+  const path = $t('tl-done');
+  if(!path || !path.getTotalLength || !TL_PTS.length) return;
+  let L = 0;
+  try{ L = path.getTotalLength(); }catch(e){ return; }
+  if(!L) return;
+  const N = 260, samples = [];
+  for(let i=0;i<=N;i++){
+    try{ samples.push(path.getPointAtLength(L*i/N)); }catch(e){ return; }
+  }
+  TL_PTS.forEach(pt=>{
+    let best = 0, bd = Infinity;
+    for(let i=0;i<samples.length;i++){
+      const dx = samples[i].x - pt.x, dy = samples[i].y - pt.y;
+      const d = dx*dx + dy*dy;
+      if(d < bd){ bd = d; best = i; }
+    }
+    TL_STAR_T.push(best/N);
+  });
+}
+
+function tlCancelFlight(){
+  if(TL_ANIM){ cancelAnimationFrame(TL_ANIM); TL_ANIM = null; }
+}
+
+/* Fly the traveller to t, then run `then`. Distance sets the duration, so a
+   hop to the neighbouring star is quick and crossing the screen takes its
+   time. Honours prefers-reduced-motion by arriving instantly. */
+function tlFly(to, then){
+  tlCancelFlight();
+  if(to == null || isNaN(to)){ if(then) then(); return; }
+  const from = TL_T, dist = Math.abs(to - from);
+  if(TL_REDUCED || dist < 0.004 || !$t('tl-done')){
+    tlSetT(to); if(then) then(); return;
+  }
+  const ms = Math.min(1500, 380 + dist*1200);
+  const t0 = (window.performance ? performance.now() : Date.now());
+  // ease in, then coast out — it reads as launching and arriving
+  const ease = (x)=> x<0.5 ? 4*x*x*x : 1 - Math.pow(-2*x+2,3)/2;
+  const step = (now)=>{
+    const k = Math.min(1, ((now||Date.now()) - t0)/ms);
+    tlSetT(from + (to-from)*ease(k));
+    if(k < 1){ TL_ANIM = requestAnimationFrame(step); }
+    else { TL_ANIM = null; if(then) then(); }
+  };
+  TL_ANIM = requestAnimationFrame(step);
+}
+
+/* Which star is the traveller heading for on the page just drawn? */
+function tlTargetT(){
+  if(!TL_STAR_T.length) return 1;
+  if(TL_OPEN != null){
+    const i = TL_PTS.findIndex(p=>String(p.e.id) === String(TL_OPEN));
+    if(i >= 0 && TL_STAR_T[i] != null) return TL_STAR_T[i];
+  }
+  return TL_STAR_T[TL_STAR_T.length-1];
+}
+
 function tlDrawRoute(){
   const svg = $t('tl-route');
   if(!svg) return;
@@ -10826,11 +10985,12 @@ function tlDrawRoute(){
     }
     return d;
   };
-  // the line runs off both edges so the journey clearly continues
+  // The line runs off both edges so the journey clearly continues. Ahead and
+  // behind are the SAME path drawn twice — the gold one is revealed by
+  // dashoffset as the traveller moves, so the trail always ends under it.
   const lead  = { x: -60, y: pts[0].y + 26 };
   const trail = { x: W+60, y: pts[pts.length-1].y - 26 };
-  const done  = curve([lead].concat(pts));
-  const ahead = curve([pts[pts.length-1], trail]);
+  const route = curve([lead].concat(pts).concat([trail]));
 
   const sel = TL_OPEN;
   // Built as a string then parsed as a real SVG document below. Assigning
@@ -10838,8 +10998,13 @@ function tlDrawRoute(){
   // parsed as HTML, producing elements that exist in the DOM but never paint,
   // which looks exactly like an empty page.
   const markup =
-    `<path class="tl-path-done" d="${done}"/>` +
-    `<path class="tl-path-ahead" d="${ahead}"/>` +
+    `<defs><linearGradient id="tl-trail" x1="0" y1="0" x2="1" y2="0">` +
+      `<stop offset="0%" class="tl-g0"/>` +
+      `<stop offset="55%" class="tl-g1"/>` +
+      `<stop offset="100%" class="tl-g2"/>` +
+    `</linearGradient></defs>` +
+    `<path class="tl-path-ahead" d="${route}"/>` +
+    `<path class="tl-path-done" id="tl-done" d="${route}"/>` +
     pts.map(p=>{
       const e = p.e, no = tlShowNo(e);
       const on = sel && String(sel) === String(e.id);
@@ -10853,7 +11018,11 @@ function tlDrawRoute(){
         ${nm ? `<text class="tl-name" x="${p.x}" y="${p.y+34}" text-anchor="middle">${E(nm)}</text>` : ''}
         <text class="tl-meta" x="${p.x}" y="${p.y+54}" text-anchor="middle">${no>0?('SHOW '+no):''}</text>
       </g>`;
-    }).join('');
+    }).join('') +
+    // the traveller — drawn last so it rides over the stars it passes
+    `<g class="tl-comet" id="tl-comet" style="opacity:0">` +
+      `<circle class="h3" r="17"/><circle class="h2" r="8.5"/><circle class="h1" r="4"/>` +
+    `</g>`;
 
   const doc = new DOMParser().parseFromString(
     `<svg xmlns="http://www.w3.org/2000/svg">${markup}</svg>`, 'image/svg+xml');
@@ -10866,8 +11035,25 @@ function tlDrawRoute(){
   if(!drawn.length && slice.length){ tlFallbackList('no stars rendered'); return; }
   if(fb) fb.innerHTML = '';
 
+  // Work out where every star sits along the route, then either place the
+  // traveller (a redraw) or fly it in from the edge we came from (a page turn).
+  TL_PTS = pts;
+  tlMeasureStars();
+  const target = tlTargetT();
+  if(TL_ENTER === 'fwd')       { tlSetT(0); tlFly(target); }
+  else if(TL_ENTER === 'back') { tlSetT(1); tlFly(target); }
+  else if(TL_ENTER === 'fly')  { tlSetT(TL_T); tlFly(target); }
+  else                         { tlSetT(target); }   // resize, first paint
+  TL_ENTER = null;
+
   drawn.forEach(g=>{
-    const open = ()=>{ tlSfx('select'); tlOpen(g.dataset.id); };
+    const open = ()=>{
+      tlSfx('select');
+      // travel to the star first, then arrive — the record opens on landing
+      const i = TL_PTS.findIndex(p=>String(p.e.id) === String(g.dataset.id));
+      if(i >= 0 && TL_STAR_T[i] != null) tlFly(TL_STAR_T[i], ()=>tlOpen(g.dataset.id));
+      else tlOpen(g.dataset.id);
+    };
     g.addEventListener('click', open);
     g.addEventListener('keydown', ev=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); open(); }});
   });
@@ -10910,6 +11096,9 @@ function tlGoPage(p){
   const n = pageCount();
   const np = Math.max(0, Math.min(n-1, p));
   if(np === TL_PAGE) return;
+  // fly in from the edge we came from, so paging reads as one continuous
+  // journey rather than a swapped screen
+  TL_ENTER = np > TL_PAGE ? 'fwd' : 'back';
   TL_PAGE = np;
   tlSfx('travel');
   tlRenderRoute();
@@ -11005,6 +11194,9 @@ async function tlOpen(id){
   const idx = TL_EVENTS.findIndex(e=>String(e.id)===String(ev.id));
   const prev = idx > 0 ? TL_EVENTS[idx-1] : null;
   const next = idx < TL_EVENTS.length-1 ? TL_EVENTS[idx+1] : null;
+  const pos = $t('tl-recpos');
+  if(pos) pos.textContent = `Record ${idx+1} of ${TL_EVENTS.length}`;
+
   const dateTxt = ev.event_date ? (typeof fmtDate==='function' ? fmtDate(ev.event_date) : '') : '';
   const bits = [dateTxt, matches.length ? matches.length + ' matches' : ''].filter(Boolean);
 
@@ -11026,7 +11218,13 @@ async function tlOpen(id){
       const target = b.dataset.go;
       // follow the story into the next page of the route if needed
       const i = TL_EVENTS.findIndex(e=>String(e.id)===String(target));
-      if(i >= 0) TL_PAGE = Math.floor(i / perPage());
+      if(i >= 0){
+        const np = Math.floor(i / perPage());
+        // crossing onto another page enters from that edge; staying on this
+        // one just flies across to the neighbouring star
+        TL_ENTER = np === TL_PAGE ? 'fly' : (np > TL_PAGE ? 'fwd' : 'back');
+        TL_PAGE = np;
+      }
       tlSfx('travel');
       tlOpen(target);
     }));
@@ -11037,6 +11235,7 @@ function tlClose(){
   const rec = $t('tl-record');
   if(rec) rec.classList.remove('on');
   tlSfx('back');
+  TL_ENTER = 'fly';          // drift back onto the line rather than snapping
   tlRenderRoute();
   const st = $t('tl-stage');
   if(st) st.scrollIntoView({ behavior:'smooth', block:'start' });
