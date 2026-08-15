@@ -342,6 +342,50 @@
   }
   .fp-card h3{ font-family:'Press Start 2P',monospace; font-size:11px; color:#ffd23f; margin:0 0 8px; letter-spacing:1px; }
   .fp-cardsub{ font-family:'Barlow',sans-serif; font-size:14px; color:#cdbfa6; margin:0 0 12px; line-height:1.5; }
+
+  /* ---------- SIGN IN / SIGN UP (Fire Pro handles its own auth now) ---------- */
+  .fp-oauth{ display:flex; flex-direction:column; gap:11px; width:100%; max-width:420px; margin:0 auto; }
+  .fp-obtn{
+    display:flex; align-items:center; justify-content:center; gap:11px; cursor:pointer;
+    font-family:'Press Start 2P',monospace; font-size:10px; letter-spacing:1px; line-height:1;
+    padding:16px 14px; border-radius:9px; border:2px solid rgba(255,255,255,.32);
+    color:#fff; background:#2a1215; transition:.13s; text-transform:uppercase;
+  }
+  .fp-obtn:hover{ border-color:#fff; transform:translateY(-1px); box-shadow:0 6px 20px -6px #000; }
+  .fp-obtn:active{ transform:translateY(1px); }
+  .fp-obtn[disabled]{ opacity:.55; cursor:wait; }
+  .fp-obtn .ic{ font-size:15px; line-height:1; }
+  .fp-obtn.discord{ background:linear-gradient(180deg,#6b78d8,#4b57b5); }
+  .fp-obtn.google{ background:linear-gradient(180deg,#f6f6f6,#dcdcdc); color:#1a1a1a; text-shadow:none; border-color:#fff; }
+  .fp-obtn.twitch{ background:linear-gradient(180deg,#9a5ce0,#7127c4); }
+  .fp-obtn.email{ background:linear-gradient(180deg,#3a2226,#25161a); }
+  .fp-legal{ font-family:'Barlow',sans-serif; font-size:12px; color:#9a8f86; max-width:420px; margin:14px auto 0; line-height:1.5; }
+
+  /* ---------- GUIDED PATH (what a newcomer should do next) ---------- */
+  .fp-stepbar{
+    display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap;
+    width:min(360px,86vw); margin:2px auto 4px;
+  }
+  .fp-stepbar .pip{
+    font-family:'Press Start 2P',monospace; font-size:7px; letter-spacing:.5px; padding:6px 8px; border-radius:5px;
+    border:1px solid #4a2020; color:#8d7a72; background:rgba(0,0,0,.25); white-space:nowrap;
+  }
+  .fp-stepbar .pip.done{ border-color:#2f6b4f; color:#3ECF8E; }
+  .fp-stepbar .pip.now{ border-color:#ffd23f; color:#0a0506; background:#ffd23f; }
+  .fp-mbtn.next{ border-color:#ffd23f; box-shadow:0 0 0 1px rgba(255,210,63,.35), 0 0 22px -6px #ffd23f; }
+  .fp-mbtn .flag{
+    display:inline-block; margin-left:8px; padding:4px 6px; border-radius:4px; vertical-align:middle;
+    font-size:7px; letter-spacing:.5px; background:#ffd23f; color:#0a0506; text-shadow:none;
+  }
+  .fp-mbtn.primary .flag{ background:#0a0506; color:#ffd23f; }
+  /* the salmon sub-label is unreadable on the gold primary button */
+  .fp-mbtn.primary .sub{ color:#6b3a00; }
+  .fp-hero{
+    font-family:'Barlow',sans-serif; font-size:14px; line-height:1.6; color:#e7d6bd;
+    width:min(520px,88vw); margin:0 auto 4px; text-align:center;
+  }
+  .fp-hero b{ color:#ffd23f; }
+
   .fp-sub-row{ display:flex; gap:10px; align-items:center; padding:8px 0; border-top:1px solid #2a1010; font-family:'Barlow'; font-size:14px; cursor:pointer; }
   .fp-sub-row .ev{ color:#ffd23f; font-weight:600; flex:1; }
   .fp-sub-row .st{ font-size:12px; color:#9fb0c2; }
@@ -558,8 +602,31 @@
     <div class="fp-inner">
       <img class="fp-logo sm" src="../icons/firepro-logo.png" alt="WCA Fire Pro"
            onerror="this.style.display='none';">
+      <p class="fp-hero" id="fp-hero"></p>
+      <div class="fp-stepbar" id="fp-stepbar"></div>
       <div class="fp-menu" id="fp-menu"><!-- buttons injected by JS --></div>
       <div class="fp-who" id="fp-who"></div>
+    </div>
+  </section>
+
+  <!-- ---------- SCREEN: SIGN IN / SIGN UP ----------
+       Fire Pro now handles its own auth. Same Supabase project as the main
+       WCA site, so an account made here works there too (and vice-versa) —
+       but a newcomer arriving from a YouTube link never has to leave. -->
+  <section class="fp-screen" id="scr-signin">
+    <div class="fp-inner wide">
+      <h2 class="fp-h">SIGN IN</h2>
+      <p class="fp-guide" id="signin-guide">One tap and you're in. No password to make, no form to fill.</p>
+
+      <div class="fp-oauth" id="signin-buttons"></div>
+      <div class="fp-msg" id="signinMsg" style="text-align:center;margin-top:14px"></div>
+
+      <p class="fp-legal">
+        Your Fire Pro account is your WCA account — the same login works on the main site.
+        We only ever see your display name and email; we never post anything on your behalf.
+      </p>
+
+      <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
     </div>
   </section>
 
@@ -659,7 +726,7 @@
       <div class="fp-card">
         <h3>Account</h3>
         <p class="fp-cardsub" id="set-account">—</p>
-        <button class="fp-btn danger" onclick="fpSignOut()">SIGN OUT</button>
+        <div id="set-account-btn"></div>
       </div>
 
       <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
@@ -733,11 +800,32 @@ let FP = {};                 // the whole site_settings.firepro blob
 let LANDING = {};            // FP.landing (admin-editable hub copy)
 let ME = { user:null, username:null, promo:null, owner:null, hasPromo:false, wallet:null, season:null };
 let OPEN_EVENT = null;       // currently-open event (or null)
+let CLOSED_EVENT = null;     // an event that exists but whose deadline/close has passed
 let HAS_ARCHIVE = false;     // any completed events?
+
+/* An event only counts as open if it says open, wasn't manually closed, and its
+   deadline is still in the future. Kept identical to builder.html's eventIsOpen()
+   and the admin's evEffectiveStatus() so all three agree. */
+function fpEventIsOpen(ev){
+  if(!ev) return false;
+  if(ev.status !== 'open') return false;
+  if(ev.manual_close) return false;
+  if(ev.deadline){ try{ if(Date.now() > new Date(ev.deadline).getTime()) return false; }catch(e){} }
+  return true;
+}
 
 // Pull the admin-editable copy + music settings (same site_settings.firepro row).
 async function fpLoadCopy(){
-  if(!sb) return;
+  // If Supabase itself couldn't load (blocked script, flaky connection, ad
+  // blocker), we used to bail out here — which left the main menu completely
+  // EMPTY after Press Start, with no explanation. Now the menu still draws
+  // with its default labels so the page is never a dead end.
+  if(!sb){
+    renderMenu();
+    const who=document.getElementById('fp-who');
+    if(who) who.innerHTML='<span style="color:#ff8a89">Couldn\'t reach the server — sign-in and booking are unavailable. Try a refresh.</span>';
+    return;
+  }
   try{
     const { data } = await sb.from('site_settings').select('firepro').eq('id',1).single();
     FP = (data && data.firepro) ? data.firepro : {};
@@ -791,12 +879,27 @@ async function fpLoadCopy(){
   // open event + archive availability (for PLAY button state)
   try{
     const { data } = await sb.from('fp_events').select('*').eq('status','open').order('id',{ascending:false}).limit(1);
-    if(data && data.length) OPEN_EVENT = data[0];
+    // An event is only really open if it hasn't been manually closed AND its
+    // deadline hasn't passed — same rule builder.html enforces. Without this
+    // the hub kept advertising "Event open" after the deadline, and anyone who
+    // clicked through landed on a read-only builder wondering what went wrong.
+    if(data && data.length){
+      if(fpEventIsOpen(data[0])) OPEN_EVENT = data[0];
+      else CLOSED_EVENT = data[0];   // exists, but submissions have shut — say so plainly
+    }
   }catch(e){}
   try{
-    const { count } = await sb.from('fp_events').select('id',{count:'exact',head:true}).eq('status','completed');
+    // Test events never reach the public archive, so they must not unlock the
+    // PAST EVENTS button either — otherwise it opens onto an empty page.
+    const { count } = await sb.from('fp_events').select('id',{count:'exact',head:true})
+      .eq('status','completed').or('is_test.eq.false,is_test.is.null');
     HAS_ARCHIVE = (count||0)>0;
-  }catch(e){}
+  }catch(e){
+    try{
+      const { count } = await sb.from('fp_events').select('id',{count:'exact',head:true}).eq('status','completed');
+      HAS_ARCHIVE = (count||0)>0;
+    }catch(_){}
+  }
 
   renderMenu();
 }
@@ -804,7 +907,7 @@ async function fpLoadCopy(){
 /* ============================================================
    SCREEN SWITCHING  (cross-fade + remember-where-you-were)
    ============================================================ */
-const FP_SCREENS = ['start','menu','play','tutorial','promo','roster','settings'];
+const FP_SCREENS = ['start','menu','signin','play','tutorial','promo','roster','settings'];
 const FP_SCREEN_KEY = 'fpHubScreen';
 let _fpCurScreen = 'start';
 let _fpFading = false;
@@ -817,6 +920,7 @@ function _fpPrepScreen(name){
   // load each screen's content + set BACK label, then run lazy loaders
   const back=document.getElementById('fp-back');
   if(back) back.textContent = (name==='start'||name==='menu') ? '◄ BACK' : '◄ MENU';
+  if(name==='signin')  renderSignIn();
   if(name==='play')    renderPlayScreen();
   if(name==='tutorial') renderTutorial();
   if(name==='promo')    fillPromoForm();
@@ -884,29 +988,43 @@ function renderMenu(){
   const m = LANDING.menu || {};
   const playLabel = m.play || 'PLAY';
   const items = [];
+  const next = fpNextStep();
+
+  // SIGN IN — only while signed out, and it sits first because it's step 1
+  if(!ME.user){
+    items.push({ key:'signin', label:(m.signin||'SIGN IN / SIGN UP'),
+                 sub:'Discord, Google or Twitch — takes one tap', cls:'primary', fn:"fpShow('signin')" });
+  }
 
   // PLAY — primary; opens the event-vs-practice choice
   let playSub='Scheduled event or practice draft';
   if(!ME.hasPromo) playSub='Practice now, or make a promotion to play events';
   else if(OPEN_EVENT) playSub='Event open: '+(OPEN_EVENT.name||'now')+' · or practice';
-  items.push({ key:'play', label:playLabel, sub:playSub, cls:'primary', fn:'fpPlay()' });
+  items.push({ key:'play', label:playLabel, sub:playSub, cls:(ME.user?'primary':''), fn:'fpPlay()' });
 
-  items.push({ key:'tutorial', label:(m.tutorial||'TUTORIAL'), sub:'How to play', fn:"fpShow('tutorial')" });
+  items.push({ key:'tutorial', label:(m.tutorial||'TUTORIAL'), sub:'What this is & how to play', fn:"fpShow('tutorial')" });
   items.push({ key:'promo', label:(m.promo||'CREATE A PROMOTION'), sub:(ME.hasPromo?('Yours: '+ME.promo):'Required to play'), fn:"fpShow('promo')" });
   items.push({ key:'roster', label:(m.roster||'ROSTER'), sub:'Browse wrestlers & costs', fn:"fpShow('roster')" });
   items.push({ key:'archive', label:(m.archive||'PAST EVENTS'), sub:(HAS_ARCHIVE?'Watch past shows':'None yet'), cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?'goArchive()':'') });
-  items.push({ key:'settings', label:(m.settings||'SETTINGS'), sub:(ME.user?'Account & submissions':'Sign in on WCA'), fn:"fpShow('settings')" });
+  items.push({ key:'settings', label:(m.settings||'SETTINGS'), sub:(ME.user?'Account, wallet & submissions':'Sign in first'), fn:"fpShow('settings')" });
 
-  host.innerHTML = items.map(it=>
-    '<button class="fp-mbtn '+(it.cls||'')+'" '+(it.fn?('onclick="'+it.fn+'"'):'')+'>'+
-      esc(it.label)+'<span class="sub">'+esc(it.sub||'')+'</span></button>'
-  ).join('');
+  host.innerHTML = items.map(it=>{
+    const isNext = next && next.key===it.key;
+    const cls = (it.cls||'') + (isNext?' next':'');
+    const flag = isNext ? '<span class="flag">'+esc(next.flag)+'</span>' : '';
+    const sub  = isNext ? next.why : (it.sub||'');
+    return '<button class="fp-mbtn '+cls.trim()+'" '+(it.fn?('onclick="'+it.fn+'"'):'')+'>'+
+      esc(it.label)+flag+'<span class="sub">'+esc(sub)+'</span></button>';
+  }).join('');
+
+  fpRenderHero();
+  fpRenderStepBar();
 
   const who=document.getElementById('fp-who');
   if(who){
     let line = ME.user
       ? ('Signed in: <b>'+esc(ME.username||'Player')+'</b>'+(ME.hasPromo?(' · '+esc(ME.promo)):''))
-      : 'Not signed in — some options need a WCA login.';
+      : 'Not signed in — you can look around, but booking needs an account.';
     if(ME.user && ME.season){
       if(ME.wallet){
         if(ME.wallet.eliminated){
@@ -924,10 +1042,154 @@ function renderMenu(){
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+/* ============================================================
+   SIGN IN / SIGN UP  —  handled right here, on the Fire Pro side
+   ------------------------------------------------------------
+   This page talks to the SAME Supabase project as the main WCA
+   site, so an account created here is a full WCA account and the
+   session carries over both ways. The point of doing it here is
+   that someone arriving cold from a YouTube link can go from
+   "never heard of this" to "card submitted" without ever being
+   bounced to the main site.
+
+   TO ADD OR REMOVE A BUTTON: edit FP_PROVIDERS below. Each entry
+   must ALSO be enabled in Supabase → Authentication → Providers,
+   and this page's URL must be listed in Supabase → Authentication
+   → URL Configuration → Redirect URLs, or the login will bounce
+   back to the main site instead of here.
+   ============================================================ */
+const FP_PROVIDERS = [
+  { id:'discord', label:'CONTINUE WITH DISCORD', icon:'🎮', cls:'discord' },
+  { id:'google',  label:'CONTINUE WITH GOOGLE',  icon:'🅖',  cls:'google'  },
+  { id:'twitch',  label:'CONTINUE WITH TWITCH',  icon:'📺', cls:'twitch'  }
+];
+
+// Where OAuth should drop the visitor back — this exact page, no query/hash.
+function fpRedirectTarget(){
+  return window.location.origin + window.location.pathname;
+}
+
+function renderSignIn(){
+  const g=document.getElementById('signin-guide');
+  if(g) g.textContent = LANDING.signinGuide ||
+    'Pick whichever account you already have. One tap and you\'re in — no password to make, nothing to fill in.';
+  const host=document.getElementById('signin-buttons'); if(!host) return;
+  const msg=document.getElementById('signinMsg'); if(msg){ msg.textContent=''; msg.className='fp-msg'; }
+
+  if(ME.user){
+    host.innerHTML='<p class="fp-cardsub" style="text-align:center">You\'re already signed in as <b style="color:#ffd23f">'+
+      esc(ME.username||'Player')+'</b>.</p>'+
+      '<button class="fp-btn primary" onclick="fpToMenu()">CONTINUE ►</button>';
+    return;
+  }
+  host.innerHTML = FP_PROVIDERS.map(p=>
+    '<button class="fp-obtn '+p.cls+'" id="oauth-'+p.id+'" onclick="fpOAuth(\''+p.id+'\')">'+
+      '<span class="ic">'+p.icon+'</span>'+esc(p.label)+
+    '</button>'
+  ).join('');
+}
+
+async function fpOAuth(provider){
+  const msg=document.getElementById('signinMsg');
+  const btn=document.getElementById('oauth-'+provider);
+  if(!sb){
+    if(msg){ msg.className='fp-msg err'; msg.textContent='Can\'t reach the server right now. Try again in a moment.'; }
+    return;
+  }
+  if(btn){ btn.disabled=true; }
+  if(msg){ msg.className='fp-msg'; msg.textContent='Opening '+provider+'…'; }
+  // remember the music position so it resumes when they come back from the provider
+  _fpSaveState();
+  try{ sessionStorage.setItem('fpAuthReturn','1'); }catch(e){}
+  try{
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: provider,
+      options: { redirectTo: fpRedirectTarget() }
+    });
+    if(error) throw error;
+    // on success the browser navigates away to the provider; nothing else to do
+  }catch(e){
+    if(btn){ btn.disabled=false; }
+    const m=(e&&e.message)||String(e);
+    if(msg){
+      msg.className='fp-msg err';
+      msg.textContent = /provider is not enabled/i.test(m)
+        ? 'That sign-in option isn\'t switched on yet. Try another one.'
+        : 'Couldn\'t start sign-in: '+m;
+    }
+  }
+}
+
+/* After the provider bounces them back, the URL carries ?code=… (PKCE).
+   supabase-js consumes it automatically; we just tidy the address bar so
+   a refresh or a copied link stays clean. */
+function fpCleanAuthUrl(){
+  try{
+    const u=new URL(window.location.href);
+    let dirty=false;
+    ['code','error','error_description','state','provider_token'].forEach(k=>{
+      if(u.searchParams.has(k)){ u.searchParams.delete(k); dirty=true; }
+    });
+    if(/access_token|refresh_token/.test(u.hash)){ u.hash=''; dirty=true; }
+    if(dirty) window.history.replaceState({}, document.title, u.pathname+(u.search||'')+(u.hash||''));
+  }catch(e){}
+}
+function fpArrivedFromAuth(){
+  try{
+    const has = /[?&](code|error)=/.test(window.location.search) || /access_token=/.test(window.location.hash);
+    const flag = sessionStorage.getItem('fpAuthReturn')==='1';
+    if(flag) sessionStorage.removeItem('fpAuthReturn');
+    return has || flag;
+  }catch(e){ return false; }
+}
+
+/* ============================================================
+   THE GUIDED PATH
+   ------------------------------------------------------------
+   Works out the ONE thing this visitor should do next, so the
+   menu can point at it instead of leaving a newcomer to guess
+   the order. Returns null once they're all set up.
+   ============================================================ */
+function fpNextStep(){
+  if(!ME.user)      return { key:'signin', flag:'START HERE', why:'Sign in to get started' };
+  if(!ME.hasPromo)  return { key:'promo',  flag:'YOU\'RE UP',  why:'Name your promotion' };
+  if(ME.season && !ME.wallet) return { key:'settings', flag:'YOU\'RE UP', why:'Join the season to get your bankroll' };
+  if(ME.season && ME.wallet && !ME.wallet.eliminated && OPEN_EVENT) return { key:'play', flag:'SHOW\'S OPEN', why:'Book your card' };
+  return null;
+}
+function fpRenderStepBar(){
+  const host=document.getElementById('fp-stepbar'); if(!host) return;
+  const next=fpNextStep();
+  // Only newcomers need the ladder. Once they're set up it disappears.
+  if(!next){ host.innerHTML=''; host.style.display='none'; return; }
+  host.style.display='flex';
+  const steps=[
+    { key:'signin',   label:'1 SIGN IN',  done:!!ME.user },
+    { key:'promo',    label:'2 PROMOTION',done:!!ME.hasPromo },
+    { key:'settings', label:'3 BANKROLL', done:!!ME.wallet },
+    { key:'play',     label:'4 BOOK',     done:false }
+  ];
+  host.innerHTML = steps.map(s=>{
+    const cls = s.key===next.key ? 'pip now' : (s.done ? 'pip done' : 'pip');
+    return '<span class="'+cls+'">'+esc(s.label)+'</span>';
+  }).join('');
+}
+function fpRenderHero(){
+  const host=document.getElementById('fp-hero'); if(!host) return;
+  // Newcomers get the pitch; regulars get their status line and no clutter.
+  if(ME.user && ME.hasPromo){ host.style.display='none'; host.innerHTML=''; return; }
+  host.style.display='block';
+  host.innerHTML = LANDING.hero || (
+    'You\'re a wrestling promoter. <b>Build the best show you can afford</b>, submit it, '+
+    'and watch it get played for real on stream — the better your matches are rated, the more you get paid.'
+  );
+}
+
 /* PLAY gate → opens the PLAY screen (event vs practice). Practice never needs a
    promotion; only the Scheduled-Event option does, so gate that inside the screen. */
 function fpPlay(){
-  if(!ME.user){ openNeedPromo('You need to sign in on the WCA site first to play.'); return; }
+  // Signed out? Send them to the Fire Pro sign-in screen — no trip to the main site.
+  if(!ME.user){ fpShow('signin'); return; }
   fpShow('play');
 }
 function renderPlayScreen(){
@@ -938,8 +1200,15 @@ function renderPlayScreen(){
     sub.innerHTML='Create a promotion first (in the menu) to enter scheduled events.';
     btn.style.display='none';
   } else if(OPEN_EVENT){
-    sub.innerHTML='<b style="color:#ffd23f">'+esc(OPEN_EVENT.name||'A show')+'</b> is open for booking — get your card in and be ready for the season.';
+    let line='<b style="color:#ffd23f">'+esc(OPEN_EVENT.name||'A show')+'</b> is open for booking — get your card in and be ready for the season.';
+    if(OPEN_EVENT.deadline){
+      try{ line+='<br><span style="color:#9be0ff">Submissions close '+new Date(OPEN_EVENT.deadline).toLocaleString()+'.</span>'; }catch(e){}
+    }
+    sub.innerHTML=line;
     btn.style.display='';
+  } else if(CLOSED_EVENT){
+    sub.innerHTML='<b style="color:#ffd23f">'+esc(CLOSED_EVENT.name||'The last show')+'</b> has closed for submissions — results are on the way. Watch for the next one!';
+    btn.style.display='none';
   } else {
     sub.innerHTML='No event is scheduled right now. Check back when the next show is announced!';
     btn.style.display='none';
@@ -967,9 +1236,47 @@ window.addEventListener('load', ()=>{
   fpLoadCopy().then(()=>{ fpPlayerInit(); fpRestoreScreen(); }).catch(()=>{ fpPlayerInit(); fpRestoreScreen(); });
 });
 
+/* If the session lands a beat after the first paint (the PKCE code exchange
+   can finish just after load), pick it up and refresh the menu rather than
+   leaving someone looking at a "not signed in" screen they just signed into. */
+if(sb && sb.auth && sb.auth.onAuthStateChange){
+  let _fpAuthSettled=false;
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(event!=='SIGNED_IN' && event!=='TOKEN_REFRESHED') return;
+    if(_fpAuthSettled) return;
+    if(ME.user && session && session.user && ME.user.id===session.user.id) return;
+    _fpAuthSettled=true;
+    fpLoadCopy().then(()=>{
+      if(_fpCurScreen==='signin'){
+        const next=fpNextStep();
+        fpShow((next && next.key==='promo') ? 'promo' : 'menu');
+      } else {
+        _fpPrepScreen(_fpCurScreen);
+      }
+    }).catch(()=>{});
+  });
+}
+
 // On refresh, jump back to the screen the visitor was on — UNLESS they were at
 // the menu or Press Start, in which case we show Press Start (your rule).
 function fpRestoreScreen(){
+  // 1) Just came back from Discord/Google/Twitch? Don't dump them on Press
+  //    Start again — tidy the URL and drop them at the next thing to do.
+  if(fpArrivedFromAuth()){
+    fpCleanAuthUrl();
+    _fpStarted = true;
+    const next = fpNextStep();
+    fpShow((next && next.key==='promo') ? 'promo' : 'menu', {instant:true});
+    return;
+  }
+  // 2) Deep link straight to sign-in (used by the builder / draft pages)
+  let hash=''; try{ hash=(window.location.hash||'').replace('#','').toLowerCase(); }catch(e){}
+  if(hash==='signin' || hash==='account' || hash==='login'){
+    _fpStarted = true;
+    fpShow('signin', {instant:true});
+    return;
+  }
+  // 3) Normal behaviour — resume where they were, otherwise Press Start.
   let saved='start';
   try{ saved = sessionStorage.getItem(FP_SCREEN_KEY) || 'start'; }catch(e){}
   if(saved && saved!=='start' && FP_SCREENS.includes(saved)){
@@ -1025,11 +1332,14 @@ function renderTutorial(){
   if(w) w.textContent = LANDING.welcome || 'Welcome to WCA Fire Pro! Here\'s how it works.';
   const host=document.getElementById('tut-steps'); if(!host) return;
   const steps = Array.isArray(LANDING.steps) && LANDING.steps.length ? LANDING.steps : [
+    'Sign in with Discord, Google or Twitch — one tap, right here. No separate account to make.',
     'Create a Promotion — your company name is your identity in the league.',
+    'Join the season in SETTINGS to get your starting bankroll. That money is yours to spend all season.',
     'When an event opens, hit PLAY to build your card for that show.',
-    'Fill every match: pick a stipulation, drag wrestlers in, and stay under budget.',
+    'Fill every match: pick a stipulation, drag wrestlers in, and stay inside your wallet.',
     'Submit before the deadline. You can keep editing until submissions close.',
-    'The commissioner rates each match and pays out winners. Watch the results in Past Events!'
+    'The commissioner plays the best cards live and rates every match. Better matches pay more — and that money funds your next card.',
+    'Run out of money and you\'re done for the season, so book smart. Results land in Past Events.'
   ];
   host.innerHTML = steps.map((s,i)=>
     '<div class="fp-step"><span class="num">'+(i+1)+'</span><div class="txt">'+esc(s)+'</div></div>'
@@ -1048,12 +1358,14 @@ function fillPromoForm(){
   const msg=document.getElementById('promoMsg'); if(msg){ msg.textContent=''; msg.className='fp-msg'; }
   if(!ME.user){
     const m=document.getElementById('promoMsg');
-    if(m){ m.textContent='You need to sign in on the WCA site first.'; m.className='fp-msg err'; }
+    if(m){ m.textContent='Sign in first — takes one tap, then come right back.'; m.className='fp-msg err'; }
+    // don't strand them on a form they can't submit
+    setTimeout(()=>{ if(!ME.user && _fpCurScreen==='promo') fpShow('signin'); }, 900);
   }
 }
 async function savePromotion(){
   const msg=document.getElementById('promoMsg');
-  if(!ME.user){ msg.textContent='Sign in on WCA first, then come back.'; msg.className='fp-msg err'; return; }
+  if(!ME.user){ msg.textContent='Sign in first, then come back.'; msg.className='fp-msg err'; fpShow('signin'); return; }
   const name=(document.getElementById('promoNameInput').value||'').trim();
   const owner=(document.getElementById('promoOwnerInput').value||'').trim();
   if(!name){ msg.textContent='Give your promotion a name.'; msg.className='fp-msg err'; return; }
@@ -1183,14 +1495,23 @@ async function renderSettings(){
   const g=document.getElementById('settings-guide');
   if(g) g.textContent = LANDING.settingsGuide || 'Manage your promotion, review your submissions, and sign out.';
   document.getElementById('set-promo-current').textContent = ME.hasPromo ? (ME.promo+(ME.owner?(' · '+ME.owner):'')) : 'You haven\'t created a promotion yet.';
-  document.getElementById('set-account').textContent = ME.user ? ('Signed in as '+(ME.username||'Player')) : 'Not signed in.';
+  document.getElementById('set-account').textContent = ME.user
+    ? ('Signed in as '+(ME.username||'Player'))
+    : 'Not signed in. Your Fire Pro account is your WCA account — one login covers both.';
+  const accBtn=document.getElementById('set-account-btn');
+  if(accBtn){
+    accBtn.innerHTML = ME.user
+      ? '<button class="fp-btn danger" onclick="fpSignOut()">SIGN OUT</button>'
+      : '<button class="fp-btn primary" onclick="fpShow(\'signin\')">SIGN IN / SIGN UP ►</button>';
+  }
   // --- season wallet ---
   fpRenderWallet();
   // my submissions — full detailed breakdown (match-by-match, gate, curveballs),
   // same shape as the public archive view, but scoped to just this booker's own
   // cards so it's useful even before/without an event being published yet.
   const host=document.getElementById('set-subs');
-  if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to see your submissions.</p>'; return; }
+  if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to see your submissions.</p>'+
+    '<button class="fp-btn" onclick="fpShow(\'signin\')">SIGN IN ►</button>'; return; }
   host.innerHTML='<p class="fp-cardsub">Loading…</p>';
   try{
     const { data:cards } = await sb.from('fp_cards').select('id,event_id,reviewed,payout,total_cost,venue_key,ticket_price,gate_paid').eq('booker_id',ME.user.id);
@@ -1291,7 +1612,8 @@ function toggleMySub(uid){
 }
 function fpRenderWallet(){
   const host=document.getElementById('set-wallet'); if(!host) return;
-  if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to join the season.</p>'; return; }
+  if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to join the season and get your bankroll.</p>'+
+    '<button class="fp-btn primary" onclick="fpShow(\'signin\')">SIGN IN ►</button>'; return; }
   if(!ME.season){ host.innerHTML='<p class="fp-cardsub">No season is active right now. Check back when the next one opens.</p>'; return; }
   const sName=esc(ME.season.name||'Current season');
   if(ME.wallet){
@@ -1331,7 +1653,7 @@ async function fpJoinSeason(){
     let nice='Could not join: '+m;
     if(m.indexOf('ELIMINATED_NO_REJOIN')>=0) nice='You were eliminated this season and can\'t buy back in. Catch the next one.';
     else if(m.indexOf('NO_ACTIVE_SEASON')>=0) nice='No season is active right now.';
-    else if(m.indexOf('NOT_SIGNED_IN')>=0) nice='You need to be signed in (on the main WCA site) first.';
+    else if(m.indexOf('NOT_SIGNED_IN')>=0) nice='You need to be signed in first — head to SIGN IN on the menu.';
     if(msg){ msg.style.color='#ff6b6b'; msg.textContent=nice; }
     if(btn){ btn.disabled=false; btn.textContent='JOIN SEASON ►'; }
   }

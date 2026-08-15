@@ -455,9 +455,9 @@
       <div class="panel">
         <div class="panel-h">ONLINE PRACTICE LOBBIES</div>
         <div id="olAuthGate" class="hidden">
-          <p class="intro">You need your WCA account to play online (so your seat is really yours).</p>
+          <p class="intro">You need an account to play online (so your seat is really yours) — one tap with Discord, Google or Twitch.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn primary" onclick="olGoSignIn()">SIGN IN ON THE MAIN SITE ►</button>
+            <button class="btn primary" onclick="olGoSignIn()">SIGN IN ►</button>
             <button class="btn sm ghost" onclick="showMode()">◄ BACK</button>
           </div>
         </div>
@@ -1540,7 +1540,8 @@ async function chooseOnline(){
     if(data && data.length){ toast('Rejoining your lobby…'); olEnter(data[0].lobby_id); }
   }catch(_){}
 }
-function olGoSignIn(){ _fpSaveState(); window.location.href='../index.html#account'; }
+// Sign-in now lives on the Fire Pro hub itself (index.html#signin).
+function olGoSignIn(){ _fpSaveState(); window.location.href='index.html#signin'; }
 
 async function olRefreshAuth(){
   try{ const { data } = await sb.auth.getUser(); OL.me=(data&&data.user)?{id:data.user.id,email:data.user.email}:null; }

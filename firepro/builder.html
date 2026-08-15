@@ -351,8 +351,10 @@
 <!-- ===== LOGIN GATE (shown if not signed in) ===== -->
 <div id="gate" class="gate" style="display:none">
   <h1>BOOKERS ONLY</h1>
-  <p>You need to be signed in with your WCA account to book a show. Head back to the main site, log in, then come back through the Fire Pro portal.</p>
-  <button class="btn" onclick="goMain()">► GO TO WCA TO SIGN IN ◄</button>
+  <p>Sign in to book a show — one tap, right here. No separate account needed.</p>
+  <div id="gateOauth" style="display:flex;flex-direction:column;gap:11px;max-width:400px;margin:18px auto 0"></div>
+  <div id="gateMsg" style="font-family:'Barlow',sans-serif;font-size:13px;min-height:18px;margin-top:12px;color:#ff8a89"></div>
+  <button class="btn ghost" style="margin-top:14px" onclick="goZone()">◄ BACK TO FIRE PRO</button>
 </div>
 
 <!-- ===== DISABLED / NO-EVENT NOTICE ===== -->
@@ -497,14 +499,74 @@ function goZone(){ _fpSaveState(); window.location.href='index.html'; }
 function goMain(){ _fpSaveState(); window.location.href='../index.html'; }
 
 /* =====================================================================
+   SIGN IN — handled here, not on the main site
+   ---------------------------------------------------------------------
+   Same Supabase project as the main WCA site, so the account is shared,
+   but a newcomer who deep-linked straight to the builder can sign in
+   without being bounced anywhere. Keep FP_PROVIDERS in step with the
+   matching list in index.html.
+   ===================================================================== */
+const FP_PROVIDERS = [
+  { id:'discord', label:'CONTINUE WITH DISCORD', icon:'🎮', bg:'linear-gradient(180deg,#6b78d8,#4b57b5)', fg:'#fff' },
+  { id:'google',  label:'CONTINUE WITH GOOGLE',  icon:'🅖',  bg:'linear-gradient(180deg,#f6f6f6,#dcdcdc)', fg:'#1a1a1a' },
+  { id:'twitch',  label:'CONTINUE WITH TWITCH',  icon:'📺', bg:'linear-gradient(180deg,#9a5ce0,#7127c4)', fg:'#fff' }
+];
+function renderGateOauth(){
+  const host=byId('gateOauth'); if(!host) return;
+  host.innerHTML = FP_PROVIDERS.map(p=>
+    '<button class="btn" id="gateO-'+p.id+'" onclick="gateOauth(\''+p.id+'\')" '+
+      'style="background:'+p.bg+';color:'+p.fg+';border-color:#fff;box-shadow:none;font-size:10px;padding:15px 12px">'+
+      p.icon+'&nbsp;&nbsp;'+esc(p.label)+'</button>'
+  ).join('');
+}
+async function gateOauth(provider){
+  const msg=byId('gateMsg'), btn=byId('gateO-'+provider);
+  if(!sb){ if(msg) msg.textContent='Can\'t reach the server right now. Try again in a moment.'; return; }
+  if(btn) btn.disabled=true;
+  if(msg){ msg.style.color='#9be0ff'; msg.textContent='Opening '+provider+'…'; }
+  _fpSaveState();
+  try{
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: provider,
+      // come back to the builder itself, so they land where they were headed
+      options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if(error) throw error;
+  }catch(e){
+    if(btn) btn.disabled=false;
+    const m=(e&&e.message)||String(e);
+    if(msg){
+      msg.style.color='#ff8a89';
+      msg.textContent = /provider is not enabled/i.test(m)
+        ? 'That sign-in option isn\'t switched on yet. Try another one.'
+        : 'Couldn\'t start sign-in: '+m;
+    }
+  }
+}
+
+/* =====================================================================
    BOOT
    ===================================================================== */
 window.addEventListener('load', async ()=>{
   await loadSettings();
   await checkAuth();
+  fpCleanAuthUrl();     // tidy ?code=… off the address bar after an OAuth return
   // music player (carries over from the zone page)
   fpPlayerInit();
 });
+
+/* Strip the OAuth handshake params so a refresh or a copied link stays clean. */
+function fpCleanAuthUrl(){
+  try{
+    const u=new URL(window.location.href);
+    let dirty=false;
+    ['code','error','error_description','state','provider_token'].forEach(k=>{
+      if(u.searchParams.has(k)){ u.searchParams.delete(k); dirty=true; }
+    });
+    if(/access_token|refresh_token/.test(u.hash)){ u.hash=''; dirty=true; }
+    if(dirty) window.history.replaceState({}, document.title, u.pathname+(u.search||'')+(u.hash||''));
+  }catch(e){}
+}
 
 async function loadSettings(){
   if(!sb) return;
@@ -606,7 +668,7 @@ function showClosedNotice(msg){
   byId('closed').style.display='block';
   lockTop();
 }
-function showGate(){ byId('gate').style.display='block'; lockTop(); }
+function showGate(){ byId('gate').style.display='block'; renderGateOauth(); lockTop(); }
 function lockTop(){ byId('submitBtn').style.display='none'; }
 
 /* read-only: banner on, submit hidden, inputs disabled, drag off */

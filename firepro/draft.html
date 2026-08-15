@@ -411,12 +411,12 @@
     <div class="panel lobby-wrap">
       <div class="panel-h">LIVE LEAGUE DRAFT</div>
       <div class="statusline" id="lobStatus">LOOKING FOR AN ACTIVE DRAFT…</div>
-      <p class="intro" id="lobIntro">Sign in with your WCA account to claim a seat. The draft is run by the league admin — once it starts, your turn will light up here and you pick live against everyone else.</p>
+      <p class="intro" id="lobIntro">Sign in to claim a seat — Discord, Google or Twitch, one tap. The draft is run by the league admin — once it starts, your turn will light up here and you pick live against everyone else.</p>
 
       <!-- not signed in -->
       <div id="lobSignedOut" class="hidden">
-        <div class="waitmsg">SIGN IN TO YOUR<br>WCA ACCOUNT TO JOIN</div>
-        <div style="text-align:center"><button class="btn primary" onclick="goSignIn()">SIGN IN ON THE MAIN SITE ►</button></div>
+        <div class="waitmsg">SIGN IN<br>TO JOIN THE DRAFT</div>
+        <div style="text-align:center"><button class="btn primary" onclick="goSignIn()">SIGN IN ►</button></div>
       </div>
 
       <!-- signed in, can claim a seat -->
@@ -565,7 +565,9 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function money(n){n=parseInt(n,10);if(isNaN(n))n=0;return '$'+n.toLocaleString('en-US');}
 function toast(m,err){const t=byId('toast');t.textContent=m;t.className='show'+(err?' err':'');setTimeout(()=>t.className=t.className.replace('show','').trim(),3000);}
 function goHub(){ _fpSaveState(); window.location.href='index.html'; }
-function goSignIn(){ _fpSaveState(); window.location.href='../index.html#account'; }
+// Sign-in now lives on the Fire Pro hub itself (index.html#signin), so nobody
+// gets bounced out to the main WCA site just to claim a draft seat.
+function goSignIn(){ _fpSaveState(); window.location.href='index.html#signin'; }
 
 // ===== LIVE DRAFT STATE (mirrors the league tables) =====
 let ME=null;                 // { id, email } from auth
