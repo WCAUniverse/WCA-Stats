@@ -65,6 +65,16 @@
   .promo-head .stat{font-family:'Oswald';font-size:14px;white-space:nowrap;}
   .promo-head .stat.r{color:var(--gold2);} .promo-head .stat.p{color:var(--ok);}
   .promo-head .stat b{font-weight:700;}
+  /* placement badge + "this is you" marker */
+  .promo-head .place{font-family:'Press Start 2P',monospace;font-size:10px;color:#8a98a8;
+    border:1px solid var(--line);border-radius:7px;padding:9px 8px;min-width:52px;text-align:center;
+    white-space:nowrap;flex:0 0 auto;}
+  .promo-head .place.top{color:var(--gold2);border-color:var(--gold2);background:rgba(255,210,63,.09);}
+  .promo-head .youtag{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--ink);
+    background:var(--gold2);border-radius:4px;padding:4px 6px;margin-left:9px;vertical-align:middle;}
+  .promo-card.mine{border-color:var(--gold2);box-shadow:0 0 0 1px rgba(255,210,63,.28);}
+  .promo-card.mine .promo-head{background:rgba(255,210,63,.07);}
+  .ranknote{font-family:'Barlow',sans-serif;font-size:12.5px;color:#8a98a8;padding:2px 16px 12px;line-height:1.5;}
 
   .promo-body{display:none;padding:10px 14px 14px;}
   .promo-card.open .promo-body{display:block;}
@@ -157,6 +167,22 @@ const SUPABASE_KEY="sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
 let sb=null; try{ sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}}); }catch(e){}
 
 let WMAP={}, TMAP={}, STARS=false;
+let ME_ID=null;                 // signed-in visitor, so their own promotion stands out
+
+/* THE RANKING RULE — identical to fpRankCompare() in the Fire Pro admin and
+   fpsRankCompare() in the hub. Highest average match rating wins; a tie goes
+   to whoever finished further ahead on the night (earned - spent). Money on
+   its own never outranks a better show. */
+function rankCompare(aRating, aNet, bRating, bNet){
+  if(aRating==null && bRating==null) return (bNet||0)-(aNet||0);
+  if(aRating==null) return 1;
+  if(bRating==null) return -1;
+  if(bRating!==aRating) return bRating-aRating;
+  return (bNet||0)-(aNet||0);
+}
+function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function medalFor(place){ return place===1?'🥇':place===2?'🥈':place===3?'🥉':''; }
+function signedMoney(n){ n=Math.round(n||0); return (n<0?'−':'+')+money(Math.abs(n)); }
 function byId(id){ return document.getElementById(id); }
 function money(n){ n=parseInt(n,10); if(isNaN(n)) n=0; return '$'+n.toLocaleString('en-US'); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -165,6 +191,7 @@ function goZone(){ _fpSaveState(); location.href='index.html'; }
 function goBuilder(){ _fpSaveState(); location.href='builder.html'; }
 
 window.addEventListener('load', async ()=>{
+  try{ const { data } = await sb.auth.getUser(); if(data && data.user) ME_ID=data.user.id; }catch(e){}
   await loadMaps();
   await loadArchive();
   fpPlayerInit();
@@ -227,20 +254,32 @@ async function loadArchive(){
 
   let html='';
   events.forEach(ev=>{
-    const evCards=cards.filter(c=>c.event_id===ev.id)
-      .sort((a,b)=>String(a.promotion_name||'').localeCompare(String(b.promotion_name||'')));
+    // Cards used to be listed alphabetically, which meant a fan couldn't tell
+    // who actually won the night. Now they're RANKED by the same rule the
+    // season uses: best average match rating first, ties broken by who came
+    // out further ahead on the night.
+    const evCards=cards.filter(c=>c.event_id===ev.id).map(c=>{
+      const v = c.venue_key ? venueMap[c.venue_key] : null;
+      const gate = (v && c.ticket_price) ? v.capacity*c.ticket_price : 0;
+      const rental = v ? (v.rental_cost||0) : 0;
+      const spent = Math.max(0,(c.total_cost||0)-rental);
+      c._net = ((c.payout||0)+gate) - spent;
+      return c;
+    }).sort((a,b)=>rankCompare(a.score, a._net, b.score, b._net));
     html+='<div class="event"><div class="event-head">'+
       '<h2>'+esc(ev.name)+'</h2>'+
       (ev.subtitle?'<span class="sub">'+esc(ev.subtitle)+'</span>':'')+
       '<span class="date">'+(ev.completed_at?new Date(ev.completed_at).toLocaleDateString():'')+'</span>'+
-      '</div><div class="promos">';
+      '</div>'+
+      (evCards.length>1 ? '<p class="ranknote">Ranked by average match rating — that\'s what decides the season. A tie goes to whoever finished further ahead of what they spent.</p>' : '')+
+      '<div class="promos">';
     if(!evCards.length){
       html+='<p class="empty" style="padding:20px">No cards were submitted for this event.</p>';
     } else {
       evCards.forEach((c,ci)=>{
         const o=owners[c.booker_id]||{};
         const ms=byCard[c.id]||[];
-        html+=promoCardHtml(c,o,ms,ev.id+'_'+ci,venueMap,cbCatalogMap,cbResultsByCard[c.id]||[]);
+        html+=promoCardHtml(c,o,ms,ev.id+'_'+ci,venueMap,cbCatalogMap,cbResultsByCard[c.id]||[],ci+1,evCards.length);
       });
     }
     html+='</div></div>';
@@ -252,7 +291,7 @@ function sideName(side, win, idx){
   if(!Array.isArray(side)) return '';
   return side.map(id=>esc(WMAP[id]||('#'+id))).join(' & ');
 }
-function promoCardHtml(c,o,ms,uid,venueMap,cbCatalogMap,cbResults){
+function promoCardHtml(c,o,ms,uid,venueMap,cbCatalogMap,cbResults,place,fieldSize){
   venueMap=venueMap||{}; cbCatalogMap=cbCatalogMap||{}; cbResults=cbResults||[];
   const promo=c.promotion_name||o.promo||'—';
   const owner=o.owner||'';
@@ -309,11 +348,20 @@ function promoCardHtml(c,o,ms,uid,venueMap,cbCatalogMap,cbResults){
 
   const grandTotal = cardPay + gate + cbNet;
 
-  return '<div class="promo-card" id="pc_'+uid+'">'+
+  // Placement + "this is you" marker. Rating is the headline stat because
+  // rating is what actually decides the season — money is shown second so
+  // nobody chases the wrong number.
+  const isMe = ME_ID && String(c.booker_id)===String(ME_ID);
+  const medal = medalFor(place);
+  const placeTag = place ? '<span class="place'+(place<=3?' top':'')+'">'+(medal?medal+' ':'')+ordinal(place)+'</span>' : '';
+  const meTag = isMe ? '<span class="youtag">YOU</span>' : '';
+
+  return '<div class="promo-card'+(isMe?' mine':'')+'" id="pc_'+uid+'">'+
     '<div class="promo-head" onclick="togglePromo(\''+uid+'\')">'+
-      '<div><div class="pn">'+esc(promo)+'</div>'+(owner?'<div class="ow">'+esc(owner)+'</div>':'')+'</div>'+
-      '<span class="stat r">'+ (avg!=null?'<b>'+rateLabel(avg)+'</b> avg':'') +'</span>'+
-      '<span class="stat p"><b>'+money(grandTotal)+'</b> total</span>'+
+      placeTag+
+      '<div><div class="pn">'+esc(promo)+meTag+'</div>'+(owner?'<div class="ow">'+esc(owner)+'</div>':'')+'</div>'+
+      '<span class="stat r">'+ (avg!=null?'<b>'+rateLabel(avg)+'</b> avg rating':'<b>—</b>') +'</span>'+
+      '<span class="stat p"><b>'+money(grandTotal)+'</b> earned</span>'+
       '<span class="chev">▸</span>'+
     '</div>'+
     '<div class="promo-body">'+matchesHtml+
