@@ -1380,15 +1380,20 @@
     position:relative; margin:0 auto 16px; max-width:var(--cs-maxw);
     padding:22px 22px 26px;
     border:1px solid var(--line); border-radius:16px; overflow:hidden;
+    /* deliberately translucent — the site's animated space backdrop shows
+       through it, so character select sits in the same sky as every other
+       page instead of on a black slab */
     background:
       radial-gradient(1300px 620px at 50% -12%, var(--glow-gold), transparent 62%),
-      linear-gradient(180deg, var(--panel) 0%, var(--bg2) 100%);
+      linear-gradient(180deg, rgba(12,12,17,.52) 0%, rgba(7,7,10,.76) 100%);
     display:grid; align-items:stretch; justify-content:center; gap:22px;
     grid-template-columns:minmax(0,var(--cs-panel-w)) auto minmax(0,var(--cs-panel-w));}
 
   /* faint starfield so character select still reads as the same
      universe as the star map. Pure CSS — no extra requests. */
-  .cs-stars{position:absolute; inset:0; opacity:.55; pointer-events:none; z-index:0;
+  /* a few extra static stars inside the panel — the animated backdrop does
+     the heavy lifting behind it, this just keeps depth when it's turned off */
+  .cs-stars{position:absolute; inset:0; opacity:.34; pointer-events:none; z-index:0;
     background-image:
       radial-gradient(1.4px 1.4px at 12% 22%,#fff,transparent),
       radial-gradient(1.2px 1.2px at 68% 14%,#cfd6ff,transparent),
@@ -1443,10 +1448,37 @@
     opacity:0; transform:scale(1.03);
     transition:opacity .3s ease, transform .45s cubic-bezier(.2,.8,.2,1);}
   .cs-photo.in{opacity:1; transform:none;}
-  /* fallback when a competitor has no photo yet */
-  .cs-photo-init{position:absolute; inset:0; z-index:1; display:flex; align-items:center;
-    justify-content:center; background:var(--gold-deep);
+  /* fallback when a competitor has no photo yet — a silhouette, or whatever
+     default artwork the admin uploaded in Appearance */
+  .cs-photo-init{position:absolute; inset:0; z-index:1; display:flex; align-items:flex-end;
+    /* bottom padding keeps the figure's feet clear of the nameplate */
+    justify-content:center; overflow:hidden; padding:5% 6% 21%;
+    background:
+      radial-gradient(120% 66% at 50% 12%, rgba(var(--gold-rgb),.13), transparent 64%),
+      linear-gradient(180deg, var(--gold-deep) 0%, var(--panel2) 78%);
     font-family:'Oswald'; font-weight:700; font-size:96px; color:var(--gold);}
+  .cs-photo-init img{position:absolute; inset:0; width:100%; height:100%;
+    object-fit:var(--cs-pfit); object-position:50% 20%;}
+  /* the silhouette itself — currentColor, so it follows the theme accent */
+  /* ── SHARED "NO PHOTO ON FILE" PLACEHOLDER ──────────────────────────
+     Used by character select, the Events/Archive match squares, the profile
+     modal, the storylines feed, the star map dossier and the dashboard, so a
+     competitor with no picture looks the same everywhere on the site.
+     The name is printed on the placeholder wherever it fits and no name is
+     already shown beside it; the small tray icons show initials instead,
+     since a generic silhouette at that size tells you nothing. */
+  .wca-sil{display:block; width:100%; height:100%; color:rgba(var(--gold-rgb),.20);}
+  .wca-ph{position:relative; width:100%; height:100%; flex:1 1 auto; min-width:0;
+    display:flex; align-items:flex-end; justify-content:center; overflow:hidden;}
+  .wca-ph > img{position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:50% 20%;}
+  .wca-ph-init{font-size:inherit; line-height:1; color:inherit;
+    align-self:center; font-family:'Oswald'; font-weight:600; letter-spacing:2px;}
+  .wca-ph-name{position:absolute; left:0; right:0; bottom:0; z-index:2; padding:16px 5px 5px;
+    font-family:'Barlow Condensed'; font-weight:600; font-size:11px; letter-spacing:.6px;
+    text-transform:uppercase; text-align:center; color:#e8e6e0; line-height:1.15;
+    background:linear-gradient(0deg, rgba(0,0,0,.9) 30%, transparent);}
+  .cs-icon .wca-sil{color:rgba(var(--gold-rgb),.34);}
   /* gradient that keeps the name readable over any photo */
   .cs-fade{position:absolute; left:0; right:0; bottom:0; height:46%; z-index:2; pointer-events:none;
     background:linear-gradient(0deg, rgba(0,0,0,.93) 10%, rgba(0,0,0,.38) 48%, transparent);}
@@ -1520,8 +1552,10 @@
     background:var(--panel2); border:1px solid var(--line);
     transition:transform .12s, border-color .12s, box-shadow .12s;}
   .cs-icon img{width:100%; height:100%; object-fit:cover; object-position:50% 20%; display:block;}
-  .cs-icon .cs-icon-init{width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  .cs-icon .cs-icon-init{width:100%; height:100%; display:flex; align-items:flex-end; justify-content:center;
+    overflow:hidden; background:linear-gradient(180deg, var(--gold-deep), var(--panel2));
     font-family:'Oswald'; font-weight:700; font-size:15px; color:var(--gold);}
+  .cs-icon .cs-icon-init img{width:100%; height:100%; object-fit:cover; object-position:50% 20%;}
   @media(hover:hover){ .cs-icon:hover{border-color:var(--gold-dim); transform:translateY(-2px); z-index:2;} }
   /* outline instead of an inset shadow so the selection ring reads at
      small sizes and isn't clipped by the icon's own overflow */
@@ -4519,6 +4553,14 @@ async function applyTheme(){
     const root = document.documentElement;
     // Non-colour appearance settings ride along in the same theme record.
     window.SITE_CAMERA = (t && t.camera && typeof t.camera === 'object') ? t.camera : {};
+    // Admin-uploaded stand-in artwork for competitors with no photo:
+    // { male, female, neutral } image URLs. Empty = use the built-in
+    // silhouettes. Re-draw character select if it's already on screen.
+    window.SITE_DEFAULT_PHOTOS =
+      (t && t.default_photos && typeof t.default_photos === 'object') ? t.default_photos : {};
+    if(typeof renderRoster === 'function' && (window._roster||[]).length){
+      try{ renderRoster((document.getElementById('roster-search')||{}).value || ''); }catch(e){}
+    }
     if(typeof spaceRefresh === 'function') spaceRefresh();
     document.documentElement.dataset.surface  = (t && t.surface)  || 'solid';
     document.documentElement.dataset.backdrop = (t && t.backdrop) || 'space';
@@ -4958,15 +5000,28 @@ function mpBeltImgs(divs){
   }).join('');
 }
 // One square. extraDivs lets a team title ride along on each member's box.
+/* The stand-in for a competitor with no photo, shared by the Events card and
+   the Archive. Square boxes, so the head-and-shoulders crop. */
+function mpPlaceholder(name){
+  const w = (typeof wrestlerByName==='function' ? wrestlerByName(name) : null) || { name:name };
+  return wcaPlaceholder(w, { mode:'icon', name:true });
+}
+function mpNoPhoto(img, name){
+  if(img) img.outerHTML = `<div class="mp-init">${mpPlaceholder(name)}</div>`;
+}
 function mpBox(name, extraDivs){
   const src  = mpPhotoFor(name);
   const init = mpInitials(name);
   const divs = mpBeltsFor(name).concat(extraDivs||[]);
   const isCh = divs.length > 0;
+  // No photo -> the site silhouette WITH the name across the bottom: nothing
+  // else in a match row names these squares, so initials alone left you
+  // guessing. mpNoPhoto is a named handler because inlining the markup in an
+  // onerror attribute needed three levels of quote escaping.
   const inner = src
     ? `<img class="mp-photo" src="${esc(src)}" alt="${esc(name)}" loading="lazy"
-         onerror="this.outerHTML='<div class=\\'mp-init\\'>${esc(init)}</div>'">`
-    : `<div class="mp-init">${esc(init)}</div>`;
+         onerror="mpNoPhoto(this,'${escAttr(name)}')">`
+    : `<div class="mp-init">${mpPlaceholder(name)}</div>`;
   const belts = isCh ? mpBeltImgs(divs) : '';
   const over  = isCh ? `<div class="mp-belts">${belts}</div>` : '';
   const below = isCh ? `<div class="mp-belts-below">${belts}</div>` : '';
@@ -5948,12 +6003,17 @@ function filterNames(){
   if(ROSTER_FILTER==='Womens') return DIV_MEMBERS.Womens;
   return null;
 }
+// The card prints the name beside the avatar, so no name on the placeholder.
+function rcNoPhoto(img, name){
+  const w = wrestlerByName(name) || { name:name };
+  if(img && img.parentNode) img.parentNode.innerHTML = wcaPlaceholder(w,{mode:'icon'});
+}
 // Build a single roster card from a wrestler row.
 function rosterCard(w){
   const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
   const av = w.avatar_url
-    ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='${init}'"></div>`
-    : `<div class="av">${init}</div>`;
+    ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="rcNoPhoto(this,'${escAttr(w.name)}')"></div>`
+    : `<div class="av av-img">${wcaPlaceholder(w,{mode:'icon'})}</div>`;
   const sub = w.nickname ? `<div class="rmeta nick">"${esc(w.nickname)}"</div>` : '';
   // A stub = a faction member with no matching roster row (no profile to open).
   if(w._stub){
@@ -6040,6 +6100,91 @@ function bindRosterCards(scope){
   });
 }
 
+/* ===== DEFAULT COMPETITOR SILHOUETTES ==============================
+   A competitor with no photo used to fall back to their initials, which
+   looked like a bug next to a row of real portraits. Now they get a
+   silhouette instead, picked from their gender.
+
+   The admin can upload real artwork for these in Appearance → "Default
+   competitor photos", which saves to theme.default_photos as
+   { male, female, neutral } image URLs. When nothing is set, the inline
+   SVGs below are drawn instead — they cost no requests and inherit the
+   site's accent colour, so they always match the current theme.
+   =================================================================== */
+function defaultPhotoURL(gender){
+  const d = window.SITE_DEFAULT_PHOTOS || {};
+  const g = String(gender||'').toUpperCase();
+  const pick = g==='M' ? d.male : g==='F' ? d.female : d.neutral;
+  return String(pick || d.neutral || '').trim();
+}
+/* Full-body standing silhouettes, traced from the reference art so the pose
+   matches the 2K-style character renders on the roster. One drawing each;
+   the tray icons reuse it cropped to the head and shoulders, so a competitor
+   with no photo looks the same in both places.
+   Coordinates come straight from the trace, hence the <g transform> — it
+   flips the y axis into normal SVG space. */
+const SIL_ART = {
+  M:{ w:130, h:340, t:'translate(0.000000,340.000000) scale(0.100000,-0.100000)',
+      d:'M530 3377 c-56 -31 -94 -99 -85 -150 3 -23 6 -51 6 -62 -4 -83 -2 -96 17 -122 74 -104 -3 -203 -205 -261 -81 -24 -129 -96 -142 -215 -5 -41 -13 -82 -19 -93 -6 -11 -16 -52 -22 -90 -6 -38 -22 -103 -36 -144 -45 -140 -66 -629 -29 -660 109 -90 202 46 123 177 -23 39 -20 61 28 185 19 48 40 125 48 170 14 84 65 223 82 223 47 0 71 -268 40 -454 -8 -47 -23 -133 -32 -191 -24 -139 -24 -395 -1 -500 21 -95 21 -175 0 -320 -16 -112 -16 -120 5 -290 35 -274 29 -331 -48 -445 -64 -96 -49 -135 54 -135 133 0 176 66 169 265 -5 132 -3 148 28 280 29 125 33 154 31 270 -1 89 3 144 13 175 7 25 17 77 20 115 11 109 62 362 72 352 8 -9 60 -269 68 -340 4 -37 12 -82 17 -100 6 -18 14 -106 18 -197 5 -128 13 -191 34 -280 29 -117 34 -193 27 -336 -8 -131 51 -204 166 -204 106 1 121 40 54 140 -72 108 -81 200 -46 454 11 85 15 154 11 200 -26 291 -26 309 -8 391 30 138 23 367 -19 610 -49 286 -47 571 5 514 25 -27 64 -137 81 -224 9 -50 33 -125 56 -177 50 -110 56 -145 35 -187 -67 -130 -6 -223 115 -175 40 17 41 18 36 58 -5 38 -12 114 -36 412 -6 73 -19 139 -36 190 -14 43 -32 114 -40 159 -8 45 -21 98 -30 118 -8 20 -15 53 -15 72 0 109 -63 203 -153 231 -197 60 -258 135 -203 248 21 42 25 64 24 121 -1 39 1 79 5 91 7 20 3 28 -72 125 -27 35 -153 39 -211 6z' },
+  F:{ w:123, h:340, t:'translate(0.000000,340.000000) scale(0.100000,-0.100000)',
+      d:'M540 3380 c-14 -11 -44 -29 -67 -39 -47 -22 -80 -67 -89 -121 -6 -38 -22 -76 -55 -128 -19 -30 -20 -37 -9 -78 12 -42 11 -46 -14 -83 -24 -34 -27 -45 -21 -84 7 -44 6 -45 -27 -56 -71 -23 -113 -86 -133 -199 -29 -158 -55 -272 -75 -333 -24 -72 -53 -370 -48 -504 3 -80 3 -80 42 -93 42 -13 126 9 126 33 0 20 -35 110 -52 134 -19 26 -11 63 42 197 16 39 36 107 44 150 30 156 75 234 100 172 42 -103 42 -209 -1 -305 -99 -225 -126 -482 -79 -755 30 -170 33 -302 11 -428 -20 -115 -19 -195 6 -362 30 -195 20 -284 -40 -369 -70 -100 -52 -132 71 -127 100 4 123 46 126 236 2 111 7 147 42 286 34 134 40 174 40 262 0 72 6 126 20 176 10 40 24 111 30 158 23 194 70 388 83 344 18 -60 58 -261 67 -334 5 -47 19 -116 31 -155 13 -43 24 -119 29 -200 7 -106 16 -155 48 -265 33 -112 41 -157 47 -265 11 -195 44 -252 140 -242 114 12 133 44 71 120 -74 92 -89 183 -62 375 21 150 20 273 -4 411 -25 144 -25 181 2 355 47 297 19 553 -84 790 -40 92 -21 359 25 343 18 -6 77 -158 92 -232 7 -38 32 -116 54 -173 41 -103 50 -155 30 -168 -18 -10 -59 -106 -59 -136 0 -54 95 -76 158 -38 50 31 26 416 -38 620 -33 106 -53 183 -81 312 -21 102 -49 161 -84 183 -14 8 -36 22 -49 30 -22 13 -24 18 -15 47 7 27 5 38 -17 70 -20 28 -25 44 -20 65 19 75 18 77 -24 140 -22 34 -48 85 -56 115 -40 136 -188 216 -274 148z' }
+};
+// No gender set (and intergender) uses the generic figure.
+SIL_ART.N = SIL_ART.M;
+/* mode: 'icon' for the small tray squares (cropped to head and shoulders),
+   anything else for the full standing figure in the big portrait frame. */
+function silhouetteSVG(gender, mode){
+  const a = SIL_ART[String(gender||'').toUpperCase()] || SIL_ART.N;
+  const icon = mode === 'icon';
+  const vb = icon ? `0 0 ${a.w} ${Math.round(a.h*0.34)}` : `0 0 ${a.w} ${a.h}`;
+  return `<svg class="wca-sil${icon?' wca-sil-icon':''}" aria-hidden="true"
+    viewBox="${vb}" preserveAspectRatio="${icon?'xMidYMid slice':'xMidYMax meet'}">
+    <g transform="${a.t}" fill="currentColor"><path d="${a.d}"/></g></svg>`;
+}
+function wcaInitials(name){
+  return String(name||'?').trim().split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+}
+/* ONE place that decides what a competitor with no photo looks like, used
+   site-wide so the answer is the same on every page.
+
+   opts.mode    'icon' = head-and-shoulders crop (square boxes)
+                'full' = the whole standing figure (tall boxes)
+   opts.name    print the competitor's name across the bottom. Use it where
+                nothing else on screen names them — the Events squares, for
+                instance. Skip it where a name already sits alongside.
+   opts.initials  show initials instead of the silhouette. For boxes too small
+                to carry a name, where a generic figure identifies nobody.
+
+   An admin-uploaded default photo, when set, replaces the silhouette. */
+function wcaPlaceholder(w, opts){
+  opts = opts || {};
+  const name = (w && w.name) || '';
+  const url  = defaultPhotoURL(w && w.gender);
+  let art;
+  if(url)                art = `<img src="${esc(url)}" alt="${esc(name)}" loading="lazy">`;
+  else if(opts.initials) art = `<span class="wca-ph-init">${esc(wcaInitials(name))}</span>`;
+  else                   art = silhouetteSVG(w && w.gender, opts.mode || 'icon');
+  const label = (opts.name && name && !opts.initials)
+    ? `<div class="wca-ph-name">${esc(name)}</div>` : '';
+  return `<div class="wca-ph">${art}${label}</div>`;
+}
+// Kept for the character-select code below, which had it first.
+function noPhotoHTML(w, mode){ return wcaPlaceholder(w, {mode:mode}); }
+/* Shared onerror handler: swap a broken photo for the placeholder, filling
+   whatever box it was sitting in. Global on purpose — inline onerror runs in
+   global scope, and several of these boxes are built inside other modules. */
+function wcaBoxNoPhoto(img, name, mode){
+  const w = (typeof wrestlerByName==='function' && wrestlerByName(name)) || { name:name };
+  const box = img && img.parentNode;
+  if(box) box.innerHTML = wcaPlaceholder(w, { mode: mode || 'icon' });
+}
+// The star map builds its dossier in its own module; same behaviour, its own
+// wrapper class.
+function smNoPhoto(img, name){
+  const w = (typeof wrestlerByName==='function' && wrestlerByName(name)) || { name:name };
+  if(img) img.outerHTML = `<div class="sm-init">${wcaPlaceholder(w,{mode:'full'})}</div>`;
+}
+
 // ===== CHARACTER-SELECT ROSTER =====
 let CS_SELECTED = null;     // currently shown wrestler name
 function csInit(name){      // small icon markup for the tray
@@ -6047,13 +6192,24 @@ function csInit(name){      // small icon markup for the tray
   const init=String(name).split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
   return {w, init};
 }
-// Build one tray icon (uses avatar_url -> image_url -> initials).
+/* Build one tray icon. These are 66px squares with no name beside them, so
+   the no-photo fallback is INITIALS, not a silhouette — at that size a
+   generic figure identifies nobody. A broken photo URL lands here too. */
+function csIconFallback(img, name){
+  const w = wrestlerByName(name) || { name:name };
+  if(img && img.parentNode) img.parentNode.innerHTML =
+    `<div class="cs-icon-init">${wcaPlaceholder(w,{initials:true})}</div>`;
+}
+function csPhotoFallback(img, name){
+  const w = wrestlerByName(name) || { name:name };
+  if(img) img.outerHTML =
+    `<div class="cs-photo-init" id="cs-photo-holder">${noPhotoHTML(w,'full')}</div>`;
+}
 function csIconHTML(w){
-  const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
   const src=w.avatar_url||w.image_url||'';
   const inner=src
-    ? `<img src="${esc(src)}" alt="${esc(w.name)}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=&quot;cs-icon-init&quot;>${init}</div>'">`
-    : `<div class="cs-icon-init">${init}</div>`;
+    ? `<img src="${esc(src)}" alt="${esc(w.name)}" loading="lazy" onerror="csIconFallback(this,'${escAttr(w.name)}')">`
+    : `<div class="cs-icon-init">${wcaPlaceholder(w,{initials:true})}</div>`;
   const inactive=w.is_active===false?' inactive':'';
   const sel=CS_SELECTED===w.name?' sel':'';
   return `<div class="cs-icon${inactive}${sel}" data-name="${esc(w.name)}" title="${esc(w.name)}">${inner}</div>`;
@@ -6071,11 +6227,12 @@ function csSelect(name){
   const holder=document.getElementById('cs-photo-holder');
   if(big){
     holder.outerHTML=`<img class="cs-photo" id="cs-photo-holder" src="${esc(big)}" alt="${esc(w.name)}"
-      onerror="this.outerHTML='<div class=&quot;cs-photo-init&quot; id=&quot;cs-photo-holder&quot;>${init}</div>'">`;
+      onerror="csPhotoFallback(this,'${escAttr(w.name)}')">`;
     const img=document.getElementById('cs-photo-holder');
     if(img && img.tagName==='IMG'){ requestAnimationFrame(()=>img.classList.add('in')); }
   } else {
-    holder.outerHTML=`<div class="cs-photo-init" id="cs-photo-holder">${init}</div>`;
+    // no photo on file — silhouette (or the admin's uploaded default)
+    holder.outerHTML=`<div class="cs-photo-init" id="cs-photo-holder">${noPhotoHTML(w,'full')}</div>`;
   }
 
   // nameplate
@@ -6279,13 +6436,21 @@ function mhOpponents(r){
   });
   return opps.join(', ');
 }
+function pfNoPhoto(img, name){
+  const w = wrestlerByName(name) || { name:name };
+  const box = img && img.parentNode;
+  if(!box) return;
+  box.classList.add('pf-photo-init');
+  box.innerHTML = wcaPlaceholder(w,{mode:'full'});
+}
 function openProfile(w){
   if(!w) return;
   const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
   const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
+  // No name on the placeholder here — the modal prints it right beside.
   const photo = w.image_url
-    ? `<div class="pf-photo"><img src="${esc(w.image_url)}" alt="${esc(w.name)}" onerror="this.parentNode.innerHTML='${init}';this.parentNode.classList.add('pf-photo-init')"></div>`
-    : `<div class="pf-photo pf-photo-init">${init}</div>`;
+    ? `<div class="pf-photo"><img src="${esc(w.image_url)}" alt="${esc(w.name)}" onerror="pfNoPhoto(this,'${escAttr(w.name)}')"></div>`
+    : `<div class="pf-photo pf-photo-init">${wcaPlaceholder(w,{mode:'full'})}</div>`;
   let theme='';
   if(w.theme_song){
     theme = w.theme_url
@@ -8361,11 +8526,18 @@ function slAvatar(name, cls){
   const init = slInit(name);
   const c = cls || 'sl-av';
   const ic = c + '-init';
+  const ph = `<div class="${ic}">${wcaPlaceholder(w || {name:name}, {mode:'icon'})}</div>`;
   if(src){
     return `<img class="${c}" src="${esc(src)}" alt="${esc(name)}"
-      onerror="this.outerHTML='<div class=\\'${ic}\\'>${init}</div>'">`;
+      onerror="slNoPhoto(this,'${escAttr(name)}','${esc(ic)}')">`;
   }
-  return `<div class="${ic}">${init}</div>`;
+  return ph;
+}
+// The feed always prints the poster's name beside the avatar, so the
+// placeholder stays a plain silhouette — no name, no initials.
+function slNoPhoto(img, name, ic){
+  const w = wrestlerByName(name) || { name:name };
+  if(img) img.outerHTML = `<div class="${ic}">${wcaPlaceholder(w,{mode:'icon'})}</div>`;
 }
 // A handle: use payload.handle, else derive from the name.
 function slHandle(p){
@@ -10678,6 +10850,10 @@ const CAM_DEFAULTS = {
   // The Timeline is a journey between stars — a planet parked in the corner
   // fights that, so this page shows open space only.
   timeline:    { x:0.06, y:0.16, r:0.26, hue:196, planet:false },
+  // Character select. The 3D star map owns the Roster in map view, so this
+  // camera only ever gets used for the list view — a planet low and off to
+  // the left, well clear of the centred portrait.
+  roster:      { x:0.08, y:1.10, r:0.56, hue:268 },
   apply:       { x:0.50, y:1.04, r:0.54, hue:150 },
   sponsors:    { x:0.14, y:0.88, r:0.48, hue: 30 },
   account:     { x:0.88, y:0.96, r:0.52, hue:222 }
@@ -11002,7 +11178,11 @@ function setPage(pg){
   if(!cv) return;
   const style = document.documentElement.dataset.backdrop || 'space-fire';
   if(style !== lastStyle){ lastStyle = style; if(ready) build(); }
-  const off = (pg === 'roster');
+  // Only the 3D star map needs the 2D layer out of the way — one space scene
+  // at a time. Character select (the list view) has no WebGL running, so it
+  // keeps the animated starfield like every other page.
+  const off = (pg === 'roster' &&
+               document.documentElement.dataset.rosterView !== 'list');
   cv.style.opacity = (off || style === 'off') ? '0' : '1';
   if(off){ stop(); return; }
   // The camera moves between pages; the globe itself stays put and never
@@ -11314,11 +11494,15 @@ async function charStats(w){
 
 function portraitHTML(w){
   const src = w.image_url || w.avatar_url || '';
-  const init = (w.name||'?').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  // No photo -> the shared site silhouette. The card prints the name right
+  // beside it, so the placeholder carries no label of its own.
+  const ph = (typeof wcaPlaceholder==='function')
+    ? wcaPlaceholder(w,{mode:'full'})
+    : E((w.name||'?').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
   return `<div class="dh-portrait">${ src
     ? `<img src="${typeof escAttr==='function'?escAttr(src):src}" alt="${E(w.name)}"
-         onerror="this.parentNode.textContent='${E(init)}'">`
-    : E(init) }</div>`;
+         onerror="wcaBoxNoPhoto(this,'${escAttr(w.name)}','full')">`
+    : ph }</div>`;
 }
 
 function applyPitch(){
@@ -13420,9 +13604,13 @@ function openMember(m, opts){
 
   const gender = w.gender==='M' ? 'Mens' : w.gender==='F' ? 'Womens' : 'Intergender';
   const initA = escAttr(init), initH = E(init);
-  const portrait = m.image
-    ? '<img src="'+escAttr(m.image)+'" alt="'+escAttr(w.name)+'" onerror="this.outerHTML=\'<div class=&quot;sm-init&quot;>'+initA+'</div>\'">'
+  // No photo -> the shared site silhouette; the dossier names them alongside.
+  const smPh = (typeof wcaPlaceholder==='function')
+    ? '<div class="sm-init">'+wcaPlaceholder(w,{mode:'full'})+'</div>'
     : '<div class="sm-init">'+initH+'</div>';
+  const portrait = m.image
+    ? '<img src="'+escAttr(m.image)+'" alt="'+escAttr(w.name)+'" onerror="smNoPhoto(this,\''+escAttr(w.name)+'\')">'
+    : smPh;
 
   $('sm-dkind').textContent = m.champ ? 'Reigning champion' : (m.factionName ? 'Stable member' : 'Solo competitor');
   $('sm-dbody').innerHTML =
@@ -14122,6 +14310,15 @@ function setView(v, note){
   const n = $('sm-viewnote');
   if(n) n.textContent = note || '';
   try{ localStorage.setItem('wca-roster-view', v); }catch(e){}
+
+  // Tell the site's animated space backdrop which roster view is showing:
+  // it hides itself behind the 3D star map, but character select should have
+  // the same starfield as the rest of the site.
+  document.documentElement.dataset.rosterView = v;
+  if(typeof window.spaceSetPage === 'function'){
+    const active = document.querySelector('.page.active');
+    if(active && active.id === 'page-roster') window.spaceSetPage('roster');
+  }
 
   if(v==='map'){ boot(); }
   else {
