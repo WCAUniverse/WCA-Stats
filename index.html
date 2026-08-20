@@ -1354,88 +1354,182 @@
     margin-left:10px; vertical-align:middle;}
 
   /* ============================================================
-     CHARACTER-SELECT ROSTER (Tekken-style, single fighter shown)
-     Big portrait + animated name on top/center, info slides in from
-     the right, small icon tray along the bottom. All theme vars.
+     CHARACTER-SELECT ROSTER — arcade three-column layout
+     Portrait is the hero, dead centre. Ranking / results panel on
+     the left, identity + bio + moves on the right, wide icon tray
+     (20 per row) centred underneath. Everything is centred on the
+     page. All colours come from the theme vars.
+
+     TUNING KNOBS — everything below is driven by these five:
+       --cs-pheight  how tall the centre portrait is
+       --cs-pratio   its shape (2/3 = tall & narrow, 3/4 = squarer)
+       --cs-pfit     cover = fill the frame & crop, contain = show
+                     the whole photo with letterboxing
+       --cs-cols     icons per tray row
+       --cs-icon-max largest an icon is allowed to get
      ============================================================ */
+  #roster-listview{
+    --cs-pheight:660px; --cs-pratio:2/3; --cs-pfit:cover;
+    --cs-cols:20; --cs-icon-max:104px; --cs-icon-gap:6px;
+    --cs-panel-w:400px; --cs-maxw:1500px;}
+
+  /* Three columns sized to their content and centred as a group, so the
+     panels sit tight against the portrait instead of drifting to the
+     outer edges of a wide screen. */
   .cs-stage{
-    position:relative; background:
-      radial-gradient(900px 460px at 50% -10%, var(--glow-gold), transparent 60%),
-      linear-gradient(180deg, var(--panel) 0%, var(--bg2) 100%);
+    position:relative; margin:0 auto 16px; max-width:var(--cs-maxw);
+    padding:22px 22px 26px;
     border:1px solid var(--line); border-radius:16px; overflow:hidden;
-    margin-bottom:14px; min-height:430px;
-    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:0;}
-  /* left = portrait + name; right = info panel */
-  .cs-portrait{position:relative; display:flex; align-items:flex-end; justify-content:center;
-    padding:18px 10px 0; min-height:300px; overflow:hidden;}
-  .cs-portrait::after{content:''; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
-    width:86%; height:60%; background:radial-gradient(60% 100% at 50% 100%, var(--glow-gold), transparent 70%);
-    pointer-events:none;}
-  .cs-photo{position:relative; z-index:2; max-height:400px; max-width:100%;
-    width:auto; height:auto; object-fit:contain; object-position:bottom;
-    filter:drop-shadow(0 18px 30px rgba(0,0,0,.55));
-    opacity:0; transform:translateY(18px) scale(.98); transition:opacity .28s ease, transform .28s ease;}
+    background:
+      radial-gradient(1300px 620px at 50% -12%, var(--glow-gold), transparent 62%),
+      linear-gradient(180deg, var(--panel) 0%, var(--bg2) 100%);
+    display:grid; align-items:stretch; justify-content:center; gap:22px;
+    grid-template-columns:minmax(0,var(--cs-panel-w)) auto minmax(0,var(--cs-panel-w));}
+
+  /* faint starfield so character select still reads as the same
+     universe as the star map. Pure CSS — no extra requests. */
+  .cs-stars{position:absolute; inset:0; opacity:.55; pointer-events:none; z-index:0;
+    background-image:
+      radial-gradient(1.4px 1.4px at 12% 22%,#fff,transparent),
+      radial-gradient(1.2px 1.2px at 68% 14%,#cfd6ff,transparent),
+      radial-gradient(1.6px 1.6px at 84% 62%,#fff,transparent),
+      radial-gradient(1px 1px at 32% 74%,#ffe9b8,transparent),
+      radial-gradient(1.2px 1.2px at 52% 42%,#fff,transparent),
+      radial-gradient(1px 1px at 92% 30%,#fff,transparent),
+      radial-gradient(1.3px 1.3px at 6% 58%,#bcd,transparent),
+      radial-gradient(1px 1px at 44% 8%,#fff,transparent),
+      radial-gradient(1.2px 1.2px at 76% 86%,#fff,transparent),
+      radial-gradient(1px 1px at 22% 92%,#fff,transparent),
+      radial-gradient(1.3px 1.3px at 60% 68%,#e9e2ff,transparent);}
+
+  /* ---- the two side panels ------------------------------------ */
+  .cs-panel{position:relative; z-index:2; width:100%; min-width:0;
+    background:rgba(10,10,13,.62); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px 18px;
+    opacity:0; transition:opacity .36s ease, transform .36s cubic-bezier(.2,.8,.2,1);}
+  .cs-panel-l{transform:translateX(-26px);}
+  .cs-panel-r{transform:translateX(26px);}
+  .cs-stage.shown .cs-panel{opacity:1; transform:none;}
+  /* arcade corner ticks */
+  .cs-panel::before,.cs-panel::after{content:''; position:absolute; width:14px; height:14px;
+    border:2px solid var(--gold-dim); pointer-events:none;}
+  .cs-panel::before{top:-1px; left:-1px; border-right:0; border-bottom:0; border-radius:12px 0 0 0;}
+  .cs-panel::after{bottom:-1px; right:-1px; border-left:0; border-top:0; border-radius:0 0 12px 0;}
+  .cs-plabel{display:flex; align-items:center; gap:8px; margin:0 0 14px;
+    font-family:'Oswald'; font-size:11px; letter-spacing:2.6px; text-transform:uppercase;
+    color:var(--gold-dim);}
+  .cs-plabel::before{content:'//'; color:var(--gold); letter-spacing:0;}
+  .cs-plabel::after{content:''; flex:1; height:1px; background:var(--line);}
+  .cs-panel .pf-fields{margin-top:12px;}
+  .cs-panel .pf-row{padding:8px 0;}
+  .cs-panel .pf-lbl{width:96px; flex:0 0 96px;}
+  .cs-panel .pf-val{font-size:14px;}
+
+  /* ---- centre portrait ---------------------------------------- */
+  .cs-portrait{position:relative; z-index:2; display:flex; align-items:center;
+    justify-content:center; padding:0 6px;}
+  .cs-ring{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1;
+    width:calc(var(--cs-pheight) * .92); aspect-ratio:1; border-radius:50%;
+    border:1px solid rgba(var(--gold-rgb),.22);
+    box-shadow:0 0 110px rgba(var(--gold-rgb),.10) inset; pointer-events:none;}
+  .cs-ring::after{content:''; position:absolute; inset:-28px; border-radius:50%;
+    border:1px dashed rgba(var(--gold-rgb),.12);}
+  .cs-frame{position:relative; z-index:2; height:var(--cs-pheight); aspect-ratio:var(--cs-pratio);
+    max-width:100%; border-radius:14px; overflow:hidden;
+    border:1px solid var(--gold-dim); background:var(--panel2);
+    box-shadow:0 28px 70px rgba(0,0,0,.7), 0 0 46px rgba(var(--gold-rgb),.14);}
+  .cs-photo{position:absolute; inset:0; z-index:1; width:100%; height:100%;
+    object-fit:var(--cs-pfit); object-position:50% 22%; display:block;
+    opacity:0; transform:scale(1.03);
+    transition:opacity .3s ease, transform .45s cubic-bezier(.2,.8,.2,1);}
   .cs-photo.in{opacity:1; transform:none;}
-  .cs-photo-init{position:relative; z-index:2; align-self:center;
-    width:180px; height:180px; border-radius:50%; background:var(--gold-deep);
-    border:2px solid var(--gold); display:flex; align-items:center; justify-content:center;
-    font-family:'Oswald'; font-weight:700; font-size:64px; color:var(--gold);}
-  .cs-nameplate{position:absolute; left:0; right:0; bottom:0; z-index:3; padding:14px 16px 16px;
-    background:linear-gradient(0deg, rgba(0,0,0,.78), transparent);}
-  .cs-nick{font-family:'Barlow Condensed'; font-style:italic; color:var(--gold-dim);
-    font-size:16px; line-height:1; margin-bottom:2px;
-    opacity:0; transform:translateX(-14px); transition:.32s ease .04s;}
-  .cs-name{font-family:'Oswald'; font-weight:700; text-transform:uppercase; letter-spacing:1px;
-    font-size:clamp(26px,4.4vw,44px); color:#fff; line-height:1;
-    text-shadow:0 3px 14px rgba(0,0,0,.6);
-    opacity:0; transform:translateX(-22px); transition:.34s cubic-bezier(.2,.8,.2,1);}
-  .cs-tags{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;
-    opacity:0; transform:translateX(-14px); transition:.34s ease .08s;}
+  /* fallback when a competitor has no photo yet */
+  .cs-photo-init{position:absolute; inset:0; z-index:1; display:flex; align-items:center;
+    justify-content:center; background:var(--gold-deep);
+    font-family:'Oswald'; font-weight:700; font-size:96px; color:var(--gold);}
+  /* gradient that keeps the name readable over any photo */
+  .cs-fade{position:absolute; left:0; right:0; bottom:0; height:46%; z-index:2; pointer-events:none;
+    background:linear-gradient(0deg, rgba(0,0,0,.93) 10%, rgba(0,0,0,.38) 48%, transparent);}
+  .cs-nameplate{position:absolute; left:0; right:0; bottom:0; z-index:3;
+    padding:16px 18px 20px; text-align:center;}
+  .cs-nameplate::after{content:''; display:block; height:2px; width:64px; margin:11px auto 0;
+    background:var(--gold); box-shadow:0 0 12px rgba(var(--gold-rgb),.7);
+    opacity:0; transform:scaleX(.3); transition:.34s ease .12s;}
+  .cs-stage.shown .cs-nameplate::after{opacity:1; transform:none;}
+  .cs-nick{font-family:'Barlow Condensed'; font-style:italic; color:var(--gold);
+    font-size:16px; line-height:1.1; margin-bottom:3px; letter-spacing:.4px;
+    opacity:0; transform:translateY(10px); transition:.32s ease .04s;}
+  .cs-name{font-family:'Oswald'; font-weight:700; text-transform:uppercase; letter-spacing:2px;
+    font-size:clamp(26px,2.6vw,40px); color:#fff; line-height:1.02;
+    text-shadow:0 3px 18px rgba(0,0,0,.9);
+    opacity:0; transform:translateY(14px); transition:.34s cubic-bezier(.2,.8,.2,1);}
+  .cs-tags{display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; justify-content:center;
+    opacity:0; transform:translateY(10px); transition:.34s ease .08s;}
   .cs-stage.shown .cs-nick,.cs-stage.shown .cs-name,.cs-stage.shown .cs-tags{opacity:1; transform:none;}
 
-  /* right info panel — slides in from the right */
-  .cs-info{position:relative; border-left:1px solid var(--line);
-    background:linear-gradient(180deg, rgba(255,255,255,.015), transparent);
-    padding:22px 22px 18px; overflow-y:auto; max-height:430px;
-    opacity:0; transform:translateX(34px); transition:.36s cubic-bezier(.2,.8,.2,1);}
-  .cs-stage.shown .cs-info{opacity:1; transform:none;}
-  .cs-info::-webkit-scrollbar{width:8px;}
-  .cs-info::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
+  /* ---- right panel inner (kept as #cs-info so nothing else breaks) */
+  .cs-info{position:relative;}
   .cs-sharerow{display:flex; justify-content:flex-end; margin-bottom:10px;}
   .cs-share{display:inline-flex; align-items:center; gap:7px; background:none;
     border:1px solid var(--line); color:var(--muted); font-family:'Barlow Condensed';
     font-size:12px; letter-spacing:1.4px; text-transform:uppercase; padding:7px 13px;
     border-radius:8px; cursor:pointer; transition:.15s;}
   .cs-share:hover{color:var(--gold); border-color:var(--gold-dim);}
-  .cs-performer{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+  .cs-performer{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
   .cs-performer .perf{font-family:'Barlow Condensed'; font-size:14px; color:var(--muted); letter-spacing:.5px;}
-  .cs-bio{font-family:'Barlow'; font-size:14px; line-height:1.6; color:var(--muted);
+  .cs-bio{font-family:'Barlow'; font-size:14px; line-height:1.62; color:var(--txt-2);
     margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--line);}
   .cs-open{display:inline-flex; align-items:center; gap:7px; margin-top:6px;
     font-family:'Oswald'; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
     color:#111; background:var(--gold); border:none; border-radius:8px; padding:9px 15px;
     cursor:pointer; transition:.15s;}
   .cs-open:hover{filter:brightness(1.08); transform:translateY(-1px);}
-  .cs-empty{display:flex; align-items:center; justify-content:center; height:100%;
+  .cs-empty{display:flex; align-items:center; justify-content:center;
     color:var(--muted2); font-family:'Oswald'; letter-spacing:2px; text-transform:uppercase;
-    font-size:14px; text-align:center; padding:30px;}
+    font-size:13px; text-align:center; padding:26px 10px;}
+  /* match history lives in the left panel — keep it scrollable so a long
+     career never stretches the stage */
+  .cs-histbox{max-height:calc(var(--cs-pheight) - 210px); overflow-y:auto; margin-top:14px;
+    padding-right:4px;}
+  .cs-histbox::-webkit-scrollbar,.cs-panel::-webkit-scrollbar{width:8px;}
+  .cs-histbox::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
 
-  /* the fighter-select tray */
+  /* ---- the fighter-select tray -------------------------------- */
   .cs-tray-wrap{margin-top:2px;}
-  .cs-tray-label{font-family:'Oswald'; font-size:11px; letter-spacing:2px; text-transform:uppercase;
-    color:var(--gold-dim); margin:0 0 8px 2px;}
-  .cs-tray{display:grid; grid-template-columns:repeat(auto-fill,minmax(56px,1fr)); gap:7px;
-    max-height:230px; overflow-y:auto; padding:4px; background:var(--panel);
+  .cs-tray-label{display:flex; align-items:center; justify-content:center; gap:12px;
+    font-family:'Oswald'; font-size:11px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--gold-dim); margin:0 0 10px; text-align:center;}
+  .cs-tray-label::before,.cs-tray-label::after{content:''; width:54px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--gold-dim));}
+  .cs-tray-label::after{background:linear-gradient(90deg, var(--gold-dim), transparent);}
+
+  /* Fixed column count — this is the whole fix. The old rule was
+     repeat(auto-fill,minmax(56px,1fr)); the 1fr meant a short roster
+     stretched into a few giant icons and the tray reflowed every time
+     someone was added. With repeat(var(--cs-cols),...) the row is
+     always 20 wide: 6 wrestlers render 6 normal icons in row one, and
+     200 wrestlers simply wrap onto 10 rows. Nothing ever breaks. */
+  .cs-tray{display:grid; grid-template-columns:repeat(var(--cs-cols),minmax(0,1fr));
+    gap:var(--cs-icon-gap); margin:0 auto;
+    max-width:min(var(--cs-maxw),
+      calc(var(--cs-icon-max) * var(--cs-cols) + var(--cs-icon-gap) * (var(--cs-cols) - 1) + 24px));
+    max-height:min(62vh,560px); overflow-y:auto; padding:12px; background:var(--panel);
     border:1px solid var(--line); border-radius:12px;}
   .cs-tray::-webkit-scrollbar{width:8px;} .cs-tray::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
-  .cs-icon{position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden; cursor:pointer;
-    background:var(--panel2); border:1px solid var(--line); transition:transform .12s, border-color .12s;}
-  .cs-icon img{width:100%; height:100%; object-fit:cover; display:block;}
+  .cs-icon{position:relative; aspect-ratio:1/1; border-radius:7px; overflow:hidden; cursor:pointer;
+    background:var(--panel2); border:1px solid var(--line);
+    transition:transform .12s, border-color .12s, box-shadow .12s;}
+  .cs-icon img{width:100%; height:100%; object-fit:cover; object-position:50% 20%; display:block;}
   .cs-icon .cs-icon-init{width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-    font-family:'Oswald'; font-weight:700; font-size:18px; color:var(--gold);}
-  @media(hover:hover){ .cs-icon:hover{border-color:var(--gold-dim);} }
-  .cs-icon.sel{border-color:var(--gold); box-shadow:0 0 0 2px var(--gold) inset;}
-  .cs-icon.inactive{opacity:.45;}
+    font-family:'Oswald'; font-weight:700; font-size:15px; color:var(--gold);}
+  @media(hover:hover){ .cs-icon:hover{border-color:var(--gold-dim); transform:translateY(-2px); z-index:2;} }
+  /* outline instead of an inset shadow so the selection ring reads at
+     small sizes and isn't clipped by the icon's own overflow */
+  .cs-icon.sel{border-color:var(--gold); z-index:3;
+    outline:2px solid var(--gold); outline-offset:1px;
+    box-shadow:0 0 18px rgba(var(--gold-rgb),.45);}
+  .cs-icon.inactive{opacity:.42;}
+  .cs-icon.inactive.sel{opacity:1;}
   /* faction grouping in tray */
   .cs-fgroup{margin-bottom:14px;}
   .cs-fname{font-family:'Oswald'; font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
@@ -1443,13 +1537,23 @@
     padding-bottom:6px; border-bottom:1px solid var(--line);}
   .cs-fname i{font-size:15px;}
 
-  @media(max-width:760px){
-    .cs-stage{grid-template-columns:1fr; min-height:0;}
-    .cs-portrait{min-height:320px; padding-top:14px;}
-    .cs-photo{max-height:340px;}
-    .cs-info{border-left:none; border-top:1px solid var(--line); max-height:none;
-      transform:translateY(20px);}
-    .cs-stage.shown .cs-info{transform:none;}
+  /* ---- responsive --------------------------------------------- */
+  @media(max-width:1500px){ #roster-listview{--cs-cols:16; --cs-pheight:600px; --cs-panel-w:350px;} }
+  @media(max-width:1240px){
+    #roster-listview{--cs-cols:12; --cs-pheight:560px;}
+    .cs-stage{grid-template-columns:minmax(0,1fr) minmax(0,1fr); justify-content:stretch;}
+    .cs-portrait{grid-column:1 / -1; order:-1; margin-bottom:6px;}
+    .cs-histbox{max-height:300px;}
+  }
+  @media(max-width:860px){
+    #roster-listview{--cs-cols:9; --cs-pheight:440px;}
+    .cs-stage{grid-template-columns:1fr; padding:16px 14px 20px;}
+    .cs-panel-l,.cs-panel-r{transform:translateY(18px);}
+  }
+  @media(max-width:520px){
+    #roster-listview{--cs-cols:6; --cs-pheight:380px; --cs-icon-gap:5px;}
+    .cs-ring{display:none;}
+    .cs-tray-label::before,.cs-tray-label::after{width:24px;}
   }
 
   /* ============================================================
@@ -4106,13 +4210,31 @@
     <div id="roster-listview" style="display:none">
       <!-- Character-select stage: big portrait + name (left), info panel (right) -->
       <div class="cs-stage" id="cs-stage">
+        <div class="cs-stars" aria-hidden="true"></div>
+
+        <!-- LEFT: rankings, form and match history -->
+        <section class="cs-panel cs-panel-l" aria-label="Rankings and results">
+          <div class="cs-plabel">Record</div>
+          <div id="cs-left"><div class="cs-empty">Pick a fighter below</div></div>
+        </section>
+
+        <!-- CENTRE: the portrait, the hero of the whole view -->
         <div class="cs-portrait" id="cs-portrait">
-          <div class="cs-photo-init" id="cs-photo-holder">WCA</div>
-          <div class="cs-nameplate" id="cs-nameplate"></div>
+          <div class="cs-ring" aria-hidden="true"></div>
+          <div class="cs-frame">
+            <div class="cs-photo-init" id="cs-photo-holder">WCA</div>
+            <div class="cs-fade" aria-hidden="true"></div>
+            <div class="cs-nameplate" id="cs-nameplate"></div>
+          </div>
         </div>
-        <div class="cs-info" id="cs-info">
-          <div class="cs-empty">Pick a fighter below</div>
-        </div>
+
+        <!-- RIGHT: who they are — bio, vitals, moves -->
+        <section class="cs-panel cs-panel-r" aria-label="Competitor profile">
+          <div class="cs-plabel">Biography</div>
+          <div class="cs-info" id="cs-info">
+            <div class="cs-empty">Pick a fighter below</div>
+          </div>
+        </section>
       </div>
 
       <!-- Fighter-select tray -->
@@ -4878,6 +5000,33 @@ function mpRowFor(members, teamName){
     return row + `<div class="mp-teambelt">${ico}<span>Faction (Tag Team) Champions</span></div>`;
   }
   return row;
+}
+
+// ===== TEAM MEMBER FALLBACK =====
+// A side saved as just a team name ("Team Dream") carries no members, because
+// the old admin guessed sides from one free-text box. Those matches showed a
+// team name and no faces. Look the roster up from the faction instead, so
+// every already-saved show gets its portraits without being re-entered.
+let FACTION_ROSTER = {};                 // lowercased faction name -> [member names]
+async function loadFactionRosters(){
+  try{
+    const { data } = await sb.from('factions').select('name,members_txt');
+    FACTION_ROSTER = {};
+    (data||[]).forEach(f=>{
+      const list = String(f.members_txt||'').split(/[,&]|\band\b/i)
+        .map(s=>s.trim()).filter(Boolean);
+      if(f.name && list.length) FACTION_ROSTER[String(f.name).trim().toLowerCase()] = list;
+    });
+  }catch(e){ /* column missing — teams simply keep showing no faces */ }
+}
+// Members to draw for a side: the ones actually recorded win, since a match may
+// use only part of a stable. Fall back to the full faction only when none are.
+function sideMembers(side){
+  const listed = ((side && side.members) || []).filter(Boolean);
+  if(listed.length) return listed;
+  const team = side && side.team_name;
+  if(!team) return [];
+  return FACTION_ROSTER[String(team).trim().toLowerCase()] || [];
 }
 
 // ===== WHO HELD THE BELTS AT A PAST SHOW =====
@@ -5942,25 +6091,33 @@ function csSelect(name){
         ? `<a href="${esc(w.theme_url)}" target="_blank" rel="noopener noreferrer">${esc(w.theme_song)} <i class="ti ti-external-link" style="font-size:13px"></i></a>`
         : esc(w.theme_song))
     : '';
-  const body=[
+  // LEFT PANEL — anything to do with rankings, form and results.
+  const leftBody=[
     last5HTML(w.last5),
+    fieldRow('Debut', fmtDate(w.debut_date)),
+    fieldRow('Last Match', fmtDate(w.last_match)),
+  ].join('');
+  const ranks=rankHTML(w.name);
+  document.getElementById('cs-left').innerHTML=`
+    ${ranks||'<div class="cs-empty" style="padding:6px 0 10px">Unranked</div>'}
+    <div class="pf-fields">${leftBody||'<div class="pf-empty">No results recorded yet.</div>'}</div>
+    <div class="cs-histbox"><div id="cs-history"></div></div>`;
+
+  // RIGHT PANEL — who they are: bio, vitals, entrance, moves.
+  const rightBody=[
     fieldRow('Height', w.height),
     fieldRow('Weight', w.weight),
     fieldRow('From', w.from_loc),
     theme ? `<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">${theme}</span></div>` : '',
     fieldRow('Signatures', w.signatures),
     fieldRow('Finishers', w.finishers),
-    fieldRow('Debut', fmtDate(w.debut_date)),
-    fieldRow('Last Match', fmtDate(w.last_match)),
   ].join('');
   document.getElementById('cs-info').innerHTML=`
     <div class="cs-sharerow"><button class="cs-share" type="button" id="cs-share-btn"
       data-name="${escAttr(w.name)}"><i class="ti ti-share-3"></i> Share</button></div>
     ${(w.performer||socialIcons(w.socials))?`<div class="cs-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
-    ${rankHTML(w.name)}
     ${w.bio?`<div class="cs-bio">${esc(w.bio)}</div>`:''}
-    <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
-    <div id="cs-history"></div>`;
+    <div class="pf-fields">${rightBody||'<div class="pf-empty">No details added yet.</div>'}</div>`;
   const csShare = document.getElementById('cs-share-btn');
   if(csShare) csShare.addEventListener('click', ()=>
     wcaShare('wrestler', csShare.dataset.name, 'Share this competitor', esc(csShare.dataset.name)));
@@ -6750,8 +6907,8 @@ function sideLabel(s){
 // inner of a side cell (names only), reused by betting layout
 function sideCellInner(side, isMain){
   if(!side) return `<div class="fname">TBD</div>`;
-  const members=(side.members||[]).filter(Boolean);
-  // square portrait boxes above the names (names/team names below are unchanged)
+  // portraits fall back to the faction roster when the side is only a team name
+  const members = sideMembers(side);
   const pics = mpRowFor(members, side.team_name);
   if(side.team_name){
     let h=pics+`<div class="fname">${esc(side.team_name)}</div>`;
@@ -7640,8 +7797,7 @@ function archBoutHTML(m, isMain, status, winningSide){
   sides.forEach((s,idx)=>{
     if(idx>0) vs += `<div class="rvs-mid">VS</div>`;
     const isWin = !voided && winningSide!=null && Number(winningSide)===idx;
-    const members=(s.members||[]).filter(Boolean);
-    // square portrait boxes above the names (names/team names below are unchanged)
+    const members = sideMembers(s);
     const pics = mpRowFor(members, s.team_name);
     let nameHtml;
     if(s.team_name){
@@ -10164,9 +10320,9 @@ if(!isConfigured){
   loadFirePro();
   loadHiddenNames().then(()=>{
     loadBelts().then(()=>{
-      // Match portraits need the belt images + who currently holds them, so they
-      // load inside this chain, before the Events card paints.
-      Promise.all([loadMatchPortraits(), loadCurrentChampions()]).then(()=>{
+      // Match portraits need the belt images, who currently holds them, and the
+      // faction rosters (so a side saved as just a team name still gets faces).
+      Promise.all([loadMatchPortraits(), loadCurrentChampions(), loadFactionRosters()]).then(()=>{
         loadDashboard();
         loadDashStorylines();
         loadEvents();
