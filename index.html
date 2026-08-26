@@ -1444,7 +1444,8 @@
     border:1px solid var(--gold-dim); background:var(--panel2);
     box-shadow:0 28px 70px rgba(0,0,0,.7), 0 0 46px rgba(var(--gold-rgb),.14);}
   .cs-photo{position:absolute; inset:0; z-index:1; width:100%; height:100%;
-    object-fit:var(--cs-pfit); object-position:50% 22%; display:block;
+    /* top-anchored: crop from the bottom only, never off the head/face */
+    object-fit:var(--cs-pfit); object-position:50% 0%; display:block;
     opacity:0; transform:scale(1.03);
     transition:opacity .3s ease, transform .45s cubic-bezier(.2,.8,.2,1);}
   .cs-photo.in{opacity:1; transform:none;}
@@ -1458,7 +1459,7 @@
       linear-gradient(180deg, var(--gold-deep) 0%, var(--panel2) 78%);
     font-family:'Oswald'; font-weight:700; font-size:96px; color:var(--gold);}
   .cs-photo-init img{position:absolute; inset:0; width:100%; height:100%;
-    object-fit:var(--cs-pfit); object-position:50% 20%;}
+    object-fit:var(--cs-pfit); object-position:50% 0%;}
   /* the silhouette itself — currentColor, so it follows the theme accent */
   /* ── SHARED "NO PHOTO ON FILE" PLACEHOLDER ──────────────────────────
      Used by character select, the Events/Archive match squares, the profile
@@ -1471,7 +1472,7 @@
   .wca-ph{position:relative; width:100%; height:100%; flex:1 1 auto; min-width:0;
     display:flex; align-items:flex-end; justify-content:center; overflow:hidden;}
   .wca-ph > img{position:absolute; inset:0; width:100%; height:100%;
-    object-fit:cover; object-position:50% 20%;}
+    object-fit:cover; object-position:50% 0%;}
   .wca-ph-init{font-size:inherit; line-height:1; color:inherit;
     align-self:center; font-family:'Oswald'; font-weight:600; letter-spacing:2px;}
   .wca-ph-name{position:absolute; left:0; right:0; bottom:0; z-index:2; padding:16px 5px 5px;
@@ -1551,11 +1552,11 @@
   .cs-icon{position:relative; aspect-ratio:1/1; border-radius:7px; overflow:hidden; cursor:pointer;
     background:var(--panel2); border:1px solid var(--line);
     transition:transform .12s, border-color .12s, box-shadow .12s;}
-  .cs-icon img{width:100%; height:100%; object-fit:cover; object-position:50% 20%; display:block;}
+  .cs-icon img{width:100%; height:100%; object-fit:cover; object-position:50% 0%; display:block;}
   .cs-icon .cs-icon-init{width:100%; height:100%; display:flex; align-items:flex-end; justify-content:center;
     overflow:hidden; background:linear-gradient(180deg, var(--gold-deep), var(--panel2));
     font-family:'Oswald'; font-weight:700; font-size:15px; color:var(--gold);}
-  .cs-icon .cs-icon-init img{width:100%; height:100%; object-fit:cover; object-position:50% 20%;}
+  .cs-icon .cs-icon-init img{width:100%; height:100%; object-fit:cover; object-position:50% 0%;}
   @media(hover:hover){ .cs-icon:hover{border-color:var(--gold-dim); transform:translateY(-2px); z-index:2;} }
   /* outline instead of an inset shadow so the selection ring reads at
      small sizes and isn't clipped by the icon's own overflow */
@@ -1571,6 +1572,9 @@
     padding-bottom:6px; border-bottom:1px solid var(--line);}
   .cs-fname i{font-size:15px;}
 
+  /* ---- the mobile swipe tabs (hidden on desktop) --------------- */
+  .cs-swipe{display:none;}
+
   /* ---- responsive --------------------------------------------- */
   @media(max-width:1500px){ #roster-listview{--cs-cols:16; --cs-pheight:600px; --cs-panel-w:350px;} }
   @media(max-width:1240px){
@@ -1579,15 +1583,58 @@
     .cs-portrait{grid-column:1 / -1; order:-1; margin-bottom:6px;}
     .cs-histbox{max-height:300px;}
   }
-  @media(max-width:860px){
-    #roster-listview{--cs-cols:9; --cs-pheight:440px;}
-    .cs-stage{grid-template-columns:1fr; padding:16px 14px 20px;}
-    .cs-panel-l,.cs-panel-r{transform:translateY(18px);}
+
+  /* ══ PHONE / SMALL TABLET — the three columns become a swipe deck ══
+     Stacking them made a very long page where tapping a fighter changed
+     something far off screen. Instead the stage turns into one horizontal
+     scroller with three full-width slides — portrait, record, biography —
+     using native CSS scroll snapping, so it tracks the finger properly and
+     needs no gesture-handling JS. The tabs under it are both a position
+     indicator and a shortcut. */
+  @media(max-width:900px){
+    #roster-listview{--cs-cols:6; --cs-pheight:min(56vh,430px); --cs-icon-gap:5px;}
+
+    .cs-stage{
+      /* stretch, not flex-start: every slide is the same height as the
+         portrait, so a short Record card doesn't leave a hole under it */
+      display:flex; align-items:stretch; gap:10px;
+      padding:14px 14px 16px;
+      overflow-x:auto; overflow-y:hidden;
+      scroll-snap-type:x mandatory; scroll-behavior:smooth;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior-x:contain;      /* don't trigger back-swipe navigation */
+      scrollbar-width:none;}
+    .cs-stage::-webkit-scrollbar{display:none;}
+    .cs-stage > .cs-portrait,
+    .cs-stage > .cs-panel{flex:0 0 100%; width:100%; min-width:100%; scroll-snap-align:center;}
+    .cs-portrait{order:-1;}               /* portrait is the first slide */
+    /* the slide-in entrance would fight scroll snapping — fade only */
+    .cs-panel-l,.cs-panel-r{transform:none;}
+    /* the card scrolls itself, so a long bio or a long career never stretches
+       the deck — the browser locks the axis, so it doesn't fight the swipe */
+    .cs-panel{padding:14px 15px 16px; overflow-y:auto;}
+    .cs-ring{display:none;}
+    .cs-histbox{max-height:none; overflow:visible;}
+
+    .cs-swipe{display:flex; gap:6px; justify-content:center; margin:12px auto 18px; max-width:420px;}
+    .cs-swipe button{flex:1 1 0; background:rgba(10,10,13,.7); border:1px solid var(--line);
+      color:var(--muted); font-family:'Oswald'; font-size:10.5px; letter-spacing:1.6px;
+      text-transform:uppercase; padding:9px 4px; border-radius:8px; cursor:pointer;
+      transition:background .15s, color .15s, border-color .15s;}
+    .cs-swipe button.on{color:var(--on-gold); background:var(--gold); border-color:var(--gold);}
+
+    /* The tray scrolled inside itself, which fights the page scroll on a
+       touch screen — let it grow and let the page do the scrolling. */
+    .cs-tray{max-height:none; overflow:visible; padding:10px;}
+    .cs-tray-label::before,.cs-tray-label::after{width:24px;}
   }
   @media(max-width:520px){
-    #roster-listview{--cs-cols:6; --cs-pheight:380px; --cs-icon-gap:5px;}
-    .cs-ring{display:none;}
-    .cs-tray-label::before,.cs-tray-label::after{width:24px;}
+    #roster-listview{--cs-cols:5;}
+    .cs-name{letter-spacing:1px;}
+  }
+  /* Someone who prefers reduced motion gets instant jumps, not glides. */
+  @media(prefers-reduced-motion:reduce){
+    .cs-stage{scroll-behavior:auto;}
   }
 
   /* ============================================================
@@ -1871,7 +1918,7 @@
   .sl-spotlight .sl-sp-body{display:flex; gap:20px; align-items:flex-start;}
   .sl-spotlight .sl-sp-photo{flex-shrink:0; width:120px; height:120px; border-radius:12px;
     overflow:hidden; border:2px solid var(--gold-dim); background:var(--panel2);}
-  .sl-spotlight .sl-sp-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+  .sl-spotlight .sl-sp-photo img{width:100%; height:100%; object-fit:cover; object-position:50% 0%; display:block;}
   .sl-spotlight .sl-sp-main{flex:1; min-width:0;}
   .sl-spotlight .sl-sp-subject{font-family:'Oswald'; font-weight:700; font-size:clamp(20px,3.4vw,26px);
     color:#fff; line-height:1.1; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
@@ -2575,7 +2622,7 @@
     display:flex;align-items:center;justify-content:center;
     font-family:'Oswald',sans-serif;font-size:28px;color:var(--muted);
   }
-  .dh-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
+  .dh-portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block;}
   .dh-char-body{min-width:0;flex:1 1 200px;}
   .dh-char-name{font-family:'Oswald',sans-serif;font-size:clamp(22px,2.6vw,28px);line-height:1.15;color:var(--txt);margin:0 0 4px;}
   .dh-char-meta{
@@ -3733,7 +3780,9 @@
   .sm-dbody::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:3px;}
 
   .sm-portrait{position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;background:#0a0d18;}
-  .sm-portrait img{width:100%;height:100%;object-fit:cover;display:block;animation:sm-develop .6s cubic-bezier(.22,.61,.36,1) both;}
+  /* top-anchored: any overflow is trimmed from the BOTTOM (legs), never the
+     top, so a competitor's head/face is always fully in frame. */
+  .sm-portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block;animation:sm-develop .6s cubic-bezier(.22,.61,.36,1) both;}
   .sm-portrait::after{
     content:"";position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(180deg,transparent 46%,rgba(6,8,16,.94) 100%);
@@ -4269,6 +4318,14 @@
             <div class="cs-empty">Pick a fighter below</div>
           </div>
         </section>
+      </div>
+
+      <!-- Phone only: which slide of the stage you're on, and a shortcut to
+           each. Hidden by CSS on desktop, where all three are side by side. -->
+      <div class="cs-swipe" id="cs-swipe" role="tablist" aria-label="Competitor sections">
+        <button type="button" class="on" data-i="0" role="tab" aria-selected="true">Fighter</button>
+        <button type="button" data-i="1" role="tab" aria-selected="false">Record</button>
+        <button type="button" data-i="2" role="tab" aria-selected="false">Bio</button>
       </div>
 
       <!-- Fighter-select tray -->
@@ -6297,8 +6354,81 @@ function bindCSTray(){
     // portrait swap whenever the mouse merely passed over an icon — bad on mobile
     // and annoying on multi-monitor setups. Now it only changes on a real click,
     // so the selected wrestler stays put while you alt-tab / move to another screen.
-    ic.addEventListener('click',()=>csSelect(n));
+    // csRevealStage only does anything on a phone — see below.
+    ic.addEventListener('click',()=>{ csSelect(n); csRevealStage(); });
   });
+  csDeckInit();
+}
+
+/* ===== MOBILE SWIPE DECK =====================================
+   On a phone the three columns become one horizontal scroller: portrait,
+   record, biography. The snapping itself is pure CSS; this only keeps the
+   tabs under it in sync, and lets a tab jump to its slide.
+   ============================================================= */
+const CS_DECK_ORDER = ['cs-portrait','cs-panel-l','cs-panel-r'];  // slide 0,1,2
+function csDeckSlides(){
+  const st = document.getElementById('cs-stage');
+  if(!st) return [];
+  return CS_DECK_ORDER.map(c=>st.querySelector('.'+c));
+}
+function csIsPhone(){
+  return window.matchMedia('(max-width:900px)').matches;
+}
+function csDeckGo(i, smooth){
+  const st = document.getElementById('cs-stage');
+  const el = csDeckSlides()[i];
+  if(!st || !el) return;
+  // offsetLeft is measured inside the scroller, so it IS the target scrollLeft
+  // once the container's own left padding is taken off.
+  const pad = parseFloat(getComputedStyle(st).paddingLeft) || 0;
+  st.scrollTo({ left: Math.max(0, el.offsetLeft - pad),
+                behavior: smooth === false ? 'auto' : 'smooth' });
+  csDeckMark(i);
+}
+function csDeckMark(i){
+  const bar = document.getElementById('cs-swipe');
+  if(!bar) return;
+  bar.querySelectorAll('button').forEach(b=>{
+    const on = +b.dataset.i === i;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+let CS_DECK_READY = false;
+function csDeckInit(){
+  if(CS_DECK_READY) return;
+  const st = document.getElementById('cs-stage'), bar = document.getElementById('cs-swipe');
+  if(!st || !bar) return;
+  CS_DECK_READY = true;
+  bar.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>csDeckGo(+b.dataset.i));
+  });
+  // Track the finger: whichever slide is mostly in view owns the tab bar.
+  if(typeof IntersectionObserver === 'function'){
+    const obs = new IntersectionObserver(entries=>{
+      entries.forEach(e=>{
+        if(e.intersectionRatio > 0.55){
+          const i = csDeckSlides().indexOf(e.target);
+          if(i >= 0) csDeckMark(i);
+        }
+      });
+    }, { root: st, threshold:[0.55] });
+    csDeckSlides().forEach(el=>{ if(el) obs.observe(el); });
+  }
+}
+/* Tapping a fighter down in the tray changed a portrait that was well off
+   the top of a phone screen. Now it snaps the deck back to the portrait and
+   scrolls the stage into view, under the sticky header. Desktop is untouched. */
+function csRevealStage(){
+  if(!csIsPhone()) return;
+  csDeckGo(0, false);
+  const lv = document.getElementById('roster-listview');
+  if(!lv) return;
+  const head = document.querySelector('header');
+  const off  = (head ? head.getBoundingClientRect().height : 0) + 8;
+  const y    = lv.getBoundingClientRect().top + window.pageYOffset - off;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });
 }
 // Render the tray from the same filtered/searched list renderRoster builds.
 function renderCSTray(list, isFactions, factionGroups){
