@@ -4486,6 +4486,133 @@ if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 
+/* ============================================================================
+   WCA GLOBAL EVENT ORDER — one rule, whole site, forever
+   ---------------------------------------------------------------------------
+   THE RULE: every event list, dropdown, rail and grid is ordered by SHOW NAME
+   (WCA 1, WCA 2 … WCA 33). Never by date added, date modified, sort_order,
+   created_at, or whatever order the database happened to hand the rows back.
+
+   HOW IT IS ENFORCED — two layers, so it cannot regress:
+
+     1. wcaSortEvents() is the ONE sorting function. Everything delegates here.
+     2. sb.from(<any event table or view>) is wrapped so event rows arrive
+        ALREADY SORTED, before any call site sees them. That is the guarantee:
+        a brand-new dropdown written a year from now is in the right order
+        even if whoever writes it never thinks about sorting.
+
+   DIRECTION: newest show first (WCA 33 at the top, WCA 1 at the bottom) —
+   the house style used by every dropdown here. A query that explicitly asks
+   for { ascending: true } is honored instead (e.g. "the next 3 upcoming
+   shows", which reads better chronologically).
+
+   UNNUMBERED SPECIALS always sort after the numbered shows, A→Z, in both
+   directions, so they never wedge themselves into the middle of the run.
+
+   Console self-check:  wcaCheckOrder()
+   ========================================================================== */
+
+/* Which tables/views hold event rows. Matches: events, v_archive_events,
+   v_timeline_events, v_featured_event, v_upcoming_events, … Add new event
+   views here and they inherit the ordering automatically. */
+var WCA_EVENT_SOURCES = /^(events|v_[a-z0-9_]*events?)$/i;
+
+/* The show's number: the stored column when it exists, otherwise the first
+   run of digits in the name. -1 means "no number" (an unnumbered special). */
+function wcaShowNo(e){
+  if(!e || typeof e !== 'object') return -1;
+  var n = e.show_number;
+  if(n !== null && n !== undefined && n !== '' && !isNaN(+n)) return +n;
+  var m = String(e.name || e.event_name || e.title || '').match(/\d+/);
+  return m ? +m[0] : -1;
+}
+function wcaEventName(e){
+  return String((e && (e.name || e.event_name || e.title)) || '');
+}
+/* Does this look like a list of event rows? (A select of one unrelated column
+   shouldn't be reordered.) */
+function wcaLooksLikeEvents(rows){
+  if(!Array.isArray(rows) || !rows.length) return false;
+  var r = rows[0];
+  return !!r && typeof r === 'object' &&
+         ('name' in r || 'show_number' in r || 'event_name' in r);
+}
+/* THE sorter. ascending=true -> WCA 1 first. Default -> WCA 33 first. */
+function wcaSortEvents(list, ascending){
+  var dir = ascending ? 1 : -1;
+  return (Array.isArray(list) ? list.slice() : []).sort(function(a,b){
+    var na = wcaShowNo(a), nb = wcaShowNo(b);
+    var ha = na >= 0, hb = nb >= 0;
+    if(ha !== hb) return ha ? -1 : 1;          // numbered shows always first
+    if(!ha) return wcaEventName(a).localeCompare(wcaEventName(b), undefined, {numeric:true, sensitivity:'base'});
+    if(na !== nb) return (na - nb) * dir;
+    return wcaEventName(a).localeCompare(wcaEventName(b), undefined, {numeric:true, sensitivity:'base'}) * dir;
+  });
+}
+/* Convenience aliases so call sites read plainly. */
+function wcaSortEventsNewestFirst(list){ return wcaSortEvents(list, false); }
+function wcaSortEventsOldestFirst(list){ return wcaSortEvents(list, true);  }
+
+/* ---- Layer 2: sort at the data layer, before any call site sees the rows -- */
+(function installWcaEventOrder(){
+  try{
+    if(typeof sb === 'undefined' || !sb || sb.__wcaEventOrder) return;
+    sb.__wcaEventOrder = true;
+    var rawFrom = sb.from.bind(sb);
+    sb.from = function(table){
+      var qb = rawFrom(table);
+      if(!WCA_EVENT_SOURCES.test(String(table||''))) return qb;
+      if(!qb || typeof qb.select !== 'function') return qb;
+      var rawSelect = qb.select.bind(qb);
+      qb.select = function(){
+        var fb = rawSelect.apply(null, arguments);
+        if(!fb) return fb;
+        var wantAsc = false;
+        if(typeof fb.order === 'function'){
+          var rawOrder = fb.order.bind(fb);
+          fb.order = function(col, opts){
+            if(opts && opts.ascending === true) wantAsc = true;
+            return rawOrder(col, opts);
+          };
+        }
+        if(typeof fb.then === 'function'){
+          var rawThen = fb.then.bind(fb);
+          fb.then = function(onF, onR){
+            return rawThen(function(res){
+              try{
+                if(res && Array.isArray(res.data) && res.data.length > 1 && wcaLooksLikeEvents(res.data)){
+                  res.data = wcaSortEvents(res.data, wantAsc);
+                }
+              }catch(_){}
+              return onF ? onF(res) : res;
+            }, onR);
+          };
+        }
+        return fb;
+      };
+      return qb;
+    };
+  }catch(_){ /* ordering must never break the page */ }
+})();
+
+/* Console self-check: prints what each event source returns, in order. */
+window.wcaCheckOrder = async function(){
+  var out = [];
+  var sources =['events','v_archive_events','v_timeline_events','v_featured_event'];
+  for(var s=0; s<sources.length; s++){
+    try{
+      var r = await sb.from(sources[s]).select('*');
+      if(r.error){ out.push({source:sources[s], rows:'ERROR: '+r.error.message, order:''}); continue; }
+      var names = (r.data||[]).map(wcaEventName);
+      out.push({ source:sources[s], rows:names.length, order:names.slice(0,8).join(' → ') + (names.length>8?' → …':'') });
+    }catch(e){ out.push({source:sources[s], rows:'THREW: '+(e.message||e), order:''}); }
+  }
+  console.table(out);
+  return out;
+};
+window.WCA_EVENT_ORDER_BUILD = 'event-order-v1';
+
+
 // ===== THEME LOADER =====
 // Reads the single site_settings row and applies admin-chosen colors to the
 // page's CSS variables. If anything fails, the page keeps the colors baked
@@ -7895,7 +8022,7 @@ async function archiveLoadNow(){
   try{
     const { data, error } = await sb.from('v_archive_events').select('*');
     if(error) throw error;
-    rows = data || [];
+    rows = wcaSortEventsNewestFirst(data || []);   // newest show first, by name
   }catch(e){ listEl.innerHTML=`<div class="lb-empty">Couldn't load the archive.</div>`; return; }
   ARCHIVE_EVENTS = rows;
   if(!rows.length){
@@ -11908,11 +12035,7 @@ const E = (s) => { const t = (s == null ? '' : String(s));
 
 /* Show number: the column when set, otherwise the digits in the name —
    the same rule the admin uses, so both agree on the order. */
-function tlShowNo(e){
-  if(e && e.show_number != null && !isNaN(+e.show_number)) return +e.show_number;
-  const m = String((e && e.name) || '').match(/\d+/);
-  return m ? +m[0] : -1;
-}
+function tlShowNo(e){ return wcaShowNo(e); }
 
 async function tlLoad(){
   // `sb` is declared with `let`, so it is NOT a property of window — the old
@@ -11954,8 +12077,9 @@ async function tlLoad(){
       (ex||[]).forEach(r=>{ extra[String(r.id)] = r; });
     }catch(_){ /* summaries stay empty */ }
 
-    TL_EVENTS = rows.map(e => Object.assign({}, e, extra[String(e.id)] || {}))
-      .sort((a,b) => tlShowNo(a) - tlShowNo(b));        // WCA 1 first — a story reads forward
+    // WCA 1 first — a story reads forward. Same sorter as everywhere else,
+    // just the ascending direction.
+    TL_EVENTS = wcaSortEventsOldestFirst(rows.map(e => Object.assign({}, e, extra[String(e.id)] || {})));
     TL_PAGE = pageCount() - 1;                          // open on the most recent page
     TL_ERROR = null;
     if(!TL_EVENTS.length) TL_ERROR = 'the database returned no shows — run wcaTimelineCheck() in the console';
