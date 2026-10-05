@@ -726,6 +726,26 @@
   .fp-res .fp-sub-row .rt{ font-family:'Oswald',sans-serif; font-weight:700; font-size:17px; color:#ffd23f; }
   .fp-res .fp-sub-row .st{ font-size:14px; }
   .fp-res .fp-sub-body{ padding:0 14px 12px; }
+  /* ROSTERS — each promotion's season roster, newest signings flagged */
+  .fp-res-badge{ font-family:'Press Start 2P',monospace; font-size:7px; letter-spacing:.5px; color:#0a0506;
+    background:#3ECF8E; border-radius:3px; padding:4px 6px; white-space:nowrap; }
+  .fp-res .fp-sub-row .cnt{ font-family:'Barlow',sans-serif; font-size:13px; color:#cdbfa6; white-space:nowrap; }
+  .fp-rgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; margin:6px 0 4px; }
+  .fp-rw{ position:relative; display:flex; gap:10px; align-items:center; text-align:left;
+    background:rgba(0,0,0,.28); border:1px solid #3a1414; border-radius:6px; padding:7px; }
+  .fp-rw.new{ border-color:#3ECF8E; box-shadow:0 0 12px -6px #3ECF8E; }
+  .fp-rw .av{ width:44px; height:44px; flex:0 0 auto; border-radius:4px; overflow:hidden; background:#1b0d10;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Press Start 2P',monospace; font-size:9px; color:#ffd23f; }
+  .fp-rw .av img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fp-rw .nm{ display:block; font-family:'Oswald',sans-serif; font-weight:600; font-size:14px; color:#fff; line-height:1.15; }
+  .fp-rw .sm{ display:block; font-family:'Barlow',sans-serif; font-size:11.5px; color:#9a8f86; margin-top:2px; }
+  .fp-rw .newtag{ position:absolute; top:-8px; right:6px; font-family:'Press Start 2P',monospace; font-size:6px;
+    letter-spacing:.5px; color:#0a0506; background:#3ECF8E; border-radius:3px; padding:3px 5px; }
+  .fp-rsec{ font-family:'Press Start 2P',monospace; font-size:8px; letter-spacing:1px; color:#3ECF8E; margin:12px 0 4px; }
+  .fp-rlink{ font-family:'Barlow',sans-serif; font-size:13px; color:#ffd23f; background:none; border:none; padding:6px 0 0;
+    cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+  .fp-res.me{ border-color:#ffd23f; box-shadow:inset 3px 0 0 #ffd23f; }
   .fp-res-sum{ font-family:'Barlow',sans-serif; font-size:14px; color:#cdbfa6; margin:0 0 14px; text-align:center; }
   .fp-res-sum b{ color:#3ECF8E; }
 
@@ -811,25 +831,13 @@
   <section class="fp-screen" id="scr-standings">
     <div class="fp-inner wide">
       <h2 class="fp-h">STANDINGS</h2>
-      <p class="fp-guide" id="standings-guide">Best average match rating wins the season. Money doesn't win it — it only breaks a tie.</p>
+      <p class="fp-guide" id="standings-guide">Best average match rating wins the season. ROSTERS shows who every promotion has signed. Pick a show to see every card, match by match.</p>
       <div class="fp-chips" id="standings-chips"></div>
       <div id="standings-body"><p class="fp-cardsub">Loading…</p></div>
       <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
     </div>
   </section>
 
-  <!-- ---------- SCREEN: RESULTS ----------
-       Public, no account needed. Every promotion's card for each PUBLISHED
-       show, match by match. Same published-only rule as STANDINGS. -->
-  <section class="fp-screen" id="scr-results">
-    <div class="fp-inner wide">
-      <h2 class="fp-h">RESULTS</h2>
-      <p class="fp-guide">Every promotion's card from each show, match by match: ratings, winners and what they got paid. No account needed.</p>
-      <div class="fp-chips" id="results-chips"></div>
-      <div id="results-body" style="width:100%;max-width:760px"><p class="fp-cardsub">Loading…</p></div>
-      <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
-    </div>
-  </section>
 
   <!-- ---------- SCREEN: AFTER-ACTION REPORT ----------
        One player's personal post-show report for a single published event:
@@ -1025,7 +1033,7 @@ const FP_YT_DEFAULTS = {
   showVideos:true, showPayouts:true, swap:false,
   leftTitle:'► WATCH THE SHOWS', rightTitle:'$ PAYOUT BOARD',
   channelUrl:'https://www.youtube.com/@WCAUniverse', subscribeLabel:'SUBSCRIBE',
-  boardFollows:'video', showMoreEps:true, maxEps:4, videos:[]
+  boardFollows:'video', boardEventId:null, showMoreEps:true, maxEps:4, videos:[]
 };
 function fpYt(){
   const c = Object.assign({}, FP_YT_DEFAULTS, (FP && FP.ytPromo) || {});
@@ -1146,7 +1154,7 @@ async function fpLoadCopy(){
 /* ============================================================
    SCREEN SWITCHING  (cross-fade + remember-where-you-were)
    ============================================================ */
-const FP_SCREENS = ['start','menu','signin','standings','results','aar','play','tutorial','promo','roster','settings'];
+const FP_SCREENS = ['start','menu','signin','standings','aar','play','tutorial','promo','roster','settings'];
 const FP_SCREEN_KEY = 'fpHubScreen';
 let _fpCurScreen = 'start';
 let _fpFading = false;
@@ -1161,7 +1169,6 @@ function _fpPrepScreen(name){
   if(back) back.textContent = (name==='start'||name==='menu') ? '◄ BACK' : '◄ MENU';
   if(name==='signin')  renderSignIn();
   if(name==='standings') renderStandings();
-  if(name==='results') renderResults();
   if(name==='aar')     renderAAR();
   if(name==='play')    renderPlayScreen();
   if(name==='tutorial') renderTutorial();
@@ -1248,13 +1255,11 @@ function renderMenu(){
   items.push({ key:'promo', label:(m.promo||'CREATE A PROMOTION'), sub:(ME.hasPromo?('Yours: '+ME.promo):'Required to play'), fn:"fpShow('promo')" });
   items.push({ key:'roster', label:(m.roster||'ROSTER'), sub:'Browse wrestlers & costs', fn:"fpShow('roster')" });
   // STANDINGS — only appears once there's a published show to rank
+  // STANDINGS — the one place for results: season table + every published
+  // show's cards, match by match. Unlocks once a show is published.
   items.push({ key:'standings', label:(m.standings||'STANDINGS'),
-               sub:(HAS_ARCHIVE?'Who\'s leading the season':'After the first show'),
+               sub:(HAS_ARCHIVE?'Season rankings & every card':'After the first show'),
                cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?"fpShowStandings('season')":'') });
-  // RESULTS — public, match-by-match cards for every published show (no account needed)
-  items.push({ key:'results', label:(m.results||'RESULTS'),
-               sub:(HAS_ARCHIVE?'Every card, match by match':'After the first show'),
-               cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?'fpShowResults()':'') });
   items.push({ key:'archive', label:(m.archive||'PAST EVENTS'), sub:(HAS_ARCHIVE?'Watch past shows':'None yet'), cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?'goArchive()':'') });
   items.push({ key:'settings', label:(m.settings||'SETTINGS'), sub:(ME.user?'Account, wallet & submissions':'Sign in first'), fn:"fpShow('settings')" });
 
@@ -1569,29 +1574,41 @@ async function renderStandings(){
   if(!body) return;
   body.innerHTML='<p class="fp-cardsub">Loading…</p>';
   if(chips) chips.innerHTML='';
+  if(!sb){ body.innerHTML='<p class="fp-cardsub">Couldn\'t reach the server. Refresh to try again.</p>'; return; }
 
   await fpsLoad();
+  const isRosters = (STANDINGS_VIEW==='rosters');
+  const isEvent = (STANDINGS_VIEW!=='season' && !isRosters);
+  // an event view can be any published show, even one from another season
+  // (the payout board's FULL RESULTS button can point anywhere)
+  const bundle = isEvent ? await fpEventBundle({ id:STANDINGS_VIEW }) : null;
 
-  if(!FPS.season){
+  if(!isEvent && !FPS.season){
     body.innerHTML='<p class="fp-cardsub">No season has been set up yet. Standings appear once a season is running and its first show is published.</p>';
     return;
   }
-  if(!FPS.events.length){
+  if(!isEvent && !FPS.events.length){
     body.innerHTML='<p class="fp-cardsub"><b style="color:#ffd23f">'+esc(FPS.season.name||'This season')+'</b> hasn\'t published a show yet. '+
       'Standings appear as soon as the first event\'s results go live.</p>';
     return;
   }
 
-  // chip row: SEASON + each published event
+  // chip row: SEASON + each published event (+ the open event if it's from another season)
   if(chips){
-    let html='<button class="fp-chip'+(STANDINGS_VIEW==='season'?' on':'')+'" onclick="fpShowStandings(\'season\')">SEASON</button>';
-    FPS.events.forEach(ev=>{
+    const evs = FPS.events.slice();
+    if(bundle && bundle.ev && !evs.some(e=>String(e.id)===String(bundle.ev.id))) evs.push(bundle.ev);
+    let html = FPS.season ? '<button class="fp-chip'+(STANDINGS_VIEW==='season'?' on':'')+'" onclick="fpShowStandings(\'season\')">SEASON</button>'+
+                            '<button class="fp-chip'+(isRosters?' on':'')+'" onclick="fpShowStandings(\'rosters\')">ROSTERS</button>' : '';
+    evs.forEach(ev=>{
       html+='<button class="fp-chip'+(String(STANDINGS_VIEW)===String(ev.id)?' on':'')+'" onclick="fpShowStandings('+ev.id+')">'+esc(ev.name||('EVENT '+ev.id))+'</button>';
     });
     chips.innerHTML=html;
   }
 
-  body.innerHTML = (STANDINGS_VIEW==='season') ? fpsSeasonTableHtml() : fpsEventTableHtml(STANDINGS_VIEW);
+  if(isRosters){ body.innerHTML = fpRostersHtml(await fpRostersLoad(FPS.season.id)); return; }
+  if(!isEvent){ body.innerHTML = fpsSeasonTableHtml(); return; }
+  if(!bundle || !bundle.ev){ body.innerHTML='<p class="fp-cardsub">That show isn\'t published yet.</p>'; return; }
+  body.innerHTML = await fpEventCardsHtml(bundle);
 }
 
 function fpsSeasonTableHtml(){
@@ -1664,15 +1681,6 @@ function fpVideos(){
   const list = Array.isArray(fpYt().videos) ? fpYt().videos : [];
   return list.filter(v=>v && !v.hidden).map(v=>Object.assign({}, v, { id:fpYtId(v.url) })).filter(v=>v.id);
 }
-function fpEventByName(name){
-  if(!name || !FPS.events) return null;
-  const n = String(name).trim().toLowerCase();
-  return FPS.events.find(e=>String(e.name||'').trim().toLowerCase()===n) || null;
-}
-function fpEventPaid(evId){
-  const list = FPS.byEvent[evId] || [];
-  return { list, count:list.length, total:list.reduce((a,r)=>a+(r.earned||0),0) };
-}
 function fpRenderSides(){
   const c = fpYt();
   const L = document.getElementById('fp-side-left'), R = document.getElementById('fp-side-right');
@@ -1703,9 +1711,15 @@ function fpRenderVideoPanel(){
   }
   if(FP_VID_IDX >= vids.length) FP_VID_IDX = 0;
   const v = vids[FP_VID_IDX];
-  const ev = fpEventByName(v.event);
-  let meta = '';
-  if(ev){ const p = fpEventPaid(ev.id); if(p.count) meta = p.count+' promotion'+(p.count===1?'':'s')+' booked, '+money(p.total)+' paid out'; }
+  // "N promotions booked, $X paid out" fills in once that show's numbers load
+  if(v.event){
+    fpEventBundle({ name:v.event }).then(b=>{
+      const el = document.getElementById('fp-yt-meta'); if(!el || !b || !b.ev || !b.list.length) return;
+      const tot = b.list.reduce((a,r)=>a+(r.earned||0),0);
+      el.textContent = b.list.length+' promotion'+(b.list.length===1?'':'s')+' booked, '+money(tot)+' paid out';
+      el.style.display = '';
+    }).catch(()=>{});
+  }
   let html =
     '<div class="fp-yt" id="fp-yt-frame" role="button" tabindex="0" aria-label="Play '+esc(v.title)+'" '+
       'onclick="fpPlayVideo()" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();fpPlayVideo();}">'+
@@ -1713,7 +1727,7 @@ function fpRenderVideoPanel(){
       '<span class="play">► PLAY</span>'+
     '</div>'+
     '<div class="fp-yt-title">'+esc(v.title||'Watch the show')+'</div>'+
-    (meta ? '<div class="fp-yt-meta">'+esc(meta)+'</div>' : '');
+    '<div class="fp-yt-meta" id="fp-yt-meta" style="display:none"></div>';
   if(vids.length > 1 && cfg.showMoreEps){
     const maxEps = Math.max(1, parseInt(cfg.maxEps,10) || 4);
     let shown = 0;
@@ -1737,21 +1751,39 @@ function fpPlayVideo(){
 }
 function fpPickVideo(i){ FP_VID_IDX = i; FP_VID_PICKED = true; fpRenderSides(); }
 
-function fpRenderPayBoard(){
+/* Which show does the payout board display? Set in the admin YOUTUBE PROMO tab:
+     'event'  — the exact event picked there (boardEventId)
+     'video'  — the show tied to the video on screen, else the latest
+     'latest' — always the most recently published show                */
+function fpBoardSelector(){
+  const c = fpYt();
+  if(c.boardFollows==='event' && c.boardEventId!=null && c.boardEventId!=='') return { id:c.boardEventId };
+  if(c.boardFollows==='video'){
+    const v = fpVideos()[FP_VID_IDX];
+    if(v && v.event) return { name:v.event };
+  }
+  return { latest:true };
+}
+let _fpBoardToken = 0;
+async function fpRenderPayBoard(){
   const host = document.getElementById('fp-side-right-body'); if(!host) return;
-  if(!HAS_ARCHIVE){
+  const token = ++_fpBoardToken;
+  if(!sb){ host.innerHTML = '<p class="fp-cardsub">Couldn\'t reach the server. Refresh to try again.</p>'; return; }
+  if(!host.innerHTML || host.querySelector('.fp-cardsub')) host.innerHTML = '<p class="fp-cardsub">Loading payouts…</p>';
+  let bundle = await fpEventBundle(fpBoardSelector());
+  // a video tied to a show that isn't published yet falls back to the latest published one
+  if((!bundle || !bundle.ev) && fpYt().boardFollows==='video') bundle = await fpEventBundle({ latest:true });
+  if(token !== _fpBoardToken) return;   // a newer render started while we waited
+  if(!bundle || !bundle.ev){
     host.innerHTML = '<p class="fp-cardsub">After each show runs on stream, every promotion\'s rating and payout posts here.</p>';
     return;
   }
-  if(!FPS.loaded){ host.innerHTML = '<p class="fp-cardsub">Loading payouts…</p>'; return; }
-  const v = (fpYt().boardFollows === 'latest') ? null : fpVideos()[FP_VID_IDX];
-  const ev = (v && fpEventByName(v.event)) || fpsLatestEvent();
-  if(!ev){ host.innerHTML = '<p class="fp-cardsub">No published shows this season yet.</p>'; return; }
-  const p = fpEventPaid(ev.id);
+  const ev = bundle.ev, list = bundle.list;
+  const total = list.reduce((a,r)=>a+(r.earned||0),0);
   let html = '<div class="fp-pay-ev">'+esc(ev.name||('Event '+ev.id))+'</div>'+
     '<div class="fp-pay-sub">'+(ev.subtitle ? esc(ev.subtitle)+'. ' : '')+
-      (p.count ? 'Ranked by match rating.' : 'No cards were reviewed for this show.')+'</div>';
-  p.list.forEach(r=>{
+      (list.length ? 'Ranked by match rating.' : 'No cards were reviewed for this show.')+'</div>';
+  list.forEach(r=>{
     html += '<div class="fp-pay-row">'+
       '<span class="pl">'+r.place+'</span>'+
       '<span style="min-width:0"><span class="pn">'+esc(r.promo)+'</span>'+(r.owner?'<span class="ow">'+esc(r.owner)+'</span>':'')+'</span>'+
@@ -1759,25 +1791,78 @@ function fpRenderPayBoard(){
       '<span class="amt">'+money(r.earned)+'<span class="fp-stamp">PAID</span></span>'+
     '</div>';
   });
-  if(p.count) html += '<div class="fp-pay-total"><span>TOTAL PAID OUT</span><b>'+money(p.total)+'</b></div>';
+  if(list.length) html += '<div class="fp-pay-total"><span>TOTAL PAID OUT</span><b>'+money(total)+'</b></div>';
   html += '<div class="fp-side-foot">'+
-    '<button class="fp-btn primary" onclick="fpShowResults('+ev.id+')">FULL RESULTS ►</button>'+
+    '<button class="fp-btn primary" onclick="fpShowStandings('+ev.id+')">FULL RESULTS ►</button>'+
     '<button class="fp-btn" onclick="fpShowStandings(\'season\')">STANDINGS</button>'+
   '</div>';
   host.innerHTML = html;
 }
 
 /* ============================================================
-   RESULTS SCREEN (public)
+   ONE PUBLISHED SHOW — loader + match-by-match cards
    ------------------------------------------------------------
-   Chips across the top, one per PUBLISHED event. Each promotion
-   is an expandable card showing its matches. Ranking and money
-   come from fpsLoad(), so this always agrees with STANDINGS.
+   Loads any single PUBLISHED event straight from fp_events (any
+   season), by id, by name, or "the latest". Used by the payout
+   board and by the event chips on STANDINGS. Ranking and money
+   use the exact same rules as fpsLoad(), so the numbers agree.
+   Unpublished and test events never load here.
    ============================================================ */
-let RESULTS_EVENT = null;
+const FP_EV_CACHE = {};          // 'id:3' / 'name:stars and stripes' / 'latest' -> { ev, list }
 const FPR_MATCHES = {};          // eventId -> { cardId: [matches] } (null = couldn't load)
 let FPR_MAPS = null;             // wrestler + match-type names
-function fpShowResults(eventId){ RESULTS_EVENT = (eventId==null ? null : eventId); fpShow('results'); }
+function fpShowResults(eventId){ fpShowStandings(eventId==null ? 'season' : eventId); }   // old name, same screen
+
+function fpRankCards(cards, owners, venues){
+  return cards.map(c=>{
+    const v = c.venue_key ? venues[c.venue_key] : null;
+    const gate = (v && c.ticket_price) ? v.capacity*c.ticket_price : 0;
+    const rental = v ? (v.rental_cost||0) : 0;
+    const spent = Math.max(0,(c.total_cost||0)-rental);
+    const earned = (c.payout||0)+gate;
+    const o = owners[c.booker_id]||{};
+    return { bookerId:c.booker_id, cardId:c.id,
+             promo:(c.promotion_name||o.promo||'Untitled Promotion'), owner:o.owner||'',
+             rating:c.score, spent, gate, matchMoney:c.payout||0, earned, net:earned-spent,
+             eff:fpsEfficiency(c.score, spent) };
+  }).sort((a,b)=>fpsRankCompare(a.rating,a.net,b.rating,b.net))
+    .map((r,i)=>Object.assign(r,{ place:i+1 }));
+}
+
+async function fpEventBundle(sel){
+  if(!sb || !sel) return null;
+  const key = sel.latest ? 'latest' : (sel.id!=null ? 'id:'+sel.id : 'name:'+String(sel.name||'').trim().toLowerCase());
+  if(FP_EV_CACHE[key]) return FP_EV_CACHE[key];
+  let ev = null;
+  try{
+    let q = sb.from('fp_events').select('id,name,subtitle,completed_at,is_test,status,season_id').eq('status','completed');
+    if(sel.id!=null) q = q.eq('id', sel.id);
+    else if(!sel.latest) q = q.ilike('name', String(sel.name||'').trim());
+    const { data } = await q.order('id',{ascending:false}).limit(10);
+    ev = (data||[]).find(e=>!e.is_test) || null;
+  }catch(e){}
+  if(!ev){ FP_EV_CACHE[key] = { ev:null, list:[] }; return FP_EV_CACHE[key]; }
+
+  let cards=[], owners={}, venues={};
+  try{
+    const { data } = await sb.from('fp_cards')
+      .select('id,booker_id,event_id,promotion_name,score,total_cost,payout,venue_key,ticket_price,reviewed')
+      .eq('event_id', ev.id).eq('reviewed', true);
+    cards = data||[];
+  }catch(e){}
+  try{
+    const ids=[...new Set(cards.map(c=>c.booker_id))];
+    if(ids.length){ const { data } = await sb.from('fp_bookers').select('auth_id,owner_name,promotion_name').in('auth_id',ids);
+      (data||[]).forEach(b=>owners[b.auth_id]={owner:b.owner_name,promo:b.promotion_name}); }
+  }catch(e){}
+  try{ const { data } = await sb.from('fp_venues').select('key,capacity,rental_cost');
+       (data||[]).forEach(v=>venues[v.key]=v); }catch(e){}
+
+  const bundle = { ev, list:fpRankCards(cards, owners, venues) };
+  FP_EV_CACHE[key] = bundle;
+  FP_EV_CACHE['id:'+ev.id] = bundle;
+  return bundle;
+}
 
 async function fprLoadMaps(){
   if(FPR_MAPS) return FPR_MAPS;
@@ -1800,32 +1885,10 @@ async function fprLoadMatches(evId, cardIds){
   return byCard;
 }
 
-async function renderResults(){
-  const chips = document.getElementById('results-chips');
-  const body  = document.getElementById('results-body');
-  if(!body) return;
-  body.innerHTML = '<p class="fp-cardsub">Loading…</p>';
-  if(chips) chips.innerHTML = '';
-  if(!sb){ body.innerHTML = '<p class="fp-cardsub">Couldn\'t reach the server. Refresh to try again.</p>'; return; }
-
-  await fpsLoad();
-  if(!FPS.events.length){
-    body.innerHTML = '<p class="fp-cardsub">No show has been published yet. Results post here the moment the first show goes live.</p>';
-    return;
-  }
-  const ev = FPS.events.find(e=>String(e.id)===String(RESULTS_EVENT)) || fpsLatestEvent();
-  RESULTS_EVENT = ev.id;
-
-  if(chips){
-    chips.innerHTML = FPS.events.map(e=>
-      '<button class="fp-chip'+(String(e.id)===String(ev.id)?' on':'')+'" onclick="fpShowResults('+e.id+')">'+esc(e.name||('EVENT '+e.id))+'</button>'
-    ).join('');
-  }
-
-  const list = FPS.byEvent[ev.id] || [];
-  if(!list.length){ body.innerHTML = '<p class="fp-cardsub">No cards were reviewed for '+esc(ev.name)+'.</p>'; return; }
-
-  const [maps, byCard] = await Promise.all([ fprLoadMaps(), fprLoadMatches(ev.id, list.map(r=>r.cardId)) ]);
+async function fpEventCardsHtml(bundle){
+  const ev = bundle.ev, list = bundle.list;
+  if(!list.length) return '<p class="fp-cardsub">No cards were reviewed for '+esc(ev.name)+'.</p>';
+  const [maps, byCard, R] = await Promise.all([ fprLoadMaps(), fprLoadMatches(ev.id, list.map(r=>r.cardId)), fpRostersLoad(ev.season_id) ]);
   const stars = !!(FP && FP.options && FP.options.ratingStars);
   const rateLbl = (pct)=> pct==null ? '—' : (stars ? (Math.round((pct/20)*10)/10)+'★' : pct+'%');
   const total = list.reduce((a,r)=>a+(r.earned||0),0);
@@ -1835,6 +1898,7 @@ async function renderResults(){
 
   list.forEach(r=>{
     const uid = 'res_'+r.cardId;
+    const mine = ME.user && String(r.bookerId)===String(ME.user.id);
     const ms = byCard ? (byCard[r.cardId]||[]) : null;
     let matchesHtml = '';
     if(ms === null){
@@ -1847,10 +1911,10 @@ async function renderResults(){
         const isRumble = sides.length===1;
         const mpay = (m.payout||0)+(m.bonus||0);
         let sidesHtml = '';
-        sides.forEach((s,si)=>{
+        sides.forEach((sd,si)=>{
           const lbl = isRumble ? 'RUMBLE FIELD' : (sides.length===2 ? (si===0?'BLUE':'RED') : ('CORNER '+(si+1)));
           const won = (m.winner_side===si);
-          const names = Array.isArray(s) ? s.map(id=>esc(maps.w[id]||('#'+id))).join(' &amp; ') : '';
+          const names = Array.isArray(sd) ? sd.map(id=>esc(maps.w[id]||('#'+id))).join(' &amp; ') : '';
           sidesHtml += '<div class="fp-aside"><div class="sl">'+lbl+'</div><div class="wn'+(won?' win':'')+'">'+(names||'—')+'</div></div>';
         });
         matchesHtml += '<div class="fp-amatch"><div class="ah">'+
@@ -1860,7 +1924,20 @@ async function renderResults(){
           '</div><div class="ab">'+sidesHtml+'</div></div>';
       });
     }
-    html += '<div class="fp-res">'+
+    // signings this promotion made at THIS show, and how big the roster was after it
+    let rosterHtml = '', signedHere = [];
+    if(R && R.byBooker[r.bookerId]){
+      const all = R.byBooker[r.bookerId];
+      signedHere = all.filter(x=>x.first_event_id===ev.id);
+      const sizeAfter = all.filter(x=>x.first_event_id<=ev.id).length;
+      if(signedHere.length){
+        rosterHtml += '<div class="fp-rsec">SIGNED AT THIS SHOW ('+signedHere.length+')</div>'+
+          '<div class="fp-rgrid">'+signedHere.map(x=>fpRosterTile(R, x, false)).join('')+'</div>';
+      }
+      rosterHtml += '<button class="fp-rlink" onclick="fpShowStandings(\'rosters\')">Roster after this show: '+
+        sizeAfter+' wrestler'+(sizeAfter===1?'':'s')+'. See every roster ►</button>';
+    }
+    html += '<div class="fp-res'+(mine?' me':'')+'">'+
       '<div class="fp-sub-row" id="row_'+uid+'" onclick="toggleMySub(\''+uid+'\')">'+
         '<span class="pl">'+r.place+'</span>'+
         '<span class="ev"><span class="pn">'+esc(r.promo)+'</span>'+(r.owner?'<span class="ow">'+esc(r.owner)+'</span>':'')+'</span>'+
@@ -1868,7 +1945,7 @@ async function renderResults(){
         '<span class="st done">'+money(r.earned)+' paid</span>'+
         '<span class="chev">▸</span>'+
       '</div>'+
-      '<div class="fp-sub-body" id="body_'+uid+'">'+matchesHtml+
+      '<div class="fp-sub-body" id="body_'+uid+'">'+matchesHtml+rosterHtml+
         '<div class="fp-ptot">'+
           '<div class="r"><span>Card rating</span><b>'+rateLbl(r.rating)+'</b></div>'+
           '<div class="p"><span>Match payout</span><b>'+money(r.matchMoney)+'</b></div>'+
@@ -1880,10 +1957,120 @@ async function renderResults(){
       '</div>'+
     '</div>';
   });
-  html += '<p class="fp-tnote">Paid out is match payouts plus ticket gate. Booked cost excludes venue rental, same as STANDINGS.</p>';
-  body.innerHTML = html;
+  html += '<p class="fp-tnote">Ranked on the night\'s match rating. Paid out is match payouts plus ticket gate; booked cost excludes venue rental.</p>';
+  if(fpsMyRowFor(ev.id)) html += '<div style="text-align:center;margin-top:16px"><button class="fp-btn primary" onclick="fpOpenAAR('+ev.id+')">MY REPORT FOR THIS SHOW ►</button></div>';
+  return html;
 }
 
+/* ============================================================
+   ROSTERS — every promotion's season roster (fp_season_rosters)
+   ------------------------------------------------------------
+   A wrestler joins a promotion's roster the first time that
+   promotion pays for them in a season, and stays free to reuse
+   for the rest of it. Only signings from PUBLISHED shows appear
+   (first_event_id must be a published, non-test event), so a card
+   sitting in an open or unrevealed show never leaks early. The
+   moment you press Publish ▸ archive, that show's signings show up.
+   ============================================================ */
+const FP_ROSTER_CACHE = {};      // seasonId -> loaded roster data
+
+async function fpRostersLoad(seasonId){
+  if(seasonId==null || !sb) return null;
+  if(FP_ROSTER_CACHE[seasonId]) return FP_ROSTER_CACHE[seasonId];
+  const out = { seasonId, events:[], evById:{}, latestId:null, byBooker:{}, owners:{}, wrestlers:{} };
+  // published shows in this season, oldest first
+  try{
+    const { data } = await sb.from('fp_events').select('id,name,is_test,status')
+      .eq('season_id', seasonId).eq('status','completed').order('id',{ascending:true});
+    out.events = (data||[]).filter(e=>!e.is_test);
+  }catch(e){}
+  out.events.forEach((e,i)=>{ out.evById[e.id] = Object.assign({ n:i+1 }, e); });
+  out.latestId = out.events.length ? out.events[out.events.length-1].id : null;
+  // signings — keep only the ones made at a published show
+  let rows=[];
+  try{
+    const { data } = await sb.from('fp_season_rosters')
+      .select('auth_id,wrestler_id,acquired_cost,first_event_id').eq('season_id', seasonId);
+    rows = (data||[]).filter(r=>out.evById[r.first_event_id]);
+  }catch(e){}
+  rows.forEach(r=>{ (out.byBooker[r.auth_id]=out.byBooker[r.auth_id]||[]).push(r); });
+  try{
+    const ids=[...new Set(rows.map(r=>r.wrestler_id))];
+    if(ids.length){
+      const { data } = await sb.from('fp_wrestlers')
+        .select('id,name,image_url,image_crop_x,image_crop_y,image_zoom,rank_grade,charisma_grade').in('id', ids);
+      (data||[]).forEach(w=>out.wrestlers[w.id]=w);
+    }
+  }catch(e){}
+  try{
+    const ids=Object.keys(out.byBooker);
+    if(ids.length){
+      const { data } = await sb.from('fp_bookers').select('auth_id,owner_name,promotion_name').in('auth_id', ids);
+      (data||[]).forEach(b=>out.owners[b.auth_id]={ owner:b.owner_name, promo:b.promotion_name });
+    }
+  }catch(e){}
+  // newest signings first, then by name
+  Object.values(out.byBooker).forEach(list=>list.sort((a,b)=>
+    (b.first_event_id-a.first_event_id) ||
+    String((out.wrestlers[a.wrestler_id]||{}).name||'').localeCompare(String((out.wrestlers[b.wrestler_id]||{}).name||''))));
+  FP_ROSTER_CACHE[seasonId] = out;
+  return out;
+}
+
+// one wrestler tile: photo (same crop as the ROSTER screen), name, where they were signed and for how much
+function fpRosterTile(R, r, isNew){
+  const w = R.wrestlers[r.wrestler_id] || { name:'#'+r.wrestler_id };
+  const ini = esc(wInitials(w.name));
+  const av = w.image_url
+    ? '<img src="'+esc(w.image_url)+'" alt="" loading="lazy" style="object-position:'+
+        (w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'+
+        'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" onerror="this.parentNode.textContent=\''+ini+'\'">'
+    : ini;
+  const ev = R.evById[r.first_event_id];
+  const grades = (w.rank_grade||w.charisma_grade) ? (w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+' · ' : '';
+  return '<div class="fp-rw'+(isNew?' new':'')+'">'+(isNew?'<span class="newtag">NEW</span>':'')+
+    '<div class="av">'+av+'</div>'+
+    '<div style="min-width:0"><span class="nm">'+esc(w.name)+'</span>'+
+      '<span class="sm">'+grades+'Signed at '+esc(ev ? ev.name : 'a past show')+(r.acquired_cost?' for '+money(r.acquired_cost):'')+'</span></div>'+
+  '</div>';
+}
+
+function fpRostersHtml(R){
+  if(!R) return '<p class="fp-cardsub">Couldn\'t load rosters right now. Refresh to try again.</p>';
+  const ids = Object.keys(R.byBooker);
+  if(!ids.length) return '<p class="fp-cardsub">No one has signed a wrestler at a published show yet. Rosters fill in the moment a show goes live.</p>';
+  // NEW only means something once there's a show before the latest one to compare against
+  const latest = (R.latestId!=null && R.events.length>1) ? R.evById[R.latestId] : null;
+  // biggest roster first; ties go to whoever invested more
+  const promos = ids.map(id=>{
+    const list = R.byBooker[id];
+    const o = R.owners[id] || {};
+    return { id, list, promo:o.promo||'Untitled Promotion', owner:o.owner||'',
+             invested:list.reduce((a,r)=>a+(r.acquired_cost||0),0),
+             fresh:latest ? list.filter(r=>r.first_event_id===R.latestId).length : 0 };
+  }).sort((a,b)=>(b.list.length-a.list.length)||(b.invested-a.invested));
+
+  let html = '<p class="fp-res-sum">Every wrestler each promotion has signed this season. '+
+    (latest ? '<b>NEW</b> marks signings made at '+esc(latest.name)+'.' : '')+' Tap a promotion to see its roster.</p>';
+  promos.forEach(p=>{
+    const uid = 'ros_'+String(p.id).replace(/[^a-zA-Z0-9_-]/g,'');
+    const mine = ME.user && String(p.id)===String(ME.user.id);
+    html += '<div class="fp-res'+(mine?' me':'')+'">'+
+      '<div class="fp-sub-row" id="row_'+uid+'" onclick="toggleMySub(\''+uid+'\')">'+
+        '<span class="ev"><span class="pn">'+esc(p.promo)+'</span>'+(p.owner?'<span class="ow">'+esc(p.owner)+'</span>':'')+'</span>'+
+        (p.fresh ? '<span class="fp-res-badge">+'+p.fresh+' NEW</span>' : '')+
+        '<span class="cnt">'+p.list.length+' wrestler'+(p.list.length===1?'':'s')+'</span>'+
+        '<span class="st done">'+money(p.invested)+' invested</span>'+
+        '<span class="chev">▸</span>'+
+      '</div>'+
+      '<div class="fp-sub-body" id="body_'+uid+'"><div class="fp-rgrid">'+
+        p.list.map(r=>fpRosterTile(R, r, !!latest && r.first_event_id===R.latestId)).join('')+
+      '</div></div>'+
+    '</div>';
+  });
+  html += '<p class="fp-tnote">A wrestler joins a roster the first time a promotion pays for them this season, then they\'re free to book again until the season ends. Grades are Rank/Charisma.</p>';
+  return html;
+}
 
 /* ============================================================
    AFTER-ACTION REPORT
