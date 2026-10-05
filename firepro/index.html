@@ -629,6 +629,106 @@
     #fp-mute{font-size:8px; padding:7px 7px;}
   }
 
+  /* ============================================================
+     MAIN MENU SIDE PANELS — YouTube episodes (left) + payout board (right)
+     Wide screens: three columns (episodes | menu | payouts).
+     Narrow screens: both panels stack under the menu.
+     ============================================================ */
+  .fp-side{
+    width:calc(100% - 32px); max-width:560px; margin:0 auto 24px; position:relative; z-index:1;
+    font-family:'Barlow',sans-serif; text-align:left; color:#ffe9b0;
+    background:linear-gradient(180deg,rgba(42,10,10,.94),rgba(18,4,6,.94));
+    border:2px solid #ff3b3b; border-radius:6px; overflow:hidden;
+    box-shadow:0 0 0 1px #000, 0 0 16px -4px #ff3b3b, inset 0 0 18px -10px #ffd23f;
+  }
+  .fp-side-h{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px;
+    background:linear-gradient(180deg,#b3001b,#6e0010); border-bottom:2px solid #ffd23f;
+    font-family:'Press Start 2P',monospace; font-size:10px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;
+  }
+  .fp-side-h .live{ font-size:7px; color:#0a0506; background:#ffd23f; border-radius:3px; padding:4px 6px; text-shadow:none; }
+  .fp-side-b{ padding:14px; }
+  .fp-side-b .fp-cardsub{ margin:0; }
+
+  /* video: thumbnail first, real player only after a click (keeps the menu fast) */
+  .fp-yt{ position:relative; aspect-ratio:16/9; border-radius:4px; overflow:hidden; background:#000; cursor:pointer;
+    box-shadow:0 0 0 2px #000, 0 0 0 4px #3a1414; }
+  .fp-yt img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fp-yt::after{ content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 2px, transparent 2px 4px); }
+  .fp-yt .play{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:1;
+    font-family:'Press Start 2P',monospace; font-size:12px; letter-spacing:1px; color:#0a0506;
+    background:#ffd23f; border:2px solid #fff; border-radius:4px; padding:13px 16px;
+    box-shadow:0 0 0 1px #000, 0 0 20px -2px #ffd23f; transition:.12s;
+  }
+  .fp-yt:hover .play, .fp-yt:focus-visible .play{ background:#fff; }
+  .fp-yt:focus-visible{ outline:3px solid #ffd23f; outline-offset:3px; }
+  .fp-yt iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; z-index:2; }
+  .fp-yt-title{ font-family:'Oswald',sans-serif; font-weight:700; font-size:21px; color:#fff; margin:14px 0 3px; line-height:1.2; }
+  .fp-yt-meta{ font-size:14px; color:#3ECF8E; }
+  .fp-eps{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .fp-ep{
+    display:flex; gap:11px; align-items:center; width:100%; cursor:pointer; text-align:left;
+    background:rgba(255,255,255,.03); border:1px solid #3a1414; border-radius:6px; padding:6px; color:inherit; font:inherit;
+  }
+  .fp-ep:hover, .fp-ep:focus-visible{ border-color:#ffd23f; outline:none; }
+  .fp-ep img{ width:116px; aspect-ratio:16/9; object-fit:cover; border-radius:3px; flex:0 0 auto; }
+  .fp-ep .t{ display:block; font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; color:#fff; line-height:1.25; }
+  .fp-ep .m{ display:block; font-size:12px; color:#ff9a7a; margin-top:2px; }
+  .fp-side-foot{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  .fp-side-foot .fp-btn{ flex:1 1 170px; display:inline-block; text-align:center; text-decoration:none; font-size:9px; padding:12px 10px; }
+
+  /* payout board — the PAID stamp is the one loud thing on this panel */
+  .fp-pay-ev{ font-family:'Oswald',sans-serif; font-weight:700; font-size:22px; color:#fff; line-height:1.15; }
+  .fp-pay-sub{ font-size:14px; color:#cdbfa6; margin:3px 0 12px; }
+  .fp-pay-row{ display:grid; grid-template-columns:30px minmax(0,1fr) auto auto; align-items:center; gap:12px;
+    padding:11px 2px; border-top:1px dashed #3a1414; }
+  .fp-pay-row .pl{ font-family:'Press Start 2P',monospace; font-size:10px; color:#ffd23f; }
+  .fp-pay-row .pn{ display:block; font-family:'Oswald',sans-serif; font-weight:700; font-size:16px; color:#fff; line-height:1.2;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fp-pay-row .ow{ display:block; font-size:12px; color:#9a8f86; }
+  .fp-pay-row .rt{ font-family:'Oswald',sans-serif; font-weight:600; font-size:16px; color:#ffd23f; }
+  .fp-pay-row .amt{ text-align:right; font-family:'Oswald',sans-serif; font-weight:700; font-size:16px; color:#3ECF8E; white-space:nowrap; }
+  .fp-stamp{
+    display:block; width:max-content; margin:4px 0 0 auto;
+    font-family:'Press Start 2P',monospace; font-size:8px; letter-spacing:2px; color:#3ECF8E;
+    border:2px solid #3ECF8E; outline:1px solid rgba(62,207,142,.45); outline-offset:2px;
+    border-radius:3px; padding:4px 6px 3px 8px; transform:rotate(-7deg);
+  }
+  .fp-pay-total{ display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    margin-top:4px; padding:14px 2px 0; border-top:2px solid #ffd23f; }
+  .fp-pay-total span{ font-family:'Press Start 2P',monospace; font-size:8px; letter-spacing:1px; color:#ffd23f; }
+  .fp-pay-total b{ font-family:'Oswald',sans-serif; font-size:26px; color:#3ECF8E; }
+
+  @media(min-width:1280px){
+    #scr-menu.on, #scr-menu.fade-in, #scr-menu.fade-out{
+      display:grid; grid-template-columns:minmax(0,1fr) 420px minmax(0,1fr);
+      column-gap:36px; align-items:center; min-height:100vh; padding:84px 36px 110px;
+    }
+    #scr-menu .fp-inner{ grid-column:2; grid-row:1; min-height:0; padding-top:0; padding-bottom:0; }
+    #fp-side-left{ grid-column:1; grid-row:1; justify-self:end; width:100%; margin:0; }
+    #fp-side-right{ grid-column:3; grid-row:1; justify-self:start; width:100%; margin:0; }
+    /* admin "Episodes on the right" swaps the two panels */
+    #scr-menu.fp-swap #fp-side-left{ grid-column:3; justify-self:start; }
+    #scr-menu.fp-swap #fp-side-right{ grid-column:1; justify-self:end; }
+  }
+  .fp-side.off{ display:none; }
+  @media(max-width:1279px){ #fp-side-right{ margin-bottom:110px; } }
+
+  /* RESULTS screen — one expandable card per promotion */
+  .fp-res{ width:100%; border:1px solid #3a1414; border-radius:8px; background:rgba(255,255,255,.03); margin:0 0 10px; text-align:left; }
+  .fp-res .fp-sub-row{ border-top:none; padding:12px 14px; gap:12px; }
+  .fp-res .fp-sub-row .pl{ font-family:'Press Start 2P',monospace; font-size:10px; color:#ffd23f; flex:0 0 26px; }
+  .fp-res .fp-sub-row .ev{ min-width:0; }
+  .fp-res .fp-sub-row .ev .pn{ display:block; font-family:'Oswald',sans-serif; font-weight:700; font-size:17px; color:#fff; }
+  .fp-res .fp-sub-row .ev .ow{ display:block; font-size:12px; font-weight:400; color:#9a8f86; }
+  .fp-res .fp-sub-row .rt{ font-family:'Oswald',sans-serif; font-weight:700; font-size:17px; color:#ffd23f; }
+  .fp-res .fp-sub-row .st{ font-size:14px; }
+  .fp-res .fp-sub-body{ padding:0 14px 12px; }
+  .fp-res-sum{ font-family:'Barlow',sans-serif; font-size:14px; color:#cdbfa6; margin:0 0 14px; text-align:center; }
+  .fp-res-sum b{ color:#3ECF8E; }
+
 </style>
 </head>
 <body>
@@ -671,6 +771,16 @@
       <div class="fp-menu" id="fp-menu"><!-- buttons injected by JS --></div>
       <div class="fp-who" id="fp-who"></div>
     </div>
+    <!-- LEFT PANEL: YouTube episodes (filled by fpRenderVideoPanel) -->
+    <aside class="fp-side" id="fp-side-left" aria-label="Fire Pro episodes on YouTube">
+      <div class="fp-side-h"><span id="fp-side-left-title">► WATCH THE SHOWS</span><span class="live">YOUTUBE</span></div>
+      <div class="fp-side-b" id="fp-side-left-body"><p class="fp-cardsub">Loading…</p></div>
+    </aside>
+    <!-- RIGHT PANEL: payout board for the featured episode's show (filled by fpRenderPayBoard) -->
+    <aside class="fp-side" id="fp-side-right" aria-label="Payout board">
+      <div class="fp-side-h"><span id="fp-side-right-title">$ PAYOUT BOARD</span></div>
+      <div class="fp-side-b" id="fp-side-right-body"><p class="fp-cardsub">Loading…</p></div>
+    </aside>
   </section>
 
   <!-- ---------- SCREEN: SIGN IN / SIGN UP ----------
@@ -704,6 +814,19 @@
       <p class="fp-guide" id="standings-guide">Best average match rating wins the season. Money doesn't win it — it only breaks a tie.</p>
       <div class="fp-chips" id="standings-chips"></div>
       <div id="standings-body"><p class="fp-cardsub">Loading…</p></div>
+      <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
+    </div>
+  </section>
+
+  <!-- ---------- SCREEN: RESULTS ----------
+       Public, no account needed. Every promotion's card for each PUBLISHED
+       show, match by match. Same published-only rule as STANDINGS. -->
+  <section class="fp-screen" id="scr-results">
+    <div class="fp-inner wide">
+      <h2 class="fp-h">RESULTS</h2>
+      <p class="fp-guide">Every promotion's card from each show, match by match: ratings, winners and what they got paid. No account needed.</p>
+      <div class="fp-chips" id="results-chips"></div>
+      <div id="results-body" style="width:100%;max-width:760px"><p class="fp-cardsub">Loading…</p></div>
       <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
     </div>
   </section>
@@ -891,6 +1014,25 @@ let OPEN_EVENT = null;       // currently-open event (or null)
 let CLOSED_EVENT = null;     // an event that exists but whose deadline/close has passed
 let HAS_ARCHIVE = false;     // any completed events?
 
+/* ============================================================
+   YOUTUBE PROMO  (main menu side panels)
+   ------------------------------------------------------------
+   Everything here is set in the Fire Pro admin → YOUTUBE PROMO
+   tab and saved to site_settings.firepro.ytPromo. These are only
+   the fallbacks used until that tab has been saved once.
+   ============================================================ */
+const FP_YT_DEFAULTS = {
+  showVideos:true, showPayouts:true, swap:false,
+  leftTitle:'► WATCH THE SHOWS', rightTitle:'$ PAYOUT BOARD',
+  channelUrl:'https://www.youtube.com/@WCAUniverse', subscribeLabel:'SUBSCRIBE',
+  boardFollows:'video', showMoreEps:true, maxEps:4, videos:[]
+};
+function fpYt(){
+  const c = Object.assign({}, FP_YT_DEFAULTS, (FP && FP.ytPromo) || {});
+  c.channelUrl = String(c.channelUrl||FP_YT_DEFAULTS.channelUrl).trim().replace(/\/+$/,'');
+  return c;
+}
+
 /* An event only counts as open if it says open, wasn't manually closed, and its
    deadline is still in the future. Kept identical to builder.html's eventIsOpen()
    and the admin's evEffectiveStatus() so all three agree. */
@@ -990,19 +1132,21 @@ async function fpLoadCopy(){
   }
 
   renderMenu();
+  fpRenderSides();   // YouTube + payout panels draw right away; payouts fill in below
 
   // Season standings load in the background — they need several queries and
-  // shouldn't hold up the first paint. When they land, the menu re-checks
-  // whether this player has an unread result waiting.
-  if(ME.user && HAS_ARCHIVE){
-    fpsLoad().then(()=>{ fpRenderAlert(); }).catch(()=>{});
+  // shouldn't hold up the first paint. They load for EVERYONE now (signed in
+  // or not) because the payout board and RESULTS are public. When they land,
+  // the side panels fill in and the menu re-checks for an unread result.
+  if(HAS_ARCHIVE){
+    fpsLoad().then(()=>{ fpRenderAlert(); fpRenderSides(); }).catch(()=>{});
   }
 }
 
 /* ============================================================
    SCREEN SWITCHING  (cross-fade + remember-where-you-were)
    ============================================================ */
-const FP_SCREENS = ['start','menu','signin','standings','aar','play','tutorial','promo','roster','settings'];
+const FP_SCREENS = ['start','menu','signin','standings','results','aar','play','tutorial','promo','roster','settings'];
 const FP_SCREEN_KEY = 'fpHubScreen';
 let _fpCurScreen = 'start';
 let _fpFading = false;
@@ -1017,6 +1161,7 @@ function _fpPrepScreen(name){
   if(back) back.textContent = (name==='start'||name==='menu') ? '◄ BACK' : '◄ MENU';
   if(name==='signin')  renderSignIn();
   if(name==='standings') renderStandings();
+  if(name==='results') renderResults();
   if(name==='aar')     renderAAR();
   if(name==='play')    renderPlayScreen();
   if(name==='tutorial') renderTutorial();
@@ -1106,6 +1251,10 @@ function renderMenu(){
   items.push({ key:'standings', label:(m.standings||'STANDINGS'),
                sub:(HAS_ARCHIVE?'Who\'s leading the season':'After the first show'),
                cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?"fpShowStandings('season')":'') });
+  // RESULTS — public, match-by-match cards for every published show (no account needed)
+  items.push({ key:'results', label:(m.results||'RESULTS'),
+               sub:(HAS_ARCHIVE?'Every card, match by match':'After the first show'),
+               cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?'fpShowResults()':'') });
   items.push({ key:'archive', label:(m.archive||'PAST EVENTS'), sub:(HAS_ARCHIVE?'Watch past shows':'None yet'), cls:(HAS_ARCHIVE?'':'locked'), fn:(HAS_ARCHIVE?'goArchive()':'') });
   items.push({ key:'settings', label:(m.settings||'SETTINGS'), sub:(ME.user?'Account, wallet & submissions':'Sign in first'), fn:"fpShow('settings')" });
 
@@ -1499,6 +1648,242 @@ function fpsEventTableHtml(eventId){
   if(mine) html+='<div style="text-align:center;margin-top:16px"><button class="fp-btn primary" onclick="fpOpenAAR('+ev.id+')">MY REPORT FOR THIS SHOW ►</button></div>';
   return html;
 }
+
+/* ============================================================
+   MENU SIDE PANELS — episodes + payout board
+   ============================================================ */
+let FP_VID_IDX = 0;
+let FP_VID_PICKED = false;   // visitor clicked another episode → stop snapping back to the featured one
+function fpYtId(u){
+  u = String(u||'').trim(); if(!u) return null;
+  if(/^[A-Za-z0-9_-]{11}$/.test(u)) return u;
+  const m = u.match(/(?:[?&]v=|youtu\.be\/|\/live\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+function fpVideos(){
+  const list = Array.isArray(fpYt().videos) ? fpYt().videos : [];
+  return list.filter(v=>v && !v.hidden).map(v=>Object.assign({}, v, { id:fpYtId(v.url) })).filter(v=>v.id);
+}
+function fpEventByName(name){
+  if(!name || !FPS.events) return null;
+  const n = String(name).trim().toLowerCase();
+  return FPS.events.find(e=>String(e.name||'').trim().toLowerCase()===n) || null;
+}
+function fpEventPaid(evId){
+  const list = FPS.byEvent[evId] || [];
+  return { list, count:list.length, total:list.reduce((a,r)=>a+(r.earned||0),0) };
+}
+function fpRenderSides(){
+  const c = fpYt();
+  const L = document.getElementById('fp-side-left'), R = document.getElementById('fp-side-right');
+  const menu = document.getElementById('scr-menu');
+  if(L) L.classList.toggle('off', !c.showVideos);
+  if(R) R.classList.toggle('off', !c.showPayouts);
+  if(menu) menu.classList.toggle('fp-swap', !!c.swap);
+  const lt = document.getElementById('fp-side-left-title'), rt = document.getElementById('fp-side-right-title');
+  if(lt) lt.textContent = c.leftTitle || FP_YT_DEFAULTS.leftTitle;
+  if(rt) rt.textContent = c.rightTitle || FP_YT_DEFAULTS.rightTitle;
+  if(!FP_VID_PICKED){
+    const vids = fpVideos();
+    const f = vids.findIndex(v=>v.featured);
+    FP_VID_IDX = f >= 0 ? f : 0;
+  }
+  fpRenderVideoPanel(); fpRenderPayBoard();
+}
+
+function fpRenderVideoPanel(){
+  const host = document.getElementById('fp-side-left-body'); if(!host) return;
+  const vids = fpVideos();
+  const cfg = fpYt();
+  const subBtn = '<a class="fp-btn primary" href="'+esc(cfg.channelUrl)+'?sub_confirmation=1" target="_blank" rel="noopener">'+esc(cfg.subscribeLabel||'SUBSCRIBE')+'</a>';
+  if(!vids.length){
+    host.innerHTML = '<p class="fp-cardsub">Every show gets run and paid out live on the WCA YouTube channel. Subscribe so you catch the next one.</p>'+
+      '<div class="fp-side-foot">'+subBtn+'</div>';
+    return;
+  }
+  if(FP_VID_IDX >= vids.length) FP_VID_IDX = 0;
+  const v = vids[FP_VID_IDX];
+  const ev = fpEventByName(v.event);
+  let meta = '';
+  if(ev){ const p = fpEventPaid(ev.id); if(p.count) meta = p.count+' promotion'+(p.count===1?'':'s')+' booked, '+money(p.total)+' paid out'; }
+  let html =
+    '<div class="fp-yt" id="fp-yt-frame" role="button" tabindex="0" aria-label="Play '+esc(v.title)+'" '+
+      'onclick="fpPlayVideo()" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();fpPlayVideo();}">'+
+      '<img src="https://i.ytimg.com/vi/'+v.id+'/hqdefault.jpg" alt="" loading="lazy">'+
+      '<span class="play">► PLAY</span>'+
+    '</div>'+
+    '<div class="fp-yt-title">'+esc(v.title||'Watch the show')+'</div>'+
+    (meta ? '<div class="fp-yt-meta">'+esc(meta)+'</div>' : '');
+  if(vids.length > 1 && cfg.showMoreEps){
+    const maxEps = Math.max(1, parseInt(cfg.maxEps,10) || 4);
+    let shown = 0;
+    html += '<div class="fp-eps">'+vids.map((x,i)=> (i===FP_VID_IDX || shown++ >= maxEps) ? '' :
+      '<button class="fp-ep" onclick="fpPickVideo('+i+')">'+
+        '<img src="https://i.ytimg.com/vi/'+x.id+'/mqdefault.jpg" alt="" loading="lazy">'+
+        '<span><span class="t">'+esc(x.title||'Episode')+'</span>'+(x.event?'<span class="m">'+esc(x.event)+'</span>':'')+'</span>'+
+      '</button>').join('')+'</div>';
+  }
+  html += '<div class="fp-side-foot">'+subBtn+
+    '<a class="fp-btn" href="'+esc(cfg.channelUrl)+'/videos" target="_blank" rel="noopener">ALL VIDEOS</a></div>';
+  host.innerHTML = html;
+}
+function fpPlayVideo(){
+  const v = fpVideos()[FP_VID_IDX]; const f = document.getElementById('fp-yt-frame');
+  if(!v || !f) return;
+  try{ if(_fpWantPlay) fpTogglePlay(); }catch(e){}   // pause the menu music so it doesn't talk over the video
+  f.onclick = null; f.onkeydown = null; f.removeAttribute('role'); f.removeAttribute('tabindex');
+  f.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/'+v.id+'?autoplay=1&rel=0" title="'+esc(v.title)+'" '+
+    'allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+}
+function fpPickVideo(i){ FP_VID_IDX = i; FP_VID_PICKED = true; fpRenderSides(); }
+
+function fpRenderPayBoard(){
+  const host = document.getElementById('fp-side-right-body'); if(!host) return;
+  if(!HAS_ARCHIVE){
+    host.innerHTML = '<p class="fp-cardsub">After each show runs on stream, every promotion\'s rating and payout posts here.</p>';
+    return;
+  }
+  if(!FPS.loaded){ host.innerHTML = '<p class="fp-cardsub">Loading payouts…</p>'; return; }
+  const v = (fpYt().boardFollows === 'latest') ? null : fpVideos()[FP_VID_IDX];
+  const ev = (v && fpEventByName(v.event)) || fpsLatestEvent();
+  if(!ev){ host.innerHTML = '<p class="fp-cardsub">No published shows this season yet.</p>'; return; }
+  const p = fpEventPaid(ev.id);
+  let html = '<div class="fp-pay-ev">'+esc(ev.name||('Event '+ev.id))+'</div>'+
+    '<div class="fp-pay-sub">'+(ev.subtitle ? esc(ev.subtitle)+'. ' : '')+
+      (p.count ? 'Ranked by match rating.' : 'No cards were reviewed for this show.')+'</div>';
+  p.list.forEach(r=>{
+    html += '<div class="fp-pay-row">'+
+      '<span class="pl">'+r.place+'</span>'+
+      '<span style="min-width:0"><span class="pn">'+esc(r.promo)+'</span>'+(r.owner?'<span class="ow">'+esc(r.owner)+'</span>':'')+'</span>'+
+      '<span class="rt">'+(r.rating!=null ? r.rating+'%' : '—')+'</span>'+
+      '<span class="amt">'+money(r.earned)+'<span class="fp-stamp">PAID</span></span>'+
+    '</div>';
+  });
+  if(p.count) html += '<div class="fp-pay-total"><span>TOTAL PAID OUT</span><b>'+money(p.total)+'</b></div>';
+  html += '<div class="fp-side-foot">'+
+    '<button class="fp-btn primary" onclick="fpShowResults('+ev.id+')">FULL RESULTS ►</button>'+
+    '<button class="fp-btn" onclick="fpShowStandings(\'season\')">STANDINGS</button>'+
+  '</div>';
+  host.innerHTML = html;
+}
+
+/* ============================================================
+   RESULTS SCREEN (public)
+   ------------------------------------------------------------
+   Chips across the top, one per PUBLISHED event. Each promotion
+   is an expandable card showing its matches. Ranking and money
+   come from fpsLoad(), so this always agrees with STANDINGS.
+   ============================================================ */
+let RESULTS_EVENT = null;
+const FPR_MATCHES = {};          // eventId -> { cardId: [matches] } (null = couldn't load)
+let FPR_MAPS = null;             // wrestler + match-type names
+function fpShowResults(eventId){ RESULTS_EVENT = (eventId==null ? null : eventId); fpShow('results'); }
+
+async function fprLoadMaps(){
+  if(FPR_MAPS) return FPR_MAPS;
+  const w={}, t={};
+  try{ const { data } = await sb.from('fp_wrestlers').select('id,name'); (data||[]).forEach(x=>w[x.id]=x.name); }catch(e){}
+  try{ const { data } = await sb.from('fp_match_types').select('key,name'); (data||[]).forEach(x=>t[x.key]=x.name); }catch(e){}
+  FPR_MAPS = { w, t };
+  return FPR_MAPS;
+}
+async function fprLoadMatches(evId, cardIds){
+  if(evId in FPR_MATCHES) return FPR_MATCHES[evId];
+  let byCard = null;
+  if(cardIds.length){
+    try{
+      const { data, error } = await sb.from('fp_matches').select('*').in('card_id', cardIds).order('position',{ascending:true});
+      if(!error){ byCard = {}; (data||[]).forEach(m=>{ (byCard[m.card_id]=byCard[m.card_id]||[]).push(m); }); }
+    }catch(e){}
+  }
+  FPR_MATCHES[evId] = byCard;
+  return byCard;
+}
+
+async function renderResults(){
+  const chips = document.getElementById('results-chips');
+  const body  = document.getElementById('results-body');
+  if(!body) return;
+  body.innerHTML = '<p class="fp-cardsub">Loading…</p>';
+  if(chips) chips.innerHTML = '';
+  if(!sb){ body.innerHTML = '<p class="fp-cardsub">Couldn\'t reach the server. Refresh to try again.</p>'; return; }
+
+  await fpsLoad();
+  if(!FPS.events.length){
+    body.innerHTML = '<p class="fp-cardsub">No show has been published yet. Results post here the moment the first show goes live.</p>';
+    return;
+  }
+  const ev = FPS.events.find(e=>String(e.id)===String(RESULTS_EVENT)) || fpsLatestEvent();
+  RESULTS_EVENT = ev.id;
+
+  if(chips){
+    chips.innerHTML = FPS.events.map(e=>
+      '<button class="fp-chip'+(String(e.id)===String(ev.id)?' on':'')+'" onclick="fpShowResults('+e.id+')">'+esc(e.name||('EVENT '+e.id))+'</button>'
+    ).join('');
+  }
+
+  const list = FPS.byEvent[ev.id] || [];
+  if(!list.length){ body.innerHTML = '<p class="fp-cardsub">No cards were reviewed for '+esc(ev.name)+'.</p>'; return; }
+
+  const [maps, byCard] = await Promise.all([ fprLoadMaps(), fprLoadMatches(ev.id, list.map(r=>r.cardId)) ]);
+  const stars = !!(FP && FP.options && FP.options.ratingStars);
+  const rateLbl = (pct)=> pct==null ? '—' : (stars ? (Math.round((pct/20)*10)/10)+'★' : pct+'%');
+  const total = list.reduce((a,r)=>a+(r.earned||0),0);
+
+  let html = '<p class="fp-res-sum">'+esc(ev.name)+(ev.subtitle?' ('+esc(ev.subtitle)+')':'')+': '+
+    list.length+' promotion'+(list.length===1?'':'s')+' booked, <b>'+money(total)+'</b> paid out. Tap a promotion to see its card.</p>';
+
+  list.forEach(r=>{
+    const uid = 'res_'+r.cardId;
+    const ms = byCard ? (byCard[r.cardId]||[]) : null;
+    let matchesHtml = '';
+    if(ms === null){
+      matchesHtml = '<p class="fp-cardsub">Match-by-match details aren\'t available right now.</p>';
+    } else if(!ms.length){
+      matchesHtml = '<p class="fp-cardsub">No matches on file for this card.</p>';
+    } else {
+      ms.forEach((m,i)=>{
+        const sides = Array.isArray(m.sides) ? m.sides : [];
+        const isRumble = sides.length===1;
+        const mpay = (m.payout||0)+(m.bonus||0);
+        let sidesHtml = '';
+        sides.forEach((s,si)=>{
+          const lbl = isRumble ? 'RUMBLE FIELD' : (sides.length===2 ? (si===0?'BLUE':'RED') : ('CORNER '+(si+1)));
+          const won = (m.winner_side===si);
+          const names = Array.isArray(s) ? s.map(id=>esc(maps.w[id]||('#'+id))).join(' &amp; ') : '';
+          sidesHtml += '<div class="fp-aside"><div class="sl">'+lbl+'</div><div class="wn'+(won?' win':'')+'">'+(names||'—')+'</div></div>';
+        });
+        matchesHtml += '<div class="fp-amatch"><div class="ah">'+
+          '<span class="anum">M'+(i+1)+'</span><span class="atype">'+esc(maps.t[m.type_key]||m.type_key||'Match')+'</span>'+
+          '<span class="arate">'+rateLbl(m.rating_pct)+'</span>'+
+          (mpay ? '<span class="apay">'+money(mpay)+'</span>' : '')+
+          '</div><div class="ab">'+sidesHtml+'</div></div>';
+      });
+    }
+    html += '<div class="fp-res">'+
+      '<div class="fp-sub-row" id="row_'+uid+'" onclick="toggleMySub(\''+uid+'\')">'+
+        '<span class="pl">'+r.place+'</span>'+
+        '<span class="ev"><span class="pn">'+esc(r.promo)+'</span>'+(r.owner?'<span class="ow">'+esc(r.owner)+'</span>':'')+'</span>'+
+        '<span class="rt">'+rateLbl(r.rating)+'</span>'+
+        '<span class="st done">'+money(r.earned)+' paid</span>'+
+        '<span class="chev">▸</span>'+
+      '</div>'+
+      '<div class="fp-sub-body" id="body_'+uid+'">'+matchesHtml+
+        '<div class="fp-ptot">'+
+          '<div class="r"><span>Card rating</span><b>'+rateLbl(r.rating)+'</b></div>'+
+          '<div class="p"><span>Match payout</span><b>'+money(r.matchMoney)+'</b></div>'+
+          (r.gate ? '<div class="p"><span>Ticket gate</span><b>'+money(r.gate)+'</b></div>' : '')+
+          '<div><span>Booked cost</span><b>'+money(r.spent)+'</b></div>'+
+        '</div>'+
+        '<div class="fp-ptot" style="border-top:2px solid #ffd23f"><div class="p"><span>Paid out</span><b style="font-size:18px">'+money(r.earned)+'</b></div>'+
+          '<div class="'+(r.net>=0?'p':'')+'"><span>Night\'s net</span><b'+(r.net<0?' style="color:#ff8a89"':'')+'>'+fpsSignedMoney(r.net)+'</b></div></div>'+
+      '</div>'+
+    '</div>';
+  });
+  html += '<p class="fp-tnote">Paid out is match payouts plus ticket gate. Booked cost excludes venue rental, same as STANDINGS.</p>';
+  body.innerHTML = html;
+}
+
 
 /* ============================================================
    AFTER-ACTION REPORT
