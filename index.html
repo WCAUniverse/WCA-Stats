@@ -759,6 +759,12 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .bout .stip{text-align:center; font-family:var(--font-cond); font-size:14px; letter-spacing:1px;
     color:var(--teal); text-transform:uppercase; margin-top:8px;}
   .bout .bnotes{text-align:center; font-size:12px; color:var(--muted); margin-top:6px; font-style:italic;}
+  /* division the match counts toward — sits under the match label on every bout */
+  .bout .bout-div{display:flex; justify-content:center; margin:-4px 0 10px;}
+  .bout .bout-div-pill{display:inline-flex; align-items:center; gap:6px; padding:3px 12px; border-radius:20px;
+    font-family:var(--font-cond); font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--txt,#fff); background:rgba(var(--gold-rgb),.10); border:1px solid var(--gold-dim);}
+  .bout .bout-div-pill i{color:var(--gold); font-size:14px;}
   .name-link{cursor:pointer; transition:.12s;}
   .name-link:hover{color:var(--gold);}
 
@@ -7450,9 +7456,21 @@ function multiplierFor(pot, sideTotal){
   if(!sideTotal) return null;          // no money on this side yet
   return pot / sideTotal;              // payout-per-$1 if this side wins
 }
+// Which division a match counts toward. Reads event_matches.division (set in
+// the admin Show Editor); a title match with no division saved falls back to
+// its championship, since the belt names the division. '' = not set.
+function matchDivision(m){
+  const d = String((m && m.division) || '').trim();
+  if(d) return d;
+  return String((m && m.championship) || '').trim();
+}
 function boutHTML(m, isMain, ctx){
   const sides=parseSides(m);
   const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
+  const divName = matchDivision(m);
+  const divTag = divName
+    ? `<div class="bout-div"><span class="bout-div-pill"><i class="ti ti-category"></i>${esc(divName)} Division</span></div>`
+    : '';
   let titleTag='';
   if(m.championship){
     const belt=beltFor(m.championship);
@@ -7550,6 +7568,7 @@ function boutHTML(m, isMain, ctx){
 
   return `<div class="bout ${isMain?'main':''} sides-${sides.length}">
     <div class="bout-label">${esc(label)}${ribbon}</div>
+    ${divTag}
     ${titleTag}
     <div class="vs-row">${vsRow}</div>
     ${stip}${notes}
