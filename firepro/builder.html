@@ -406,6 +406,7 @@
           <option value="name">Name</option>
           <option value="promotion">Promotion</option>
           <option value="team">Team</option>
+          <option value="mine">My roster first</option>
         </select>
       </div>
       <div class="rlist" id="rList"><div class="rempty">Loading roster…</div></div>
@@ -471,6 +472,7 @@ let READONLY = false;            // true when submissions are closed
 let SEASON = null;               // active season row (id,name,bankroll) or null
 let WALLET = null;               // my fp_season_bookers row for SEASON, or null
 let OWNED_IDS = new Set();       // wrestler ids already paid for THIS season — free to reuse
+let MY_REC = {};                 // wrestler id -> {W,L,D} for MY promotion this season (published shows)
 let SPEND_CAP = 0;               // effective cap: your season wallet balance. No season/wallet = 0.
 let CARD_CAP = 0;                // per-card budget cap (fp_seasons.budget_cap); 0 = no cap
 
@@ -641,6 +643,7 @@ async function checkAuth(){
   byId('mBudget').textContent = money(SPEND_CAP);
 
   if(READONLY) applyReadonly();
+  const rs=byId('rSort'); if(rs && OWNED_IDS.size) rs.value='mine';
   renderMatches(); recalc(); renderRoster(); renderGatePanel(); renderCurveballBanner(); renderCrossoverBanner();
 }
 
@@ -993,7 +996,7 @@ function slotHTML(mi,si,k,id){
     return '<div class="slot filled" '+dataAttrs+
       ' ondragover="slotOver(event)" ondragleave="slotLeave(event)" ondrop="slotDrop(event)">'+
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
-      '<span class="nm">'+esc(w.name)+'<small>'+esc([w.origin,(w.rank_grade||'?')+'/'+(w.charisma_grade||'?')].filter(Boolean).join(' · '))+'</small></span>'+
+      '<span class="nm">'+esc(w.name)+'<small>'+esc([w.origin,(w.rank_grade||'?')+'/'+(w.charisma_grade||'?'),(MY_REC[id]?'Record '+recLabel(id):'')].filter(Boolean).join(' · '))+'</small></span>'+
       '<span class="pc"'+(owned?' style="color:#7fe0a0"':'')+'>'+(owned?'FREE · owned':money(w.cost))+'</span>'+
       '<span class="x" onclick="removeFromSlot('+mi+','+si+','+k+')" title="Remove">✕</span></div>';
   }
@@ -1084,10 +1087,15 @@ function renderRoster(){
   } else if(sortBy==='team'){
     list.sort((a,b)=> String(FACTION_BY_ID[a.faction_id]||'\uffff').localeCompare(String(FACTION_BY_ID[b.faction_id]||'\uffff'))
       || String(a.name).localeCompare(String(b.name)));
+  } else if(sortBy==='mine'){
+    const wins=id=>(MY_REC[id]||{}).W||0, losses=id=>(MY_REC[id]||{}).L||0;
+    list.sort((a,b)=> (OWNED_IDS.has(b.id)-OWNED_IDS.has(a.id)) || (wins(b.id)-wins(a.id)) || (losses(a.id)-losses(b.id))
+      || String(a.name).localeCompare(String(b.name)));
   } else {
     list.sort((a,b)=> String(a.name).localeCompare(String(b.name)));
   }
-  byId('rCnt').textContent='('+list.length+')';
+  let tw=0,tl=0; OWNED_IDS.forEach(id=>{ const r=MY_REC[id]; if(r){ tw+=r.W; tl+=r.L; } });
+  byId('rCnt').textContent='('+list.length+')'+(OWNED_IDS.size?' · My roster: '+OWNED_IDS.size+' · '+tw+'-'+tl:'');
   if(!list.length){ host.innerHTML='<div class="rempty">'+(ROSTER.length?'No matches for that search.':'No wrestlers in the roster yet.')+'</div>'; return; }
   let html='';
   for(const w of list){
@@ -1102,7 +1110,9 @@ function renderRoster(){
       '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
       '<div class="meta"><div class="n">'+esc(w.name)+'</div>'+
         '<div class="s">'+esc(tag||w.origin||w.nickname||'')+
-          '<span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span></div></div>'+
+          '<span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span>'+
+          (owned && MY_REC[w.id] ? '<span class="gr" style="background:#3ECF8E" title="Record for your promotion this season">'+esc(recLabel(w.id))+'</span>' : '')+
+        '</div></div>'+
       '<div class="cost"'+(owned?' style="color:#7fe0a0"':'')+'>'+(owned?'FREE':money(w.cost))+'</div></div>';
   }
   host.innerHTML=html;
@@ -1142,12 +1152,47 @@ async function loadWallet(){
 // Wrestlers you've already paid for THIS season (any event) are free to reuse —
 // only genuinely new signings and match costs come out of the wallet again.
 async function loadOwnedRoster(){
-  OWNED_IDS = new Set();
+  OWNED_IDS = new Set(); MY_REC = {};
   if(!SEASON || !SEASON.id || !USER) return;
+  const curEv = EVENT ? EVENT.id : null;
+  // 1) the ownership table — but NOT rows first signed on the event being booked
+  //    right now. Those were paid for by THIS card, so they must stay charged
+  //    when you come back to edit it (otherwise re-saving the card would drop
+  //    their cost to $0).
   try{
-    const { data } = await sb.from('fp_season_rosters').select('wrestler_id').eq('season_id',SEASON.id).eq('auth_id',USER.id);
-    (data||[]).forEach(r=>OWNED_IDS.add(r.wrestler_id));
-  }catch(e){ /* table missing or RLS not set up yet — everyone just pays full price */ }
+    const { data } = await sb.from('fp_season_rosters').select('wrestler_id,first_event_id').eq('season_id',SEASON.id).eq('auth_id',USER.id);
+    (data||[]).forEach(r=>{ if(curEv==null || r.first_event_id!==curEv) OWNED_IDS.add(r.wrestler_id); });
+  }catch(e){}
+  // 2) your own reviewed cards on EARLIER events this season — anyone on them
+  //    was paid for already, even if the ownership table missed the row.
+  //    Their published matches also give your roster's W/L record.
+  try{
+    const { data:evs } = await sb.from('fp_events').select('id,status,is_test').eq('season_id',SEASON.id);
+    const evMap={}; (evs||[]).forEach(e=>evMap[e.id]=e);
+    const evIds=(evs||[]).map(e=>e.id).filter(id=>id!==curEv);
+    if(!evIds.length) return;
+    const { data:cards } = await sb.from('fp_cards').select('id,event_id,reviewed').eq('booker_id',USER.id).in('event_id',evIds);
+    const mine=(cards||[]).filter(c=>c.reviewed);
+    if(!mine.length) return;
+    const cardEv={}; mine.forEach(c=>cardEv[c.id]=c.event_id);
+    const { data:ms } = await sb.from('fp_matches').select('card_id,sides,winner_side').in('card_id',mine.map(c=>c.id));
+    (ms||[]).forEach(m=>{
+      const ev=evMap[cardEv[m.card_id]]||{};
+      const counts = ev.status==='completed' && !ev.is_test;   // records only from published shows
+      const sides=Array.isArray(m.sides)?m.sides:[];
+      const decided = sides.length>=2 && m.winner_side!=null && m.winner_side>=0 && m.winner_side<sides.length;
+      sides.forEach((sd,si)=>(Array.isArray(sd)?sd:[]).forEach(widRaw=>{
+        const wid=Number(widRaw); OWNED_IDS.add(wid);
+        if(!counts) return;
+        const r=MY_REC[wid]||(MY_REC[wid]={W:0,L:0,D:0});
+        if(!decided) r.D++; else if(si===m.winner_side) r.W++; else r.L++;
+      }));
+    });
+  }catch(e){ /* nothing extra — the ownership table result above still applies */ }
+}
+function recLabel(id){
+  const r=MY_REC[id]; if(!r) return '';
+  return r.W+'-'+r.L+(r.D?' ('+r.D+' ND)':'');
 }
 
 /* =====================================================================
@@ -1349,8 +1394,9 @@ async function submitCard(){
             season_id:SEASON.id, auth_id:USER.id, wrestler_id:id,
             first_event_id: EVENT.id, acquired_cost:(wrestlerById(id)||{}).cost||0
           }));
-          const { error:er } = await sb.from('fp_season_rosters').upsert(rosterRows, { onConflict:'season_id,auth_id,wrestler_id', ignoreDuplicates:true });
-          if(!er) newIds.forEach(id=>OWNED_IDS.add(id));
+          // Recorded for NEXT show's discount only. Not added to OWNED_IDS here:
+          // this card paid for them, so they stay charged if you edit it again.
+          await sb.from('fp_season_rosters').upsert(rosterRows, { onConflict:'season_id,auth_id,wrestler_id', ignoreDuplicates:true });
         }catch(e){ /* roster table not set up yet — no discount applied, no harm done */ }
       }
     }

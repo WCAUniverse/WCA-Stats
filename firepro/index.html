@@ -745,6 +745,30 @@
   .fp-rsec{ font-family:'Press Start 2P',monospace; font-size:8px; letter-spacing:1px; color:#3ECF8E; margin:12px 0 4px; }
   .fp-rlink{ font-family:'Barlow',sans-serif; font-size:13px; color:#ffd23f; background:none; border:none; padding:6px 0 0;
     cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+  /* roster list rows (STANDINGS ▸ ROSTERS, event cards, SETTINGS ▸ My Roster) */
+  .fp-rstats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; margin:6px 0 12px; }
+  .fp-rstats div{ background:rgba(0,0,0,.28); border:1px solid #3a1414; border-radius:6px; padding:8px 10px; }
+  .fp-rstats span{ display:block; font-family:'Press Start 2P',monospace; font-size:7px; letter-spacing:1px; color:#9a8f86; margin-bottom:5px; }
+  .fp-rstats b{ font-family:'Oswald',sans-serif; font-size:19px; color:#fff; }
+  .fp-rstats .g b{ color:#3ECF8E; } .fp-rstats .y b{ color:#ffd23f; }
+  .fp-rtable{ width:100%; border-collapse:collapse; font-family:'Barlow',sans-serif; font-size:14px; text-align:left; }
+  .fp-rtable th{ font-family:'Press Start 2P',monospace; font-size:7px; letter-spacing:1px; color:#ffd23f; font-weight:400;
+    padding:6px 8px; border-bottom:1px solid #3a1414; white-space:nowrap; }
+  .fp-rtable td{ padding:7px 8px; border-bottom:1px dashed #2a1010; vertical-align:middle; }
+  .fp-rtable tr:last-child td{ border-bottom:none; }
+  .fp-rtable .num{ text-align:right; white-space:nowrap; }
+  .fp-rtable .wn{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .fp-rtable .av{ width:32px; height:32px; flex:0 0 auto; border-radius:4px; overflow:hidden; background:#1b0d10;
+    display:flex; align-items:center; justify-content:center; font-family:'Press Start 2P',monospace; font-size:8px; color:#ffd23f; }
+  .fp-rtable .av img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fp-rtable .nm{ font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; color:#fff; }
+  .fp-rtable .gr{ font-family:'Press Start 2P',monospace; font-size:8px; color:#ffae6a; white-space:nowrap; }
+  .fp-rtable .rec{ font-family:'Oswald',sans-serif; font-weight:700; font-size:15px; white-space:nowrap; }
+  .fp-rtable .rec .w{ color:#3ECF8E; } .fp-rtable .rec .l{ color:#ff8a89; } .fp-rtable .rec .d{ color:#9a8f86; font-weight:400; font-size:12px; }
+  .fp-rtable .sg{ font-size:12px; color:#9a8f86; }
+  .fp-rtable .pd{ font-family:'Oswald',sans-serif; color:#3ECF8E; }
+  .fp-rtable .newtag{ font-family:'Press Start 2P',monospace; font-size:6px; color:#0a0506; background:#3ECF8E; border-radius:3px; padding:3px 5px; margin-left:6px; }
+  @media(max-width:620px){ .fp-rtable .hide-sm{ display:none; } .fp-rtable td,.fp-rtable th{ padding:6px 4px; } }
   .fp-res.me{ border-color:#ffd23f; box-shadow:inset 3px 0 0 #ffd23f; }
   .fp-res-sum{ font-family:'Barlow',sans-serif; font-size:14px; color:#cdbfa6; margin:0 0 14px; text-align:center; }
   .fp-res-sum b{ color:#3ECF8E; }
@@ -935,6 +959,11 @@
       <div class="fp-card">
         <h3>Season Wallet</h3>
         <div id="set-wallet"><p class="fp-cardsub">—</p></div>
+      </div>
+
+      <div class="fp-card">
+        <h3>My Roster</h3>
+        <div id="set-roster"><p class="fp-cardsub">Loading…</p></div>
       </div>
 
       <div class="fp-card">
@@ -1927,12 +1956,12 @@ async function fpEventCardsHtml(bundle){
     // signings this promotion made at THIS show, and how big the roster was after it
     let rosterHtml = '', signedHere = [];
     if(R && R.byBooker[r.bookerId]){
-      const all = R.byBooker[r.bookerId];
+      const all = R.byBooker[r.bookerId].list;
       signedHere = all.filter(x=>x.first_event_id===ev.id);
       const sizeAfter = all.filter(x=>x.first_event_id<=ev.id).length;
       if(signedHere.length){
         rosterHtml += '<div class="fp-rsec">SIGNED AT THIS SHOW ('+signedHere.length+')</div>'+
-          '<div class="fp-rgrid">'+signedHere.map(x=>fpRosterTile(R, x, false)).join('')+'</div>';
+          fpRosterTableHtml(R, signedHere, { hideSigned:true });
       }
       rosterHtml += '<button class="fp-rlink" onclick="fpShowStandings(\'rosters\')">Roster after this show: '+
         sizeAfter+' wrestler'+(sizeAfter===1?'':'s')+'. See every roster ►</button>';
@@ -1963,22 +1992,27 @@ async function fpEventCardsHtml(bundle){
 }
 
 /* ============================================================
-   ROSTERS — every promotion's season roster (fp_season_rosters)
+   ROSTERS + WIN/LOSS RECORDS
    ------------------------------------------------------------
-   A wrestler joins a promotion's roster the first time that
-   promotion pays for them in a season, and stays free to reuse
-   for the rest of it. Only signings from PUBLISHED shows appear
-   (first_event_id must be a published, non-test event), so a card
-   sitting in an open or unrevealed show never leaks early. The
-   moment you press Publish ▸ archive, that show's signings show up.
+   Built straight from the matches on every PUBLISHED, reviewed
+   card this season — so it's always right, even if the
+   fp_season_rosters ownership table missed a row. A wrestler
+   joins a promotion's roster the first time that promotion books
+   them; what they paid comes from fp_season_rosters when it has
+   it, otherwise the wrestler's cost.
+
+   Records come from the winner you set on each match in the admin
+   SUBMISSIONS review. Winning side = W for everyone on it, every
+   other side = L. A match with no winner set, or a rumble (one big
+   field, no single winning side recorded), counts as ND (no
+   decision) and doesn't touch W/L. Unpublished shows never count.
    ============================================================ */
 const FP_ROSTER_CACHE = {};      // seasonId -> loaded roster data
 
 async function fpRostersLoad(seasonId){
   if(seasonId==null || !sb) return null;
   if(FP_ROSTER_CACHE[seasonId]) return FP_ROSTER_CACHE[seasonId];
-  const out = { seasonId, events:[], evById:{}, latestId:null, byBooker:{}, owners:{}, wrestlers:{} };
-  // published shows in this season, oldest first
+  const out = { seasonId, events:[], evById:{}, latestId:null, byBooker:{}, owners:{}, wrestlers:{}, league:{} };
   try{
     const { data } = await sb.from('fp_events').select('id,name,is_test,status')
       .eq('season_id', seasonId).eq('status','completed').order('id',{ascending:true});
@@ -1986,22 +2020,72 @@ async function fpRostersLoad(seasonId){
   }catch(e){}
   out.events.forEach((e,i)=>{ out.evById[e.id] = Object.assign({ n:i+1 }, e); });
   out.latestId = out.events.length ? out.events[out.events.length-1].id : null;
-  // signings — keep only the ones made at a published show
-  let rows=[];
+  if(!out.events.length){ FP_ROSTER_CACHE[seasonId]=out; return out; }
+
+  // reviewed cards on those shows, and every match on them
+  let cards=[], matches=[];
   try{
-    const { data } = await sb.from('fp_season_rosters')
-      .select('auth_id,wrestler_id,acquired_cost,first_event_id').eq('season_id', seasonId);
-    rows = (data||[]).filter(r=>out.evById[r.first_event_id]);
+    const { data } = await sb.from('fp_cards').select('id,booker_id,event_id,promotion_name')
+      .in('event_id', out.events.map(e=>e.id)).eq('reviewed', true);
+    cards = data||[];
   }catch(e){}
-  rows.forEach(r=>{ (out.byBooker[r.auth_id]=out.byBooker[r.auth_id]||[]).push(r); });
+  if(cards.length){
+    try{
+      const { data } = await sb.from('fp_matches').select('card_id,position,sides,winner_side')
+        .in('card_id', cards.map(c=>c.id)).order('position',{ascending:true});
+      matches = data||[];
+    }catch(e){}
+  }
+  const cardById={}; cards.forEach(c=>cardById[c.id]=c);
+  // what each promotion actually paid, when the ownership table has it
+  const paid={};
   try{
-    const ids=[...new Set(rows.map(r=>r.wrestler_id))];
-    if(ids.length){
+    const { data } = await sb.from('fp_season_rosters').select('auth_id,wrestler_id,acquired_cost,first_event_id').eq('season_id', seasonId);
+    (data||[]).forEach(r=>{ paid[r.auth_id+':'+r.wrestler_id]=r; });
+  }catch(e){}
+
+  const entryFor=(bid, wid, evId)=>{
+    const b = out.byBooker[bid] || (out.byBooker[bid] = { map:{}, list:[] });
+    let en = b.map[wid];
+    if(!en){ en = b.map[wid] = { wrestler_id:wid, first_event_id:evId, W:0, L:0, D:0, apps:0 }; b.list.push(en); }
+    if(evId < en.first_event_id) en.first_event_id = evId;
+    return en;
+  };
+  const leagueFor=(wid)=> out.league[wid] || (out.league[wid] = { W:0, L:0, D:0, promos:{} });
+
+  // walk events in order so first_event_id is the earliest show
+  matches.slice().sort((a,b)=>{
+    const ea=(cardById[a.card_id]||{}).event_id||0, eb=(cardById[b.card_id]||{}).event_id||0;
+    return (ea-eb) || ((a.position||0)-(b.position||0));
+  }).forEach(m=>{
+    const c = cardById[m.card_id]; if(!c) return;
+    const sides = Array.isArray(m.sides) ? m.sides : [];
+    const decided = sides.length>=2 && m.winner_side!=null && m.winner_side>=0 && m.winner_side<sides.length;
+    sides.forEach((sd,si)=>{
+      (Array.isArray(sd)?sd:[]).forEach(widRaw=>{
+        const wid = Number(widRaw); if(!wid && wid!==0) return;
+        const en = entryFor(c.booker_id, wid, c.event_id);
+        const lg = leagueFor(wid);
+        en.apps++;
+        lg.promos[c.booker_id] = c.promotion_name || true;
+        if(!decided){ en.D++; lg.D++; }
+        else if(si===m.winner_side){ en.W++; lg.W++; }
+        else { en.L++; lg.L++; }
+      });
+    });
+  });
+
+  // wrestler details (names, grades, photo, current cost)
+  const allIds = new Set();
+  Object.values(out.byBooker).forEach(b=>b.list.forEach(en=>allIds.add(en.wrestler_id)));
+  if(allIds.size){
+    try{
       const { data } = await sb.from('fp_wrestlers')
-        .select('id,name,image_url,image_crop_x,image_crop_y,image_zoom,rank_grade,charisma_grade').in('id', ids);
+        .select('id,name,image_url,image_crop_x,image_crop_y,image_zoom,rank_grade,charisma_grade,cost').in('id',[...allIds]);
       (data||[]).forEach(w=>out.wrestlers[w.id]=w);
-    }
-  }catch(e){}
+    }catch(e){}
+  }
+  // owners
   try{
     const ids=Object.keys(out.byBooker);
     if(ids.length){
@@ -2009,67 +2093,110 @@ async function fpRostersLoad(seasonId){
       (data||[]).forEach(b=>out.owners[b.auth_id]={ owner:b.owner_name, promo:b.promotion_name });
     }
   }catch(e){}
-  // newest signings first, then by name
-  Object.values(out.byBooker).forEach(list=>list.sort((a,b)=>
-    (b.first_event_id-a.first_event_id) ||
-    String((out.wrestlers[a.wrestler_id]||{}).name||'').localeCompare(String((out.wrestlers[b.wrestler_id]||{}).name||''))));
+  cards.forEach(c=>{ if(!out.owners[c.booker_id]) out.owners[c.booker_id]={ owner:'', promo:c.promotion_name }; });
+
+  // paid + current value, then per-promotion totals; best record first
+  Object.keys(out.byBooker).forEach(bid=>{
+    const b = out.byBooker[bid];
+    b.W=0; b.L=0; b.D=0; b.invested=0; b.value=0;
+    b.list.forEach(en=>{
+      const w = out.wrestlers[en.wrestler_id] || {};
+      const pr = paid[bid+':'+en.wrestler_id];
+      en.acquired_cost = (pr && pr.acquired_cost!=null) ? pr.acquired_cost : (w.cost||0);
+      en.value = w.cost||0;
+      b.W+=en.W; b.L+=en.L; b.D+=en.D; b.invested+=en.acquired_cost; b.value+=en.value;
+    });
+    b.list.sort((x,y)=> (y.W-x.W) || (x.L-y.L) || String((out.wrestlers[x.wrestler_id]||{}).name||'').localeCompare(String((out.wrestlers[y.wrestler_id]||{}).name||'')));
+  });
   FP_ROSTER_CACHE[seasonId] = out;
   return out;
 }
 
-// one wrestler tile: photo (same crop as the ROSTER screen), name, where they were signed and for how much
-function fpRosterTile(R, r, isNew){
-  const w = R.wrestlers[r.wrestler_id] || { name:'#'+r.wrestler_id };
-  const ini = esc(wInitials(w.name));
-  const av = w.image_url
-    ? '<img src="'+esc(w.image_url)+'" alt="" loading="lazy" style="object-position:'+
-        (w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'+
-        'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" onerror="this.parentNode.textContent=\''+ini+'\'">'
-    : ini;
-  const ev = R.evById[r.first_event_id];
-  const grades = (w.rank_grade||w.charisma_grade) ? (w.rank_grade||'?')+'/'+(w.charisma_grade||'?')+' · ' : '';
-  return '<div class="fp-rw'+(isNew?' new':'')+'">'+(isNew?'<span class="newtag">NEW</span>':'')+
-    '<div class="av">'+av+'</div>'+
-    '<div style="min-width:0"><span class="nm">'+esc(w.name)+'</span>'+
-      '<span class="sm">'+grades+'Signed at '+esc(ev ? ev.name : 'a past show')+(r.acquired_cost?' for '+money(r.acquired_cost):'')+'</span></div>'+
+function fpRecHtml(W,L,D){
+  return '<span class="rec"><span class="w">'+W+'</span>–<span class="l">'+L+'</span>'+(D?' <span class="d">'+D+' ND</span>':'')+'</span>';
+}
+function fpWinPct(W,L){ return (W+L) ? Math.round(W/(W+L)*100)+'%' : '—'; }
+
+// table of one promotion's roster
+function fpRosterTableHtml(R, list, opts){
+  opts = opts||{};
+  const latest = (R.latestId!=null && R.events.length>1) ? R.latestId : null;
+  return '<table class="fp-rtable"><thead><tr>'+
+      '<th>WRESTLER</th><th>R/C</th><th>RECORD</th>'+(opts.hideSigned?'':'<th class="hide-sm">SIGNED AT</th>')+'<th class="num">PAID</th>'+
+    '</tr></thead><tbody>'+
+    list.map(en=>{
+      const w = R.wrestlers[en.wrestler_id] || { name:'#'+en.wrestler_id };
+      const ini = esc(wInitials(w.name));
+      const av = w.image_url
+        ? '<img src="'+esc(w.image_url)+'" alt="" loading="lazy" style="object-position:'+
+            (w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'+
+            'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" onerror="this.parentNode.textContent=\''+ini+'\'">'
+        : ini;
+      const ev = R.evById[en.first_event_id];
+      const isNew = latest!=null && en.first_event_id===latest;
+      return '<tr>'+
+        '<td><div class="wn"><span class="av">'+av+'</span><span class="nm">'+esc(w.name)+'</span>'+(isNew?'<span class="newtag">NEW</span>':'')+'</div></td>'+
+        '<td><span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span></td>'+
+        '<td>'+fpRecHtml(en.W,en.L,en.D)+'</td>'+
+        (opts.hideSigned?'':'<td class="hide-sm"><span class="sg">'+esc(ev?ev.name:'—')+'</span></td>')+
+        '<td class="num"><span class="pd">'+money(en.acquired_cost)+'</span></td>'+
+      '</tr>';
+    }).join('')+
+  '</tbody></table>';
+}
+function fpRosterStatsHtml(b){
+  return '<div class="fp-rstats">'+
+    '<div><span>ROSTER</span><b>'+b.list.length+'</b></div>'+
+    '<div><span>RECORD</span><b>'+b.W+'–'+b.L+(b.D?' <small style="font-size:12px;color:#9a8f86">'+b.D+' ND</small>':'')+'</b></div>'+
+    '<div class="y"><span>WIN %</span><b>'+fpWinPct(b.W,b.L)+'</b></div>'+
+    '<div class="g"><span>INVESTED</span><b>'+money(b.invested)+'</b></div>'+
+    '<div class="g"><span>WORTH NOW</span><b>'+money(b.value)+'</b></div>'+
   '</div>';
 }
 
 function fpRostersHtml(R){
   if(!R) return '<p class="fp-cardsub">Couldn\'t load rosters right now. Refresh to try again.</p>';
   const ids = Object.keys(R.byBooker);
-  if(!ids.length) return '<p class="fp-cardsub">No one has signed a wrestler at a published show yet. Rosters fill in the moment a show goes live.</p>';
-  // NEW only means something once there's a show before the latest one to compare against
+  if(!ids.length) return '<p class="fp-cardsub">No published show has any reviewed cards yet. Rosters fill in the moment a show goes live.</p>';
   const latest = (R.latestId!=null && R.events.length>1) ? R.evById[R.latestId] : null;
-  // biggest roster first; ties go to whoever invested more
+  const myId = ME.user ? String(ME.user.id) : null;
+  // yours first, then best record, then biggest roster
   const promos = ids.map(id=>{
-    const list = R.byBooker[id];
-    const o = R.owners[id] || {};
-    return { id, list, promo:o.promo||'Untitled Promotion', owner:o.owner||'',
-             invested:list.reduce((a,r)=>a+(r.acquired_cost||0),0),
-             fresh:latest ? list.filter(r=>r.first_event_id===R.latestId).length : 0 };
-  }).sort((a,b)=>(b.list.length-a.list.length)||(b.invested-a.invested));
+    const b = R.byBooker[id]; const o = R.owners[id] || {};
+    return { id, b, promo:o.promo||'Untitled Promotion', owner:o.owner||'',
+             fresh: latest ? b.list.filter(en=>en.first_event_id===R.latestId).length : 0 };
+  }).sort((x,y)=> ((String(y.id)===myId)-(String(x.id)===myId)) || (y.b.W-x.b.W) || (x.b.L-y.b.L) || (y.b.list.length-x.b.list.length));
 
-  let html = '<p class="fp-res-sum">Every wrestler each promotion has signed this season. '+
-    (latest ? '<b>NEW</b> marks signings made at '+esc(latest.name)+'.' : '')+' Tap a promotion to see its roster.</p>';
+  let html = '<p class="fp-res-sum">Every wrestler each promotion has booked this season, with their record for that promotion. '+
+    (latest ? '<b>NEW</b> marks signings made at '+esc(latest.name)+'. ' : '')+'Tap a promotion to open its roster.</p>';
   promos.forEach(p=>{
     const uid = 'ros_'+String(p.id).replace(/[^a-zA-Z0-9_-]/g,'');
-    const mine = ME.user && String(p.id)===String(ME.user.id);
+    const mine = myId && String(p.id)===myId;
     html += '<div class="fp-res'+(mine?' me':'')+'">'+
-      '<div class="fp-sub-row" id="row_'+uid+'" onclick="toggleMySub(\''+uid+'\')">'+
-        '<span class="ev"><span class="pn">'+esc(p.promo)+'</span>'+(p.owner?'<span class="ow">'+esc(p.owner)+'</span>':'')+'</span>'+
+      '<div class="fp-sub-row'+(mine?' open':'')+'" id="row_'+uid+'" onclick="toggleMySub(\''+uid+'\')">'+
+        '<span class="ev"><span class="pn">'+esc(p.promo)+(mine?' <span class="fp-res-badge" style="background:#ffd23f">YOU</span>':'')+'</span>'+(p.owner?'<span class="ow">'+esc(p.owner)+'</span>':'')+'</span>'+
         (p.fresh ? '<span class="fp-res-badge">+'+p.fresh+' NEW</span>' : '')+
-        '<span class="cnt">'+p.list.length+' wrestler'+(p.list.length===1?'':'s')+'</span>'+
-        '<span class="st done">'+money(p.invested)+' invested</span>'+
+        '<span class="cnt">'+p.b.list.length+' wrestler'+(p.b.list.length===1?'':'s')+'</span>'+
+        fpRecHtml(p.b.W,p.b.L,0)+
+        '<span class="st done">'+money(p.b.value)+'</span>'+
         '<span class="chev">▸</span>'+
       '</div>'+
-      '<div class="fp-sub-body" id="body_'+uid+'"><div class="fp-rgrid">'+
-        p.list.map(r=>fpRosterTile(R, r, !!latest && r.first_event_id===R.latestId)).join('')+
-      '</div></div>'+
+      '<div class="fp-sub-body'+(mine?' open':'')+'" id="body_'+uid+'">'+fpRosterStatsHtml(p.b)+fpRosterTableHtml(R, p.b.list)+'</div>'+
     '</div>';
   });
-  html += '<p class="fp-tnote">A wrestler joins a roster the first time a promotion pays for them this season, then they\'re free to book again until the season ends. Grades are Rank/Charisma.</p>';
+  html += '<p class="fp-tnote">Record is W–L for that promotion this season; ND = no decision (rumble, or no winner set). Paid is what the promotion spent to sign them; Worth Now is their current roster cost. R/C is Rank/Charisma.</p>';
   return html;
+}
+
+/* one wrestler's league-wide line (ROSTER screen) */
+async function fpWrestlerSeasonLine(wid){
+  await fpsLoad();
+  if(!FPS.season) return null;
+  const R = await fpRostersLoad(FPS.season.id);
+  if(!R) return null;
+  const lg = R.league[wid];
+  const promos = lg ? Object.keys(lg.promos).map(bid=>(R.owners[bid]||{}).promo || (lg.promos[bid]!==true?lg.promos[bid]:'')).filter(Boolean) : [];
+  return { lg, promos, season:FPS.season };
 }
 
 /* ============================================================
@@ -2529,7 +2656,16 @@ function csSelect(id){
         '<div class="cs-info">'+rows.map(r=>'<div class="k">'+esc(r[0])+'</div><div class="v">'+esc(r[1])+'</div>').join('')+'</div>'+
       '</div>'+
     '</div>'+
-    '<div class="cs-cost">COST: '+money(w.cost)+'</div>';
+    '<div class="cs-cost">COST: '+money(w.cost)+'</div>'+
+    '<div class="cs-cost" id="cs-rec" style="margin-top:6px;font-size:11px;line-height:1.7"></div>';
+  // this season's record + which promotions have booked them (fills in once loaded)
+  fpWrestlerSeasonLine(w.id).then(info=>{
+    const el=document.getElementById('cs-rec'); if(!el || !CS_SEL || CS_SEL.id!==w.id) return;
+    if(!info){ el.style.display='none'; return; }
+    const lg=info.lg;
+    el.innerHTML = 'SEASON RECORD: '+(lg ? (lg.W+'–'+lg.L+(lg.D?' ('+lg.D+' ND)':'')) : '0–0')+
+      '<br><span style="font-size:9px;opacity:.85">'+(info.promos.length ? 'BOOKED BY: '+info.promos.map(esc).join(', ') : 'NOT BOOKED BY ANYONE YET')+'</span>';
+  }).catch(()=>{});
 }
 function wInitials(name){
   const words = String(name||'').trim().split(/\s+/).filter(Boolean);
@@ -2557,6 +2693,7 @@ async function renderSettings(){
   }
   // --- season wallet ---
   fpRenderWallet();
+  fpRenderMyRoster();
   // my submissions — full detailed breakdown (match-by-match, gate, curveballs),
   // same shape as the public archive view, but scoped to just this booker's own
   // cards so it's useful even before/without an event being published yet.
@@ -2654,6 +2791,23 @@ async function renderSettings(){
         '</div></div>';
     }).join('');
   }catch(e){ host.innerHTML='<p class="fp-cardsub">Could not load submissions.</p>'; }
+}
+async function fpRenderMyRoster(){
+  const host=document.getElementById('set-roster'); if(!host) return;
+  if(!ME.user){ host.innerHTML='<p class="fp-cardsub">Sign in to see your roster.</p>'; return; }
+  host.innerHTML='<p class="fp-cardsub">Loading…</p>';
+  try{
+    await fpsLoad();
+    if(!FPS.season){ host.innerHTML='<p class="fp-cardsub">No season is running yet.</p>'; return; }
+    const R = await fpRostersLoad(FPS.season.id);
+    const b = R && R.byBooker[ME.user.id];
+    if(!b || !b.list.length){
+      host.innerHTML='<p class="fp-cardsub">Nobody on your roster yet. Wrestlers join it once a show you booked is published.</p>'; return;
+    }
+    host.innerHTML = fpRosterStatsHtml(b) + fpRosterTableHtml(R, b.list) +
+      '<p class="fp-cardsub" style="margin-top:10px">Already-signed wrestlers are free to book again for the rest of '+esc(FPS.season.name||'the season')+'.</p>'+
+      '<button class="fp-btn" onclick="fpShowStandings(\'rosters\')">EVERY PROMOTION\'S ROSTER ►</button>';
+  }catch(e){ host.innerHTML='<p class="fp-cardsub">Couldn\'t load your roster.</p>'; }
 }
 function toggleMySub(uid){
   const row=document.getElementById('row_'+uid), body=document.getElementById('body_'+uid);
