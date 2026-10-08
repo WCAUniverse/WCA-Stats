@@ -754,6 +754,18 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     color:#fff; line-height:1.05; letter-spacing:.5px;}
   .bout.main .fighter .fname{font-size:clamp(20px,4vw,34px);}
   .bout .fighter .fsub{font-family:var(--font-cond); font-size:14px; color:var(--muted); margin-top:2px;}
+  /* ===== MATCH RECORDS — division record under each name (Events + Archive) ===== */
+  .frec{display:flex; flex-direction:column; align-items:center; gap:4px; margin:4px 0 6px;}
+  .frec-line{font-family:var(--font-cond); font-size:14px; letter-spacing:.4px; color:var(--muted);
+    display:inline-flex; align-items:baseline; gap:5px; flex-wrap:wrap; justify-content:center;}
+  .frec-line b{font-weight:700; font-size:15px;}
+  .frec-line .w b{color:var(--win);} .frec-line .l b{color:var(--loss);}
+  .frec-line .d b{color:var(--muted);} .frec-line .nw b{color:var(--muted2);}
+  .frec-line .sep{color:var(--muted2);}
+  .frec-lbl{font-family:var(--font-cond); font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold-dim);}
+  .frec-new{font-family:var(--font-cond); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--teal);}
+  .frec .f5mini .f5b{width:15px; height:15px; font-size:9px;}
+  .frec-who{font-family:var(--font-cond); font-size:12px; color:var(--txt-2); margin-right:2px;}
   .bout .vs{font-family:var(--font-display); font-weight:700; font-size:20px; color:var(--gold);
     flex-shrink:0; padding:0 4px; opacity:.9;}
   .bout .stip{text-align:center; font-family:var(--font-cond); font-size:14px; letter-spacing:1px;
@@ -7468,6 +7480,7 @@ function boutHTML(m, isMain, ctx){
   const sides=parseSides(m);
   const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
   const divName = matchDivision(m);
+  REC_CTX = { division: divName, map: (ctx && ctx.records) || REC_NOW, past:false };
   const divTag = divName
     ? `<div class="bout-div"><span class="bout-div-pill"><i class="ti ti-category"></i>${esc(divName)} Division</span></div>`
     : '';
@@ -7584,6 +7597,132 @@ function sideLabel(s){
   return (s.members||[]).filter(Boolean).join(' & ') || 'TBD';
 }
 // inner of a side cell (names only), reused by betting layout
+/* ===================== MATCH RECORDS =====================
+   Shows each competitor's record IN THE DIVISION THE MATCH COUNTS TOWARD,
+   right under their name on the fight card.
+     Upcoming Events / Live  -> their current record (v_division_rankings,
+                                v_faction_rankings for tag/faction teams).
+     Past Events             -> their record GOING INTO that show, counted
+                                from v_match_history rows dated before it.
+   Both views end up in REC_CTX.map, keyed "division|canonical name", so one
+   renderer serves both pages. A match with no division set shows nothing.
+   ============================================================ */
+let REC_NOW = null, REC_NOW_AT = 0;   // current records, cached for a minute
+let REC_CTX = null;                   // { division, map, past } for the bout being drawn
+
+function recKey(div, name){
+  return String(div||'').trim().toLowerCase() + '|' +
+    (typeof mpCanon==='function' ? mpCanon(name) : String(name||'').trim().toLowerCase());
+}
+function recBlank(){ return { w:0, l:0, d:0, nw:0, form:[] }; }
+
+async function loadRecordsNow(){
+  if(REC_NOW && (Date.now()-REC_NOW_AT) < 60000) return REC_NOW;
+  const map = {};
+  try{
+    const [dr, fr] = await Promise.all([
+      sb.from('v_division_rankings').select('*'),
+      sb.from('v_faction_rankings').select('*')
+    ]);
+    (dr.data||[]).forEach(r=>{
+      map[recKey(r.division, r.name)] = { w:+r.wins||0, l:+r.losses||0, d:+r.draws||0, nw:+r.no_wins||0,
+        form: parseLast5(r.seed_last5 || (WRESTLER_META[r.name]||{}).last5), champ:!!r.is_champion };
+    });
+    (fr.data||[]).forEach(r=>{
+      const rec = { w:+r.wins||0, l:+r.losses||0, d:+r.draws||0, nw:+r.no_wins||0, form: parseLast5(r.seed_last5) };
+      // a faction match may be saved under either division label
+      map[recKey('Faction', r.name)] = rec;
+      map[recKey('Factions', r.name)] = rec;
+    });
+  }catch(e){ /* fail soft — cards just render without records */ }
+  REC_NOW = map; REC_NOW_AT = Date.now();
+  return map;
+}
+
+// Every name worth looking up for an event: members, team names, and the
+// roster's canonical spelling of each (cards sometimes use an alias).
+function recNamesFor(matches){
+  const set = new Set();
+  (matches||[]).forEach(m=>{
+    parseSides(m).forEach(s=>{
+      if(s.team_name) set.add(String(s.team_name).trim());
+      sideMembers(s).forEach(n=>{
+        if(!n) return;
+        set.add(String(n).trim());
+        const w = (typeof wrestlerByName==='function') ? wrestlerByName(n) : null;
+        if(w && w.name) set.add(w.name);
+      });
+    });
+  });
+  return [...set].filter(Boolean);
+}
+
+// Records as they stood BEFORE a past show: tally every recorded match dated
+// earlier than it. Same source the profile match history uses.
+async function loadRecordsBefore(ev, matches){
+  const map = {};
+  const when = ev && (ev.event_date || ev.completed_at);
+  if(!when) return null;
+  const names = recNamesFor(matches);
+  if(!names.length) return map;
+  try{
+    const { data, error } = await sb.from('v_match_history')
+      .select('participant,division,result,event_date,slot')
+      .in('participant', names)
+      .lt('event_date', when)
+      .order('event_date',{ascending:false});
+    if(error) throw error;
+    (data||[]).forEach(r=>{
+      const k = recKey(r.division, r.participant);
+      const rec = map[k] || (map[k] = recBlank());
+      const res = String(r.result||'').toUpperCase();
+      if(res==='W') rec.w++; else if(res==='L') rec.l++;
+      else if(res==='D') rec.d++; else if(res==='N') rec.nw++;
+      if(rec.form.length < 5 && ['W','L','D','N'].includes(res)) rec.form.push(res);   // newest first
+    });
+  }catch(e){ return null; }   // view missing — show no records rather than wrong ones
+  return map;
+}
+
+function recFor(name){
+  if(!REC_CTX || !REC_CTX.map || !REC_CTX.division || !name) return undefined;
+  return REC_CTX.map[recKey(REC_CTX.division, name)];
+}
+// "8W · 3L · 1NW" — zeros for draws / no-wins are left out to keep it short.
+function recLine(rec, who){
+  const parts = [`<span class="w"><b>${rec.w}</b>W</span>`, `<span class="l"><b>${rec.l}</b>L</span>`];
+  if(rec.d)  parts.push(`<span class="d"><b>${rec.d}</b>D</span>`);
+  if(rec.nw) parts.push(`<span class="nw"><b>${rec.nw}</b>NW</span>`);
+  return `<span class="frec-line">${who?`<span class="frec-who">${esc(who)}</span>`:''}${parts.join('<span class="sep">·</span>')}</span>`;
+}
+function recEmpty(rec){ return !rec || (rec.w+rec.l+rec.d+rec.nw)===0; }
+// The block under one name (or one team).
+function recBlock(name){
+  if(!REC_CTX || !REC_CTX.division) return '';
+  const rec = recFor(name);
+  const label = (REC_CTX.past ? 'Going in · ' : '') + REC_CTX.division;
+  if(recEmpty(rec)){
+    return `<div class="frec"><span class="frec-new">${REC_CTX.past?'First '+esc(REC_CTX.division)+' match':'No '+esc(REC_CTX.division)+' record yet'}</span></div>`;
+  }
+  const form = (rec.form && rec.form.length) ? last5Mini(rec.form.join(',')) : '';
+  return `<div class="frec" title="${escAttr(name)} — ${escAttr(REC_CTX.division)} division record${REC_CTX.past?' before this show':''} (newest result on the left)">
+    <span class="frec-lbl">${esc(label)}</span>${recLine(rec)}${form}</div>`;
+}
+// Team side: the team's own record if it has one in this division,
+// otherwise one short line per member.
+function recTeamBlock(team, members){
+  if(!REC_CTX || !REC_CTX.division) return '';
+  const own = recFor(team);
+  if(!recEmpty(own)) return recBlock(team);
+  const lines = (members||[]).map(n=>{
+    const r = recFor(n);
+    return recEmpty(r) ? '' : recLine(r, n);
+  }).filter(Boolean);
+  if(!lines.length) return recBlock(team);
+  const label = (REC_CTX.past ? 'Going in · ' : '') + REC_CTX.division;
+  return `<div class="frec"><span class="frec-lbl">${esc(label)}</span>${lines.join('')}</div>`;
+}
+
 function sideCellInner(side, isMain){
   if(!side) return `<div class="fname">TBD</div>`;
   // portraits fall back to the faction roster when the side is only a team name
@@ -7592,9 +7731,9 @@ function sideCellInner(side, isMain){
   if(side.team_name){
     let h=pics+`<div class="fname">${esc(side.team_name)}</div>`;
     if(members.length) h+=`<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
-    return h;
+    return h + recTeamBlock(side.team_name, members);
   }
-  if(members.length) return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>');
+  if(members.length) return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>${recBlock(m)}`).join('<div class="amp">&amp;</div>');
   return `<div class="fname">TBD</div>`;
 }
 let CURRENT_EVENT = null;       // featured event row
@@ -7627,7 +7766,8 @@ async function loadFeaturedData(){
   if(CURRENT_USER){
     (board||[]).filter(b=>b.user_id===CURRENT_USER.id).forEach(b=>{ myBetsBySlot[b.slot]={side_index:b.side_index, amount:b.amount}; });
   }
-  CURRENT_CTX = { signedIn: !!CURRENT_USER, statusBySlot, winnerBySlot, betsBySlot, myBetsBySlot };
+  const records = await loadRecordsNow();
+  CURRENT_CTX = { signedIn: !!CURRENT_USER, statusBySlot, winnerBySlot, betsBySlot, myBetsBySlot, records };
 
   // Load star-rating state for this event so rating widgets work on the
   // live Events/Live pages too (not just the archive).
@@ -8420,11 +8560,16 @@ async function openArchiveEvent(id, opts){
     let asOf = null;
     try{ asOf = await championsAsOf(ev); }catch(e){}
     MP_ASOF = asOf || {};
+    // each competitor's division record as it stood going into this show
+    let pastRec = null;
+    try{ pastRec = await loadRecordsBefore(ev, matches); }catch(e){}
     html += `<div class="section-title">Results</div>`;
     html += matches.map((m,i)=>{
       const isMain = m.slot===1 || (i===0 && !matches.some(x=>x.slot===1));
+      REC_CTX = pastRec ? { division: matchDivision(m), map: pastRec, past:true } : null;
       return archBoutHTML(m, isMain, statusBySlot[m.slot], winBySlot[m.slot]);
     }).join('');
+    REC_CTX = null;
     MP_ASOF = null;                       // back to present day for every other page
   }
 
@@ -8481,9 +8626,13 @@ function archBoutHTML(m, isMain, status, winningSide){
     let nameHtml;
     if(s.team_name){
       nameHtml = pics + `<div class="rfname">${esc(s.team_name)}</div>`
-        + (members.length?`<div class="arch-sub" style="justify-content:center">${members.map(nameLink).join(' &amp; ')}</div>`:'');
+        + (members.length?`<div class="arch-sub" style="justify-content:center">${members.map(nameLink).join(' &amp; ')}</div>`:'')
+        + recTeamBlock(s.team_name, members);
+    }else if(members.length===1){
+      nameHtml = pics + `<div class="rfname">${nameLink(members[0])}</div>` + recBlock(members[0]);
     }else if(members.length){
-      nameHtml = pics + `<div class="rfname">${members.map(nameLink).join(' &amp; ')}</div>`;
+      nameHtml = pics + `<div class="rfname">${members.map(nameLink).join(' &amp; ')}</div>`
+        + recTeamBlock('', members);
     }else{
       nameHtml = `<div class="rfname">TBD</div>`;
     }
