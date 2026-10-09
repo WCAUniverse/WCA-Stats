@@ -4151,6 +4151,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
         <a href="#timeline" data-page="timeline">Timeline</a>
         <a href="#apply" data-page="apply">Apply</a>
         <a href="#sponsors" data-page="sponsors">Sponsors</a>
+        <a href="#showdown" data-page="showdown">Showdown</a>
         <a href="#firepro" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
       </nav>
       <div class="socials">
@@ -4252,6 +4253,12 @@ try{ wcaApplyCachedFonts(); }catch(e){}
         <div id="tl-rec-body"></div>
       </section>
     </div>
+  </div>
+
+  <!-- WCA SHOWDOWN — non-canon two-brand spin-off. Rendered by the
+       Showdown script at the end of the page into #sd-root. -->
+  <div class="page" id="page-showdown">
+    <div class="sd-wrap" id="sd-root"></div>
   </div>
 
   <div class="page active" id="page-dash">
@@ -4929,12 +4936,16 @@ function applyLayout(container, selector, attr, layout){
     container.appendChild(el);
   });
 
-  // never leave a page stranded
+  // never leave a page stranded. A page the saved layout doesn't know yet
+  // (e.g. Showdown, added after the layout was saved) goes just before
+  // "Enter Fire Pro", which always stays last.
+  const fpEl = byKey['firepro'];
   Object.keys(byKey).forEach(k=>{
     if(used.has(k)) return;
     const el = byKey[k];
     show(el, false);
-    container.appendChild(el);
+    if(fpEl && el!==fpEl && fpEl.parentNode===container) container.insertBefore(el, fpEl);
+    else container.appendChild(el);
   });
 
   markNavGroupActive();
@@ -7844,6 +7855,8 @@ async function loadEvents(){
   const evStream = streamEmbed(ev.stream_url);
   el.innerHTML = hero + (evStream ? `<div class="ev-player">${evStream}</div>` : '') + cardHTML;
   bindNameLinks(el);
+  // WCA Showdown episode? brand banner + brand colour on the hero
+  try{ if(typeof sdDecorateEvent==='function') sdDecorateEvent(ev, el); }catch(e){}
   collapseStreamChatOnMobile(el);
 }
 
@@ -7936,6 +7949,7 @@ async function loadLive(){
       </section>
     </div>`;
   bindNameLinks(el);
+  try{ if(typeof sdDecorateEvent==='function') sdDecorateEvent(ev, el.querySelector('.live-layout')||el); }catch(e){}
   loadLiveRail();          // fill the rail now
   startLiveRailPolling();  // and keep it fresh while the Live page is open
   initChatHub();           // load chat + start realtime/polling
@@ -8400,6 +8414,20 @@ function youtubeEmbed(url){
       <a class="replay-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer"><i class="ti ti-brand-youtube"></i> Watch on YouTube</a>
     </div>`;
 }
+// Ids of WCA Showdown episodes (events.series = 'showdown'). Main-show pages
+// (Past Events, Timeline) leave these out. Fetched once; empty if the
+// Showdown SQL hasn't been run yet.
+function sdShowdownIds(){
+  if(!window.__sdIdsP){
+    window.__sdIdsP = (async()=>{
+      try{
+        const { data, error } = await sb.from('v_sd_episodes').select('id');
+        return new Set(error ? [] : (data||[]).map(r=>String(r.id)));
+      }catch(e){ return new Set(); }
+    })();
+  }
+  return window.__sdIdsP;
+}
 let ARCHIVE_EVENTS = [];
 let ARCHIVE_PENDING = null;
 function loadArchive(){
@@ -8419,7 +8447,9 @@ async function archiveLoadNow(){
   try{
     const { data, error } = await sb.from('v_archive_events').select('*');
     if(error) throw error;
-    rows = wcaSortEventsNewestFirst(data || []);   // newest show first, by name
+    // WCA Showdown episodes live on the Showdown page, not in Past Events
+    const sdIds = await sdShowdownIds();
+    rows = wcaSortEventsNewestFirst((data || []).filter(ev=>!sdIds.has(String(ev.id))));   // newest show first, by name
   }catch(e){ listEl.innerHTML=`<div class="lb-empty">Couldn't load the archive.</div>`; return; }
   ARCHIVE_EVENTS = rows;
   if(!rows.length){
@@ -10972,6 +11002,8 @@ function activatePage(pg){
     else if(typeof homeLeave==='function') homeLeave();
     if(pg==='timeline'){ if(typeof timelineEnter==='function') timelineEnter(); }
     else if(typeof timelineLeave==='function') timelineLeave();
+    if(pg==='showdown'){ if(typeof showdownEnter==='function') showdownEnter(); }
+    else if(typeof showdownLeave==='function') showdownLeave();
     if(pg==='dash' && typeof renderPersonalDashboard==='function') renderPersonalDashboard();
     if(typeof spaceSetPage==='function') spaceSetPage(pg);
   }catch(e){}
@@ -12410,7 +12442,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'timeline-2026-08-11a';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'showdown-2026-10-09a';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
@@ -12485,6 +12517,8 @@ async function tlLoad(){
 
     // WCA 1 first — a story reads forward. Same sorter as everywhere else,
     // just the ascending direction.
+    // WCA Showdown is non-canon — its episodes never appear on the Timeline
+    try{ const sdIds = await sdShowdownIds(); rows = rows.filter(ev=>!sdIds.has(String(ev.id))); }catch(_){}
     TL_EVENTS = wcaSortEventsOldestFirst(rows.map(e => Object.assign({}, e, extra[String(e.id)] || {})));
     TL_PAGE = pageCount() - 1;                          // open on the most recent page
     TL_ERROR = null;
@@ -15177,6 +15211,1165 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
 })();
 
 </script>
+
+
+<!-- =================== WCA SHOWDOWN =================== -->
+<style>
+/* Brand colours are set on :root by sdApplyColors() from site_settings.showdown,
+   so changing them in the admin recolours every Showdown element site-wide. */
+:root{
+  --sd-a:#9146FF; --sd-a-rgb:145,70,255; --sd-a-lt:#c9a6ff;
+  --sd-b:#FF1F2D; --sd-b-rgb:255,31,45;  --sd-b-lt:#ff9097;
+  --sd-clash:linear-gradient(90deg,var(--sd-a),var(--sd-b));
+}
+#page-showdown .sd-wrap{max-width:1280px;margin:0 auto;padding:6px 0 60px}
+.sd-disp{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.5px}
+.sd-sec{font-family:var(--font-cond);font-weight:700;font-size:13px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin:34px 0 14px}
+.sd-sec::after{content:'';flex:1;height:1px;background:var(--line)}
+.sd-sec.clash{color:var(--txt)}.sd-sec.clash::after{background:var(--sd-clash);opacity:.6}
+.sd-panel{background:rgba(10,11,16,.88);border:1px solid var(--line);border-radius:14px}
+.sd-empty{padding:28px;text-align:center;color:var(--muted);font-family:var(--font-cond);font-size:16px;letter-spacing:.5px}
+.sd-tag{font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.sd-tag.a{background:rgba(var(--sd-a-rgb),.18);color:var(--sd-a-lt);border:1px solid rgba(var(--sd-a-rgb),.5)}
+.sd-tag.b{background:rgba(var(--sd-b-rgb),.16);color:var(--sd-b-lt);border:1px solid rgba(var(--sd-b-rgb),.5)}
+.sd-tag.clash{background:var(--sd-clash);color:#fff}
+.sd-a-txt{color:var(--sd-a-lt)}.sd-b-txt{color:var(--sd-b-lt)}
+.sd-w{color:var(--win)}.sd-l{color:var(--loss)}.sd-nc{color:#aaa}
+/* emblem = uploaded brand logo, or a coloured disc with the brand's initial */
+.sd-emb{display:grid;place-items:center;border-radius:50%;font-family:var(--font-display);color:#fff;text-align:center;line-height:1;flex-shrink:0;overflow:hidden}
+.sd-emb.a{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.45),var(--sd-a) 55%,rgba(0,0,0,.6));box-shadow:0 0 0 3px #0008,0 0 26px rgba(var(--sd-a-rgb),.5)}
+.sd-emb.b{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.45),var(--sd-b) 55%,rgba(0,0,0,.6));box-shadow:0 0 0 3px #0008,0 0 26px rgba(var(--sd-b-rgb),.5)}
+.sd-emb.has-img{background:transparent;box-shadow:none;border-radius:0}
+.sd-emb img{width:100%;height:100%;object-fit:contain}
+.sd-port{width:46px;height:46px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-display);font-size:16px;color:#fff;flex-shrink:0;overflow:hidden;background:#15161c}
+.sd-port img{width:100%;height:100%;object-fit:cover;object-position:top}
+.sd-port.a{border:2px solid var(--sd-a);background:linear-gradient(160deg,rgba(var(--sd-a-rgb),.35),#0c0c12)}
+.sd-port.b{border:2px solid var(--sd-b);background:linear-gradient(160deg,rgba(var(--sd-b-rgb),.32),#0c0c12)}
+.sd-logo-fallback{font-family:var(--font-display);text-transform:uppercase;line-height:.9;text-align:center}
+.sd-logo-fallback .l1{font-size:64px;background:linear-gradient(180deg,#ffe9a6,#e9b949 50%,#9a6f12);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sd-logo-fallback .l2{font-size:84px;background:linear-gradient(180deg,#fff,#c9ccd3 55%,#7d828c);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:1px}
+
+/* ---- hero ---- */
+.sd-hero{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:22px;align-items:stretch;margin-top:18px}
+.sd-bcard{position:relative;border-radius:16px;padding:22px;overflow:hidden;border:1px solid var(--line);background:rgba(10,11,16,.9)}
+.sd-bcard.a{border-color:rgba(var(--sd-a-rgb),.6);background:linear-gradient(150deg,rgba(var(--sd-a-rgb),.28),rgba(10,11,16,.92) 60%)}
+.sd-bcard.b{border-color:rgba(var(--sd-b-rgb),.6);background:linear-gradient(210deg,rgba(var(--sd-b-rgb),.26),rgba(10,11,16,.92) 60%);text-align:right}
+.sd-bcard .top{display:flex;align-items:center;gap:16px}.sd-bcard.b .top{flex-direction:row-reverse}
+.sd-bname{font-family:var(--font-display);font-size:40px;line-height:1;text-transform:uppercase}
+.sd-bcard.a .sd-bname{color:var(--sd-a-lt)}.sd-bcard.b .sd-bname{color:var(--sd-b-lt)}
+.sd-bmeta{font-family:var(--font-cond);font-size:14px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+.sd-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.sd-stat{background:#0009;border:1px solid #ffffff12;border-radius:10px;padding:10px 12px;text-align:left}
+.sd-stat b{display:block;font-family:var(--font-display);font-size:26px;font-weight:400}
+.sd-stat span{font-family:var(--font-cond);font-size:12px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase}
+.sd-champs{margin-top:16px;display:flex;flex-direction:column;gap:8px;padding-right:80px}
+.sd-bcard.b .sd-champs{padding-right:0;padding-left:80px}
+.sd-cl{display:flex;align-items:center;gap:10px;font-family:var(--font-cond);font-size:15px}.sd-bcard.b .sd-cl{flex-direction:row-reverse}
+.sd-cl i{font-size:20px}.sd-bcard.a .sd-cl i{color:var(--sd-a-lt)}.sd-bcard.b .sd-cl i{color:var(--sd-b-lt)}
+.sd-cl .who{font-weight:700;font-size:17px;color:#fff}.sd-cl .t{color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:12px}
+.sd-trophy{position:absolute;bottom:18px;right:20px;text-align:center;font-family:var(--font-cond);font-size:11px;letter-spacing:1.5px;color:var(--gold);text-transform:uppercase;max-width:90px}
+.sd-bcard.b .sd-trophy{right:auto;left:20px}
+.sd-trophy i{font-size:58px;display:block;filter:drop-shadow(0 0 14px rgba(233,185,73,.7))}
+.sd-trophy img{width:70px;height:70px;object-fit:contain;display:block;margin:0 auto 2px;filter:drop-shadow(0 0 14px rgba(233,185,73,.6))}
+.sd-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.sd-mid .sd-mainlogo{width:100%;max-width:470px;filter:drop-shadow(0 10px 30px #000)}
+.sd-pill{margin-top:6px;font-family:var(--font-cond);font-weight:700;letter-spacing:3px;font-size:14px;text-transform:uppercase;padding:6px 16px;border-radius:30px;background:#000a;border:1px solid #ffffff22}
+.sd-next{margin-top:14px;width:100%;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:14px;border:1px solid var(--line);background:#0009;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.sd-next.a{border-color:rgba(var(--sd-a-rgb),.55);background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.18),#0009)}
+.sd-next.b{border-color:rgba(var(--sd-b-rgb),.55);background:linear-gradient(90deg,rgba(var(--sd-b-rgb),.18),#0009)}
+.sd-next.clash{border-color:transparent;background:linear-gradient(#0b0b10,#0b0b10) padding-box,var(--sd-clash) border-box;border:1px solid transparent}
+.sd-next .l{flex:1}.sd-next .k{font-family:var(--font-cond);font-size:12px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.sd-next .n{font-family:var(--font-display);font-size:22px;text-transform:uppercase}
+.sd-btn{font-family:var(--font-cond);font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;border-radius:8px;font-size:14px;border:1px solid #ffffff22;background:#ffffff0a;color:#eee;cursor:pointer;white-space:nowrap}
+.sd-btn:hover{border-color:#ffffff55}
+.sd-btn.a{background:var(--sd-a);border-color:transparent;color:#fff}.sd-btn.b{background:var(--sd-b);border-color:transparent;color:#fff}
+.sd-btn.clash{background:var(--sd-clash);border-color:transparent;color:#fff}
+.sd-btn:disabled{opacity:.4;cursor:default}
+
+/* ---- tabs ---- */
+.sd-tabs{display:flex;gap:6px;margin-top:26px;border-bottom:1px solid var(--line);font-family:var(--font-cond);font-weight:600;font-size:16px;letter-spacing:1px;text-transform:uppercase;align-items:flex-end;flex-wrap:wrap}
+.sd-tabs button{padding:10px 16px;color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+.sd-tabs button:hover{color:#ddd}
+.sd-tabs button.on{color:#fff;border-image:var(--sd-clash) 1}
+.sd-tabs .sd-season-pick{margin-left:auto;margin-bottom:8px;background:#0b0c11;color:#ddd;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--font-cond);font-weight:600;font-size:14px;letter-spacing:1px}
+
+/* ---- rivalry ---- */
+.sd-rival{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sd-score{padding:20px 22px}
+.sd-score .k{font-family:var(--font-cond);font-size:13px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase}
+.sd-score .sd-row{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;gap:10px}
+.sd-score .n{font-family:var(--font-display);font-size:58px;line-height:1}.sd-score .n.a{color:var(--sd-a-lt)}.sd-score .n.b{color:var(--sd-b-lt)}
+.sd-score .lead{font-family:var(--font-cond);font-size:15px;color:#fff;letter-spacing:1px;text-transform:uppercase;text-align:center}
+.sd-tug{height:10px;border-radius:6px;margin-top:12px;background:#222;overflow:hidden;display:flex}
+.sd-tug .a{background:var(--sd-a)}.sd-tug .b{background:var(--sd-b)}
+
+/* ---- road to the finale ---- */
+.sd-road{padding:22px}
+.sd-nodes{display:grid;gap:8px}
+.sd-nd{text-align:center;font-family:var(--font-cond);font-size:12px;color:var(--muted);letter-spacing:1px;background:none;border:0;padding:0;cursor:pointer;color:var(--muted)}
+.sd-nd .c{height:44px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-display);font-size:18px;color:#fff;margin-bottom:6px;border:2px solid transparent;transition:transform .15s}
+.sd-nd:hover .c{transform:translateY(-2px)}
+.sd-nd.a .c{background:rgba(var(--sd-a-rgb),.25);border-color:var(--sd-a)}.sd-nd.b .c{background:rgba(var(--sd-b-rgb),.22);border-color:var(--sd-b)}
+.sd-nd.todo .c{opacity:.4}
+.sd-nd.dual .c{background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.35) 50%,rgba(var(--sd-b-rgb),.35) 50%);border-color:#fff4}
+.sd-nd.finale .c{background:var(--sd-clash);border:none;box-shadow:0 0 18px rgba(var(--sd-b-rgb),.4)}
+.sd-nd.now .c{outline:2px solid #fff;outline-offset:3px;opacity:1}
+.sd-legend{display:flex;gap:18px;margin-top:16px;font-family:var(--font-cond);font-size:13px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;flex-wrap:wrap}
+.sd-legend span{display:flex;align-items:center;gap:7px}.sd-legend i{width:14px;height:14px;border-radius:4px;display:inline-block}
+
+/* ---- champions ---- */
+.sd-belts{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.sd-belt{padding:16px;border-radius:12px;position:relative;overflow:hidden}
+.sd-belt.a{background:linear-gradient(160deg,rgba(var(--sd-a-rgb),.24),rgba(10,11,16,.95) 70%);border:1px solid rgba(var(--sd-a-rgb),.55)}
+.sd-belt.b{background:linear-gradient(160deg,rgba(var(--sd-b-rgb),.22),rgba(10,11,16,.95) 70%);border:1px solid rgba(var(--sd-b-rgb),.55)}
+.sd-belt .t{font-family:var(--font-cond);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.sd-belt .sd-row{display:flex;gap:12px;align-items:center;margin-top:10px;position:relative;z-index:1}
+.sd-belt .who{font-family:var(--font-display);font-size:22px;line-height:1.05;text-transform:uppercase}
+.sd-belt .since{font-family:var(--font-cond);font-size:13px;color:var(--muted);margin-top:3px}
+.sd-belt .wm{position:absolute;right:-10px;bottom:-18px;font-size:90px;opacity:.12}
+
+/* ---- rankings ---- */
+.sd-rk{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sd-rkp{overflow:hidden}
+.sd-rkh{display:flex;align-items:center;gap:12px;padding:14px 16px;font-family:var(--font-display);font-size:22px;text-transform:uppercase}
+.sd-rkp.a .sd-rkh{background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.35),transparent);border-bottom:2px solid var(--sd-a)}
+.sd-rkp.b .sd-rkh{background:linear-gradient(90deg,rgba(var(--sd-b-rgb),.32),transparent);border-bottom:2px solid var(--sd-b)}
+.sd-sw{margin-left:auto;display:flex;gap:4px;font-family:var(--font-cond);font-size:13px;font-weight:600}
+.sd-sw button{padding:3px 9px;border-radius:5px;color:var(--muted);border:1px solid #fff2;background:none;font:inherit;cursor:pointer;text-transform:uppercase;letter-spacing:.5px}
+.sd-sw button.on{color:#fff;background:#fff2}
+.sd-tbl{width:100%;border-collapse:collapse;font-family:var(--font-cond);font-size:16px}
+.sd-tbl th{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;text-align:left;padding:8px 12px;font-weight:600}
+.sd-tbl th.r,.sd-tbl td.r{text-align:right}
+.sd-tbl td{padding:9px 12px;border-top:1px solid #ffffff0d}
+.sd-tbl td.n{font-family:var(--font-display);font-size:18px;color:var(--muted);width:36px}
+.sd-tbl .sd-nm{font-weight:700;font-size:17px;display:flex;align-items:center;gap:10px}
+.sd-tbl .sd-nm .sd-port{width:34px;height:34px;font-size:13px}
+.sd-tbl td.p{text-align:right;font-family:var(--font-display);font-size:19px}
+.sd-tbl .sd-nm .cr{color:var(--gold);font-size:16px}
+.sd-tbl tr.ct td{background:rgba(255,255,255,.03)}
+.sd-mk{font-size:10px;letter-spacing:1.5px;padding:1px 6px;border-radius:4px;background:#fff1;color:#ddd;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.sd-rec{white-space:nowrap}
+.sd-note{font-family:var(--font-cond);font-size:13px;color:var(--muted);letter-spacing:.5px;margin-top:10px}
+
+/* ---- betting champs + trophy cabinet ---- */
+.sd-split{display:grid;grid-template-columns:1fr 1.3fr;gap:18px}
+.sd-split>*,.sd-rk>*,.sd-rival>*,.sd-hist>*,.sd-rosters>*,.sd-pools>*,.sd-room>*,.sd-hero>*,.sd-belts>*{min-width:0}
+.sd-bc{padding:18px}
+.sd-bc .sd-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid #ffffff0d;font-family:var(--font-cond);font-size:16px}
+.sd-bc .sd-row:first-child{border-top:none}
+.sd-av{width:38px;height:38px;border-radius:50%;background:#333;display:grid;place-items:center;font-family:var(--font-display);color:#fff;overflow:hidden;flex-shrink:0}
+.sd-cab{padding:18px;overflow-x:auto}
+.sd-cab .sd-row{display:grid;grid-template-columns:110px 1fr 160px 1fr;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #ffffff0d;font-family:var(--font-cond);font-size:16px;min-width:560px}
+.sd-cab .sd-row.h{border-top:none;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;padding:0 0 6px}
+.sd-cab .sn{font-family:var(--font-display);font-size:20px;text-transform:uppercase}
+.sd-cab .won{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.sd-cab .won i{color:var(--gold);font-size:22px}
+
+/* ---- rosters ---- */
+.sd-rosters{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sd-rgroup{padding:14px 16px;border-top:1px solid #ffffff0d}
+.sd-rgroup h5{font-family:var(--font-cond);font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sd-people{display:flex;flex-wrap:wrap;gap:10px}
+.sd-person{display:flex;align-items:center;gap:9px;padding:6px 12px 6px 6px;border-radius:10px;background:#ffffff07;border:1px solid #ffffff12;font-family:var(--font-cond);font-weight:700;font-size:16px;cursor:pointer;color:inherit}
+.sd-person .sd-port{width:34px;height:34px;font-size:12px}
+.sd-person .cr{color:var(--gold)}
+
+/* ---- season / episodes ---- */
+.sd-eps{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.sd-ep{padding:14px;border-radius:12px;cursor:pointer;text-align:left;color:inherit;font:inherit;background:rgba(10,11,16,.9);border:1px solid var(--line)}
+.sd-ep.a{border-color:rgba(var(--sd-a-rgb),.55)}.sd-ep.b{border-color:rgba(var(--sd-b-rgb),.55)}
+.sd-ep.dual{border-color:#ffffff33}.sd-ep.finale{background:linear-gradient(#0b0b10,#0b0b10) padding-box,var(--sd-clash) border-box;border:1px solid transparent}
+.sd-ep.sel{box-shadow:0 0 0 2px #fff}
+.sd-ep .k{font-family:var(--font-cond);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.sd-ep .n{font-family:var(--font-display);font-size:20px;text-transform:uppercase;margin-top:4px}
+.sd-epd{margin-top:18px;padding:20px}
+.sd-epd h3{font-size:26px}
+.sd-match{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;padding:14px 0;border-top:1px solid #ffffff0d}
+.sd-match:first-of-type{border-top:none}
+.sd-mside{display:flex;flex-direction:column;gap:6px}
+.sd-mside.r{align-items:flex-end;text-align:right}
+.sd-mname{font-family:var(--font-display);font-size:20px;text-transform:uppercase;line-height:1.1}
+.sd-mname.a{color:var(--sd-a-lt)}.sd-mname.b{color:var(--sd-b-lt)}
+.sd-res{font-family:var(--font-cond);font-weight:700;font-size:12px;letter-spacing:1.5px;padding:1px 7px;border-radius:4px;text-transform:uppercase}
+.sd-res.W{background:rgba(62,207,142,.15);color:var(--win)}.sd-res.L{background:rgba(226,75,74,.15);color:var(--loss)}.sd-res.NC{background:#ffffff14;color:#bbb}
+.sd-mvs{text-align:center;font-family:var(--font-cond);font-size:13px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.sd-mvs b{display:block;font-family:var(--font-display);font-size:22px;color:#fff}
+.sd-tally{display:flex;align-items:center;justify-content:center;gap:18px;font-family:var(--font-display);font-size:44px;margin:6px 0 4px}
+
+/* ---- draft replay ---- */
+.sd-dh{display:flex;align-items:center;gap:18px;margin-top:22px;flex-wrap:wrap}
+.sd-dh .sd-dlogo{height:64px}
+.sd-dh .t{font-family:var(--font-display);font-size:34px;text-transform:uppercase}
+.sd-steps{margin-left:auto;display:flex;gap:6px;font-family:var(--font-cond);font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;flex-wrap:wrap}
+.sd-steps span{padding:7px 12px;border-radius:7px;border:1px solid var(--line);color:var(--muted)}
+.sd-steps span.done{color:#aaa;background:#ffffff08}.sd-steps span.on{color:#fff;background:var(--sd-clash);border-color:transparent}
+.sd-room{display:grid;grid-template-columns:300px 1fr 300px;gap:20px;margin-top:20px}
+.sd-col{overflow:hidden;min-height:200px}
+.sd-colh{display:flex;align-items:center;gap:12px;padding:14px;font-family:var(--font-display);font-size:24px;text-transform:uppercase}
+.sd-col.a .sd-colh{background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.4),transparent);border-bottom:2px solid var(--sd-a)}
+.sd-col.b .sd-colh{background:linear-gradient(270deg,rgba(var(--sd-b-rgb),.38),transparent);border-bottom:2px solid var(--sd-b);flex-direction:row-reverse}
+.sd-colh .ct{margin-left:auto;font-family:var(--font-cond);font-size:14px;color:#ddd;letter-spacing:1px}
+.sd-col.b .sd-colh .ct{margin-left:0;margin-right:auto}
+.sd-pk{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid #ffffff0d;font-family:var(--font-cond);animation:sdIn .45s ease}
+@keyframes sdIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sd-pk .no{font-family:var(--font-display);color:var(--muted);width:22px;font-size:15px}
+.sd-pk .sd-port{width:34px;height:34px;font-size:12px}
+.sd-pk .sd-nm{font-weight:700;font-size:16px;line-height:1.1}.sd-pk .sub{font-size:12px;color:var(--muted);letter-spacing:.5px}
+.sd-pk.team{background:#ffffff05}
+.sd-pk .cr{color:var(--gold);margin-left:auto;font-size:18px}
+.sd-pk.new.a{box-shadow:inset 3px 0 0 var(--sd-a);background:rgba(var(--sd-a-rgb),.1)}
+.sd-pk.new.b{box-shadow:inset 3px 0 0 var(--sd-b);background:rgba(var(--sd-b-rgb),.1)}
+.sd-stage{display:flex;flex-direction:column;align-items:center;min-width:0}
+.sd-coinrow{display:flex;align-items:center;gap:16px;width:100%;padding:12px 16px;border-radius:12px;background:#000a;border:1px solid var(--line)}
+.sd-coin{width:66px;height:66px;position:relative;transform-style:preserve-3d;flex-shrink:0;perspective:400px}
+.sd-coin .face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;display:grid;place-items:center;font-family:var(--font-display);color:#fff;font-size:20px;overflow:hidden;box-shadow:inset 0 0 0 4px #e9b949,0 0 0 2px #6a4e10}
+.sd-coin .face img{width:80%;height:80%;object-fit:contain}
+.sd-coin .face.a{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.4),var(--sd-a) 55%,#0008)}
+.sd-coin .face.b{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.4),var(--sd-b) 55%,#0008);transform:rotateY(180deg)}
+.sd-coin .spin{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 2.2s cubic-bezier(.2,.7,.2,1)}
+.sd-coinrow .txt{flex:1;font-family:var(--font-cond);font-size:14px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.sd-coinrow .txt b{display:block;font-family:var(--font-display);font-size:22px;color:#fff;letter-spacing:.5px}
+.sd-wheelbox{position:relative;width:min(440px,100%);aspect-ratio:1;margin-top:18px}
+.sd-wheelbox svg{width:100%;height:100%;display:block}
+.sd-wheel{transform-box:fill-box;transform-origin:center;transition:transform 3.6s cubic-bezier(.12,.75,.12,1)}
+.sd-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #fff;filter:drop-shadow(0 3px 4px #000);z-index:2}
+.sd-hub{position:absolute;inset:0;margin:auto;width:25%;height:25%;border-radius:50%;background:#0b0c11;border:3px solid #e9b949;display:grid;place-items:center;align-content:center;font-family:var(--font-display);font-size:18px;color:#fff;text-align:center;line-height:1;text-transform:uppercase}
+.sd-hub small{font-family:var(--font-cond);font-size:11px;color:var(--gold);letter-spacing:1.5px;display:block;margin-top:4px}
+.sd-land{margin-top:16px;width:100%;border-radius:14px;padding:16px 18px;border:1px solid var(--line);background:#000c;min-height:110px}
+.sd-land.a{border-color:rgba(var(--sd-a-rgb),.6);background:linear-gradient(135deg,rgba(var(--sd-a-rgb),.18),#000c)}
+.sd-land.b{border-color:rgba(var(--sd-b-rgb),.6);background:linear-gradient(135deg,rgba(var(--sd-b-rgb),.18),#000c)}
+.sd-land .k{font-family:var(--font-cond);font-size:13px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.sd-land .n{font-family:var(--font-display);font-size:30px;margin:2px 0 10px;text-transform:uppercase}
+.sd-mem{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sd-m{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#ffffff08;border:1px solid #ffffff14;font-family:var(--font-cond);font-weight:700;font-size:15px}
+.sd-m .bx{width:18px;height:18px;border-radius:4px;border:2px solid #777;display:grid;place-items:center;font-size:13px;flex-shrink:0}
+.sd-land.a .sd-m.on{border-color:rgba(var(--sd-a-rgb),.6);background:rgba(var(--sd-a-rgb),.12)}.sd-land.a .sd-m.on .bx{background:var(--sd-a);border-color:var(--sd-a);color:#fff}
+.sd-land.b .sd-m.on{border-color:rgba(var(--sd-b-rgb),.6);background:rgba(var(--sd-b-rgb),.12)}.sd-land.b .sd-m.on .bx{background:var(--sd-b);border-color:var(--sd-b);color:#fff}
+.sd-m.off{opacity:.6}.sd-m.off .x{margin-left:auto;font-size:12px;color:var(--muted);font-weight:500}
+.sd-ctrls{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+.sd-ctrls .sd-btn.on{background:#fff2;border-color:#fff6}
+.sd-pools{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px}
+.sd-pool{padding:16px}
+.sd-pool h4{font-family:var(--font-cond);font-size:13px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;font-weight:700}
+.sd-chips{display:flex;flex-wrap:wrap;gap:7px}
+.sd-chip{font-family:var(--font-cond);font-weight:600;font-size:14px;padding:5px 11px;border-radius:20px;background:#ffffff0c;border:1px solid #ffffff1a}
+.sd-chip.gone{opacity:.3;text-decoration:line-through}
+.sd-chip.hl{border-color:#fff8;background:#ffffff1c}
+
+/* ---- history ---- */
+.sd-hist{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sd-reign{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid #ffffff0d;font-family:var(--font-cond);font-size:15px}
+.sd-reign:first-child{border-top:none}
+.sd-reign .who{font-weight:700;font-size:17px;flex:1}
+.sd-reign .when{color:var(--muted);font-size:13px;text-align:right}
+
+/* ---- Showdown episode on Upcoming Events / Live ---- */
+.sd-evbanner{display:flex;align-items:center;gap:14px;margin:18px 0 14px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:#000a}
+.sd-evbanner.a{border-color:rgba(var(--sd-a-rgb),.6);background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.25),#000a 70%)}
+.sd-evbanner.b{border-color:rgba(var(--sd-b-rgb),.6);background:linear-gradient(90deg,rgba(var(--sd-b-rgb),.25),#000a 70%)}
+.sd-evbanner.clash{background:linear-gradient(#0b0b10,#0b0b10) padding-box,var(--sd-clash) border-box;border:1px solid transparent}
+.sd-evbanner img.lg{height:44px}
+.sd-evbanner .t{font-family:var(--font-cond);font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:14px}
+.sd-evbanner .t b{font-family:var(--font-display);font-size:20px;letter-spacing:.5px;display:block}
+.sd-evbanner .go{margin-left:auto}
+.event-hero.sd-a{box-shadow:inset 0 0 0 1px rgba(var(--sd-a-rgb),.6)}
+.event-hero.sd-b{box-shadow:inset 0 0 0 1px rgba(var(--sd-b-rgb),.6)}
+
+@media (max-width:1000px){
+  .sd-hero{grid-template-columns:1fr}
+  .sd-mid{order:-1}
+  .sd-belts{grid-template-columns:1fr 1fr}
+  .sd-rk,.sd-rival,.sd-split,.sd-rosters,.sd-hist,.sd-pools{grid-template-columns:1fr}
+  .sd-room{grid-template-columns:1fr}
+  .sd-room .sd-stage{order:-1}
+  .sd-steps{margin-left:0}
+}
+@media (max-width:640px){
+  .sd-bname{font-size:32px}
+  .sd-belts{grid-template-columns:1fr}
+  .sd-nodes{grid-template-columns:repeat(8,1fr)!important;gap:5px}
+  .sd-road{padding:14px}
+  .sd-nd .c{font-size:15px}
+  .sd-score .n{font-size:44px}
+  .sd-champs{padding-right:0}.sd-bcard.b .sd-champs{padding-left:0}
+  .sd-trophy{position:static;margin:14px auto 0}
+  .sd-tabs button{padding:8px 10px;font-size:14px}
+  .sd-tabs .sd-season-pick{margin-left:0}
+  .sd-match{grid-template-columns:1fr;text-align:left}
+  .sd-mside.r{align-items:flex-start;text-align:left}
+  .sd-tbl .sd-nm .sd-port{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .sd-wheel,.sd-coin .spin{transition-duration:.01s!important}
+  .sd-pk{animation:none}
+}
+</style>
+<script>
+(function(){
+'use strict';
+const $s = id => document.getElementById(id);
+const e = s => (typeof esc==='function' ? esc(s) : String(s==null?'':s));
+
+/* ── defaults: used until the admin saves its own ─────────────────── */
+const SD_DEFAULTS = {
+  brands:{ a:{name:'Brand A', color:'#9146FF', logo:''}, b:{name:'Brand B', color:'#FF1F2D', logo:''} },
+  logo:'',
+  titles:{ singles:'{brand} Championship', faction:'{brand} Faction Championship' },
+  trophy:{ name:'Showdown Cup', image:'' },
+  points:{ win:3, loss:0, nc:1 }
+};
+let SDS = JSON.parse(JSON.stringify(SD_DEFAULTS));   // live settings
+let SD = null;          // loaded data
+let SD_LOADING = null;
+let SD_TAB = 'overview';
+let SD_SEASON = null;   // selected season id
+let SD_RANK_KIND = 'singles';
+let SD_EP_SEL = null;   // selected episode number on the Season tab
+
+/* ── colours ──────────────────────────────────────────────────────── */
+function hexRgb(h){
+  h = String(h||'').trim().replace('#','');
+  if(h.length===3) h = h.split('').map(c=>c+c).join('');
+  if(!/^[0-9a-f]{6}$/i.test(h)) return null;
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+// a lighter tint of the brand colour for text on dark panels
+function lighten(rgb, amt){ return rgb.map(v=>Math.round(v+(255-v)*amt)); }
+function sdApplyColors(){
+  const root = document.documentElement;
+  ['a','b'].forEach(k=>{
+    const rgb = hexRgb(SDS.brands[k].color) || hexRgb(SD_DEFAULTS.brands[k].color);
+    const lt = lighten(rgb, .55);
+    root.style.setProperty('--sd-'+k, `rgb(${rgb.join(',')})`);
+    root.style.setProperty('--sd-'+k+'-rgb', rgb.join(','));
+    root.style.setProperty('--sd-'+k+'-lt', `rgb(${lt.join(',')})`);
+  });
+}
+function mergeSettings(saved){
+  const s = JSON.parse(JSON.stringify(SD_DEFAULTS));
+  if(!saved || typeof saved!=='object') return s;
+  ['a','b'].forEach(k=>{
+    const b = (saved.brands||{})[k] || {};
+    if(b.name)  s.brands[k].name  = b.name;
+    if(b.color) s.brands[k].color = b.color;
+    if(b.logo)  s.brands[k].logo  = b.logo;
+  });
+  if(saved.logo) s.logo = saved.logo;
+  if(saved.titles){ if(saved.titles.singles) s.titles.singles = saved.titles.singles; if(saved.titles.faction) s.titles.faction = saved.titles.faction; }
+  if(saved.trophy){ if(saved.trophy.name) s.trophy.name = saved.trophy.name; if(saved.trophy.image) s.trophy.image = saved.trophy.image; }
+  if(saved.points){ ['win','loss','nc'].forEach(k=>{ if(saved.points[k]!=null && !isNaN(Number(saved.points[k]))) s.points[k] = Number(saved.points[k]); }); }
+  return s;
+}
+async function sdLoadSettings(){
+  try{
+    const { data, error } = await sb.from('site_settings').select('showdown').eq('id',1).single();
+    if(!error && data) SDS = mergeSettings(data.showdown);
+  }catch(_){}
+  sdApplyColors();
+}
+
+/* ── names, logos, titles ─────────────────────────────────────────── */
+const bName = k => (SDS.brands[k]||{}).name || (k==='a'?'Brand A':'Brand B');
+function titleName(brand, kind){
+  return String(SDS.titles[kind]||'').replace(/\{brand\}/g, bName(brand));
+}
+function emblem(k, size, fs){
+  const logo = (SDS.brands[k]||{}).logo;
+  const st = `width:${size}px;height:${size}px;font-size:${fs||Math.round(size*.42)}px`;
+  if(logo) return `<div class="sd-emb ${k} has-img" style="${st}"><img src="${e(logo)}" alt="${e(bName(k))}"></div>`;
+  const init = brandInit(k);
+  return `<div class="sd-emb ${k}" style="${st}">${e(init)}</div>`;
+}
+function brandInit(k){
+  const w = bName(k).trim().split(/\s+/).filter(Boolean);
+  return (w.length>1 ? w.slice(0,2).map(x=>x[0]).join('') : (w[0]||k).slice(0,1)).toUpperCase();
+}
+function mainLogo(cls){
+  if(SDS.logo) return `<img class="${cls||'sd-mainlogo'}" src="${e(SDS.logo)}" alt="WCA Showdown">`;
+  return `<div class="sd-logo-fallback ${cls||''}"><div class="l1">WCA</div><div class="l2">Showdown</div></div>`;
+}
+function initials(n){
+  return (typeof mpInitials==='function') ? mpInitials(n) :
+    String(n||'?').split(/\s+/).map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
+}
+function portrait(name, brand){
+  let src = '';
+  try{ if(typeof mpPhotoFor==='function') src = mpPhotoFor(name) || ''; }catch(_){}
+  const cls = 'sd-port' + (brand?(' '+brand):'');
+  if(src) return `<div class="${cls}"><img src="${e(src)}" alt="" loading="lazy" onerror="this.remove()"></div>`;
+  return `<div class="${cls}">${e(initials(name))}</div>`;
+}
+const norm = s => String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+
+/* ── data ─────────────────────────────────────────────────────────── */
+async function q(builder){
+  try{ const r = await builder; return r.error ? [] : (r.data||[]); }catch(_){ return []; }
+}
+async function sdLoad(force){
+  if(SD && !force) return SD;
+  if(SD_LOADING && !force) return SD_LOADING;
+  SD_LOADING = (async()=>{
+    await sdLoadSettings();
+    const [seasons, roster, drafts, reigns, results, episodes] = await Promise.all([
+      q(sb.from('sd_seasons').select('*').order('number',{ascending:true})),
+      q(sb.from('sd_roster').select('*').order('pick_no',{ascending:true,nullsFirst:false})),
+      q(sb.from('sd_draft_runs').select('*')),
+      q(sb.from('sd_title_reigns').select('*').order('sort_order',{ascending:true,nullsFirst:false}).order('id',{ascending:true})),
+      q(sb.from('sd_match_results').select('*')),
+      q(sb.from('v_sd_episodes').select('*'))
+    ]);
+    const epIds = episodes.map(x=>x.id);
+    let champs = [];
+    if(epIds.length){
+      champs = await q(sb.from('event_results').select('event_id,user_id,display_name,net,rank,is_champion')
+        .in('event_id', epIds).eq('is_champion', true));
+    }
+    SD = { seasons, roster, drafts, reigns, results, episodes, champs };
+    window.SD_EVENT_IDS = new Set(epIds.map(String));
+    if(SD_SEASON==null || !seasons.some(s=>s.id===SD_SEASON)) SD_SEASON = currentSeason() ? currentSeason().id : null;
+    SD_LOADING = null;
+    return SD;
+  })();
+  return SD_LOADING;
+}
+function currentSeason(){
+  if(!SD || !SD.seasons.length) return null;
+  const open = SD.seasons.filter(s=>s.status!=='complete');
+  return open.length ? open[open.length-1] : SD.seasons[SD.seasons.length-1];
+}
+const seasonById = id => (SD.seasons||[]).find(s=>s.id===id) || null;
+const seasonLabel = s => s ? `Season ${s.number}` : 'Season';
+function lastCompleteSeason(){
+  const done = (SD.seasons||[]).filter(s=>s.status==='complete' && s.winner_brand);
+  return done.length ? done[done.length-1] : null;
+}
+
+/* who's on which brand this season */
+function rosterOf(seasonId){ return (SD.roster||[]).filter(r=>r.season_id===seasonId); }
+function brandOfName(name, seasonId){
+  const r = rosterOf(seasonId).find(x=>norm(x.name)===norm(name));
+  return r ? r.brand : null;
+}
+
+/* the planned run of shows: alternate brands, then the title show, then the Finale */
+function scheduleFor(season){
+  const total = Math.max(3, Number(season && season.episodes_total) || 16);
+  const first = (season && season.first_brand)==='b' ? 'b' : 'a';
+  const other = first==='a' ? 'b' : 'a';
+  const out = [];
+  for(let i=1;i<=total;i++){
+    let kind;
+    if(i===total) kind = 'finale';
+    else if(i===total-1) kind = 'dual';
+    else kind = (i%2===1) ? first : other;
+    out.push({ n:i, kind });
+  }
+  // an episode the admin has created overrides the plan
+  (SD.episodes||[]).filter(x=>season && x.sd_season_id===season.id && x.sd_episode).forEach(ev=>{
+    const slot = out[ev.sd_episode-1];
+    if(slot){ slot.ev = ev; if(ev.sd_brand) slot.kind = ev.sd_brand; }
+  });
+  return out;
+}
+const kindLabel = k => k==='a'||k==='b' ? bName(k) : (k==='dual' ? 'Title show' : 'Finale');
+function nextEpisode(season){
+  const sch = scheduleFor(season);
+  return sch.find(x=>!(x.ev && x.ev.is_complete)) || null;
+}
+
+/* ── records ──────────────────────────────────────────────────────── */
+function partsOf(r){
+  let p = r.participants;
+  if(typeof p==='string'){ try{ p = JSON.parse(p); }catch(_){ p = []; } }
+  return Array.isArray(p) ? p : [];
+}
+function resultsFor(seasonId){ return (SD.results||[]).filter(r=>r.season_id===seasonId); }
+const pts = rec => rec.w*SDS.points.win + rec.l*SDS.points.loss + rec.nc*SDS.points.nc;
+
+/* singles: one line per person. faction: one line per team per match. */
+function standings(seasonId, brand, kind){
+  const map = {};
+  const add = (key, label, res)=>{
+    const k = norm(key);
+    if(!map[k]) map[k] = { name:label, w:0, l:0, nc:0 };
+    if(res==='W') map[k].w++; else if(res==='L') map[k].l++; else map[k].nc++;
+  };
+  resultsFor(seasonId).forEach(r=>{
+    const parts = partsOf(r);
+    if(kind==='singles'){
+      parts.forEach(p=>{
+        const b = p.brand || brandOfName(p.name, seasonId);
+        if(b===brand && p.name) add(p.name, p.name, p.result);
+      });
+    } else {
+      const teams = {};
+      parts.forEach(p=>{
+        if(!p.team) return;
+        const b = p.brand || brandOfName(p.name, seasonId);
+        if(b!==brand) return;
+        const k = norm(p.team);
+        teams[k] = teams[k] || { label:p.team, res:[] };
+        teams[k].res.push(p.result);
+      });
+      Object.values(teams).forEach(t=>{
+        const res = t.res.includes('W') ? 'W' : (t.res.includes('L') ? 'L' : 'NC');
+        add(t.label, t.label, res);
+      });
+    }
+  });
+  // everyone on the brand appears, even before their first match
+  rosterOf(seasonId).filter(x=>x.brand===brand).forEach(x=>{
+    const label = kind==='singles' ? x.name : x.team_name;
+    if(label && !map[norm(label)]) map[norm(label)] = { name:label, w:0, l:0, nc:0 };
+  });
+  const champ = currentChamp(brand, kind);
+  if(champ && !map[norm(champ.holder)]) map[norm(champ.holder)] = { name:champ.holder, w:0, l:0, nc:0 };
+  const rows = Object.values(map).map(r=>Object.assign(r, { pts:pts(r), champ: !!(champ && norm(champ.holder)===norm(r.name)) }));
+  rows.sort((x,y)=> (y.champ-x.champ) || (y.pts-x.pts) || (y.w-x.w) || (x.l-y.l) || x.name.localeCompare(y.name));
+  // number the contenders (champion is "C"), with shared ranks on ties
+  let rank = 0, prev = null, seen = 0;
+  rows.forEach(r=>{
+    if(r.champ){ r.rank = 'C'; return; }
+    seen++;
+    if(prev===null || r.pts!==prev){ rank = seen; prev = r.pts; }
+    r.rank = rank;
+  });
+  const top = rows.filter(r=>r.rank===1);
+  rows.forEach(r=>{ const played=(r.w+r.l+r.nc)>0; r.tiedTop = r.rank===1 && top.length>1 && played && r.pts>0; r.contender = r.rank===1 && top.length===1 && (r.w+r.l+r.nc)>0; });
+  return rows;
+}
+function brandTotals(seasonId, brand){
+  const t = { w:0, l:0, nc:0 };
+  standings(seasonId, brand, 'singles').forEach(r=>{ t.w+=r.w; t.l+=r.l; t.nc+=r.nc; });
+  return t;
+}
+const recHTML = r => `<span class="sd-rec"><span class="sd-w">${r.w}</span>-<span class="sd-l">${r.l}</span>-<span class="sd-nc">${r.nc}</span></span>`;
+
+/* champions */
+function reignOpen(r){ return !r.vacated && r.lost_season_id==null && r.lost_episode==null; }
+function currentChamp(brand, kind){
+  const open = (SD.reigns||[]).filter(r=>r.brand===brand && r.kind===kind && reignOpen(r));
+  return open.length ? open[open.length-1] : null;
+}
+function reignSince(r){
+  const s = r.season_id ? seasonById(r.season_id) : null;
+  if(!s) return '';
+  return `Since ${seasonLabel(s)}${r.won_episode?` · Ep ${r.won_episode}`:''}`;
+}
+
+/* Finale tally for a season: who won each Finale match */
+function finaleTally(season){
+  if(!season) return { a:0, b:0, played:0 };
+  if(season.status==='complete' && season.finale_a!=null && season.finale_b!=null)
+    return { a:Number(season.finale_a)||0, b:Number(season.finale_b)||0, played:(Number(season.finale_a)||0)+(Number(season.finale_b)||0) };
+  const fin = (SD.episodes||[]).find(x=>x.sd_season_id===season.id && x.sd_brand==='finale');
+  const t = { a:0, b:0, played:0 };
+  if(!fin) return t;
+  (SD.results||[]).filter(r=>String(r.event_id)===String(fin.id)).forEach(r=>{
+    if(r.winner_brand==='a') t.a++; else if(r.winner_brand==='b') t.b++;
+    t.played++;
+  });
+  return t;
+}
+function rivalry(){
+  const r = { sa:0, sb:0, fa:0, fb:0 };
+  (SD.seasons||[]).filter(s=>s.status==='complete').forEach(s=>{
+    if(s.winner_brand==='a') r.sa++; else if(s.winner_brand==='b') r.sb++;
+    const t = finaleTally(s); r.fa+=t.a; r.fb+=t.b;
+  });
+  return r;
+}
+
+/* Showdown Betting Champions, newest first, with "N in a row" */
+function betChamps(){
+  const epById = {}; (SD.episodes||[]).forEach(x=>epById[String(x.id)] = x);
+  const rows = (SD.champs||[]).map(c=>Object.assign({}, c, { ep: epById[String(c.event_id)] })).filter(c=>c.ep);
+  const key = c => { const s = seasonById(c.ep.sd_season_id); return (s?s.number:0)*1000 + (c.ep.sd_episode||0); };
+  rows.sort((x,y)=>key(x)-key(y));
+  let streak = 0, prev = null;
+  rows.forEach(c=>{ streak = (prev && prev.user_id===c.user_id) ? streak+1 : 1; c.streak = streak; prev = c; });
+  return rows.reverse();
+}
+
+/* ── render: shell ────────────────────────────────────────────────── */
+const TABS = [['overview','Overview'],['rankings','Rankings'],['rosters','Rosters'],['season','Season'],['draft','Draft'],['history','History']];
+function render(){
+  const root = $s('sd-root'); if(!root) return;
+  if(!SD){ root.innerHTML = `<div class="sd-empty">Loading WCA Showdown…</div>`; return; }
+  const season = seasonById(SD_SEASON);
+  const seasonOpts = (SD.seasons||[]).slice().reverse().map(s=>
+    `<option value="${s.id}"${s.id===SD_SEASON?' selected':''}>${e(seasonLabel(s))}${s.title?' · '+e(s.title):''}</option>`).join('');
+  const tabs = `<div class="sd-tabs" role="tablist">${TABS.map(([k,l])=>
+    `<button type="button" role="tab" class="${SD_TAB===k?'on':''}" data-sdtab="${k}">${l}</button>`).join('')}
+    ${SD.seasons.length>1?`<select class="sd-season-pick" id="sd-season-pick" aria-label="Season">${seasonOpts}</select>`:''}</div>`;
+  let body = '';
+  if(!season){
+    body = `<div class="sd-panel sd-empty" style="margin-top:20px">WCA Showdown hasn't started yet. Season 1 is coming — check back soon.</div>`;
+  } else if(SD_TAB==='rankings') body = renderRankings(season, true);
+  else if(SD_TAB==='rosters') body = renderRosters(season);
+  else if(SD_TAB==='season')  body = renderSeason(season);
+  else if(SD_TAB==='draft')   body = renderDraftShell(season);
+  else if(SD_TAB==='history') body = renderHistory();
+  else body = renderOverview(season);
+  root.innerHTML = (season ? renderHero(season) : `<div class="sd-mid" style="margin-top:20px">${mainLogo()}</div>`) + tabs + `<div id="sd-body">${body}</div>`;
+  wire(root);
+  if(SD_TAB==='draft' && season) draftMount(season);
+  if(SD_TAB==='season' && season && SD_EP_SEL) loadEpisodeDetail(season, SD_EP_SEL);
+}
+function wire(root){
+  root.querySelectorAll('[data-sdtab]').forEach(b=>b.onclick=()=>{ sdSetTab(b.dataset.sdtab); });
+  const pick = $s('sd-season-pick');
+  if(pick) pick.onchange = ()=>{ SD_SEASON = Number(pick.value); SD_EP_SEL = null; draftStop(); render(); };
+  root.querySelectorAll('[data-sdkind]').forEach(b=>b.onclick=()=>{ SD_RANK_KIND = b.dataset.sdkind; render(); });
+  root.querySelectorAll('[data-sdep]').forEach(b=>b.onclick=()=>{
+    SD_EP_SEL = Number(b.dataset.sdep); SD_TAB = 'season'; draftStop(); render();
+    const d = $s('sd-epd'); if(d) d.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  root.querySelectorAll('[data-sdgo]').forEach(b=>b.onclick=()=>{ if(typeof goPage==='function') goPage(b.dataset.sdgo); });
+  root.querySelectorAll('[data-wname]').forEach(b=>b.onclick=()=>{ if(typeof goWrestler==='function') goWrestler(b.dataset.wname); });
+}
+function sdSetTab(k){
+  SD_TAB = k; draftStop(); render();
+  try{ history.replaceState(null,'','#showdown'+(k!=='overview'?'?tab='+k:'')); }catch(_){}
+}
+
+/* ── hero ─────────────────────────────────────────────────────────── */
+function brandCard(season, k){
+  const tot = brandTotals(season.id, k);
+  const count = rosterOf(season.id).filter(r=>r.brand===k).length;
+  const shows = scheduleFor(season).filter(x=>x.kind===k && x.ev && x.ev.is_complete).length;
+  const last = lastCompleteSeason();
+  const holds = last && last.winner_brand===k;
+  const meta = [holds ? `${seasonLabel(last)} winner` : '', count ? `${count} superstar${count===1?'':'s'}` : 'Draft pending'].filter(Boolean).join(' · ');
+  const champLine = (kind, icon)=>{
+    const c = currentChamp(k, kind);
+    return `<div class="sd-cl"><i class="ti ${icon}"></i><div><div class="t">${e(titleName(k,kind))}</div><div class="who">${c?e(c.holder):'Vacant'}</div></div></div>`;
+  };
+  const trophy = holds ? `<div class="sd-trophy">${SDS.trophy.image?`<img src="${e(SDS.trophy.image)}" alt="">`:'<i class="ti ti-trophy"></i>'}Holds the<br>${e(SDS.trophy.name)}</div>` : '';
+  return `<div class="sd-bcard ${k}">${trophy}
+    <div class="top">${emblem(k,84,30)}<div><div class="sd-bname">${e(bName(k))}</div><div class="sd-bmeta">${e(meta)}</div></div></div>
+    <div class="sd-stats"><div class="sd-stat"><b>${tot.w}-${tot.l}</b><span>Wins-Losses</span></div><div class="sd-stat"><b>${tot.nc}</b><span>No contest</span></div><div class="sd-stat"><b>${shows}</b><span>Shows</span></div></div>
+    <div class="sd-champs">${champLine('singles','ti-crown')}${champLine('faction','ti-users-group')}</div>
+  </div>`;
+}
+function renderHero(season){
+  const sch = scheduleFor(season);
+  const nx = nextEpisode(season);
+  let pill = seasonLabel(season);
+  if(season.status==='complete') pill += ' · Complete';
+  else if(nx) pill += ` · Episode ${nx.n} of ${sch.length}`;
+  let next = '';
+  if(nx && season.status!=='complete'){
+    const cls = (nx.kind==='a'||nx.kind==='b') ? nx.kind : 'clash';
+    const kick = nx.kind==='finale' ? 'The Finale · brand vs brand' : (nx.kind==='dual' ? 'Title show · both brands' : `${bName(nx.kind)} night`);
+    const nm = nx.ev ? nx.ev.name : `${seasonLabel(season)} · Episode ${nx.n}`;
+    const btn = nx.ev ? `<span class="sd-btn ${cls}">Place bets</span>` : '';
+    next = `<button type="button" class="sd-next ${cls}" ${nx.ev?'data-sdgo="events"':`data-sdep="${nx.n}"`}><div class="l"><div class="k">Next episode · ${e(kick)}</div><div class="n">${e(nm)}</div></div>${btn}</button>`;
+  }
+  return `<div class="sd-hero">${brandCard(season,'a')}
+    <div class="sd-mid">${mainLogo()}<div class="sd-pill">${e(pill)}</div>${next}</div>
+    ${brandCard(season,'b')}</div>`;
+}
+
+/* ── overview ─────────────────────────────────────────────────────── */
+function renderRivalry(){
+  const r = rivalry();
+  const box = (k, a, b)=>{
+    const lead = a===b ? (a+b ? 'All square' : 'No seasons finished yet') : `${bName(a>b?'a':'b')} leads${k==='f'?` ${Math.max(a,b)}–${Math.min(a,b)}`:''}`;
+    const tot = a+b;
+    const tug = tot ? `<div class="a" style="width:${a/tot*100}%"></div><div class="b" style="width:${b/tot*100}%"></div>` : '';
+    return `<div class="sd-panel sd-score"><div class="k">${k==='s'?'Seasons won':'Finale matches won'}</div>
+      <div class="sd-row"><span class="n a">${a}</span><span class="lead">${e(lead)}</span><span class="n b">${b}</span></div>
+      <div class="sd-tug">${tug}</div></div>`;
+  };
+  return `<div class="sd-rival">${box('s', r.sa, r.sb)}${box('f', r.fa, r.fb)}</div>`;
+}
+function renderRoad(season){
+  const sch = scheduleFor(season);
+  const nx = nextEpisode(season);
+  const nodes = sch.map(x=>{
+    const done = x.ev && x.ev.is_complete;
+    const now = nx && nx.n===x.n && season.status!=='complete';
+    const cls = ['sd-nd', x.kind, done?'done':(now?'now':'todo')].join(' ');
+    const inner = x.kind==='finale' ? '<i class="ti ti-swords"></i>' : x.n;
+    const lbl = now ? 'Next' : (x.kind==='finale' ? 'Finale' : (x.kind==='dual' ? 'Titles' : e(bName(x.kind))));
+    return `<button type="button" class="${cls}" data-sdep="${x.n}" title="Episode ${x.n} · ${e(kindLabel(x.kind))}"><div class="c">${inner}</div>${lbl}</button>`;
+  }).join('');
+  return `<div class="sd-panel sd-road"><div class="sd-nodes" style="grid-template-columns:repeat(${sch.length},1fr)">${nodes}</div>
+    <div class="sd-legend"><span><i style="background:var(--sd-a)"></i>${e(bName('a'))} show</span><span><i style="background:var(--sd-b)"></i>${e(bName('b'))} show</span>
+    <span><i style="background:linear-gradient(90deg,var(--sd-a) 50%,var(--sd-b) 50%)"></i>Title show · both brands</span>
+    <span><i style="background:var(--sd-clash)"></i>Finale · ${Number(season.finale_matches)||7} matches</span></div></div>`;
+}
+function renderBelts(){
+  const card = (k, kind)=>{
+    const c = currentChamp(k, kind);
+    const icon = kind==='singles' ? 'ti-crown' : 'ti-users-group';
+    return `<div class="sd-belt ${k}"><i class="ti ${icon} wm"></i><div class="t">${e(titleName(k,kind))}</div>
+      <div class="sd-row">${portrait(c?c.holder:'?', k)}<div><div class="who">${c?e(c.holder):'Vacant'}</div><div class="since">${c?e(reignSince(c)||'Champion'):'Title up for grabs'}</div></div></div></div>`;
+  };
+  return `<div class="sd-belts">${card('a','singles')}${card('a','faction')}${card('b','singles')}${card('b','faction')}</div>`;
+}
+function rankPanel(season, k, limit){
+  let rows = standings(season.id, k, SD_RANK_KIND);
+  const total = rows.length;
+  if(limit) rows = rows.slice(0, limit);
+  const sw = `<div class="sd-sw"><button type="button" data-sdkind="singles" class="${SD_RANK_KIND==='singles'?'on':''}">Singles</button><button type="button" data-sdkind="faction" class="${SD_RANK_KIND==='faction'?'on':''}">Faction</button></div>`;
+  const body = rows.length ? rows.map(r=>{
+    const mk = r.tiedTop ? '<span class="sd-mk">Tied · #1</span>' : (r.contender ? '<span class="sd-mk">#1 contender</span>' : '');
+    const cls = (r.champ?'ch ':'') + ((r.contender||r.tiedTop)?'ct':'');
+    const link = SD_RANK_KIND==='singles' ? ` data-wname="${e(r.name)}" style="cursor:pointer"` : '';
+    return `<tr class="${cls}"><td class="n">${r.rank}</td><td><div class="sd-nm"${link}>${portrait(r.name,k)}${e(r.name)}${r.champ?' <i class="ti ti-crown cr"></i>':''} ${mk}</div></td><td class="r">${recHTML(r)}</td><td class="p">${r.pts}</td></tr>`;
+  }).join('') : `<tr><td colspan="4" class="sd-empty">${SD_RANK_KIND==='faction'?'No factions on this brand yet.':'No one drafted to this brand yet.'}</td></tr>`;
+  const more = limit && total>limit ? `<div style="padding:10px 14px;text-align:right"><button type="button" class="sd-btn" data-sdtab="rankings">Full rankings</button></div>` : '';
+  return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh">${emblem(k,34,15)}${e(bName(k))}${sw}</div>
+    <table class="sd-tbl"><thead><tr><th>#</th><th>${SD_RANK_KIND==='faction'?'Faction':'Superstar'}</th><th class="r">W-L-NC</th><th class="r">Pts</th></tr></thead><tbody>${body}</tbody></table>${more}</div>`;
+}
+function renderBetChamps(limit){
+  const rows = betChamps();
+  const list = (limit ? rows.slice(0,limit) : rows).map(c=>{
+    const ep = c.ep;
+    const k = (ep.sd_brand==='a'||ep.sd_brand==='b') ? ep.sd_brand : 'clash';
+    const s = seasonById(ep.sd_season_id);
+    const net = Number(c.net)||0;
+    const sub = [ep.sd_episode?`Episode ${ep.sd_episode}`:e(ep.name), (net>=0?'+':'−')+'$'+Math.abs(net).toLocaleString('en-US'), c.streak>1?`${c.streak} in a row`:''].filter(Boolean).join(' · ');
+    return `<div class="sd-row"><div class="sd-av">${e(initials(c.display_name))}</div><div style="flex:1"><b style="font-size:18px">${e(c.display_name)}</b><div style="color:var(--muted);font-size:13px">${sub}</div></div><span class="sd-tag ${k}">${s?'S'+s.number+' · ':''}Ep ${ep.sd_episode||'?'}</span></div>`;
+  }).join('');
+  return `<div class="sd-panel sd-bc">${list || '<div class="sd-empty">No Showdown Betting Champion yet — the first one is crowned when an episode wraps.</div>'}
+    <div class="sd-note">Separate from the main WCA Betting Champion.</div></div>`;
+}
+function renderCabinet(){
+  const seasons = (SD.seasons||[]).slice().reverse();
+  if(!seasons.length) return `<div class="sd-panel sd-cab"><div class="sd-empty">No seasons yet.</div></div>`;
+  const rows = seasons.map(s=>{
+    if(s.status!=='complete'){
+      const nx = nextEpisode(s);
+      return `<div class="sd-row"><span class="sd-cab sn" style="padding:0;color:var(--muted)">${e(seasonLabel(s))}</span><span style="color:var(--muted)">${s.status==='setup'?'Draft pending':`In progress${nx?` · Episode ${nx.n} of ${s.episodes_total||16}`:''}`}</span><span></span><span></span></div>`;
+    }
+    const k = s.winner_brand;
+    const nm = k==='a' ? (s.brand_a_name||bName('a')) : (s.brand_b_name||bName('b'));
+    const t = finaleTally(s);
+    let cap = s.captains; if(typeof cap==='string'){ try{ cap = JSON.parse(cap); }catch(_){ cap = null; } }
+    const caps = cap && cap[k] ? cap[k].join(' · ') : '';
+    return `<div class="sd-row"><span class="sn">${e(seasonLabel(s))}</span>
+      <span class="won"><i class="ti ti-trophy"></i><span class="sd-${k}-txt">${e(nm)}</span></span>
+      <span><b class="sd-disp" style="font-size:20px"><span class="sd-a-txt">${t.a}</span> – <span class="sd-b-txt">${t.b}</span></b> <span class="sd-tag clash">${s.finale_matches||t.played} matches</span></span>
+      <span style="color:var(--muted);font-size:14px">${e(caps)}</span></div>`;
+  }).join('');
+  return `<div class="sd-panel sd-cab"><div class="sd-row h"><span>Season</span><span>Winning brand</span><span>Finale score</span><span>Captains</span></div>${rows}</div>`;
+}
+function renderOverview(season){
+  return `<div class="sd-sec clash">The rivalry · all-time</div>${renderRivalry()}
+    <div class="sd-sec">Road to the Finale · ${e(seasonLabel(season))}</div>${renderRoad(season)}
+    <div class="sd-sec">Champions</div>${renderBelts()}
+    <div class="sd-sec">Brand rankings · ${e(seasonLabel(season))}</div>
+    <div class="sd-rk">${rankPanel(season,'a',5)}${rankPanel(season,'b',5)}</div>
+    <div class="sd-split"><div><div class="sd-sec">Showdown Betting Champions</div>${renderBetChamps(4)}</div>
+      <div><div class="sd-sec clash">Trophy cabinet · ${e(SDS.trophy.name)}</div>${renderCabinet()}</div></div>`;
+}
+
+/* ── rankings tab ─────────────────────────────────────────────────── */
+function renderRankings(season){
+  const P = SDS.points;
+  return `<div class="sd-sec">Brand rankings · ${e(seasonLabel(season))}</div>
+    <div class="sd-rk">${rankPanel(season,'a',0)}${rankPanel(season,'b',0)}</div>
+    <div class="sd-note">Points: Win ${P.win} · Loss ${P.loss} · No contest ${P.nc}. The highest points earns the title shot; ties are settled in the ring. Showdown records are separate from the main WCA Rankings.</div>`;
+}
+
+/* ── rosters tab ──────────────────────────────────────────────────── */
+function renderRosters(season){
+  const col = k=>{
+    const list = rosterOf(season.id).filter(r=>r.brand===k);
+    if(!list.length) return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh">${emblem(k,34,15)}${e(bName(k))}</div><div class="sd-empty">No one drafted yet.</div></div>`;
+    const champNames = ['singles','faction'].map(kind=>currentChamp(k,kind)).filter(Boolean).map(c=>norm(c.holder));
+    const person = r => `<button type="button" class="sd-person" data-wname="${e(r.name)}">${portrait(r.name,k)}${e(r.name)}${champNames.includes(norm(r.name))?' <i class="ti ti-crown cr"></i>':''}</button>`;
+    const teams = {}; const solo = [];
+    list.forEach(r=>{ if(r.team_name){ (teams[r.team_name]=teams[r.team_name]||[]).push(r); } else solo.push(r); });
+    const groups = Object.keys(teams).sort().map(t=>
+      `<div class="sd-rgroup"><h5><i class="ti ti-users-group"></i>${e(t)}${champNames.includes(norm(t))?' <i class="ti ti-crown" style="color:var(--gold)"></i>':''} · ${teams[t].length}</h5><div class="sd-people">${teams[t].map(person).join('')}</div></div>`).join('');
+    const soloH = solo.length ? `<div class="sd-rgroup"><h5><i class="ti ti-user"></i>Singles · ${solo.length}</h5><div class="sd-people">${solo.map(person).join('')}</div></div>` : '';
+    return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh">${emblem(k,34,15)}${e(bName(k))}<span class="sd-sw" style="font-size:14px;color:#ddd">${list.length} superstars</span></div>${groups}${soloH}</div>`;
+  };
+  return `<div class="sd-sec">Rosters · ${e(seasonLabel(season))}</div><div class="sd-rosters">${col('a')}${col('b')}</div>`;
+}
+
+/* ── season tab ───────────────────────────────────────────────────── */
+function renderSeason(season){
+  const sch = scheduleFor(season);
+  const cards = sch.map(x=>{
+    const cls = (x.kind==='a'||x.kind==='b') ? x.kind : x.kind;
+    const st = x.ev ? (x.ev.is_complete ? 'Complete' : 'Upcoming') : 'Not booked';
+    const nm = x.ev ? x.ev.name : (x.kind==='finale' ? 'The Finale' : (x.kind==='dual' ? 'Title show' : `${bName(x.kind)} night`));
+    return `<button type="button" class="sd-ep ${cls}${SD_EP_SEL===x.n?' sel':''}" data-sdep="${x.n}"><div class="k"><span>Episode ${x.n} · ${e(kindLabel(x.kind))}</span><span>${st}</span></div><div class="n">${e(nm)}</div></button>`;
+  }).join('');
+  return `<div class="sd-sec">${e(seasonLabel(season))} · ${sch.length} episodes</div>${renderRoad(season)}
+    <div class="sd-sec">Episodes</div><div class="sd-eps">${cards}</div>
+    <div id="sd-epd"></div>`;
+}
+async function loadEpisodeDetail(season, n){
+  const box = $s('sd-epd'); if(!box) return;
+  const slot = scheduleFor(season)[n-1];
+  if(!slot){ box.innerHTML=''; return; }
+  const k = slot.kind;
+  const cls = (k==='a'||k==='b') ? k : 'clash';
+  const head = `<div class="sd-tag ${cls}" style="display:inline-block">Episode ${n} · ${e(kindLabel(k))}</div>`;
+  if(!slot.ev){
+    box.innerHTML = `<div class="sd-panel sd-epd">${head}<h3 style="margin-top:8px">Not booked yet</h3><div class="sd-note">The card for this episode hasn't been announced.</div></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="sd-panel sd-epd">${head}<h3 style="margin-top:8px">${e(slot.ev.name)}</h3><div class="sd-empty">Loading the card…</div></div>`;
+  const matches = await q(sb.from('event_matches').select('*').eq('event_id', slot.ev.id).order('slot'));
+  const res = {}; (SD.results||[]).filter(r=>String(r.event_id)===String(slot.ev.id)).forEach(r=>res[r.slot]=r);
+  if(SD_EP_SEL!==n) return;   // user moved on while loading
+  const resOf = (r, name)=>{ if(!r) return null; const p = partsOf(r).find(x=>norm(x.name)===norm(name)); return p ? p.result : null; };
+  const sideHTML = (side, r, right)=>{
+    const mem = (typeof sideMembers==='function') ? sideMembers(side) : (side.members||[]);
+    const names = mem.length ? mem : [side.team_name||'TBD'];
+    const brandFor = nm => { const p = r && partsOf(r).find(x=>norm(x.name)===norm(nm)); return (p && p.brand) || brandOfName(nm, season.id) || ''; };
+    const team = side.team_name ? `<div class="sd-mname ${brandFor(names[0])}">${e(side.team_name)}</div>` : '';
+    const ppl = names.map(nm=>{
+      const b = brandFor(nm), rr = resOf(r, nm);
+      return `<div style="display:flex;align-items:center;gap:8px;${right?'flex-direction:row-reverse':''}">${side.team_name?'':`<span class="sd-mname ${b}">${e(nm)}</span>`}${side.team_name?`<span class="sd-person" style="padding:2px 8px;font-size:14px;cursor:default">${e(nm)}</span>`:''}${rr?`<span class="sd-res ${rr}">${rr==='NC'?'No contest':(rr==='W'?'Win':'Loss')}</span>`:''}</div>`;
+    }).join('');
+    return `<div class="sd-mside${right?' r':''}">${team}${ppl}</div>`;
+  };
+  const rows = matches.map(m=>{
+    const sides = (typeof parseSides==='function') ? parseSides(m) : [];
+    const r = res[m.slot];
+    const title = r && r.is_title ? `<span class="sd-tag ${r.title_brand||'clash'}">${e(titleName(r.title_brand||'a', r.title_kind||'singles'))}</span>` : '';
+    const label = m.match_title || m.match_type || 'Match';
+    const pt = (k==='finale' && r && r.winner_brand) ? `<div style="margin-top:4px"><span class="sd-tag ${r.winner_brand}">Point · ${e(bName(r.winner_brand))}</span></div>` : '';
+    const left = sides.slice(0, Math.ceil(sides.length/2)), right = sides.slice(Math.ceil(sides.length/2));
+    return `<div class="sd-match"><div>${left.map(s=>sideHTML(s,r,false)).join('<div class="sd-mvs">&amp;</div>')}</div>
+      <div class="sd-mvs"><b>VS</b>${e(label)}${m.stipulation?'<br>'+e(m.stipulation):''}${title?'<div style="margin-top:6px">'+title+'</div>':''}${pt}</div>
+      <div>${right.map(s=>sideHTML(s,r,true)).join('<div class="sd-mvs">&amp;</div>')}</div></div>`;
+  }).join('');
+  let tally = '';
+  if(k==='finale'){
+    const t = finaleTally(season);
+    tally = `<div class="sd-tally"><span class="sd-a-txt">${t.a}</span><span style="font-size:18px;color:var(--muted);font-family:var(--font-cond);letter-spacing:2px">FINALE</span><span class="sd-b-txt">${t.b}</span></div>`;
+  }
+  const bet = !slot.ev.is_complete ? `<button type="button" class="sd-btn ${cls}" data-sdgo="events" style="margin-left:12px">Place bets</button>` : '';
+  const replay = slot.ev.replay_url ? `<a class="sd-btn" style="margin-left:12px;text-decoration:none" href="${e(slot.ev.replay_url)}" target="_blank" rel="noopener">Watch replay ↗</a>` : '';
+  box.innerHTML = `<div class="sd-panel sd-epd">${head}${bet}${replay}<h3 style="margin-top:8px">${e(slot.ev.name)}</h3>${slot.ev.tagline?`<div class="sd-note">${e(slot.ev.tagline)}</div>`:''}${tally}
+    ${rows || '<div class="sd-empty">Card to be announced.</div>'}</div>`;
+  box.querySelectorAll('[data-sdgo]').forEach(b=>b.onclick=()=>goPage(b.dataset.sdgo));
+}
+
+/* ── history tab ──────────────────────────────────────────────────── */
+function renderHistory(){
+  const list = (k, kind)=>{
+    const when = r => { const s = r.season_id ? seasonById(r.season_id) : null; return (s?s.number:0)*1000 + (Number(r.won_episode)||0); };
+    const rs = (SD.reigns||[]).filter(r=>r.brand===k && r.kind===kind).slice().sort((x,y)=> (when(y)-when(x)) || (y.id-x.id));
+    const items = rs.map(r=>{
+      const s = r.season_id ? seasonById(r.season_id) : null;
+      const ls = r.lost_season_id ? seasonById(r.lost_season_id) : null;
+      const won = s ? `${seasonLabel(s)}${r.won_episode?' · Ep '+r.won_episode:''}` : '';
+      const lost = reignOpen(r) ? 'Current champion' : (r.vacated ? 'Vacated' : (ls ? `Lost ${seasonLabel(ls)}${r.lost_episode?' · Ep '+r.lost_episode:''}` : 'Ended'));
+      return `<div class="sd-reign">${portrait(r.holder,k)}<div class="who">${e(r.holder)}${reignOpen(r)?' <i class="ti ti-crown" style="color:var(--gold)"></i>':''}</div><div class="when">${e(won)}<br>${e(lost)}</div></div>`;
+    }).join('');
+    return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh" style="font-size:18px">${emblem(k,30,13)}${e(titleName(k,kind))}</div>${items||'<div class="sd-empty">No champions yet.</div>'}</div>`;
+  };
+  return `<div class="sd-sec clash">The rivalry · all-time</div>${renderRivalry()}
+    <div class="sd-sec clash">Trophy cabinet · ${e(SDS.trophy.name)}</div>${renderCabinet()}
+    <div class="sd-sec">Title history</div>
+    <div class="sd-hist">${list('a','singles')}${list('b','singles')}${list('a','faction')}${list('b','faction')}</div>
+    <div class="sd-sec">Showdown Betting Champions</div>${renderBetChamps(0)}`;
+}
+
+/* ── draft replay ─────────────────────────────────────────────────── */
+/* log = { coin:{first:'a'}, champions:[{name,brand,kind,team}],
+           steps:[{pool:'team'|'solo', brand, options:[…], landed, members:[…], left_out:[…]}] } */
+let DR = null;   // replay state
+function draftFor(season){
+  const run = (SD.drafts||[]).find(d=>d.season_id===season.id);
+  if(!run) return null;
+  let log = run.log; if(typeof log==='string'){ try{ log = JSON.parse(log); }catch(_){ log = null; } }
+  return log && typeof log==='object' ? log : null;
+}
+function renderDraftShell(season){
+  const log = draftFor(season);
+  if(!log) return `<div class="sd-dh">${mainLogo('sd-dlogo')}<div class="t">${e(seasonLabel(season))} Draft</div></div>
+    <div class="sd-panel sd-empty" style="margin-top:20px">The ${e(seasonLabel(season))} draft hasn't happened yet. Once it's final, every coin flip and wheel spin replays here.</div>`;
+  return `<div class="sd-dh">${mainLogo('sd-dlogo')}<div class="t">${e(seasonLabel(season))} Draft</div><div class="sd-steps" id="sd-dsteps"></div></div>
+    <div class="sd-room">
+      <div class="sd-panel sd-col a"><div class="sd-colh">${emblem('a',38,16)}${e(bName('a'))}<span class="ct" id="sd-dct-a"></span></div><div id="sd-dcol-a"></div></div>
+      <div class="sd-stage">
+        <div class="sd-coinrow"><div class="sd-coin"><div class="spin" id="sd-coin"><div class="face a">${coinFace('a')}</div><div class="face b">${coinFace('b')}</div></div></div>
+          <div class="txt" id="sd-cointxt">Coin flip<b>Who picks first?</b></div></div>
+        <div class="sd-wheelbox"><svg viewBox="-220 -220 440 440" aria-hidden="true"><g class="sd-wheel" id="sd-wheel"></g><circle r="210" fill="none" stroke="#e9b949" stroke-width="6"/></svg><div class="sd-pointer"></div><div class="sd-hub" id="sd-hub">Draft<small>Press play</small></div></div>
+        <div class="sd-land" id="sd-land"><div class="k">Draft replay</div><div class="n">${e(seasonLabel(season))}</div><div class="sd-note">Watch every coin flip, spin and pick exactly as it happened.</div></div>
+        <div class="sd-ctrls">
+          <button type="button" class="sd-btn clash" id="sd-dplay"><i class="ti ti-player-play"></i> Play</button>
+          <button type="button" class="sd-btn" id="sd-dskip"><i class="ti ti-player-skip-forward"></i> Show final rosters</button>
+          <button type="button" class="sd-btn" id="sd-drestart"><i class="ti ti-rotate"></i> Restart</button>
+          <button type="button" class="sd-btn" data-sdspeed="1">1×</button><button type="button" class="sd-btn" data-sdspeed="2">2×</button><button type="button" class="sd-btn" data-sdspeed="4">4×</button>
+        </div>
+      </div>
+      <div class="sd-panel sd-col b"><div class="sd-colh">${emblem('b',38,16)}${e(bName('b'))}<span class="ct" id="sd-dct-b"></span></div><div id="sd-dcol-b"></div></div>
+    </div>
+    <div class="sd-pools"><div class="sd-panel sd-pool"><h4 id="sd-dpt-h">Team pool</h4><div class="sd-chips" id="sd-dpt"></div></div>
+      <div class="sd-panel sd-pool"><h4 id="sd-dps-h">Solo pool</h4><div class="sd-chips" id="sd-dps"></div></div></div>`;
+}
+function coinFace(k){
+  const logo = (SDS.brands[k]||{}).logo;
+  return logo ? `<img src="${e(logo)}" alt="">` : e(brandInit(k));
+}
+function draftStop(){ if(DR){ DR.stopped = true; DR.timers.forEach(clearTimeout); DR.timers = []; } }
+function wait(ms){ return new Promise(res=>{ if(!DR || DR.stopped) return res(false); DR.timers.push(setTimeout(()=>res(!(DR&&DR.stopped)), ms/(DR.speed||1))); }); }
+function draftMount(season){
+  draftStop();
+  const log = draftFor(season); if(!log) return;
+  DR = { season, log, speed:(DR&&DR.speed)||1, timers:[], stopped:false, playing:false, idx:-1 };
+  draftReset();
+  $s('sd-dplay').onclick = ()=>{
+    if(DR.playing){ draftStop(); DR.stopped=false; DR.playing=false; draftBtns(); return; }
+    if(draftDone()){ draftReset(); }
+    draftPlay();
+  };
+  $s('sd-dskip').onclick = ()=>draftFinish();
+  $s('sd-drestart').onclick = ()=>{ draftStop(); DR.stopped=false; draftReset(); draftPlay(); };
+  document.querySelectorAll('[data-sdspeed]').forEach(b=>b.onclick=()=>{ DR.speed = Number(b.dataset.sdspeed); draftBtns(); });
+  draftBtns();
+}
+function draftBtns(){
+  const p = $s('sd-dplay'); if(!p || !DR) return;
+  p.innerHTML = DR.playing ? '<i class="ti ti-player-pause"></i> Pause'
+    : (draftDone() ? '<i class="ti ti-rotate"></i> Replay'
+    : ((DR.idx>=0 || DR.coinDone) ? '<i class="ti ti-player-play"></i> Resume' : '<i class="ti ti-player-play"></i> Play'));
+  document.querySelectorAll('[data-sdspeed]').forEach(b=>b.classList.toggle('on', Number(b.dataset.sdspeed)===DR.speed));
+}
+function draftDone(){ return !!(DR && DR.coinDone && DR.idx >= stepsOf(DR.log).length-1); }
+function stepsOf(log){ return Array.isArray(log.steps) ? log.steps : []; }
+function draftReset(){
+  const log = DR.log;
+  DR.idx = -1; DR.cols = { a:[], b:[] }; DR.pickNo = 0; DR.coinDone = false;
+  // champions are placed before any spin
+  (log.champions||[]).forEach(c=>{ if(c.brand==='a'||c.brand==='b') DR.cols[c.brand].push({ kind:'champ', name:c.name, sub:`Placed · reigning ${c.kind==='faction'?'Faction ':''}champion`, team:c.team||'' }); });
+  const steps = stepsOf(log);
+  DR.teamPool = uniq(steps.filter(s=>s.pool==='team').flatMap(s=>s.options||[]).concat(steps.filter(s=>s.pool==='team').map(s=>s.landed)));
+  DR.soloPool = uniq(steps.filter(s=>s.pool==='solo').flatMap(s=>s.options||[]).concat(steps.filter(s=>s.pool==='solo').map(s=>s.landed)));
+  DR.gone = new Set();
+  const coin = $s('sd-coin'); if(coin){ coin.style.transition='none'; coin.style.transform='rotateY(0deg)'; void coin.offsetWidth; coin.style.transition=''; }
+  const ct = $s('sd-cointxt'); if(ct) ct.innerHTML = 'Coin flip<b>Who picks first?</b>';
+  drawWheel([], null, null);
+  const hub = $s('sd-hub'); if(hub) hub.innerHTML = 'Draft<small>Press play</small>';
+  draftCols(); draftPools(); draftSteps('champ');
+}
+function uniq(a){ const s = new Set(); return a.filter(x=>x && !s.has(norm(x)) && s.add(norm(x))); }
+function draftSteps(on){
+  const el = $s('sd-dsteps'); if(!el) return;
+  const order = [['champ','Champions placed'],['coin','Coin flip'],['team','Team pool'],['solo','Solo pool'],['final','Final rosters']];
+  const at = order.findIndex(o=>o[0]===on);
+  el.innerHTML = order.map((o,i)=>`<span class="${i<at?'done':(i===at?'on':'')}">${i+1} · ${o[1]}</span>`).join('');
+}
+function draftCols(newest){
+  ['a','b'].forEach(k=>{
+    const col = $s('sd-dcol-'+k); if(!col) return;
+    const champs = DR.cols[k].filter(x=>x.kind==='champ');
+    const picks = DR.cols[k].filter(x=>x.kind!=='champ');
+    const rowH = (x)=>`<div class="sd-pk${x.team?' team':''}${x===newest?' new '+k:''}"><span class="no">${x.no||'—'}</span>${portrait(x.name,k)}<div><div class="sd-nm">${e(x.name)}</div><div class="sub">${e(x.sub||'')}</div></div>${x.kind==='champ'?'<i class="ti ti-crown cr"></i>':''}</div>`;
+    col.innerHTML = picks.map(rowH).join('') + champs.map(rowH).join('') || '<div class="sd-empty" style="padding:18px">No picks yet</div>';
+    const n = DR.cols[k].reduce((t,x)=>t+(x.count||1),0);
+    const ct = $s('sd-dct-'+k); if(ct) ct.textContent = n ? `${n} superstar${n===1?'':'s'}` : '';
+  });
+}
+function draftPools(hl){
+  const chip = (n)=>`<span class="sd-chip${DR.gone.has(norm(n))?' gone':''}${hl&&norm(hl)===norm(n)?' hl':''}">${e(n)}</span>`;
+  const t = $s('sd-dpt'), s = $s('sd-dps');
+  if(t) t.innerHTML = DR.teamPool.map(chip).join('') || '<span class="sd-note">No factions in this draft.</span>';
+  if(s) s.innerHTML = DR.soloPool.map(chip).join('') || '<span class="sd-note">No solo picks.</span>';
+  const left = arr => arr.filter(n=>!DR.gone.has(norm(n))).length;
+  const th = $s('sd-dpt-h'), sh = $s('sd-dps-h');
+  if(th) th.textContent = `Team pool · ${left(DR.teamPool)} left`;
+  if(sh) sh.textContent = `Solo pool · ${left(DR.soloPool)} left`;
+}
+function drawWheel(options, landed, brand){
+  const g = $s('sd-wheel'); if(!g) return;
+  const R = 210, n = Math.max(1, options.length);
+  g.style.transition = 'none'; g.style.transform = 'rotate(0deg)'; void g.getBoundingClientRect();
+  if(!options.length){ g.innerHTML = `<circle r="${R}" fill="#16171d"/>`; return; }
+  const seg = 2*Math.PI/n; let h = '';
+  const cols = ['#1b1c24','#2a2b35'];
+  options.forEach((nm,i)=>{
+    const a0 = -Math.PI/2 + i*seg, a1 = a0+seg;
+    const big = seg>Math.PI ? 1 : 0;
+    const x0 = R*Math.cos(a0), y0 = R*Math.sin(a0), x1 = R*Math.cos(a1), y1 = R*Math.sin(a1);
+    const fill = n===1 ? cols[0] : cols[(i%2)+(n%2&&i===n-1?0:0)];
+    const d = n===1 ? `M0 -${R}A${R} ${R} 0 1 1 -0.01 -${R}Z` : `M0 0L${x0} ${y0}A${R} ${R} 0 ${big} 1 ${x1} ${y1}Z`;
+    h += `<path d="${d}" fill="${fill}" stroke="#e9b949" stroke-width="2" data-i="${i}"/>`;
+    const am = a0+seg/2, deg = am*180/Math.PI, flip = Math.cos(am)<0;
+    const fs = n>16 ? 12 : (n>10 ? 15 : 19);
+    const label = nm.length>18 ? nm.slice(0,17)+'…' : nm;
+    h += `<text transform="rotate(${deg}) translate(${R-18} 0)${flip?' rotate(180)':''}" text-anchor="${flip?'start':'end'}" dominant-baseline="middle" fill="#fff" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="${fs}" letter-spacing="1">${e(label.toUpperCase())}</text>`;
+  });
+  for(let i=0;i<24;i++){ const a=i/24*2*Math.PI; h += `<circle cx="${R*Math.cos(a)}" cy="${R*Math.sin(a)}" r="3.5" fill="#fff6d0"/>`; }
+  g.innerHTML = h;
+}
+function lightSegment(i, brand){
+  const p = document.querySelector(`#sd-wheel path[data-i="${i}"]`);
+  if(p) p.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--sd-'+brand).trim() || '#888');
+}
+async function spinTo(i, n){
+  const g = $s('sd-wheel'); if(!g) return true;
+  const seg = 360/n;
+  const jitter = (Math.random()-.5)*seg*.5;
+  const target = 360*5 - (i+.5)*seg + jitter;
+  const dur = 3600/(DR.speed||1);
+  g.style.transition = `transform ${dur}ms cubic-bezier(.12,.75,.12,1)`;
+  void g.getBoundingClientRect();
+  g.style.transform = `rotate(${target}deg)`;
+  return wait(3700);
+}
+async function draftPlay(){
+  if(!DR) return;
+  DR.stopped = false; DR.playing = true; draftBtns();
+  const log = DR.log, steps = stepsOf(log);
+  if(!DR.coinDone){
+    draftSteps('coin');
+    const first = (log.coin && log.coin.first)==='b' ? 'b' : 'a';
+    const coin = $s('sd-coin');
+    if(coin){ coin.style.transitionDuration = (2200/(DR.speed||1))+'ms'; coin.style.transform = `rotateY(${1800 + (first==='b'?180:0)}deg)`; }
+    if(!await wait(2400)) return;
+    $s('sd-cointxt').innerHTML = `Coin flip<b class="sd-${first}-txt">${e(bName(first))} picks first</b>`;
+    DR.coinDone = true;
+    if(!await wait(900)) return;
+  }
+  while(DR.idx < steps.length-1){
+    const st = steps[DR.idx+1];
+    draftSteps(st.pool==='solo' ? 'solo' : 'team');
+    const opts = (st.options && st.options.length) ? st.options : [st.landed];
+    let li = opts.findIndex(o=>norm(o)===norm(st.landed)); if(li<0) li = 0;
+    drawWheel(opts, st.landed, st.brand);
+    const hub = $s('sd-hub'); if(hub) hub.innerHTML = `${st.pool==='solo'?'Solo':'Team'}<br>pool<small>Pick ${DR.idx+2} · ${e(bName(st.brand))}</small>`;
+    const land = $s('sd-land');
+    if(land){ land.className = 'sd-land'; land.innerHTML = `<div class="k">Spinning for ${e(bName(st.brand))}…</div><div class="n">&nbsp;</div>`; }
+    draftPools();
+    if(!await wait(500)) return;
+    if(!await spinTo(li, opts.length)) return;
+    lightSegment(li, st.brand);
+    applyStep(st, true);
+    if(!await wait(st.pool==='team' ? 2600 : 1500)) return;
+  }
+  draftSteps('final');
+  const land = $s('sd-land');
+  if(land){ land.className = 'sd-land'; land.innerHTML = `<div class="k">Draft complete</div><div class="n">Final rosters</div><div class="sd-note">${e(bName('a'))}: ${countOf('a')} · ${e(bName('b'))}: ${countOf('b')}</div>`; }
+  DR.playing = false; draftBtns();
+}
+const countOf = k => DR.cols[k].reduce((t,x)=>t+(x.count||1),0);
+function applyStep(st, show){
+  DR.idx++;
+  DR.pickNo++;
+  DR.gone.add(norm(st.landed));
+  const members = (st.members||[]).filter(Boolean);
+  const out = (st.left_out||[]).filter(Boolean);
+  let row;
+  if(st.pool==='team'){
+    row = { kind:'team', name:st.landed, team:st.landed, no:DR.pickNo, count:Math.max(1,members.length), sub:`Faction · ${members.length} member${members.length===1?'':'s'}${out.length?` · ${out.length} to solo pool`:''}` };
+    out.forEach(n=>{ if(!DR.soloPool.some(x=>norm(x)===norm(n))) DR.soloPool.push(n); });
+  } else {
+    row = { kind:'solo', name:st.landed, no:DR.pickNo, sub:'Solo' };
+  }
+  DR.cols[st.brand==='b'?'b':'a'].push(row);
+  if(!show) return;
+  draftCols(row); draftPools(st.landed);
+  const land = $s('sd-land');
+  if(land){
+    land.className = 'sd-land ' + (st.brand==='b'?'b':'a');
+    const mem = st.pool==='team' ? `<div class="sd-mem">${members.map(m=>`<div class="sd-m on"><span class="bx">✓</span>${e(m)}</div>`).join('')}${out.map(m=>`<div class="sd-m off"><span class="bx"></span>${e(m)}<span class="x">solo pool</span></div>`).join('')}</div>` : '';
+    land.innerHTML = `<div class="k">Wheel landed on · drafted to ${e(bName(st.brand))}</div><div class="n">${e(st.landed)}</div>${mem}`;
+  }
+}
+function draftFinish(){
+  if(!DR) return;
+  draftStop(); DR.stopped = false;
+  const steps = stepsOf(DR.log);
+  DR.coinDone = true;
+  const first = (DR.log.coin && DR.log.coin.first)==='b' ? 'b' : 'a';
+  const coin = $s('sd-coin'); if(coin){ coin.style.transition='none'; coin.style.transform = `rotateY(${first==='b'?180:0}deg)`; }
+  const ct = $s('sd-cointxt'); if(ct) ct.innerHTML = `Coin flip<b class="sd-${first}-txt">${e(bName(first))} picks first</b>`;
+  while(DR.idx < steps.length-1) applyStep(steps[DR.idx+1], false);
+  draftCols(); draftPools(); draftSteps('final');
+  drawWheel([], null, null);
+  const hub = $s('sd-hub'); if(hub) hub.innerHTML = 'Done<small>Final rosters</small>';
+  const land = $s('sd-land');
+  if(land){ land.className='sd-land'; land.innerHTML = `<div class="k">Draft complete</div><div class="n">Final rosters</div><div class="sd-note">${e(bName('a'))}: ${countOf('a')} · ${e(bName('b'))}: ${countOf('b')}</div>`; }
+  DR.playing = false; draftBtns();
+}
+
+/* ── Showdown episodes on Upcoming Events and Live ────────────────── */
+async function sdDecorateEvent(ev, host){
+  if(!ev || !host) return;
+  await sdLoad();
+  const ep = (SD.episodes||[]).find(x=>String(x.id)===String(ev.id));
+  if(!ep) return;
+  const s = seasonById(ep.sd_season_id);
+  const k = ep.sd_brand;
+  const cls = (k==='a'||k==='b') ? k : 'clash';
+  const what = k==='finale' ? 'The Finale · brand vs brand' : (k==='dual' ? 'Title show · both brands' : `${bName(k)} night`);
+  const lg = SDS.logo ? `<img class="lg" src="${e(SDS.logo)}" alt="WCA Showdown">` : '';
+  const emb = (k==='a'||k==='b') ? emblem(k,40,17) : `${emblem('a',34,14)}${emblem('b',34,14)}`;
+  host.querySelectorAll('.sd-evbanner').forEach(x=>x.remove());
+  const div = document.createElement('div');
+  div.className = 'sd-evbanner ' + cls;
+  div.innerHTML = `${lg}${emb}<div class="t">WCA Showdown${s?' · '+e(seasonLabel(s)):''}${ep.sd_episode?' · Episode '+ep.sd_episode:''}<b class="${cls!=='clash'?'sd-'+cls+'-txt':''}">${e(what)}</b></div><button type="button" class="sd-btn go">Showdown hub ↗</button>`;
+  div.querySelector('.go').onclick = ()=>goPage('showdown');
+  host.insertBefore(div, host.firstChild);
+  const hero = host.querySelector('.event-hero');
+  if(hero && cls!=='clash') hero.classList.add('sd-'+cls);
+  // every superstar on the card wears their brand's colour
+  host.querySelectorAll('[data-wname]').forEach(n=>{
+    const b = brandOfName(n.dataset.wname, ep.sd_season_id);
+    if(b) n.classList.add('sd-'+b+'-txt');
+  });
+}
+
+/* ── entry points ─────────────────────────────────────────────────── */
+async function showdownEnter(){
+  const m = (location.hash||'').match(/[?&]tab=([a-z]+)/);
+  if(m && TABS.some(t=>t[0]===m[1])) SD_TAB = m[1];
+  if(!SD) render();          // "Loading…"
+  await sdLoad(true);
+  render();
+}
+function showdownLeave(){ draftStop(); }
+
+window.showdownEnter = showdownEnter;
+window.showdownLeave = showdownLeave;
+window.sdDecorateEvent = sdDecorateEvent;
+window.sdApplyColors = sdApplyColors;
+window.sdReload = ()=>sdLoad(true).then(render);
+// testing hook (harness only)
+window.__sd = { standings:(sid,b,k)=>standings(sid,b,k), scheduleFor:s=>scheduleFor(s), state:()=>({SD,SDS}) };
+
+// Colours apply site-wide as soon as the settings arrive.
+function boot(){
+  if(typeof sb==='undefined') return;
+  sdLoadSettings();
+  // Upcoming Events / Live may have rendered before this script existed, so
+  // watch both containers and add the Showdown banner whenever a Showdown
+  // episode is the event on show.
+  ['events-content','live-content'].forEach(id=>{
+    const host = $s(id); if(!host || typeof MutationObserver==='undefined') return;
+    const check = ()=>{
+      let ev = null; try{ ev = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null; }catch(_){}
+      if(!ev || host.querySelector('.sd-evbanner')) return;
+      const target = id==='live-content' ? (host.querySelector('.live-layout')||host) : host;
+      if(!target.firstChild) return;
+      sdDecorateEvent(ev, target);
+    };
+    new MutationObserver(check).observe(host, { childList:true });
+    check();
+  });
+  // Landing straight on #showdown means activatePage() already ran before
+  // this script was parsed — the same trap the star map, Home and Timeline hit.
+  const pg = $s('page-showdown');
+  if(pg && pg.classList.contains('active')) showdownEnter();
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+})();
+</script>
+<!-- =================== END WCA SHOWDOWN =================== -->
 
 </body>
 </html>
