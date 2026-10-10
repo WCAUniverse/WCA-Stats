@@ -357,8 +357,9 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     .head-right > nav{ flex:1 1 auto; justify-content:center; gap:6px; }
     /* visual order: nav (1) → userbox (2) → socials (3, far right) */
     .head-right > nav{ order:1; }
-    .head-right > .userbox{ order:2; flex:0 0 auto; }
-    .head-right > .socials{ order:3; flex:0 0 auto; margin-left:4px; }
+    .head-right > .donate-btn{ order:2; flex:0 0 auto; }
+    .head-right > .userbox{ order:3; flex:0 0 auto; }
+    .head-right > .socials{ order:4; flex:0 0 auto; margin-left:4px; }
 
     /* USERBOX a touch bigger so the username + balance are easy to read */
     .userbox .login-btn{ font-size:14px; padding:11px 18px; }
@@ -2447,6 +2448,10 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .sl-comment{display:flex; flex-direction:column; gap:3px;}
   .sl-comment .sl-cmeta{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
   .sl-comment .sl-cname{font-family:var(--font-cond); font-weight:600; font-size:16px; color:#fff;}
+  .sl-verified{width:16px; height:16px; color:var(--gold); vertical-align:-3px; margin-left:4px; filter:drop-shadow(0 0 4px rgba(var(--gold-rgb),.45)); flex-shrink:0;}
+  .sl-comment.sl-real{box-shadow:inset 3px 0 0 var(--gold); background:rgba(var(--gold-rgb),.05); padding-left:12px; border-radius:4px;}
+  .sl-comment.sl-real .sl-cname{color:var(--gold2,#f6d579);}
+  .sl-cas{font-family:var(--font-cond); font-size:12px; letter-spacing:.5px; color:var(--muted); text-transform:uppercase;}
   .sl-comment .sl-cwhen{font-family:var(--font-body); font-size:12px; color:var(--muted2);}
   .sl-comment .sl-creply-tag{font-family:var(--font-body); font-size:12px; color:var(--gold); opacity:.85;}
   .sl-comment .sl-cbody{font-family:var(--font-body); font-size:15px; line-height:1.55; color:var(--txt);
@@ -3400,156 +3405,210 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 <!-- ===== HOME PAGE styles ===== -->
 <style>
 /* ===================================================================
-   HOME — the arrival page.
-   Deep space up top, the site's own materials as you descend. Text is
-   deliberately sparse at any one moment: sections fade up as you scroll
-   so nothing reads as a wall. All copy comes from site_settings.home.
+   HOME — how WCA gets introduced to someone new.
+   Short and in Macho's own words: the pitch, the intro video (with the
+   one rule), a one-line guide to every page, and a way to support the
+   site. The space backdrop stays visible behind everything; every block
+   of text sits on a dark glass panel so it's always readable over it.
+   Copy is overridable from site_settings.home (see HOME_DEFAULTS).
    =================================================================== */
   #page-home{padding:0;}
-  .hm-wrap{position:relative;}
+  .hm-wrap{position:relative; max-width:1120px; margin:0 auto; padding:16px 0 30px;}
 
-  /* ── hero ─────────────────────────────────────────────────────── */
-  .hm-hero{
-    position:relative;min-height:clamp(560px,86vh,900px);
-    display:grid;place-items:center;text-align:center;
-    overflow:hidden;margin:-18px -18px 0;padding:80px 22px 120px;
+  /* the glass panel every block of text sits on */
+  .hm-panel{
+    position:relative; border-radius:18px;
+    background:rgba(5,7,13,.80);
+    border:1px solid rgba(255,255,255,.09);
+    backdrop-filter:blur(10px) saturate(115%);
+    -webkit-backdrop-filter:blur(10px) saturate(115%);
+    box-shadow:0 26px 60px -32px rgba(0,0,0,.95);
   }
-  .hm-stars{position:absolute;inset:0;z-index:0;display:block;width:100%;height:100%;}
-  .hm-hero::after{
-    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:
-      radial-gradient(130% 90% at 50% 4%,rgba(90,140,200,.07),transparent 66%);
+  #page-home h1,#page-home h2,#page-home h3{text-shadow:0 2px 16px rgba(0,0,0,.95);}
+  #page-home p{text-shadow:0 1px 8px rgba(0,0,0,.8);}
+
+  .hm-eyebrow{
+    font-family:var(--font-cond); font-size:12px; letter-spacing:4px;
+    text-transform:uppercase; color:var(--gold); margin-bottom:10px;
   }
-  .hm-hero-in{position:relative;z-index:2;max-width:820px;}
+  .hm-h2{
+    font-family:var(--font-display); font-weight:600; font-size:clamp(24px,3.6vw,38px);
+    line-height:1.08; text-transform:uppercase; color:#fff; margin:0 0 10px;
+  }
+  .hm-lede{font-family:var(--font-body); font-size:16px; line-height:1.7; color:#c9ccd4; margin:0; max-width:640px;}
+  .hm-sec{margin-top:clamp(28px,5vh,52px);}
+  .hm-sec-head{text-align:center; margin-bottom:18px;}
+  .hm-sec-head .hm-lede{margin:0 auto;}
+
+  /* ── hero: a few words, then the intro video front and centre ── */
+  .hm-hero{padding:clamp(24px,3.4vw,40px) clamp(16px,3.4vw,40px) clamp(22px,3vw,34px); text-align:center;}
+  .hm-hero::before{
+    content:""; position:absolute; left:50%; top:0; width:120px; height:2px;
+    transform:translateX(-50%); background:var(--gold);
+    box-shadow:0 0 18px rgba(var(--gold-rgb),.8);
+  }
   .hm-kicker{
-    font-family:var(--font-cond);font-size:12px;letter-spacing:5px;
-    text-transform:uppercase;color:var(--gold);margin-bottom:20px;opacity:.95;
+    font-family:var(--font-cond); font-size:12.5px; letter-spacing:5px;
+    text-transform:uppercase; color:var(--gold); margin-bottom:10px;
   }
   .hm-title{
-    font-family:var(--font-display);font-weight:700;
-    font-size:clamp(38px,7.2vw,86px);line-height:.98;letter-spacing:-.5px;
-    text-transform:uppercase;color:#fff;margin:0 0 22px;
-    text-shadow:0 0 60px rgba(233,185,73,.18);
+    font-family:var(--font-display); font-weight:700;
+    font-size:clamp(28px,4.4vw,56px); line-height:1; letter-spacing:-.3px;
+    text-transform:uppercase; color:#fff; margin:0 auto 10px; max-width:1000px;
   }
   .hm-sub{
-    font-family:var(--font-body);font-size:clamp(15px,1.9vw,19px);
-    line-height:1.72;color:#b9b5ab;max-width:620px;margin:0 auto 32px;
+    font-family:var(--font-body); font-size:clamp(15px,1.7vw,18px);
+    line-height:1.6; color:#d6d8de; max-width:700px; margin:0 auto 14px;
+  }
+  .hm-rule{
+    font-family:var(--font-display); font-weight:600; text-transform:uppercase;
+    font-size:clamp(17px,2.2vw,25px); line-height:1.2; color:#fff;
+    max-width:900px; margin:0 auto 18px;
+  }
+  .hm-rule em{font-style:normal; color:var(--gold);}
+  .hm-video{
+    position:relative; width:100%; max-width:1040px; margin:0 auto; aspect-ratio:16/9;
+    border-radius:14px; overflow:hidden; background:#000;
+    border:1px solid rgba(var(--gold-rgb),.45);
+    box-shadow:0 0 60px -12px rgba(var(--gold-rgb),.45);
+  }
+  .hm-video iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  .hm-video-empty{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:14px; text-align:center; padding:20px;
+    background:radial-gradient(70% 70% at 50% 50%, rgba(var(--gold-rgb),.10), transparent 70%), #05060b;
+    font-family:var(--font-cond); font-size:15px; letter-spacing:1px; color:var(--muted);
+  }
+  .hm-video-empty > i{font-size:52px; color:var(--gold);}
+  .hm-after{
+    display:flex; align-items:center; justify-content:center; gap:12px 16px; flex-wrap:wrap;
+    margin-top:18px;
+  }
+  .hm-video-note{
+    font-family:var(--font-cond); font-size:13px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--muted);
   }
   .hm-cta{
-    display:inline-flex;align-items:center;gap:10px;padding:14px 30px;
-    border:1px solid var(--gold);border-radius:10px;background:rgba(233,185,73,.07);
-    color:var(--gold);font-family:var(--font-display);font-size:14px;
-    letter-spacing:2px;text-transform:uppercase;cursor:pointer;
-    transition:background .2s,transform .2s;
+    display:inline-flex; align-items:center; gap:10px; padding:11px 22px;
+    border:1px solid var(--gold); border-radius:10px; background:rgba(var(--gold-rgb),.08);
+    color:var(--gold); font-family:var(--font-display); font-size:13.5px;
+    letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+    transition:background .2s, transform .2s, filter .2s; text-decoration:none;
   }
-  .hm-cta:hover{background:rgba(233,185,73,.16);transform:translateY(-2px);}
+  .hm-cta:hover{background:rgba(var(--gold-rgb),.18); transform:translateY(-2px);}
+  .hm-cta i{font-size:17px;}
 
   /* live state strip — reads the event data, never hand-maintained */
   .hm-now{
-    display:inline-flex;align-items:center;gap:10px;margin:0 0 26px;padding:8px 16px;
-    border:1px solid var(--line);border-radius:999px;background:rgba(8,9,14,.6);
-    font-family:var(--font-cond);font-size:12.5px;letter-spacing:2px;
-    text-transform:uppercase;color:var(--muted);backdrop-filter:blur(8px);
+    display:inline-flex; align-items:center; gap:10px; padding:8px 16px;
+    border:1px solid var(--line); border-radius:999px; background:rgba(8,9,14,.7);
+    font-family:var(--font-cond); font-size:12.5px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--muted); cursor:pointer;
   }
-  .hm-now b{color:var(--gold);font-weight:600;}
-  .hm-now .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
-  .hm-now.live .dot{background:var(--loss);animation:hm-pulse 1.4s ease-in-out infinite;}
-  .hm-now.live{border-color:var(--loss);color:#f2f2f0;}
+  .hm-now b{color:var(--gold); font-weight:600;}
+  .hm-now .dot{width:7px; height:7px; border-radius:50%; background:var(--muted);}
+  .hm-now.live .dot{background:var(--loss); animation:hm-pulse 1.4s ease-in-out infinite;}
+  .hm-now.live{border-color:var(--loss); color:#f2f2f0;}
   @keyframes hm-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(1.5);}}
 
-  .hm-scroll{
-    position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;
-    font-family:var(--font-cond);font-size:10.5px;letter-spacing:3px;
-    text-transform:uppercase;color:var(--muted2,#6b6862);
-    display:flex;flex-direction:column;align-items:center;gap:8px;
-    animation:hm-float 2.6s ease-in-out infinite;pointer-events:none;
+  /* ── the four points ── */
+  .hm-pillars{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .hm-pillar{padding:22px 20px 22px;}
+  .hm-pillar i{
+    display:inline-grid; place-items:center; width:42px; height:42px; border-radius:11px;
+    font-size:22px; color:var(--gold); background:rgba(var(--gold-rgb),.12);
+    border:1px solid rgba(var(--gold-rgb),.35); margin-bottom:12px;
   }
-  .hm-scroll i{font-size:16px;}
-  @keyframes hm-float{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,7px);}}
+  .hm-pillar h3{
+    font-family:var(--font-display); font-weight:600; font-size:18px; line-height:1.15;
+    text-transform:uppercase; color:#fff; margin:0 0 8px; letter-spacing:.3px;
+  }
+  .hm-pillar p{font-family:var(--font-body); font-size:14.5px; line-height:1.62; color:#b9bcc5; margin:0;}
 
-  /* ── scroll reveal ────────────────────────────────────────────── */
-  .hm-rise{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1);}
-  .hm-rise.in{opacity:1;transform:none;}
-  .hm-rise.d1{transition-delay:.09s;} .hm-rise.d2{transition-delay:.18s;} .hm-rise.d3{transition-delay:.27s;}
-  @media(prefers-reduced-motion:reduce){
-    .hm-rise{opacity:1;transform:none;transition:none;}
-    .hm-scroll{animation:none;}
+  /* ── page guide ── */
+  .hm-guide{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  .hm-group{padding:18px 18px 10px;}
+  .hm-group-h{
+    display:flex; align-items:center; gap:9px; margin:0 0 6px;
+    font-family:var(--font-cond); font-size:13px; letter-spacing:3px;
+    text-transform:uppercase; color:var(--gold);
   }
+  .hm-group-h i{font-size:17px;}
+  .hm-link{
+    display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+    padding:12px 10px; margin:0 -10px; width:calc(100% + 20px);
+    background:none; border:0; border-top:1px solid rgba(255,255,255,.06);
+    border-radius:10px; cursor:pointer; color:inherit; font:inherit; text-decoration:none;
+    transition:background .15s;
+  }
+  .hm-group .hm-link:first-of-type{border-top-color:transparent;}
+  .hm-link:hover{background:rgba(var(--gold-rgb),.08);}
+  .hm-link > i{
+    flex:0 0 36px; height:36px; display:grid; place-items:center; border-radius:9px;
+    font-size:19px; color:var(--gold); background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .hm-link-txt{flex:1; min-width:0;}
+  .hm-link-name{
+    display:block; font-family:var(--font-display); font-size:16px; letter-spacing:.4px;
+    text-transform:uppercase; color:#fff;
+  }
+  .hm-link-desc{display:block; font-family:var(--font-body); font-size:13.5px; line-height:1.5; color:#a9adb7; margin-top:2px;}
+  .hm-link .go{flex:0 0 auto; color:var(--muted); font-size:17px; transition:transform .15s, color .15s;}
+  .hm-link:hover .go{color:var(--gold); transform:translateX(3px);}
 
-  /* ── sections ─────────────────────────────────────────────────── */
-  .hm-sec{position:relative;padding:clamp(64px,10vh,120px) 0;}
-  /* Text sat straight on the starfield and fought it. A soft dark scrim,
-     wider than the text and fully faded at the edges, keeps every line
-     readable without drawing a visible box. */
-  .hm-sec::before{
-    content:"";position:absolute;left:-6vw;right:-6vw;top:0;bottom:0;z-index:-1;
-    background:radial-gradient(58% 76% at 34% 50%,rgba(4,5,10,.80),rgba(4,5,10,.45) 55%,transparent 82%);
-    pointer-events:none;
+  /* ── support / donate (home section + the header modal share these) ── */
+  .hm-donate{padding:clamp(22px,3.6vw,36px); text-align:center;}
+  .donate-opts{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px;}
+  .donate-opt{
+    display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:12px;
+    text-decoration:none; color:#fff; text-align:left;
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10);
+    transition:transform .15s, border-color .15s, background .15s;
   }
-  .hm-sec.hm-apply::before{background:radial-gradient(56% 78% at 50% 50%,rgba(4,5,10,.80),rgba(4,5,10,.42) 56%,transparent 82%);}
-  .hm-sec + .hm-sec{border-top:1px solid var(--line);}
-  .hm-eyebrow{
-    font-family:var(--font-cond);font-size:12px;letter-spacing:4px;
-    text-transform:uppercase;color:var(--gold);margin-bottom:14px;
-    text-shadow:0 2px 12px rgba(0,0,0,.9);
+  .donate-opt:hover{transform:translateY(-2px); border-color:var(--dc); background:rgba(255,255,255,.07);}
+  .donate-opt > i:first-child{
+    flex:0 0 42px; height:42px; display:grid; place-items:center; border-radius:11px;
+    font-size:23px; color:#fff; background:var(--dc);
   }
-  .hm-h2{
-    font-family:var(--font-display);font-weight:600;font-size:clamp(26px,4vw,42px);
-    line-height:1.06;text-transform:uppercase;color:#fff;margin:0 0 18px;
-  }
-  .hm-p{font-family:var(--font-body);font-size:16px;line-height:1.78;color:#c6c9d2;max-width:640px;margin:0 0 16px;text-shadow:0 1px 10px rgba(0,0,0,.8);}
+  .donate-opt b{display:block; font-family:var(--font-display); font-size:16px; letter-spacing:.4px; text-transform:uppercase;}
+  .donate-opt span{display:block; font-family:var(--font-body); font-size:12.5px; color:#a9adb7; margin-top:1px;}
+  .donate-opt .go{margin-left:auto; color:var(--muted); font-size:16px;}
+  .donate-fine{margin-top:14px; font-family:var(--font-body); font-size:12.5px; color:var(--muted);}
+  #donate-modal .modal-box{max-width:480px;}
+  #donate-modal .donate-opts{grid-template-columns:1fr;}
+  #donate-modal .hm-h2{font-size:24px;}
 
-  .hm-blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:34px;}
-  .hm-block{
-    padding:26px 24px;border:1px solid var(--line);border-radius:14px;
-    background:linear-gradient(180deg,rgba(10,13,22,.72),rgba(6,8,14,.55));
-    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-    position:relative;overflow:hidden;
+  /* header Donate button */
+  .donate-btn{
+    display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:8px;
+    background:rgba(var(--gold-rgb),.10); border:1px solid rgba(var(--gold-rgb),.45);
+    color:var(--gold); font-family:var(--font-display); font-size:12.5px; letter-spacing:1.4px;
+    text-transform:uppercase; cursor:pointer; white-space:nowrap; transition:background .15s, transform .15s;
   }
-  .hm-block::before{
-    content:"";position:absolute;left:24px;top:0;width:34px;height:2px;background:var(--gold);
-  }
-  .hm-block h3{
-    font-family:var(--font-display);font-weight:600;font-size:20px;text-transform:uppercase;
-    color:#fff;margin:10px 0 10px;letter-spacing:.4px;
-  }
-  .hm-block p{font-family:var(--font-body);font-size:14.5px;line-height:1.7;color:#a6a29a;margin:0;}
+  .donate-btn:hover{background:rgba(var(--gold-rgb),.2); transform:translateY(-1px);}
+  .donate-btn i{font-size:16px; color:#ff6b81;}
+  @media(max-width:760px){ .donate-btn{justify-content:center; padding:11px 14px; font-size:14px;} }
 
-  /* the money explainer — the section that converts */
-  .hm-coins{position:relative;}
-  .hm-coins::before{
-    content:"";position:absolute;inset:-40px -18px;z-index:-1;pointer-events:none;
-    background:radial-gradient(70% 100% at 20% 40%,rgba(233,185,73,.07),transparent 62%);
-  }
-  .hm-quote{
-    margin:26px 0 0;padding:24px 26px;border-left:3px solid var(--gold);
-    background:linear-gradient(90deg,rgba(233,185,73,.09),transparent);
-    border-radius:0 12px 12px 0;
-  }
-  .hm-quote p{
-    font-family:var(--font-display);font-weight:500;font-size:clamp(17px,2.3vw,24px);
-    line-height:1.42;color:#fff;margin:0;
-  }
+  /* ── reveal on scroll ── */
+  .hm-rise{opacity:0; transform:translateY(22px); transition:opacity .6s ease, transform .6s cubic-bezier(.22,.61,.36,1);}
+  .hm-rise.in{opacity:1; transform:none;}
+  .hm-rise.d1{transition-delay:.07s;} .hm-rise.d2{transition-delay:.14s;} .hm-rise.d3{transition-delay:.21s;}
+  @media(prefers-reduced-motion:reduce){ .hm-rise{opacity:1; transform:none; transition:none;} }
 
-  .hm-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:32px;}
-  .hm-card{
-    display:block;text-align:left;padding:22px 20px;border:1px solid var(--line);
-    border-radius:12px;background:var(--panel);cursor:pointer;
-    transition:border-color .2s,transform .2s,background .2s;
+  @media(max-width:980px){ .hm-pillars{grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:760px){
+    .hm-wrap{padding-top:14px;}
+    .hm-guide,.donate-opts{grid-template-columns:1fr;}
   }
-  .hm-card:hover{border-color:var(--gold-dim);transform:translateY(-3px);background:var(--panel2);}
-  .hm-card i{font-size:22px;color:var(--gold);}
-  .hm-card h3{font-family:var(--font-display);font-weight:600;font-size:17px;text-transform:uppercase;color:#fff;margin:12px 0 7px;}
-  .hm-card p{font-family:var(--font-body);font-size:13.5px;line-height:1.62;color:var(--muted);margin:0;}
-
-  .hm-apply{text-align:center;}
-  .hm-apply .hm-p{margin-left:auto;margin-right:auto;}
-
-  @media(max-width:860px){
-    .hm-blocks,.hm-cards{grid-template-columns:1fr;}
-    .hm-hero{min-height:clamp(480px,80vh,700px);padding:60px 16px 100px;}
+  @media(max-width:520px){
+    .hm-pillars{grid-template-columns:1fr; gap:10px;}
+    .hm-pillar{display:grid; grid-template-columns:42px 1fr; column-gap:14px; padding:16px;}
+    .hm-pillar i{grid-row:span 2; margin:0;}
+    .hm-pillar h3{font-size:16.5px; margin-bottom:4px;}
+    .hm-pillar p{font-size:13.5px;}
+    .hm-cta{width:100%; justify-content:center;}
   }
-
 </style>
 
 <!-- ===== TIMELINE styles ===== -->
@@ -4133,7 +4192,6 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   <div class="head-inner">
     <div class="brand">
       <span class="logo">WCA</span>
-      <span class="sub">World Championship Alliance</span>
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
     <div class="head-right" id="headRight">
@@ -4162,6 +4220,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
         <a href="https://instagram.com/wcauniverse" data-social="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
         <a href="https://discord.gg/SBFAnU8SDT" data-social="discord" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
       </div>
+      <button class="donate-btn" id="donateBtn" type="button" onclick="openDonate()" title="Help fund the website"><i class="ti ti-heart"></i> Donate</button>
       <div class="userbox" id="userbox">
         <button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>
       </div>
@@ -4173,51 +4232,46 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   <div id="config-error"></div>
 
   <!-- LANDING / DASHBOARD -->
-  <!-- HOME — the arrival page. Copy is admin-editable (site_settings.home);
-       the "what's on now" strip reads live event data, so it never goes stale. -->
+  <!-- HOME — how WCA gets introduced to someone new. A few words, then the
+       intro video front and centre, then four quick points, a one line guide
+       to every page, and support links. All wording, the video link and the
+       donate links are set in Admin > Home Page (site_settings.home); the
+       built in fallbacks are HOME_DEFAULTS in the Home page engine. -->
   <div class="page" id="page-home">
     <div class="hm-wrap">
-      <section class="hm-hero">
-            <div class="hm-hero-in">
-          <div class="hm-kicker" id="hm-kicker">World Championship Alliance</div>
-          <h1 class="hm-title" id="hm-title">Every star is a competitor</h1>
-          <div id="hm-now-wrap"></div>
-          <p class="hm-sub" id="hm-sub"></p>
-          <button class="hm-cta" id="hm-cta" type="button"><i class="ti ti-arrow-right"></i> <span>Explore the roster</span></button>
+
+      <section class="hm-panel hm-hero">
+        <div class="hm-kicker" id="hm-kicker"></div>
+        <h1 class="hm-title" id="hm-title"></h1>
+        <p class="hm-sub" id="hm-sub"></p>
+        <h2 class="hm-rule" id="hm-rule-title"></h2>
+        <div class="hm-video" id="hm-video"></div>
+        <div class="hm-after">
+          <span class="hm-video-note" id="hm-rule-note"></span>
+          <span id="hm-now-wrap"></span>
+          <button class="hm-cta" id="hm-cta-guide" type="button"><i class="ti ti-compass"></i> <span>Find your way around</span></button>
         </div>
-        <div class="hm-scroll"><span>Scroll</span><i class="ti ti-chevron-down"></i></div>
       </section>
 
       <section class="hm-sec">
-        <div class="hm-rise"><div class="hm-eyebrow">What this is</div></div>
-        <div class="hm-blocks">
-          <div class="hm-block hm-rise d1"><h3 id="hm-b1t"></h3><p id="hm-b1b"></p></div>
-          <div class="hm-block hm-rise d2"><h3 id="hm-b2t"></h3><p id="hm-b2b"></p></div>
-          <div class="hm-block hm-rise d3"><h3 id="hm-b3t"></h3><p id="hm-b3b"></p></div>
-        </div>
+        <div class="hm-pillars" id="hm-pillars"></div>
       </section>
 
-      <section class="hm-sec hm-coins">
-        <div class="hm-rise">
-          <div class="hm-eyebrow">If you make an account</div>
-          <h2 class="hm-h2" id="hm-coins-title"></h2>
-          <p class="hm-p" id="hm-coins-body"></p>
+      <section class="hm-sec" id="hm-guide-sec">
+        <div class="hm-sec-head hm-rise">
+          <div class="hm-eyebrow">Where to go from here</div>
+          <h2 class="hm-h2" id="hm-guide-title"></h2>
         </div>
-        <div class="hm-quote hm-rise d1"><p id="hm-coins-high"></p></div>
+        <div class="hm-guide" id="hm-guide"></div>
       </section>
 
-      <section class="hm-sec">
-        <div class="hm-rise"><h2 class="hm-h2" id="hm-start-title"></h2></div>
-        <div class="hm-cards" id="hm-cards"></div>
+      <section class="hm-sec hm-panel hm-donate hm-rise" id="hm-donate">
+        <div class="hm-eyebrow">Keep the lights on</div>
+        <h2 class="hm-h2" id="hm-donate-title"></h2>
+        <p class="hm-lede" id="hm-donate-body" style="margin:0 auto"></p>
+        <div class="donate-opts" id="hm-donate-opts"></div>
       </section>
 
-      <section class="hm-sec hm-apply">
-        <div class="hm-rise">
-          <h2 class="hm-h2" id="hm-apply-title"></h2>
-          <p class="hm-p" id="hm-apply-body"></p>
-          <button class="hm-cta" id="hm-apply-btn" type="button"><i class="ti ti-user-plus"></i> <span>Apply to join</span></button>
-        </div>
-      </section>
     </div>
   </div>
 
@@ -4658,6 +4712,18 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     <div class="msg" id="bet-msg"></div>
     <button class="confirm-bet" onclick="confirmBet()">Confirm bet</button>
     <div class="bet-fine">You can change or cancel your bet until the match closes.</div>
+  </div>
+</div>
+
+<!-- DONATE — opened by the header Donate button, the Home page, or a #donate link.
+     Title, text and the three links are set in Admin > Home Page. -->
+<div class="modal-overlay" id="donate-modal" onclick="if(event.target===this)closeDonate()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="donate-modal-title">
+    <button class="modal-close" onclick="closeDonate()" aria-label="Close"><i class="ti ti-x"></i></button>
+    <div class="hm-eyebrow">Keep the lights on</div>
+    <h2 class="hm-h2" id="donate-modal-title">Support WCA</h2>
+    <p class="hm-lede" id="donate-modal-body" style="font-size:14.5px">Every donation goes into running the website and getting it a proper domain. Thank you!</p>
+    <div class="donate-opts" id="donate-modal-opts"></div>
   </div>
 </div>
 
@@ -10221,6 +10287,9 @@ function slFocusSharedPost(id){
   setTimeout(()=>el.classList.remove('sl-shared-flash'), 2200);
   return true;
 }
+// Verified checkmark for comments from real signed-in members (not admin-written
+// flavour comments). Inline SVG so it never depends on the icon font.
+const SL_VERIFIED_SVG = `<svg class="sl-verified" viewBox="0 0 24 24" aria-label="Verified member" role="img"><title>Verified WCA member</title><path fill="currentColor" d="M12 1.5l2.6 1.9 3.2-.2 1 3.1 2.6 1.9-1 3.1 1 3.1-2.6 1.9-1 3.1-3.2-.2L12 22.5l-2.6-1.9-3.2.2-1-3.1L2.6 15.8l1-3.1-1-3.1 2.6-1.9 1-3.1 3.2.2z"/><path fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.8 12.3l2.8 2.8 5.6-5.8"/></svg>`;
 async function slLoadComments(id){
   try{
     const { data, error } = await sb.from('storyline_comments')
@@ -10234,7 +10303,22 @@ async function slLoadComments(id){
       const { data:profs } = await sb.from('profiles').select('id,username,display_name').in('id', realIds);
       (profs||[]).forEach(pr=>{ nameById[pr.id] = pr.display_name || pr.username || 'Member'; });
     }
+    // Real members who own a character show which one ("as ParallaxStella").
+    // Soft: if this read is blocked, they still get the checkmark.
+    const charById = {};
+    if(realIds.length){
+      try{
+        const { data:own } = await sb.from('wrestler_owners').select('auth_id,wrestler_id').in('auth_id', realIds);
+        const ros = window._rosterAll || window._roster || [];
+        (own||[]).forEach(o=>{
+          const w = ros.find(x=>String(x.id)===String(o.wrestler_id));
+          if(w && !charById[o.auth_id]) charById[o.auth_id] = w.name;
+        });
+      }catch(_){}
+    }
     SL_COMMENTS[id] = (data||[]).map(c=>({
+      real: !c.is_fake && !!c.user_id,
+      character: (!c.is_fake && c.user_id) ? (charById[c.user_id]||'') : '',
       id: c.id,
       name: c.is_fake ? (c.fake_name||'Anonymous') : (nameById[c.user_id]||'Member'),
       body: c.body,
@@ -10288,9 +10372,10 @@ async function slRenderComments(id){
   const renderComment = (c, depth) => {
     const replyTag = (c.parentId && byId[c.parentId])
       ? `<span class="sl-creply-tag">↳ replying to ${esc(byId[c.parentId].name)}</span>` : '';
-    let html = `<div class="sl-comment"${depth?` style="margin-left:${Math.min(depth,4)*24}px"`:''}>
+    let html = `<div class="sl-comment${c.real?' sl-real':''}"${depth?` style="margin-left:${Math.min(depth,4)*24}px"`:''}>
         <div class="sl-cmeta">
-          <span class="sl-cname">${esc(c.name)}</span>
+          <span class="sl-cname">${esc(c.name)}${c.real?SL_VERIFIED_SVG:''}</span>
+          ${c.character?`<span class="sl-cas">as ${esc(c.character)}</span>`:''}
           ${replyTag}
           <span class="sl-cwhen">${esc(slCommentWhen(c.created_at))}</span>
           ${c.mine?`<button class="sl-cmine" onclick="slDeleteComment(${id},${c.id})">delete</button>`:''}
@@ -10538,6 +10623,25 @@ function spSetKind(k){
 }
 
 /* ----- per-kind fields, mirroring the admin editor structure ----- */
+/* Believable social numbers: likes spread from hundreds to tens of thousands,
+   replies and reposts as a share of likes, written the way apps show them. */
+function wcaSocialNum(n){
+  if(n >= 1e6) return (n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,'')+'M';
+  if(n >= 1e4) return Math.round(n/1e3)+'K';
+  if(n >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
+  return String(n);
+}
+function wcaRandomSocialStats(){
+  const likes   = Math.round(Math.exp(Math.log(150) + Math.random()*(Math.log(48000)-Math.log(150))));
+  const replies = Math.max(1, Math.round(likes*(0.03 + Math.random()*0.10)));
+  const reposts = Math.max(1, Math.round(likes*(0.06 + Math.random()*0.22)));
+  return { likes:wcaSocialNum(likes), replies:wcaSocialNum(replies), reposts:wcaSocialNum(reposts) };
+}
+function spRandomStats(){
+  const r = wcaRandomSocialStats();
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set('spc_f_likes', r.likes); set('spc_f_replies', r.replies); set('spc_f_reposts', r.reposts);
+}
 function spRenderKindFields(){
   const host = document.getElementById('spcFields');
   if(!host) return;
@@ -10554,6 +10658,7 @@ function spRenderKindFields(){
         <div><label>Replies (flavor)</label><input id="spc_f_replies" placeholder="e.g. 318"></div>
         <div><label>Reposts (flavor)</label><input id="spc_f_reposts" placeholder="e.g. 901"></div>
       </div>
+      <button class="spc-mini" type="button" onclick="spRandomStats()" title="Fill Likes, Replies and Reposts with believable random numbers">🎲 Random likes, replies &amp; reposts</button>
       <label>Threaded replies <span style="text-transform:none">(optional — other wrestlers replying to you; your whole thread goes through approval together)</span></label>
       <div id="spc_replies"></div>
       <button class="spc-mini" onclick="spAddReplyRow()" style="margin-top:6px">+ Add reply</button>`;
@@ -13001,94 +13106,276 @@ window.timelineLeave = function(){};
 <script>
 /* =====================================================================
    HOME PAGE
-   The arrival experience: a starfield you fall through, then the site's
-   own materials as you descend. Every word is admin-editable
-   (site_settings.home); the only thing that isn't is the "what's on now"
-   strip, which reads live event data so it can never go stale.
+   How WCA gets pitched to someone new, in Macho's words:
+     1. A few words: you need no knowledge of pro wrestling.
+     2. The one rule, then the intro video right under it.
+     3. Four quick points: you're the wrestlers, bet on winners,
+        cheer and boo live, and this site is home base.
+     4. A one line description of every page.
+     5. Where to donate (also behind the Donate button in the header).
+   Everything a visitor reads, plus the video link and the donate links,
+   is set in Admin > Home Page and saved to site_settings.home. Anything
+   left blank there falls back to HOME_DEFAULTS below.
+   House style for this copy: plain punctuation only. No dashes.
    ===================================================================== */
 (function(){
 
 const HOME_DEFAULTS = {
-  hero_kicker:'World Championship Alliance',
-  hero_title:'Every star is a competitor',
-  hero_sub:'A living pro wrestling universe built in WWE 2K25, where the roster is the community — and every show is scored, ranked and remembered.',
-  cta_label:'Explore the roster', cta_page:'roster',
-  b1_title:'The Show',   b1_body:'WCA runs live events on Twitch and YouTube. Real matches, real finishes, championships that change hands and rivalries that carry from show to show.',
-  b2_title:'The Roster', b2_body:'Every competitor represents someone from the community. They have records, rankings, title reigns and match histories going back years.',
-  b3_title:'The Site',   b3_body:'This is the record book. Every match ever fought, every title change, every stable — tracked, ranked and searchable.',
-  coins_title:'How the money works',
-  coins_body:"Making an account gets you $25,000. It is not real money — it is how you get skin in the game. Before each match, betting opens. Pick a side, stake what you want. Everyone who backs the winner splits the losing side's pool. Back the loser and your stake is gone. While a show is live you also earn $1,000 an hour just for being here.",
-  coins_highlight:'Every show crowns a Betting Champion — whoever made the most profit that night. Balances do not carry over. Which means someone who signed up an hour ago can beat someone who has been here since WCA 1.',
-  start_title:'Start anywhere',
-  apply_title:'Want your own character?',
-  apply_body:'Bring a wrestler into the WCA. Applications are read personally, built in WWE 2K25, and added to the roster.',
-  apply_label:'Apply to join'
+  /* the intro video. Any normal YouTube link works. Blank shows "coming soon". */
+  video_url: '',
+
+  pitch_kicker: 'Welcome to the WCA',
+  pitch_title:  'You need no knowledge of pro wrestling',
+  pitch_sub:    'WCA is a pro wrestling show where you, the fans, are the wrestlers.',
+  rule_title:   "If the intro doesn't hype you up, the show is not for you",
+  rule_note:    "Hit play. You'll know.",
+
+  p1_title: 'You, the fans, are the wrestlers',
+  p1_body:  'Every superstar on the roster is a character played by someone from the community. Apply and the next one could be you.',
+  p2_title: 'Bet on who wins',
+  p2_body:  "Back who you think is walking out the winner with virtual currency. It's not real money, just bragging rights.",
+  p3_title: 'Cheer and boo live',
+  p3_body:  'Use your currency on platforms like Twitch during the show to cheer on or boo whoever you want.',
+  p4_title: 'This site is home base',
+  p4_body:  'Rankings, results, storylines and your own betting record. Everything interactive about WCA lives right here.',
+
+  guide_title:   'Every page, in one line',
+  g_live:        "The stream, the live chat and tonight's betting standings, all in one place.",
+  g_events:      "The next show's full card. Place your bets here before each match starts.",
+  g_archive:     'Every show in the books with results, replays, match ratings and final betting standings.',
+  g_storylines:  "What's happening right now. Social posts, headlines, promos and backstage dirt.",
+  g_timeline:    'The whole WCA story from the start, show by show. The best place to catch up.',
+  g_roster:      'Every superstar and stable, mapped out as a star map you can fly through.',
+  g_rankings:    "The wrestlers' standings. Champions, contenders and who's next for a title shot.",
+  g_leaderboard: 'How the fans are doing. The sharpest bettors and every Betting Champion.',
+  g_dash:        'Your own page once you sign in. Your balance, your bets, and your character if you have one.',
+  g_showdown:    'WCA Showdown is its own series outside the main story where two brands go head to head.',
+  g_apply:       'Want to be on the show? Send in your character and get added to the roster.',
+  g_discord:     'Hang out with the community between shows.',
+  g_sponsors:    'The fictional brands behind the WCA, plus real creators and promotions worth your time.',
+  g_donate:      'Help fund the website and get it a proper domain.',
+
+  donate_title:      'Support WCA',
+  donate_body:       'WCA is built and run by one person. Donations go straight into running this website and getting it a proper home on its own domain.',
+  donate_modal_body: 'Every donation goes into running the website and getting it a proper domain. Thank you!',
+  donate1_name: 'StreamElements', donate1_note: 'Tip through the stream',  donate1_url: 'https://streamelements.com/infantryink/tip',
+  donate2_name: 'PayPal',         donate2_note: 'Card or PayPal balance', donate2_url: 'https://www.paypal.com/donate/?hosted_button_id=V9US8CSADWJEN',
+  donate3_name: 'Cash App',       donate3_note: '$NaviZeug',              donate3_url: 'https://cash.app/$NaviZeug'
 };
 
+/* Each donate slot keeps its own icon and colour; the admin sets the words and link. */
+const DONATE_SLOTS = [
+  { n:1, icon:'ti-heart-handshake', color:'#5b4cf0' },
+  { n:2, icon:'ti-brand-paypal',    color:'#1f6fd6' },
+  { n:3, icon:'ti-brand-cashapp',   color:'#00a83e' }
+];
+
 let HOME = Object.assign({}, HOME_DEFAULTS);
-let homeLoaded = false, starsRAF = 0, starsCanvas = null;
+let homeLoaded = null;
 
 const $h = (id) => document.getElementById(id);
 const setText = (id, v) => { const el = $h(id); if(el) el.textContent = v || ''; };
+const escH = (s) => (typeof esc==='function' ? esc(s) : String(s==null?'':s));
+const attrH = (s) => (typeof escAttr==='function' ? escAttr(s) : escH(s));
+/* only ever link out to http(s) */
+const safeUrl = (u) => { u = String(u||'').trim(); return /^https?:\/\//i.test(u) ? u : ''; };
 
 /* ── copy ─────────────────────────────────────────────────────────── */
-async function loadHomeCopy(){
-  if(homeLoaded || typeof sb === 'undefined' || !sb) return;   // same reason as the Timeline
-  homeLoaded = true;
-  try{
-    const { data, error } = await sb.from('site_settings').select('home').eq('id',1).single();
-    if(!error && data && data.home && typeof data.home === 'object'){
-      Object.keys(HOME_DEFAULTS).forEach(k=>{
-        const v = data.home[k];
-        if(typeof v === 'string' && v.trim()) HOME[k] = v.trim();
-      });
-    }
-  }catch(e){ /* defaults stand — the page must never render empty */ }
-  paintHome();
+function loadHomeCopy(){
+  if(homeLoaded) return homeLoaded;
+  if(typeof sb === 'undefined' || !sb) return Promise.resolve();   // sb is a `let`, never on window
+  homeLoaded = (async()=>{
+    try{
+      const { data, error } = await sb.from('site_settings').select('home').eq('id',1).single();
+      if(!error && data && data.home && typeof data.home === 'object'){
+        Object.keys(HOME_DEFAULTS).forEach(k=>{
+          const v = data.home[k];
+          if(typeof v !== 'string') return;
+          // a link saved blank on purpose stays blank (hides that donate option,
+          // or puts the video back to "coming soon"); any other blank uses the default
+          if(/_url$/.test(k)) HOME[k] = v.trim();
+          else if(v.trim()) HOME[k] = v.trim();
+        });
+      }
+    }catch(e){ /* defaults stand — the page must never render empty */ }
+    paintHome();
+    paintDonateModal();
+  })();
+  return homeLoaded;
 }
+
+const PILLARS = [
+  { icon:'ti-users-group',  t:'p1_title', b:'p1_body' },
+  { icon:'ti-cash',         t:'p2_title', b:'p2_body' },
+  { icon:'ti-brand-twitch', t:'p3_title', b:'p3_body' },
+  { icon:'ti-world-star',   t:'p4_title', b:'p4_body' }
+];
 
 function paintHome(){
-  setText('hm-kicker', HOME.hero_kicker);
-  setText('hm-title',  HOME.hero_title);
-  setText('hm-sub',    HOME.hero_sub);
-  setText('hm-b1t', HOME.b1_title); setText('hm-b1b', HOME.b1_body);
-  setText('hm-b2t', HOME.b2_title); setText('hm-b2b', HOME.b2_body);
-  setText('hm-b3t', HOME.b3_title); setText('hm-b3b', HOME.b3_body);
-  setText('hm-coins-title', HOME.coins_title);
-  setText('hm-coins-body',  HOME.coins_body);
-  setText('hm-coins-high',  HOME.coins_highlight);
-  setText('hm-start-title', HOME.start_title);
-  setText('hm-apply-title', HOME.apply_title);
-  setText('hm-apply-body',  HOME.apply_body);
-  const cta = $h('hm-cta'); if(cta) cta.querySelector('span').textContent = HOME.cta_label;
-  const ab  = $h('hm-apply-btn'); if(ab) ab.querySelector('span').textContent = HOME.apply_label;
-  paintCards();
-}
+  setText('hm-kicker', HOME.pitch_kicker);
+  setText('hm-title',  HOME.pitch_title);
+  setText('hm-sub',    HOME.pitch_sub);
+  setText('hm-rule-note',  HOME.rule_note);
+  setText('hm-guide-title', HOME.guide_title);
+  setText('hm-donate-title', HOME.donate_title);
+  setText('hm-donate-body',  HOME.donate_body);
 
-/* Fixed destinations — these describe the site's own sections, so they're
-   part of the layout rather than something to maintain as copy. */
-const HOME_CARDS = [
-  { page:'roster',     icon:'ti-stars',       title:'The Roster',    body:'Every competitor and stable, mapped as a constellation you can fly through.' },
-  { page:'rankings',   icon:'ti-trophy',      title:'Rankings',      body:'Champions, contenders and division records — who is next in line for a title shot.' },
-  { page:'storylines', icon:'ti-news',        title:'Storylines',    body:'Headlines, promos and dirt from around the Alliance. The story between the shows.' },
-  { page:'events',     icon:'ti-calendar-event', title:'Events',     body:'The next show — full card, start time and where to watch it live.' },
-  { page:'archive',    icon:'ti-archive',     title:'Archive',       body:'Every event in the books, with results, ratings and final standings.' },
-  { page:'leaderboard',icon:'ti-coins',       title:'Leaderboard',   body:'How the community is doing — money, streaks and standings across the season.' }
-];
-function paintCards(){
-  const wrap = $h('hm-cards');
-  if(!wrap) return;
-  wrap.innerHTML = HOME_CARDS.map((c,i)=>
-    `<button class="hm-card hm-rise d${(i%3)+1}" type="button" data-page="${c.page}">
-       <i class="ti ${c.icon}"></i>
-       <h3>${typeof esc==='function'?esc(c.title):c.title}</h3>
-       <p>${typeof esc==='function'?esc(c.body):c.body}</p>
-     </button>`).join('');
-  wrap.querySelectorAll('.hm-card').forEach(b=>{
-    b.addEventListener('click', ()=>goPage(b.dataset.page));
-  });
+  // the rule, with everything after the first comma in gold
+  const rt = $h('hm-rule-title');
+  if(rt){
+    const t = HOME.rule_title || '';
+    const cut = t.indexOf(',');
+    rt.innerHTML = cut > 0
+      ? escH(t.slice(0, cut+1)) + ' <em>' + escH(t.slice(cut+1).trim()) + '</em>'
+      : escH(t);
+  }
+
+  const pw = $h('hm-pillars');
+  if(pw){
+    pw.innerHTML = PILLARS.map((p,i)=>
+      `<div class="hm-panel hm-pillar hm-rise d${(i%3)+1}">
+         <i class="ti ${p.icon}"></i>
+         <h3>${escH(HOME[p.t])}</h3>
+         <p>${escH(HOME[p.b])}</p>
+       </div>`).join('');
+  }
+
+  paintVideo();
+  paintGuide();
+  paintDonateOpts($h('hm-donate-opts'));
   observeRises();
 }
+
+/* ── the intro video ──────────────────────────────────────────────── */
+function youTubeId(url){
+  const u = String(url||'').trim();
+  if(!u) return '';
+  let m;
+  if((m = u.match(/[?&]v=([\w-]{6,})/)))                  return m[1];
+  if((m = u.match(/youtu\.be\/([\w-]{6,})/)))             return m[1];
+  if((m = u.match(/youtube\.com\/(?:embed|live|shorts)\/([\w-]{6,})/))) return m[1];
+  if(/^[\w-]{11}$/.test(u))                               return u;
+  return '';
+}
+function paintVideo(){
+  const box = $h('hm-video');
+  if(!box) return;
+  const id = youTubeId(HOME.video_url);
+  if(box.dataset.vid === (id || 'none')) return;   // don't reload a playing video
+  box.dataset.vid = id || 'none';
+  if(id){
+    box.innerHTML = `<iframe src="https://www.youtube.com/embed/${attrH(id)}?rel=0&modestbranding=1&playsinline=1"
+      title="WCA intro" allowfullscreen
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+  } else {
+    box.innerHTML = `<div class="hm-video-empty"><i class="ti ti-brand-youtube"></i>
+      <div>The intro video is coming soon.</div>
+      <a class="hm-cta" href="https://youtube.com/@WCAUniverse" target="_blank" rel="noopener noreferrer">
+        <i class="ti ti-external-link"></i> <span>WCA on YouTube</span></a></div>`;
+  }
+}
+
+/* ── one line per page (descriptions come from HOME.g_<key>) ──────── */
+const GUIDE = [
+  { group:'Watch the show', icon:'ti-device-tv', items:[
+    { key:'live',     page:'live',     icon:'ti-broadcast',      name:'Watch Live' },
+    { key:'events',   page:'events',   icon:'ti-calendar-event', name:'Upcoming Events' },
+    { key:'archive',  page:'archive',  icon:'ti-archive',        name:'Past Events' }
+  ]},
+  { group:'Follow the story', icon:'ti-book', items:[
+    { key:'storylines', page:'storylines', icon:'ti-news',           name:'Feed' },
+    { key:'timeline',   page:'timeline',   icon:'ti-timeline-event', name:'Timeline' },
+    { key:'roster',     page:'roster',     icon:'ti-stars',          name:'Roster' },
+    { key:'rankings',   page:'rankings',   icon:'ti-trophy',         name:'Rankings' }
+  ]},
+  { group:'Play along', icon:'ti-cash', items:[
+    { key:'leaderboard', page:'leaderboard', icon:'ti-chart-bar',        name:'Leaderboard' },
+    { key:'dash',        page:'dash',        icon:'ti-layout-dashboard', name:'Your Dashboard' },
+    { key:'showdown',    page:'showdown',    icon:'ti-swords',           name:'Showdown' }
+  ]},
+  { group:'Get involved', icon:'ti-user-plus', items:[
+    { key:'apply',    page:'apply',    icon:'ti-user-plus',     name:'Apply' },
+    { key:'discord',  url:'https://discord.gg/SBFAnU8SDT', icon:'ti-brand-discord', name:'Discord' },
+    { key:'sponsors', page:'sponsors', icon:'ti-award',         name:'Sponsors' },
+    { key:'donate',   donate:true,     icon:'ti-heart',         name:'Donate' }
+  ]}
+];
+// A page the admin has hidden from the nav (Admin > Layout) is left out here too.
+function navHidden(page){
+  const a = document.querySelector('nav [data-page="'+page+'"]');
+  return !!(a && a.style.display === 'none');
+}
+function paintGuide(){
+  const wrap = $h('hm-guide');
+  if(!wrap) return;
+  wrap.innerHTML = GUIDE.map((g,gi)=>{
+    const rows = g.items.filter(it=>!it.page || !navHidden(it.page)).map(it=>{
+      const inner = `<i class="ti ${it.icon}"></i>
+        <span class="hm-link-txt"><span class="hm-link-name">${escH(it.name)}</span>
+        <span class="hm-link-desc">${escH(HOME['g_'+it.key])}</span></span>
+        <i class="ti ${it.url?'ti-external-link':'ti-arrow-right'} go"></i>`;
+      if(it.url) return `<a class="hm-link" href="${attrH(it.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`;
+      if(it.donate) return `<button class="hm-link" type="button" data-donate="1">${inner}</button>`;
+      return `<button class="hm-link" type="button" data-page="${attrH(it.page)}">${inner}</button>`;
+    }).join('');
+    if(!rows) return '';
+    return `<div class="hm-panel hm-group hm-rise d${(gi%2)+1}">
+      <div class="hm-group-h"><i class="ti ${g.icon}"></i>${escH(g.group)}</div>${rows}</div>`;
+  }).join('');
+  wrap.querySelectorAll('.hm-link[data-page]').forEach(b=>
+    b.addEventListener('click', ()=>goPage(b.dataset.page)));
+  wrap.querySelectorAll('.hm-link[data-donate]').forEach(b=>
+    b.addEventListener('click', ()=>openDonate()));
+}
+
+/* ── donate ───────────────────────────────────────────────────────── */
+function donateOptions(){
+  return DONATE_SLOTS.map(s=>({
+    name: HOME['donate'+s.n+'_name'] || '',
+    note: HOME['donate'+s.n+'_note'] || '',
+    url:  safeUrl(HOME['donate'+s.n+'_url']),
+    icon: s.icon, color: s.color
+  })).filter(o=>o.url && o.name);
+}
+function paintDonateOpts(host){
+  if(!host) return;
+  const opts = donateOptions();
+  host.style.gridTemplateColumns = (host.id === 'hm-donate-opts' && opts.length && opts.length < 3)
+    ? 'repeat('+opts.length+',minmax(0,280px))' : '';
+  host.style.justifyContent = 'center';
+  host.innerHTML = opts.map(o=>
+    `<a class="donate-opt" href="${attrH(o.url)}" target="_blank" rel="noopener noreferrer" style="--dc:${attrH(o.color)}">
+       <i class="ti ${o.icon}"></i>
+       <div><b>${escH(o.name)}</b><span>${escH(o.note)}</span></div>
+       <i class="ti ti-external-link go"></i>
+     </a>`).join('');
+}
+function paintDonateModal(){
+  setText('donate-modal-title', HOME.donate_title);
+  setText('donate-modal-body',  HOME.donate_modal_body);
+  paintDonateOpts($h('donate-modal-opts'));
+}
+function openDonate(){
+  const m = $h('donate-modal');
+  if(!m) return;
+  paintDonateModal();
+  loadHomeCopy();                                   // admin wording, if not loaded yet
+  const hr = $h('headRight'); if(hr) hr.classList.remove('open');   // close the phone menu
+  m.classList.add('open');
+}
+function closeDonate(){
+  const m = $h('donate-modal');
+  if(m) m.classList.remove('open');
+  if(location.hash === '#donate'){ try{ history.replaceState(null,'','#home'); }catch(e){} }
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDonate(); });
+// #donate is a shareable link (handy for stream panels): opens Home with the options up.
+function donateFromHash(){
+  if(location.hash !== '#donate') return;
+  if(typeof activatePage === 'function') activatePage('home');
+  openDonate();
+}
+window.addEventListener('hashchange', donateFromHash);
 
 /* ── "what's on now" — derived, never hand-maintained ─────────────── */
 async function paintNow(){
@@ -13122,67 +13409,6 @@ async function paintNow(){
   const b = $h('hm-now-btn');
   if(b) b.addEventListener('click', ()=>goPage(live ? 'live' : 'events'));
 }
-function escH(s){ return typeof esc==='function' ? esc(s) : String(s==null?'':s); }
-
-/* ── starfield ────────────────────────────────────────────────────── */
-function startStars(){
-  const cv = $h('hm-stars');
-  if(!cv) return;
-  starsCanvas = cv;
-  const ctx = cv.getContext('2d');
-  if(!ctx) return;
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let w = 0, h = 0, stars = [], dpr = Math.min(window.devicePixelRatio||1, 2);
-
-  function size(){
-    const r = cv.getBoundingClientRect();
-    w = Math.max(1, r.width); h = Math.max(1, r.height);
-    cv.width = w*dpr; cv.height = h*dpr;
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    const count = Math.round(Math.min(300, (w*h)/5200));
-    stars = [];
-    for(let i=0;i<count;i++){
-      const depth = Math.random();
-      stars.push({
-        x: Math.random()*w, y: Math.random()*h,
-        r: 0.4 + depth*1.5, depth,
-        tw: Math.random()*6.283, sp: 0.6 + Math.random()*1.4
-      });
-    }
-  }
-  size();
-  const ro = (typeof ResizeObserver!=='undefined') ? new ResizeObserver(size) : null;
-  if(ro) ro.observe(cv); else window.addEventListener('resize', size);
-
-  const gold = (typeof cssVarSafe==='function') ? cssVarSafe('--gold','#E9B949') : '#E9B949';
-  let t0 = performance.now();
-  function frame(now){
-    if(!document.getElementById('page-home').classList.contains('active')){ starsRAF = 0; return; }
-    const dt = Math.min((now - t0)/1000, 0.05); t0 = now;
-    ctx.clearRect(0,0,w,h);
-    for(const s of stars){
-      if(!reduced){
-        s.tw += dt*s.sp;
-        s.y += dt*(2 + s.depth*9);              // a slow fall, as if descending
-        if(s.y > h + 4){ s.y = -4; s.x = Math.random()*w; }
-      }
-      const a = 0.28 + 0.55*(0.5 + 0.5*Math.sin(s.tw)) * (0.4 + s.depth*0.6);
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, 6.283);
-      ctx.fillStyle = s.depth > 0.86 ? gold : '#ffffff';
-      ctx.globalAlpha = a;
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    starsRAF = requestAnimationFrame(frame);
-  }
-  if(!starsRAF) starsRAF = requestAnimationFrame(frame);
-}
-function stopStars(){ if(starsRAF){ cancelAnimationFrame(starsRAF); starsRAF = 0; } }
-function cssVarSafe(n,f){
-  try{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v||f; }
-  catch(e){ return f; }
-}
 
 /* ── reveal on scroll ─────────────────────────────────────────────── */
 let riseObs = null;
@@ -13196,9 +13422,18 @@ function observeRises(){
       entries.forEach(en=>{
         if(en.isIntersecting){ en.target.classList.add('in'); riseObs.unobserve(en.target); }
       });
-    }, { rootMargin:'0px 0px -12% 0px', threshold:0.08 });
+    }, { rootMargin:'0px 0px -8% 0px', threshold:0.05 });
   }
   document.querySelectorAll('#page-home .hm-rise:not(.in)').forEach(el=>riseObs.observe(el));
+}
+
+function scrollToEl(id){
+  const el = $h(id);
+  if(!el) return;
+  const head = document.querySelector('header');
+  const off = (head ? head.getBoundingClientRect().height : 0) + 12;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.pageYOffset - off, behavior: reduce ? 'auto' : 'smooth' });
 }
 
 /* ── lifecycle ────────────────────────────────────────────────────── */
@@ -13206,17 +13441,18 @@ function homeEnter(){
   paintHome();
   loadHomeCopy();
   paintNow();
-  startStars();
   requestAnimationFrame(observeRises);
 }
-function homeLeave(){ stopStars(); }
+function homeLeave(){
+  // stop the intro if someone leaves Home mid video
+  const box = $h('hm-video');
+  if(box && box.querySelector("iframe")){ box.innerHTML = ""; box.dataset.vid = ""; }
+}
 
 function wireHome(){
-  const cta = $h('hm-cta');
-  if(cta) cta.addEventListener('click', ()=>goPage(HOME.cta_page || 'roster'));
-  const ab = $h('hm-apply-btn');
-  if(ab) ab.addEventListener('click', ()=>goPage('apply'));
-  // The logo is the way back — the convention everyone already knows.
+  const cg = $h('hm-cta-guide');
+  if(cg) cg.addEventListener('click', ()=>scrollToEl('hm-guide-sec'));
+  // The logo is the way back, the convention everyone already knows.
   const logo = document.querySelector('.brand');
   if(logo){
     logo.style.cursor = 'pointer';
@@ -13224,19 +13460,20 @@ function wireHome(){
     logo.addEventListener('click', ()=>goPage('home'));
   }
   paintHome();
-  // Landing straight on #home means activatePage() already ran before this
-  // script was parsed, so nothing called homeEnter(). Catch that — the same
-  // trap the star map hit: routing happens before these modules load.
+  // Landing straight on #home (or #donate) means activatePage() already ran
+  // before this script was parsed, so nothing called homeEnter(). Catch that,
+  // since routing happens before these modules load.
+  donateFromHash();
   const pg = document.getElementById('page-home');
   if(pg && pg.classList.contains('active')) homeEnter();
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHome);
 else wireHome();
 
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopStars(); });
-
-window.homeEnter = homeEnter;
-window.homeLeave = homeLeave;
+window.homeEnter   = homeEnter;
+window.homeLeave   = homeLeave;
+window.openDonate  = openDonate;
+window.closeDonate = closeDonate;
 
 })();
 
