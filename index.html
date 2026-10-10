@@ -3453,9 +3453,18 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   }
   .hm-title{
     font-family:var(--font-display); font-weight:700;
-    font-size:clamp(28px,4.4vw,56px); line-height:1; letter-spacing:-.3px;
-    text-transform:uppercase; color:#fff; margin:0 auto 10px; max-width:1000px;
+    font-size:clamp(28px,4.8vw,60px); line-height:1.02; letter-spacing:-.3px;
+    text-transform:uppercase; color:#fff; margin:0 auto 20px; max-width:1040px;
   }
+  .hm-title em{font-style:normal; color:var(--gold);}
+  /* under the video: what WCA is, in a few short paragraphs */
+  .hm-about{padding:clamp(24px,3.6vw,40px) clamp(18px,4vw,48px); text-align:center;}
+  .hm-about-body{max-width:760px; margin:6px auto 0;}
+  .hm-about-body p{
+    font-family:var(--font-body); font-size:clamp(15.5px,1.6vw,17.5px); line-height:1.75;
+    color:#d6d8de; margin:0 0 14px;
+  }
+  .hm-about-body p:last-child{margin-bottom:0;}
   .hm-sub{
     font-family:var(--font-body); font-size:clamp(15px,1.7vw,18px);
     line-height:1.6; color:#d6d8de; max-width:700px; margin:0 auto 14px;
@@ -4242,19 +4251,25 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 
       <section class="hm-panel hm-hero">
         <div class="hm-kicker" id="hm-kicker"></div>
-        <h1 class="hm-title" id="hm-title"></h1>
-        <p class="hm-sub" id="hm-sub"></p>
-        <h2 class="hm-rule" id="hm-rule-title"></h2>
+        <h1 class="hm-title" id="hm-rule-title"></h1>
         <div class="hm-video" id="hm-video"></div>
         <div class="hm-after">
           <span class="hm-video-note" id="hm-rule-note"></span>
           <span id="hm-now-wrap"></span>
-          <button class="hm-cta" id="hm-cta-guide" type="button"><i class="ti ti-compass"></i> <span>Find your way around</span></button>
         </div>
+      </section>
+
+      <section class="hm-sec hm-panel hm-about hm-rise">
+        <div class="hm-eyebrow">What is WCA?</div>
+        <h2 class="hm-h2" id="hm-about-title"></h2>
+        <div class="hm-about-body" id="hm-about-body"></div>
       </section>
 
       <section class="hm-sec">
         <div class="hm-pillars" id="hm-pillars"></div>
+        <div class="hm-after" style="margin-top:22px">
+          <button class="hm-cta" id="hm-cta-guide" type="button"><i class="ti ti-compass"></i> <span>Find your way around</span></button>
+        </div>
       </section>
 
       <section class="hm-sec" id="hm-guide-sec">
@@ -13107,8 +13122,9 @@ window.timelineLeave = function(){};
 /* =====================================================================
    HOME PAGE
    How WCA gets pitched to someone new, in Macho's words:
-     1. A few words: you need no knowledge of pro wrestling.
-     2. The one rule, then the intro video right under it.
+     1. The one rule as the big headline, then the intro video.
+     2. Under the video: you need no knowledge of pro wrestling, in a few
+        short paragraphs.
      3. Four quick points: you're the wrestlers, bet on winners,
         cheer and boo live, and this site is home base.
      4. A one line description of every page.
@@ -13124,11 +13140,16 @@ const HOME_DEFAULTS = {
   /* the intro video. Any normal YouTube link works. Blank shows "coming soon". */
   video_url: '',
 
+  /* above the video */
   pitch_kicker: 'Welcome to the WCA',
-  pitch_title:  'You need no knowledge of pro wrestling',
-  pitch_sub:    'WCA is a pro wrestling show where you, the fans, are the wrestlers.',
-  rule_title:   "If the intro doesn't hype you up, the show is not for you",
+  rule_title:   "If the intro doesn't hype you up, the show isn't for you",
+  /* under the video */
   rule_note:    "Hit play. You'll know.",
+  about_title:  'You need no knowledge of pro wrestling',
+  /* a blank line starts a new paragraph */
+  about_body:   "The World Championship Alliance is a pro wrestling show where you, the fans, are the wrestlers. You don't need to know a single thing about wrestling to get into it. You just need to pick a side.\n\n" +
+                "Fans can bet on who they think is going to win with virtual currency, and use that currency on platforms like Twitch to cheer and boo whoever they want.\n\n" +
+                'And now this website gives all of it a home. Rankings, results, storylines, betting and your own profile, all in one interactive place.',
 
   p1_title: 'You, the fans, are the wrestlers',
   p1_body:  'Every superstar on the roster is a character played by someone from the community. Apply and the next one could be you.',
@@ -13213,8 +13234,12 @@ const PILLARS = [
 
 function paintHome(){
   setText('hm-kicker', HOME.pitch_kicker);
-  setText('hm-title',  HOME.pitch_title);
-  setText('hm-sub',    HOME.pitch_sub);
+  setText('hm-about-title', HOME.about_title);
+  const ab = $h('hm-about-body');
+  if(ab){
+    ab.innerHTML = String(HOME.about_body||'').split(/\n\s*\n/).map(t=>t.trim()).filter(Boolean)
+      .map(t=>'<p>'+escH(t).replace(/\n/g,'<br>')+'</p>').join('');
+  }
   setText('hm-rule-note',  HOME.rule_note);
   setText('hm-guide-title', HOME.guide_title);
   setText('hm-donate-title', HOME.donate_title);
