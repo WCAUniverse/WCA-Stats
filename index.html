@@ -583,6 +583,48 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .mh-row:last-child{border-bottom:none;}
   .mh-main{flex:1; min-width:0;}
   .mh-sub{display:block; font-size:11px; color:var(--muted);}
+  .mh-count{margin-left:auto; font-family:var(--font-body); font-size:11.5px; letter-spacing:0; text-transform:none; color:var(--muted);}
+  /* the history scrolls inside its own box so the record card stays put */
+  .mh-scroll{max-height:340px; overflow-y:auto; padding-right:6px; overscroll-behavior:contain;}
+  .mh-scroll::-webkit-scrollbar{width:7px;}
+  .mh-scroll::-webkit-scrollbar-thumb{background:var(--line); border-radius:7px;}
+
+  /* record card above the match history */
+  .rc-card{margin-top:16px; padding:14px 14px 12px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(var(--gold-rgb),.07), rgba(0,0,0,.25));
+    border:1px solid rgba(var(--gold-rgb),.35);}
+  .rc-head{display:flex; align-items:center; gap:8px;}
+  .rc-title{flex:1; min-width:0; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .rc-kicker{font-family:var(--font-cond); font-size:11px; letter-spacing:2.4px; text-transform:uppercase; color:var(--gold-dim);}
+  .rc-title b{font-family:var(--font-display); font-weight:600; font-size:19px; letter-spacing:.5px; text-transform:uppercase; color:#fff; line-height:1.1;}
+  .rc-badge{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-cond); font-size:12px; letter-spacing:1.2px;
+    text-transform:uppercase; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:2px 10px;}
+  .rc-badge.champ{color:var(--gold); border-color:var(--gold-dim); background:rgba(var(--gold-rgb),.1);}
+  .rc-nav{flex:0 0 34px; height:34px; border-radius:9px; display:grid; place-items:center; cursor:pointer;
+    background:rgba(255,255,255,.04); border:1px solid var(--line); color:var(--gold); font-size:18px; transition:.15s;}
+  .rc-nav:hover{border-color:var(--gold); background:rgba(var(--gold-rgb),.1);}
+  .rc-nav-spacer{flex:0 0 34px;}
+  .rc-chips{display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:10px 0 2px;}
+  .rc-chip{font-family:var(--font-cond); font-size:12px; letter-spacing:1px; text-transform:uppercase; cursor:pointer;
+    padding:3px 10px; border-radius:20px; background:transparent; border:1px solid var(--line); color:var(--muted);}
+  .rc-chip.on{color:var(--on-gold); background:var(--gold); border-color:var(--gold);}
+  .rc-chip i{font-size:12px;}
+  .rc-nums{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:12px 0 10px;}
+  .rc-num{text-align:center; padding:8px 2px 6px; border-radius:9px; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.06);}
+  .rc-num b{display:block; font-family:var(--font-display); font-weight:700; font-size:clamp(28px,3vw,38px); line-height:1;}
+  .rc-num span{display:block; margin-top:4px; font-family:var(--font-cond); font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted);}
+  .rc-num.w b{color:var(--win);} .rc-num.l b{color:var(--loss);}
+  .rc-num.d b{color:var(--txt-2);} .rc-num.nw b{color:var(--muted);}
+  .rc-foot{display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:10px 14px;
+    padding-top:10px; border-top:1px solid var(--line);}
+  .rc-lbl{display:block; font-family:var(--font-cond); font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
+  .rc-pct b{font-family:var(--font-display); font-size:20px; color:#fff;}
+  .rc-pts-row{display:flex; align-items:center; gap:8px;}
+  .rc-pts-note{font-family:var(--font-body); font-size:12.5px; color:var(--txt-2);}
+  .rc-pts-note b{color:var(--gold);}
+  .rc-empty{font-family:var(--font-body); font-size:13.5px; color:var(--muted); text-align:center; padding:6px 4px;}
+  .rc-empty i{color:var(--gold); margin-right:4px;}
+
   /* contender dots */
   .dots{display:flex; gap:4px; flex-shrink:0;}
   .dots-end{width:38px; flex-shrink:0;}
@@ -756,17 +798,30 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .bout.main .fighter .fname{font-size:clamp(20px,4vw,34px);}
   .bout .fighter .fsub{font-family:var(--font-cond); font-size:14px; color:var(--muted); margin-top:2px;}
   /* ===== MATCH RECORDS — division record under each name (Events + Archive) ===== */
-  .frec{display:flex; flex-direction:column; align-items:center; gap:4px; margin:4px 0 6px;}
-  .frec-line{font-family:var(--font-cond); font-size:14px; letter-spacing:.4px; color:var(--muted);
-    display:inline-flex; align-items:baseline; gap:5px; flex-wrap:wrap; justify-content:center;}
-  .frec-line b{font-weight:700; font-size:15px;}
+  .frec{display:flex; flex-direction:column; align-items:center; gap:6px; margin:8px 0 10px;}
+  /* the record is the number people look for, so it's set big; the last 5
+     squares stay small since their colour reads even when the letter doesn't */
+  .frec-line{font-family:var(--font-cond); font-size:16px; letter-spacing:.6px; color:var(--muted);
+    display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; justify-content:center;}
+  .frec-line > span{display:inline-flex; align-items:baseline; gap:3px; font-weight:600;}
+  .frec-line b{font-family:var(--font-display); font-weight:700; font-size:clamp(26px,3vw,34px); line-height:1;
+    text-shadow:0 2px 10px rgba(0,0,0,.85);}
   .frec-line .w b{color:var(--win);} .frec-line .l b{color:var(--loss);}
-  .frec-line .d b{color:var(--muted);} .frec-line .nw b{color:var(--muted2);}
-  .frec-line .sep{color:var(--muted2);}
-  .frec-lbl{font-family:var(--font-cond); font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold-dim);}
-  .frec-new{font-family:var(--font-cond); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--teal);}
+  .frec-line .d b{color:var(--txt-2);} .frec-line .nw b{color:var(--muted);}
+  .frec-line .sep{color:var(--muted2); font-size:20px;}
+  .frec-lbl{font-family:var(--font-cond); font-size:11.5px; letter-spacing:1.8px; text-transform:uppercase; color:var(--gold-dim);}
+  .frec-new{font-family:var(--font-cond); font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--teal);}
   .frec .f5mini .f5b{width:15px; height:15px; font-size:9px;}
-  .frec-who{font-family:var(--font-cond); font-size:12px; color:var(--txt-2); margin-right:2px;}
+  /* team sides list each member on their own line, a step smaller */
+  .frec-line .frec-who{font-family:var(--font-cond); font-size:14px; font-weight:600; color:var(--txt-2); margin-right:2px; align-self:center;}
+  .frec-line:has(.frec-who) b{font-size:clamp(21px,2.4vw,26px);}
+  @media(max-width:640px){
+    /* on a phone the separators would dangle at line ends, so space does the job */
+    .frec-line{gap:4px 12px;}
+    .frec-line .sep{display:none;}
+    .frec-line b{font-size:26px;}
+    .frec-line:has(.frec-who) b{font-size:21px;}
+  }
   .bout .vs{font-family:var(--font-display); font-weight:700; font-size:20px; color:var(--gold);
     flex-shrink:0; padding:0 4px; opacity:.9;}
   .bout .stip{text-align:center; font-family:var(--font-cond); font-size:14px; letter-spacing:1px;
@@ -1735,7 +1790,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     font-size:13px; text-align:center; padding:26px 10px;}
   /* match history lives in the left panel — keep it scrollable so a long
      career never stretches the stage */
-  .cs-histbox{max-height:calc(var(--cs-pheight) - 210px); overflow-y:auto; margin-top:14px;
+  .cs-histbox{margin-top:14px;
     padding-right:4px;}
   .cs-histbox::-webkit-scrollbar,.cs-panel::-webkit-scrollbar{width:8px;}
   .cs-histbox::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
@@ -1794,7 +1849,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     #roster-listview{--cs-cols:12; --cs-pheight:560px;}
     .cs-stage{grid-template-columns:minmax(0,1fr) minmax(0,1fr); justify-content:stretch;}
     .cs-portrait{grid-column:1 / -1; order:-1; margin-bottom:6px;}
-    .cs-histbox{max-height:300px;}
+
   }
 
   /* ══ PHONE / SMALL TABLET — the three columns become a swipe deck ══
@@ -6485,9 +6540,18 @@ async function loadRoster(){
     const rest   = activeFirst(sortRanked(rows.filter(p=>!p.is_champion)), isInactiveWrestler);
     // champion is rank 1, then ranked order follows (inactives at the bottom)
     const ordered = [...champs, ...rest];
+    let slotN = 0;
     ordered.forEach((p,i)=>{
       DIV_MEMBERS[d].add(p.name);
-      (RANK_BY_NAME[p.name]=RANK_BY_NAME[p.name]||[]).push({division:d, rank:i+1, champ:!!p.is_champion});
+      const inactive = !p.is_champion && isInactiveWrestler(p.name);
+      // `slot` is the number the Rankings page prints (champion sits above #1,
+      // inactive competitors get no number). The record fields feed the
+      // record card above each competitor's match history.
+      (RANK_BY_NAME[p.name]=RANK_BY_NAME[p.name]||[]).push({division:d, rank:i+1, champ:!!p.is_champion,
+        slot: (p.is_champion || inactive) ? 0 : (++slotN), inactive,
+        wins:+p.wins||0, losses:+p.losses||0, draws:+p.draws||0, no_wins:+p.no_wins||0,
+        win_pct:+p.win_pct||0, contender_points:+p.contender_points||0,
+        ready:!!p.is_ready_contender, last5:p.seed_last5||''});
     });
   }
 
@@ -6965,9 +7029,11 @@ function last5HTML(s){
 function rankHTML(name){
   const arr=(RANK_BY_NAME[name]||[]).slice().sort((a,b)=>a.division.localeCompare(b.division));
   if(!arr.length) return '';
+  // same numbering as the Rankings page: the champion sits above #1
   const chips=arr.map(r=>{
-    const star = r.champ ? '<i class="ti ti-trophy" style="font-size:12px"></i> ' : '';
-    return `<span class="rankchip">${star}#${r.rank} · ${esc(r.division)}</span>`;
+    if(r.champ) return `<span class="rankchip"><i class="ti ti-trophy" style="font-size:12px"></i> Champion · ${esc(r.division)}</span>`;
+    if(r.inactive) return `<span class="rankchip">Inactive · ${esc(r.division)}</span>`;
+    return `<span class="rankchip">#${r.slot||r.rank} · ${esc(r.division)}</span>`;
   }).join('');
   return `<div class="pf-ranks">${chips}</div>`;
 }
@@ -6976,10 +7042,122 @@ function rankHTML(name){
 // recorded live through the Results Engine. A match only appears once a
 // winner has been saved for it.
 const MH_CACHE = {};
+
+/* ===== RECORD CARD (sits above the match history) =====
+   Big Wins / Losses / Draws / No Wins numbers for one division at a time,
+   with arrows and chips to cycle through every division the competitor is
+   ranked in, plus their stable's record if they're in one. Numbers come
+   from the same views the Rankings page reads, so the two always agree. */
+const RC_STATE = {};   // hostId -> { name, list, idx }
+function rcNorm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+function rcRecordsFor(name){
+  const order = { Mens:0, Womens:1, Undisputed:2 };
+  const list = (RANK_BY_NAME[name]||[]).slice()
+    .sort((a,b)=>((order[a.division]??9)-(order[b.division]??9)))
+    .map(r=>Object.assign({ kind:'div', label:r.division+' Division', short:r.division }, r));
+  // their stable's record, if they're in one
+  const key = rcNorm(name);
+  (typeof FACTIONS!=='undefined' ? FACTIONS : []).forEach(f=>{
+    const inIt = (f.members||[]).some(m=>{
+      if(rcNorm(m)===key) return true;
+      const w = (typeof wrestlerByName==='function') ? wrestlerByName(m) : null;
+      return !!(w && w.name===name);
+    });
+    if(!inIt) return;
+    const fk = rcNorm(f.name);
+    const champ = (typeof CHAMP_DIVS_BY_NAME!=='undefined' && (CHAMP_DIVS_BY_NAME[fk]||[]).includes('Faction'));
+    list.push({ kind:'faction', label:f.name, short:f.name, division:'Faction', champ,
+      slot:0, inactive:false,
+      wins:+f.wins||0, losses:+f.losses||0, draws:+f.draws||0, no_wins:+f.no_wins||0,
+      win_pct:+f.win_pct||0, contender_points:+f.contender_points||0,
+      ready:!!f.is_ready_contender, last5:f.seed_last5||'' });
+  });
+  return list;
+}
+// open on the title they hold, otherwise the division they've wrestled most in
+function rcDefaultIdx(list){
+  let best = 0, bestScore = -1;
+  list.forEach((r,i)=>{
+    const total = r.wins+r.losses+r.draws+r.no_wins;
+    const score = (r.champ ? 1e6 : 0) + (r.kind==='faction' || r.division==='Undisputed' ? 0 : 1e3) + total;
+    if(score > bestScore){ bestScore = score; best = i; }
+  });
+  return best;
+}
+function rcCardHTML(hostId){
+  const st = RC_STATE[hostId];
+  if(!st) return '';
+  const list = st.list;
+  if(!list.length){
+    return `<div class="rc-card" id="rc-${hostId}"><div class="rc-empty">
+      <i class="ti ti-chart-bar"></i> No division record yet. Their numbers show up here after their first ranked match.</div></div>`;
+  }
+  const r = list[st.idx];
+  const multi = list.length > 1;
+  const nav = (dir, icon, label)=> multi
+    ? `<button class="rc-nav" type="button" aria-label="${label}" onclick="rcCycle('${hostId}',${dir})"><i class="ti ${icon}"></i></button>`
+    : '<span class="rc-nav-spacer"></span>';
+  let standing;
+  if(r.champ)           standing = `<span class="rc-badge champ"><i class="ti ti-crown"></i> Champion</span>`;
+  else if(r.inactive)   standing = `<span class="rc-badge">Inactive</span>`;
+  else if(r.kind==='faction') standing = `<span class="rc-badge"><i class="ti ti-users-group"></i> Stable record</span>`;
+  else if(r.slot)       standing = `<span class="rc-badge">#${r.slot} in ${esc(r.short)}</span>`;
+  else                  standing = `<span class="rc-badge">Unranked</span>`;
+  let points;
+  if(r.champ){
+    points = `<div class="rc-pts"><span class="rc-lbl">Contender points</span><span class="rc-pts-note">Champion. Defends the title.</span></div>`;
+  } else {
+    const n = Math.max(0, Math.min(3, r.contender_points||0));
+    points = `<div class="rc-pts"><span class="rc-lbl">Contender points</span>
+      <span class="rc-pts-row">${dots(n)}<span class="rc-pts-note">${r.ready ? '<b>#1 Contender</b>, title shot earned' : n+' of 3'}</span></span></div>`;
+  }
+  const chips = multi
+    ? `<div class="rc-chips">${list.map((x,i)=>`<button type="button" class="rc-chip${i===st.idx?' on':''}"
+         onclick="rcPick('${hostId}',${i})">${x.champ?'<i class="ti ti-crown"></i> ':''}${esc(x.short)}</button>`).join('')}</div>` : '';
+  const l5 = r.last5 ? `<div class="rc-l5"><span class="rc-lbl">Last 5</span>${last5Mini(r.last5)}</div>` : '';
+  return `<div class="rc-card" id="rc-${hostId}">
+    <div class="rc-head">
+      ${nav(-1,'ti-chevron-left','Previous division')}
+      <div class="rc-title"><span class="rc-kicker">Record${multi?` · ${st.idx+1} of ${list.length}`:''}</span>
+        <b>${esc(r.label)}</b>${standing}</div>
+      ${nav(1,'ti-chevron-right','Next division')}
+    </div>
+    ${chips}
+    <div class="rc-nums">
+      <div class="rc-num w"><b>${r.wins}</b><span>Wins</span></div>
+      <div class="rc-num l"><b>${r.losses}</b><span>Losses</span></div>
+      <div class="rc-num d"><b>${r.draws}</b><span>Draws</span></div>
+      <div class="rc-num nw"><b>${r.no_wins}</b><span>No Wins</span></div>
+    </div>
+    <div class="rc-foot">
+      <div class="rc-pct"><span class="rc-lbl">Win rate</span><b>${Math.round((r.win_pct||0)*100)}%</b></div>
+      ${points}
+      ${l5}
+    </div>
+  </div>`;
+}
+function rcRender(hostId){
+  const el = document.getElementById('rc-'+hostId);
+  if(el) el.outerHTML = rcCardHTML(hostId);
+}
+function rcCycle(hostId, dir){
+  const st = RC_STATE[hostId]; if(!st || !st.list.length) return;
+  st.idx = (st.idx + dir + st.list.length) % st.list.length;
+  rcRender(hostId);
+}
+function rcPick(hostId, i){
+  const st = RC_STATE[hostId]; if(!st) return;
+  st.idx = i; rcRender(hostId);
+}
+
 async function renderWrestlerHistory(name, hostId){
   const host=document.getElementById(hostId);
   if(!host) return;
-  host.innerHTML = '<div class="pf-empty" style="margin-top:12px">Loading match history…</div>';
+  // the record card goes up first, so it shows even while history loads
+  const recList = rcRecordsFor(name);
+  RC_STATE[hostId] = { name, list:recList, idx: rcDefaultIdx(recList) };
+  const card = rcCardHTML(hostId);
+  host.innerHTML = card + '<div class="pf-empty" style="margin-top:12px">Loading match history…</div>';
   let rows = MH_CACHE[name];
   if(!rows){
     try{
@@ -6989,14 +7167,14 @@ async function renderWrestlerHistory(name, hostId){
       if(error) throw error;
       rows = data||[];
       MH_CACHE[name]=rows;
-    }catch(e){ host.innerHTML=''; return; } // history view not installed yet — hide quietly
+    }catch(e){ host.innerHTML=card; return; } // history view not installed yet — keep just the record
   }
   // guard against a stale async fill after the user clicked another wrestler
   if(hostId==='cs-history' && typeof CS_SELECTED!=='undefined' && CS_SELECTED && CS_SELECTED!==name) return;
   if(hostId==='sm-history' && typeof smCurrentName==='function' && smCurrentName() && smCurrentName()!==name) return;
   if(!rows.length){
-    host.innerHTML = `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
-      <div class="pf-empty">No recorded matches on file for them yet — matches appear here once a winner is saved for them.</div></div>`;
+    host.innerHTML = card + `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
+      <div class="pf-empty">No recorded matches on file for them yet. Matches appear here once a winner is saved for them.</div></div>`;
     return;
   }
   const legend = `<details class="mh-legend"><summary>How to read this</summary>
@@ -7024,9 +7202,10 @@ async function renderWrestlerHistory(name, hostId){
     }).join('');
     return `<div class="mh-div"><div class="mh-divname">${esc(dv)} Division</div>${list}</div>`;
   }).join('');
-  host.innerHTML = `<div class="mh-wrap">
-    <div class="mh-title"><i class="ti ti-history"></i> Match History</div>
-    ${legend}${secs}</div>`;
+  host.innerHTML = card + `<div class="mh-wrap">
+    <div class="mh-title"><i class="ti ti-history"></i> Match History
+      <span class="mh-count">${rows.length} match${rows.length===1?'':'es'}</span></div>
+    ${legend}<div class="mh-scroll">${secs}</div></div>`;
 }
 // Everyone in the match EXCEPT the wrestler's own side.
 function mhOpponents(r){
