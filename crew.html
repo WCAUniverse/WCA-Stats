@@ -7,203 +7,542 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <!--
-  WCA CREW DESK
-  Upload this file next to index.html in the WCA-Stats repo.
-  Guests sign in with Discord, ask for access, and you approve them here
-  (signed in as admin). Approved crew see the rundown, the betting, every
-  sponsor read and your messages, and can send you cues. Nothing here can
-  change bets, points or what is on screen.
+  WCA CREW DESK  (upload next to index.html in the WCA-Stats repo)
+  Approved crew can browse tonight's card with talking points for every
+  match and person, look anyone up on the roster, practice every sponsor
+  read, follow the show live and message the host.
+  Nothing here can change bets, points or what is on screen.
 -->
 <style>
-  :root{--bg:#0B0B0D;--panel:#141416;--panel2:#1B1B1E;--line:#2A2A2E;--gold:#E9B949;--gold2:#F6D579;--txt:#F2F2F0;--muted:#8A8A86;--ok:#3ECF8E;--bad:#E24B4A;--cue:#F08A4B;--ph:#7AA7FF}
+  /* every color comes from four base colors, so each crew member can pick their own look (MY LOOK) */
+  :root{--gold:#E9B949;--acc2:#E9B949;--bg:#0B0B0D;--txt:#F2F2F0;--onacc:#1a1407;--fz:15px;
+    --gold2:color-mix(in srgb,var(--gold) 62%,#fff);
+    --panel:color-mix(in srgb,var(--txt) 5%,var(--bg));--panel2:color-mix(in srgb,var(--txt) 8%,var(--bg));
+    --line:color-mix(in srgb,var(--txt) 15%,var(--bg));--line2:color-mix(in srgb,var(--txt) 9%,var(--bg));
+    --muted:color-mix(in srgb,var(--txt) 55%,var(--bg));--soft:color-mix(in srgb,var(--txt) 84%,var(--bg));
+    --field:color-mix(in srgb,var(--txt) 3%,var(--bg));--sel:color-mix(in srgb,var(--gold) 13%,var(--panel));
+    --hdr:color-mix(in srgb,var(--bg) 94%,transparent);
+    --ok:#3ECF8E;--okt:#9ff0c6;--bad:#E24B4A;--badt:#ffb3b3;--cue:#F08A4B;--cuet:#ffc49a;--ph:#7AA7FF}
+  :root.light{--gold2:color-mix(in srgb,var(--gold) 70%,#000);--okt:#137a48;--badt:#a3201f;--cuet:#a8521c;--ph:#2b5fd1}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:radial-gradient(900px 500px at 85% -10%,rgba(233,185,73,.08),transparent 60%),var(--bg);color:var(--txt);font:15px/1.45 'Barlow',system-ui,sans-serif;min-height:100vh}
+  body{background:radial-gradient(900px 500px at 85% -10%,color-mix(in srgb,var(--gold) 9%,transparent),transparent 60%),var(--bg);color:var(--txt);font:var(--fz)/1.45 'Barlow',system-ui,sans-serif;min-height:100vh}
   button,input,textarea,select{font:inherit;color:inherit}
   button{cursor:pointer}
-  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid rgba(233,185,73,.34)}
-  header h1{font:700 22px 'Oswald',sans-serif;letter-spacing:2px;color:var(--gold)}
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid color-mix(in srgb,var(--gold) 34%,transparent);background:var(--hdr);backdrop-filter:blur(8px)}
+  header h1{font:700 22px 'Oswald',sans-serif;letter-spacing:2px;background:linear-gradient(90deg,var(--gold),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
   .chip{display:flex;align-items:center;gap:8px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
   .dot.ok{background:var(--ok)}
+  nav{display:flex;gap:4px;flex-wrap:wrap}
+  nav button{position:relative;padding:8px 14px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:700 14px 'Barlow Condensed';letter-spacing:2.5px}
+  nav button.on{background:var(--panel2);color:var(--gold2)}
+  nav .bd{position:absolute;top:1px;right:1px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--cue);color:#111;font:700 11px 'Barlow';letter-spacing:0;display:none;align-items:center;justify-content:center}
+  nav .bd.show{display:flex}
   .spacer{flex:1}
   .me{display:flex;align-items:center;gap:8px;font-size:14px}
   .me img{width:28px;height:28px;border-radius:50%}
   .btn{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:14px}
-  .btn.gold{background:linear-gradient(180deg,#f7df8e,var(--gold));color:#1a1407;border-color:var(--gold);font-weight:600}
-  .btn.red{border-color:#5a2626;color:#ffb3b3;background:#1a1012}
+  .btn.gold{background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 70%,#fff),var(--gold) 55%,var(--acc2));color:var(--onacc);border-color:var(--gold);font-weight:600}
+  .btn.red{border-color:color-mix(in srgb,var(--bad) 45%,var(--bg));color:var(--badt);background:color-mix(in srgb,var(--bad) 8%,var(--bg))}
   .btn.sm{padding:5px 10px;font-size:12.5px}
+  .f{background:var(--field);border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%}
   .gate{max-width:520px;margin:80px auto;padding:28px;background:var(--panel);border:1px solid var(--line);border-radius:14px;text-align:center}
   .gate h2{font:600 24px 'Oswald',sans-serif;letter-spacing:2px;color:var(--gold);margin-bottom:10px}
-  .gate p{color:#c9c9c4;margin-bottom:16px}
-  main{display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,1.15fr) minmax(320px,1.35fr);gap:16px;padding:16px 20px 40px}
-  @media (max-width:1150px){ main{grid-template-columns:1fr} }
+  .gate p{color:var(--soft);margin-bottom:16px}
+  .page{display:none;padding:16px 20px 40px}
+  .page.on{display:block}
+  .cols{display:grid;gap:16px;grid-template-columns:minmax(280px,1fr) minmax(320px,1.2fr)}
+  .cols3{display:grid;gap:16px;grid-template-columns:minmax(260px,1fr) minmax(300px,1.1fr) minmax(300px,1.15fr);align-items:start}
+  @media (max-width:1250px){ .cols3{grid-template-columns:minmax(260px,1fr) minmax(300px,1.2fr)} .cols3 > :last-child{grid-column:1 / -1} }
+  @media (max-width:1000px){ .cols,.cols3{grid-template-columns:1fr} }
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px}
   h3{font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:3px;color:var(--muted);margin-bottom:10px}
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);padding:10px 0}
+  .lb{font:700 11.5px 'Barlow Condensed';letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+  .ck{color:var(--ok);font-weight:700}
+  .tag{display:inline-block;font:700 10.5px 'Barlow Condensed';letter-spacing:2px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);vertical-align:2px}
+  .tag.gold{border-color:var(--gold);color:var(--gold2)}
+  .tag.ok{border-color:var(--ok);color:var(--okt)}
+  .pips{display:inline-flex;gap:4px;vertical-align:-1px}
+  .pips i{width:11px;height:11px;border-radius:50%;border:2px solid var(--soft)}
+  .pips i.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 6px color-mix(in srgb,var(--gold) 70%,transparent)}
+  /* show */
   .rd{display:flex;flex-direction:column;gap:6px}
   .seg{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;background:var(--panel2);border:1px solid var(--line)}
   .seg .n{flex:0 0 22px;color:var(--muted);font:700 13px 'Barlow Condensed'}
   .seg .t{flex:1;min-width:0}
-  .seg .l{font:700 11.5px 'Barlow Condensed';letter-spacing:2px;color:var(--gold);text-transform:uppercase}
   .seg .m{font:500 16px 'Oswald',sans-serif}
-  .seg.cur{background:#1F1D16;border-color:var(--gold)}
+  .seg.cur{background:var(--sel);border-color:var(--gold)}
   .seg.cur .n{color:var(--gold)}
   .seg.done{opacity:.5}
-  .seg .ck{color:var(--ok);font-weight:700}
   .now{font:600 26px 'Oswald',sans-serif;line-height:1.15}
   .nowl{font:700 13px 'Barlow Condensed';letter-spacing:3px;color:var(--gold);margin-bottom:4px}
-  .opts{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-  .opt{display:flex;align-items:center;gap:10px}
-  .opt .nm{flex:1;font:500 16px 'Oswald',sans-serif}
-  .opt .bar{flex:1.4;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
-  .opt .bar i{display:block;height:100%;background:var(--gold)}
+  .opt{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .opt .nm{flex:1;min-width:0;font:500 16px 'Oswald',sans-serif}
+  .opt .nm small{display:block;font:500 12px 'Barlow';color:var(--muted)}
+  .opt .bar{flex:1.3;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+  .opt .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--acc2))}
   .opt .pc{width:44px;text-align:right;font:600 15px 'Oswald'}
-  .state{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11px 'Barlow Condensed';letter-spacing:2px;background:var(--panel2);border:1px solid var(--line)}
-  .state.OPEN{background:#163222;border-color:var(--ok);color:#9ff0c6}
-  .state.CLOSED{background:#2a2410;border-color:var(--gold);color:var(--gold2)}
-  .msg{padding:12px 14px;border-radius:10px;background:#1F1D16;border:1px solid var(--gold);font-size:16px}
+  .opt.win .nm{color:var(--okt)}
+  .state{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11px 'Barlow Condensed';letter-spacing:2px;border:1px solid var(--line)}
+  .state.OPEN{background:color-mix(in srgb,var(--ok) 14%,var(--bg));border-color:var(--ok);color:var(--okt)}
+  .state.CLOSED,.state.SETTLED{background:var(--sel);border-color:var(--gold);color:var(--gold2)}
+  .betq{margin:8px 0 2px;font:600 18px 'Oswald'}
+  .betsum{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:10px}
+  .betsum b{color:var(--txt);font:600 15px 'Oswald'}
+  .tp{margin:10px 0 0;padding:10px 12px;border-radius:9px;background:var(--sel);border:1px solid color-mix(in srgb,var(--gold) 35%,transparent);font-size:14px}
+  .tp li{margin:2px 0 2px 16px}
+  .whobet{display:grid;gap:10px 26px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .wb h4{font:700 12px 'Barlow Condensed';letter-spacing:2px;color:var(--gold);margin-bottom:4px;text-transform:uppercase}
+  .wb h4 span{color:var(--muted);letter-spacing:1px}
+  .wbr{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line2);font-size:14px}
+  .wbr b{font:600 14px 'Oswald';white-space:nowrap}
+  .wbr.new{animation:fresh 2.5s ease-out}
+  @keyframes fresh{0%{background:color-mix(in srgb,var(--gold) 30%,transparent)}100%{background:transparent}}
+  .lbrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line2);font-size:14px}
+  .lbrow:first-child{border-top:0}
+  .lbrow .r{width:22px;font:700 14px 'Oswald';color:var(--muted)}
+  .lbrow:nth-child(1) .r{color:var(--gold)}
+  .lbrow .n{flex:1;min-width:0;font:500 15px 'Oswald'}
+  .lbrow .v{font:600 15px 'Oswald'}
+  .lbrow .s{width:52px;text-align:right;color:var(--muted);font-size:12.5px}
   .cues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .cue{padding:16px 10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font:700 17px 'Oswald',sans-serif;letter-spacing:1.5px}
-  .cue.ready{border-color:var(--ok);color:#9ff0c6}
-  .cue.wrap{border-color:var(--cue);color:#ffc49a}
+  .cue{padding:14px 10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font:700 16px 'Oswald',sans-serif;letter-spacing:1.5px}
+  .cue.ready{border-color:var(--ok);color:var(--okt)}
+  .cue.wrap{border-color:var(--cue);color:var(--cuet)}
   .cue:active{transform:scale(.98)}
-  .row{display:flex;gap:8px;margin-top:10px}
-  .row input{flex:1;background:#0B0C10;border:1px solid var(--line);border-radius:9px;padding:9px 11px}
-  .hist{display:flex;flex-direction:column;gap:4px;margin-top:10px;max-height:180px;overflow:auto;font-size:13px;color:#c9c9c4}
-  .hist b{color:var(--txt)}
-  .sps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-  .sps button{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-size:12.5px}
-  .sps button.on{border-color:var(--gold);background:#1F1D16;color:var(--gold2)}
-  .sps button.live::after{content:' ●';color:var(--bad)}
-  .reads{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-  .reads button{padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);font-size:13px}
-  .reads button.on{border-color:var(--gold);color:var(--gold2)}
-  .script{font-size:21px;line-height:1.55;font-weight:600;white-space:pre-wrap;max-height:56vh;overflow:auto;padding-right:6px}
-  .script .c{color:var(--cue);font-style:italic;font-weight:700;font-size:.82em}
-  .script .p{color:var(--ph);font-weight:800}
-  .opener{color:var(--muted);font-style:italic;margin-bottom:10px}
-  .sub{margin-top:14px}
+  /* card + people */
+  .split{display:grid;gap:16px;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);align-items:start}
+  @media (max-width:1100px){ .split{grid-template-columns:1fr} }
+  .evbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .evbar select{max-width:420px}
+  .match{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .match.main{border-color:var(--gold);background:linear-gradient(180deg,var(--sel),var(--panel))}
+  .match .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .match .ty{font-size:12.5px;color:var(--muted)}
+  .sides{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+  .side{flex:1;min-width:130px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:8px;border-radius:10px;border:1px solid transparent;background:none}
+  .side:hover{border-color:var(--line);background:var(--panel2)}
+  .side.sel{border-color:var(--gold);background:var(--sel)}
+  .faces{display:flex;gap:4px;justify-content:center}
+  .face{width:58px;height:58px;border-radius:8px;background:var(--panel2) center 18%/cover no-repeat;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 18px 'Oswald';color:var(--muted)}
+  .side .nm{font:600 17px 'Oswald',sans-serif;line-height:1.15}
+  .side .st{font-size:12.5px;color:var(--soft)}
+  .vs{align-self:center;font:700 13px 'Barlow Condensed';color:var(--gold);letter-spacing:2px}
+  .tps{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:14px;color:var(--soft)}
+  .tps li{margin:3px 0 3px 18px}
+  .who{position:sticky;top:78px}
+  .who .hero{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+  .who .pic{width:96px;height:96px;border-radius:10px;background:var(--panel2) center 18%/cover no-repeat;border:1px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font:700 30px 'Oswald';color:var(--muted)}
+  .who h2{font:700 26px 'Oswald',sans-serif;line-height:1.1}
+  .who .nick{color:var(--gold2);font-style:italic}
+  .facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+  .fact{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .fact .k{font:700 10.5px 'Barlow Condensed';letter-spacing:2px;color:var(--muted)}
+  .fact .v{font:600 17px 'Oswald'}
+  .divrow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--line2);font-size:14px}
+  .form{display:inline-flex;gap:3px}
+  .form b{width:20px;height:20px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font:700 11px 'Oswald';background:var(--line)}
+  .form b.W{background:#1f5c3b;color:#bff3d6}.form b.L{background:#5c1f22;color:#ffc9c9}
+  .search{display:flex;gap:10px;margin-bottom:12px}
+  .roster{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+  .rp{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);text-align:left}
+  .rp.sel{border-color:var(--gold);background:var(--sel)}
+  .rp .face{width:44px;height:44px;font-size:14px}
+  .rp .nm{font:600 15px 'Oswald'}
+  .rp .st{font-size:12px;color:var(--muted)}
+  /* ad reads */
+  .reader{display:grid;gap:16px;grid-template-columns:260px minmax(0,1fr);align-items:start}
+  @media (max-width:900px){ .reader{grid-template-columns:1fr} }
+  .splist{display:flex;flex-direction:column;gap:6px}
+  .sp{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);text-align:left}
+  .sp.on{border-color:var(--gold);background:var(--sel)}
+  .sp img{width:44px;height:44px;object-fit:contain;flex-shrink:0}
+  .sp .ph{width:44px;height:44px;border-radius:6px;background:var(--line);flex-shrink:0}
+  .sp .nm{flex:1;min-width:0;font:600 15px 'Oswald'}
+  .sp .rc{font-size:11.5px;color:var(--muted);font-family:'Barlow'}
+  .sp .live{font:700 10px 'Barlow Condensed';letter-spacing:1.5px;color:#fff;background:var(--bad);padding:1px 6px;border-radius:4px}
+  .readcard{display:grid;gap:22px;grid-template-columns:minmax(0,1fr) clamp(240px,24vw,400px);align-items:start}
+  .rmain{min-width:0}
+  .raside{position:sticky;top:78px}
+  @media (max-width:1100px){ .readcard{grid-template-columns:1fr} .raside{position:static;order:-1;display:flex;gap:12px;align-items:flex-start} .raside .logo{flex:0 0 clamp(150px,30vw,220px);width:auto} .raside .thumbs{flex:1;margin-top:0;grid-template-columns:repeat(auto-fill,minmax(70px,90px))} }
+  .logo{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;width:100%;border-radius:14px;background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--gold) 12%,transparent),transparent 70%),var(--field);border:1px solid var(--line);overflow:hidden}
+  .logo img{width:92%;height:92%;object-fit:contain}
+  .thumbs{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));margin-top:10px}
+  .thumbs:empty{display:none}
+  .thumbs button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:11.5px;line-height:1.2;text-align:center}
+  .thumbs button.on{border-color:var(--gold);color:var(--gold2)}
+  .thumbs img{width:100%;aspect-ratio:1/1;object-fit:contain}
+  .script mark{background:color-mix(in srgb,var(--gold) 28%,transparent);color:inherit;border-radius:3px;padding:0 2px}
+  .rhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .rhead h2{font:700 28px 'Oswald',sans-serif;letter-spacing:1px}
+  .reads{display:flex;gap:6px;flex-wrap:wrap}
+  .reads button{padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);font:600 14px 'Barlow'}
+  .reads button.on{border-color:var(--gold);color:var(--gold2);background:var(--sel)}
+  .timer{display:flex;align-items:center;gap:10px;margin-left:auto}
+  .clock{font:700 34px 'Oswald';min-width:96px;text-align:right}
+  .clock.near{color:#e0a930}.clock.over{color:#ff6b6b}.clock.run{color:var(--ok)}
+  .opener{color:var(--muted);font-style:italic;margin:12px 0}
+  .script{font-size:var(--fs,22px);line-height:1.55;font-weight:600;white-space:pre-wrap}
+  .script .c{color:var(--cue);font-style:italic;font-weight:700;font-size:.8em}
+  .script .p,.toss .p{color:var(--ph);font-weight:800}
+  .toss .c{color:var(--cue);font-style:italic}
+  .sub{margin-top:16px}
   .sub h4{font:700 11px 'Barlow Condensed';letter-spacing:2.5px;color:var(--muted);margin-bottom:6px}
-  .toss div{background:var(--panel2);border-left:4px solid #2f9e52;border-radius:4px;padding:7px 11px;margin-bottom:5px;font-size:15px}
-  .muted{color:var(--muted)}
-  .follow{display:flex;align-items:center;gap:8px;font-size:13px;color:#c9c9c4;margin-left:auto}
-  .admin{grid-column:1/-1}
-  .mem{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #222226}
-  .mem:first-of-type{border-top:0}
-  .mem img{width:30px;height:30px;border-radius:50%}
-  .mem .who{flex:1}
-  .tag{font:700 10.5px 'Barlow Condensed';letter-spacing:2px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
-  .tag.ok{border-color:var(--ok);color:#9ff0c6}
-  .tag.wait{border-color:var(--gold);color:var(--gold2)}
-  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1D1D20;border:1px solid var(--gold);padding:9px 18px;border-radius:9px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toss div{background:var(--panel2);border-left:4px solid #2f9e52;border-radius:4px;padding:7px 11px;margin-bottom:5px}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .follow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--soft)}
+  .navbtns{display:flex;gap:8px;margin-top:14px}
+  /* messages: fills the screen */
+  .msgwrap{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 300px;height:calc(100vh - 100px);min-height:460px}
+  @media (max-width:900px){ .msgwrap{grid-template-columns:1fr;height:auto} }
+  .msgmain{display:flex;flex-direction:column;margin:0;min-height:0}
+  .thread{flex:1;min-height:240px;display:flex;flex-direction:column;gap:10px;overflow:auto;padding:6px 4px;font-size:16px}
+  @media (max-width:900px){ .thread{height:60vh;flex:none} }
+  .bub{max-width:72%;padding:10px 14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+  .bub .w{font:700 11.5px 'Barlow Condensed';letter-spacing:1.5px;color:var(--muted);margin-bottom:2px}
+  .bub .k{font:700 17px 'Oswald';letter-spacing:1px}
+  .bub.host{border-color:var(--gold);background:var(--sel)}
+  .bub.host .w{color:var(--gold)}
+  .bub.mine{align-self:flex-end;background:color-mix(in srgb,var(--ph) 13%,var(--bg));border-color:color-mix(in srgb,var(--ph) 40%,var(--bg))}
+  .send{display:flex;gap:8px;margin-top:12px}
+  .send .f{font-size:16px;padding:12px 14px}
+  .msgside{display:flex;flex-direction:column;gap:16px;min-height:0;overflow:auto}
+  .msgside .card{margin:0}
+  .msgside .cues{grid-template-columns:1fr}
+  .quick{display:flex;flex-direction:column;gap:6px}
+  .quick button{text-align:left;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:14px}
+  .quick button:hover{border-color:var(--gold)}
+  /* my look */
+  .looks{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:6px}
+  .lk{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;border:2px solid transparent;text-align:left;font:600 14px 'Oswald';letter-spacing:.5px}
+  .lk.on{outline:2px solid var(--txt);outline-offset:2px}
+  .lk .sw{height:30px;border-radius:6px}
+  .lkgrp{font:700 12px 'Barlow Condensed';letter-spacing:3px;color:var(--muted);margin:14px 0 8px}
+  .colors{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .colors label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--soft)}
+  .colors input[type=color]{width:100%;height:40px;border:1px solid var(--line);border-radius:8px;background:var(--field);padding:3px}
+  .prev{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+  #pop{position:fixed;left:50%;top:74px;transform:translate(-50%,-30px);opacity:0;pointer-events:none;z-index:50;min-width:340px;max-width:90vw;padding:14px 20px;border-radius:14px;
+    background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 18%,var(--bg)),color-mix(in srgb,var(--gold) 8%,var(--bg)));border:2px solid var(--gold);box-shadow:0 20px 60px rgba(0,0,0,.6);transition:all .35s cubic-bezier(.2,.85,.25,1);cursor:pointer}
+  #pop.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  #pop .w{font:700 12px 'Barlow Condensed';letter-spacing:2.5px;color:var(--gold)}
+  #pop .t{font:700 24px 'Oswald';letter-spacing:1px}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);padding:9px 18px;border-radius:9px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60}
   #toast.show{opacity:1}
+  .mem2{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line2)}
+  .mem2:first-of-type{border-top:0}
+  .mem2 img{width:30px;height:30px;border-radius:50%}
 </style>
 </head>
 <body>
 <header>
   <h1>WCA CREW DESK</h1>
   <span class="chip"><span class="dot" id="liveDot"></span><span id="liveTxt">Connecting…</span></span>
-  <span class="chip" id="showChip" style="display:none"></span>
+  <nav id="nav" style="display:none">
+    <button data-p="show" class="on">SHOW</button>
+    <button data-p="card">CARD</button>
+    <button data-p="roster">ROSTER</button>
+    <button data-p="reads">AD READS</button>
+    <button data-p="msgs">MESSAGES<span class="bd" id="msgBadge"></span></button>
+    <button data-p="look">MY LOOK</button>
+    <button data-p="admin" id="navAdmin" style="display:none">CREW</button>
+  </nav>
   <span class="spacer"></span>
   <span class="me" id="me"></span>
 </header>
 
 <div id="gate" class="gate" style="display:none"></div>
 
-<main id="desk" style="display:none">
-  <section>
-    <div class="card">
-      <h3>TONIGHT'S RUNDOWN</h3>
-      <div class="rd" id="rd"></div>
+<!-- ============ SHOW ============ -->
+<div class="page on" id="p-show">
+  <div class="cols3">
+    <div>
+      <div class="card"><h3 id="rdTitle">TONIGHT'S RUNDOWN</h3><div class="rd" id="rd"></div></div>
+      <div class="card"><h3>NOTES FROM THE HOST</h3><div id="notes" class="muted" style="white-space:pre-wrap">No notes yet.</div></div>
     </div>
-    <div class="card">
-      <h3>NOTES FROM THE HOST</h3>
-      <div id="notes" class="muted" style="white-space:pre-wrap">No notes yet.</div>
-    </div>
-  </section>
-
-  <section>
-    <div class="card">
-      <h3>RIGHT NOW</h3>
-      <div class="nowl" id="nowLabel">WAITING FOR THE SHOW</div>
-      <div class="now" id="nowText">The host has not published tonight's show yet.</div>
-      <div id="msgBox" style="margin-top:12px;display:none"><h3 style="margin-bottom:6px">MESSAGE FROM THE HOST</h3><div class="msg" id="msg"></div></div>
-    </div>
-    <div class="card">
-      <h3>BETTING</h3>
-      <div id="bet" class="muted">No betting open.</div>
-    </div>
-    <div class="card">
-      <h3>CUE THE HOST</h3>
-      <div class="cues">
-        <button class="cue ready" data-cue="READY">READY</button>
-        <button class="cue wrap" data-cue="WRAP IT UP">WRAP IT UP</button>
-        <button class="cue" data-cue="SEGMENT DONE">SEGMENT DONE</button>
-        <button class="cue" data-cue="READ DONE">READ DONE</button>
+    <div>
+      <div class="card">
+        <h3>RIGHT NOW</h3>
+        <div class="nowl" id="nowLabel">WAITING FOR THE SHOW</div>
+        <div class="now" id="nowText">The host hasn't gone live yet. Use CARD, ROSTER and AD READS to get ready.</div>
+        <div id="nowMore" style="margin-top:12px"></div>
       </div>
-      <div class="row"><input id="noteIn" maxlength="200" placeholder="Type a message for the host"><button class="btn gold" id="noteSend">Send</button></div>
-      <div class="hist" id="hist"></div>
+      <div class="card">
+        <h3>CUE THE HOST</h3>
+        <div class="cues">
+          <button class="cue ready" data-cue="READY">READY</button>
+          <button class="cue wrap" data-cue="WRAP IT UP">WRAP IT UP</button>
+          <button class="cue" data-cue="SEGMENT DONE">SEGMENT DONE</button>
+          <button class="cue" data-cue="READ DONE">READ DONE</button>
+        </div>
+      </div>
+      <div class="card"><h3 id="lbTitle">BETTING STANDINGS</h3><div id="lb" class="muted">Standings show up once the host's betting dashboard is running.</div></div>
     </div>
-  </section>
+    <div>
+      <div class="card"><h3>BETTING</h3><div id="bet" class="muted">No betting open.</div></div>
+      <div class="card"><h3 id="whoTitle">WHO BET</h3><div id="who" class="muted">Bets show up here as chat places them.</div></div>
+    </div>
+  </div>
+</div>
 
-  <section>
-    <div class="card">
-      <div style="display:flex;align-items:center;margin-bottom:10px"><h3 style="margin:0">AD READS</h3>
+<!-- ============ CARD ============ -->
+<div class="page" id="p-card">
+  <div class="evbar"><select class="f" id="evSel"><option>Loading events…</option></select><span class="muted" id="evInfo"></span></div>
+  <div class="split">
+    <div id="matches"></div>
+    <div class="card who" id="whoCard"><div class="empty">Click anyone on the card to see their talking points: record, contender points, rank, finishers and more.</div></div>
+  </div>
+</div>
+
+<!-- ============ ROSTER ============ -->
+<div class="page" id="p-roster">
+  <div class="split">
+    <div>
+      <div class="search"><input class="f" id="rq" placeholder="Search a wrestler or a faction"><select class="f" id="rdiv" style="max-width:200px"><option value="">Everyone</option></select></div>
+      <div class="roster" id="roster"></div>
+    </div>
+    <div class="card who" id="whoRoster"><div class="empty">Pick anyone to see their talking points.</div></div>
+  </div>
+</div>
+
+<!-- ============ AD READS ============ -->
+<div class="page" id="p-reads">
+  <div class="reader">
+    <div class="card" style="margin:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">SPONSORS</h3>
         <label class="follow"><input type="checkbox" id="follow" checked> Follow the host</label></div>
-      <div class="sps" id="sps"></div>
-      <div class="reads" id="reads"></div>
-      <div class="opener" id="opener"></div>
-      <div class="script" id="script"><span class="muted">Sponsor reads show up here once the host publishes the show.</span></div>
-      <div class="sub" id="tossBox" style="display:none"><h4>TOSS BACK LINES</h4><div class="toss" id="toss"></div></div>
-      <div class="sub" id="dnBox" style="display:none"><h4>DELIVERY NOTES</h4><div id="dn" class="muted" style="white-space:pre-wrap"></div></div>
+      <div class="splist" id="splist"></div>
     </div>
-  </section>
+    <div class="card readcard" style="margin:0">
+      <div class="rmain">
+        <div class="rhead" id="rhead"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="reads" id="readTabs"></div>
+          <div class="timer"><span class="clock" id="clock">0:00</span><button class="btn gold sm" id="tStart">Start</button><button class="btn sm" id="tReset">Reset</button></div>
+        </div>
+        <div class="opener" id="opener"></div>
+        <div class="script" id="script"></div>
+        <div class="sub" id="tossBox" style="display:none"><h4>TOSS BACK LINES</h4><div class="toss" id="toss"></div></div>
+        <div class="sub" id="dnBox" style="display:none"><h4>DELIVERY NOTES</h4><div id="dn" class="muted" style="white-space:pre-wrap"></div></div>
+        <div class="navbtns"><button class="btn" id="spPrev">◀ Previous sponsor</button><button class="btn" id="spNext">Next sponsor ▶</button></div>
+        <div class="tools"><span class="muted" style="font-size:13px">Text size</span><button class="btn sm" id="fsDown">A−</button><button class="btn sm" id="fsUp">A+</button>
+          <span class="muted" style="font-size:13px;margin-left:10px">The timer is for practice only. Nobody else sees it.</span></div>
+      </div>
+      <div class="raside">
+        <div class="logo" id="logo"></div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <section class="admin" id="adminBox" style="display:none">
-    <div class="card">
-      <h3>CREW MEMBERS (ONLY YOU SEE THIS)</h3>
-      <div id="members" class="muted">Loading…</div>
+<!-- ============ MESSAGES ============ -->
+<div class="page" id="p-msgs">
+  <div class="msgwrap">
+    <div class="card msgmain">
+      <h3>MESSAGES WITH THE HOST</h3>
+      <div class="thread" id="thread"></div>
+      <div class="send"><input class="f" id="noteIn" maxlength="300" placeholder="Message the host, then press Enter"><button class="btn gold" id="noteSend">Send</button></div>
     </div>
-    <div class="card">
-      <h3>SHOW KEY</h3>
-      <p class="muted" style="margin-bottom:8px">Your lower thirds control uses this key to publish the show here. Set it once, then type the same key in the lower thirds control under CREW. At least 8 characters. Don't share it.</p>
-      <div class="row" style="margin-top:0"><input id="keyIn" type="password" placeholder="New Show Key"><button class="btn gold" id="keySave">Save Key</button></div>
+    <div class="msgside">
+      <div class="card"><h3>CUES</h3>
+        <div class="cues">
+          <button class="cue ready" data-cue="READY">READY</button>
+          <button class="cue wrap" data-cue="WRAP IT UP">WRAP IT UP</button>
+          <button class="cue" data-cue="SEGMENT DONE">SEGMENT DONE</button>
+          <button class="cue" data-cue="READ DONE">READ DONE</button>
+        </div></div>
+      <div class="card"><h3>QUICK REPLIES</h3>
+        <div class="quick">
+          <button data-say="Got it">Got it</button>
+          <button data-say="Give me one minute">Give me one minute</button>
+          <button data-say="Ready when you are">Ready when you are</button>
+          <button data-say="Can you repeat that?">Can you repeat that?</button>
+          <button data-say="Mic check, can you hear me?">Mic check, can you hear me?</button>
+        </div></div>
+      <div class="card"><label class="follow"><input type="checkbox" id="chime" checked> Play a sound when the host messages me</label></div>
     </div>
-  </section>
-</main>
+  </div>
+</div>
+
+<!-- ============ MY LOOK ============ -->
+<div class="page" id="p-look">
+  <div class="cols">
+    <div class="card">
+      <h3>MY LOOK</h3>
+      <p class="muted" style="margin-bottom:6px">Pick the colors for your own Crew Desk. It's saved to your account, so it follows you to any computer. Nobody else sees it.</p>
+      <div id="looks"></div>
+    </div>
+    <div>
+      <div class="card"><h3>FINE TUNE</h3>
+        <div class="colors">
+          <label>Accent<input type="color" id="cAcc"></label>
+          <label>Accent 2 (for two color looks)<input type="color" id="cAcc2"></label>
+          <label>Background<input type="color" id="cBg"></label>
+          <label>Text<input type="color" id="cTxt"></label>
+        </div>
+        <label class="follow" style="margin-top:12px"><input type="checkbox" id="cGrad"> Two color accent</label>
+        <label class="follow" style="margin-top:12px;display:block">Page text size <span id="cFzV"></span><input type="range" id="cFz" min="13" max="19" step="1" style="width:100%"></label>
+        <div class="tools"><button class="btn" id="cReset">Back to Crew Desk Gold</button><span class="muted" id="lookStatus" style="font-size:13px"></span></div>
+      </div>
+      <div class="card"><h3>PREVIEW</h3>
+        <div class="prev">
+          <div class="seg cur"><span class="n">1</span><span class="t"><div class="lb">MAIN EVENT · TITLE</div><div class="m">Champion vs Challenger</div></span></div>
+          <div class="seg"><span class="n">2</span><span class="t"><div class="lb">SPONSOR BREAK</div><div class="m">Sweet Rolls</div></span></div>
+          <div class="opt" style="grid-column:1 / -1"><span class="nm">1. Champion</span><span class="bar"><i style="width:64%"></i></span><span class="pc">64%</span></div>
+          <div class="bub host" style="max-width:none"><div class="w">HOST · 8:01 PM</div><div class="k">STAND BY</div></div>
+          <div class="bub mine" style="max-width:none;align-self:auto"><div class="w">YOU · 8:01 PM</div><div>Ready when you are</div></div>
+          <button class="btn gold">Gold button</button><span class="tag gold" style="align-self:center;justify-self:start">CHAMP</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CREW (admin only) ============ -->
+<div class="page" id="p-admin">
+  <div class="cols">
+    <div>
+      <div class="card"><h3>INVITE GUESTS</h3>
+        <p class="muted" style="margin-bottom:8px">Send guests this link. They sign in with their website account and ask for access, then you approve them below.</p>
+        <div class="send" style="margin-top:0"><input class="f" id="inviteLink" readonly><button class="btn gold" id="inviteCopy">Copy Link</button></div></div>
+      <div class="card"><h3>CREW MEMBERS</h3><div id="members" class="muted">Loading…</div>
+        <div class="tools"><button class="btn sm" id="memRefresh">Refresh</button></div></div>
+    </div>
+    <div class="card"><h3>SHOW KEY</h3>
+      <p class="muted" style="margin-bottom:8px">Your lower thirds control uses this key to publish the show, save ad reads and message the crew. Make one here, press Save Key, then press Copy Show Key and paste it into the lower thirds control under CREW. At least 8 characters.</p>
+      <div class="send" style="margin-top:0"><input class="f" id="keyIn" type="password" placeholder="Show Key" autocomplete="off"></div>
+      <div class="tools"><button class="btn" id="keyShow">Show</button><button class="btn" id="keyGen">Make A New Key</button><button class="btn" id="keyCopy">Copy Show Key</button><button class="btn gold" id="keySave">Save Key</button></div>
+      <p class="muted" style="margin-top:10px;font-size:13px">Guests never need the Show Key. Anyone who has it can publish to the Crew Desk and message the crew as you. The website only keeps a scrambled copy, so this browser remembers the last key you saved here to make Copy work.</p></div>
+  </div>
+</div>
+
+<div id="pop"><div class="w" id="popW">FROM THE HOST</div><div class="t" id="popT"></div><div id="popN" style="font-size:16px;margin-top:2px"></div></div>
 <div id="toast"></div>
 
 <script>
 (function(){
   var SB_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co", SB_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
   var sb = window.supabase.createClient(SB_URL, SB_KEY);
-  var USER = null, ADMIN = false, PACK = {}, LIVE = {}, SP_SEL = null, READ_SEL = 0, CUES = [];
+  var USER = null, ADMIN = false, PACK = {}, LIVE = {}, CUES = [], PAGE = "show", UNREAD = 0;
+  var SP_SEL = null, READ_SEL = 0, FS = 22;
+  var DB = { events:[], matches:{}, wrestlers:[], wByLow:{}, ranks:{}, facs:[], fByLow:{}, champs:{}, sponsors:[], reads:{}, rv:0, loaded:false, sel:null };
+  var DIV = { Mens:"Men's", Womens:"Women's", Undisputed:"Undisputed", Faction:"Faction", Intergender:"Intergender" };
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function low(s){ return String(s||"").trim().toLowerCase(); }
+  function sq(s){ return low(s).replace(/[^a-z0-9]/g, ""); }
   function toast(t){ var el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(function(){ el.classList.remove("show"); }, 2200); }
-  function nameOf(u){ var m = (u && u.user_metadata) || {}; return m.custom_claims && m.custom_claims.global_name || m.full_name || m.name || m.user_name || (u && u.email) || "Crew"; }
+  function nameOf(u){ var m = (u && u.user_metadata) || {}; return (m.custom_claims && m.custom_claims.global_name) || m.full_name || m.name || m.user_name || (u && u.email ? String(u.email).split("@")[0] : "Crew"); }
   function avatarOf(u){ var m = (u && u.user_metadata) || {}; return m.avatar_url || m.picture || ""; }
-  function ago(ts){ if(!ts) return ""; var s = Math.round((Date.now() - new Date(ts).getTime())/1000); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s/60) + "m ago" : new Date(ts).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); }
+  function ago(ts){ if(!ts) return ""; var s = Math.round((Date.now() - new Date(ts).getTime())/1000); return s < 60 ? "just now" : s < 3600 ? Math.round(s/60) + "m ago" : new Date(ts).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); }
+  function hhmm(ts){ return new Date(ts).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); }
+  function pips(n){ n = Math.max(0, Math.min(3, n|0)); return '<span class="pips">' + [0,1,2].map(function(i){ return '<i class="' + (i < n ? "on" : "") + '"></i>'; }).join("") + '</span>'; }
+  function initials(n){ return String(n||"").trim().split(/\s+/).map(function(x){ return x[0]; }).join("").slice(0,2).toUpperCase(); }
+  function arr(v){ if(Array.isArray(v)) return v.filter(Boolean); if(!v) return []; return String(v).split(/\n|,/).map(function(x){ return x.trim(); }).filter(Boolean); }
+  try{ FS = parseInt(localStorage.getItem("wca-crew-fs"), 10) || 22; $("chime").checked = localStorage.getItem("wca-crew-chime") !== "0"; }catch(e){}
 
-  /* ---------- sign in and access ---------- */
-  function gate(html){ $("gate").innerHTML = html; $("gate").style.display = ""; $("desk").style.display = "none"; }
+  /* ---------- MY LOOK: each crew member's own colors, saved to their account ---------- */
+  var LOOKS = [
+    { g:"CREW DESK", id:"desk", label:"Crew Desk Gold", acc:"#E9B949", bg:"#0B0B0D", txt:"#F2F2F0" },
+    { g:"WCA", id:"gold", label:"WCA Gold", acc:"#d4af37", bg:"#0b0b0d", txt:"#ffffff" },
+    { g:"WCA", id:"silver", label:"Silver Steel", acc:"#c9ced6", bg:"#0c0d10", txt:"#ffffff" },
+    { g:"WCA", id:"red", label:"Blood Red", acc:"#d32f2f", bg:"#0d0a0a", txt:"#ffffff" },
+    { g:"WCA", id:"blue", label:"Royal Blue", acc:"#2f7de1", bg:"#070b14", txt:"#ffffff" },
+    { g:"WCA", id:"purple", label:"Purple Reign", acc:"#8e44d6", bg:"#0b0812", txt:"#ffffff" },
+    { g:"WCA", id:"green", label:"Venom Green", acc:"#2fbf5f", bg:"#07100a", txt:"#ffffff" },
+    { g:"WCA", id:"orange", label:"Inferno Orange", acc:"#f07f1a", bg:"#100a05", txt:"#ffffff" },
+    { g:"WCA", id:"pink", label:"Hot Pink", acc:"#ff3fa4", bg:"#120710", txt:"#ffffff" },
+    { g:"WCA", id:"teal", label:"Ice Teal", acc:"#19c3c3", bg:"#061012", txt:"#ffffff" },
+    { g:"WCA", id:"crimson", label:"Crimson & Gold", acc:"#d4af37", bg:"#3a0b0f", txt:"#ffffff" },
+    { g:"WCA", id:"navy", label:"Navy & Silver", acc:"#c9ced6", bg:"#0b1a33", txt:"#ffffff" },
+    { g:"WCA", id:"ivory", label:"Ivory & Gold", acc:"#b8902a", bg:"#f2f0ea", txt:"#111111" },
+    { g:"WCA SHOWDOWN", id:"heat", label:"HEAT", acc:"#5FD4FF", acc2:"#7B2CBF", bg:"#0A0A12", txt:"#EAF8FF", grad:true },
+    { g:"WCA SHOWDOWN", id:"overdrive", label:"OVERDRIVE", acc:"#2EE86B", bg:"#0B0B0B", txt:"#FFFFFF" },
+    { g:"WCA SHOWDOWN", id:"finale", label:"HEAT vs OVERDRIVE", acc:"#5FD4FF", acc2:"#2EE86B", bg:"#08080C", txt:"#FFFFFF", grad:true }
+  ];
+  var LOOK = null, LOOK_T = null;
+  function lum(hex){ var h = String(hex || "").replace("#", ""); if(h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h, 16); if(isNaN(n)) return 0;
+    var c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function(v){ v /= 255; return v <= .03928 ? v/12.92 : Math.pow((v + .055)/1.055, 2.4); }); return .2126*c[0] + .7152*c[1] + .0722*c[2]; }
+  function applyLook(L){
+    L = Object.assign({}, LOOKS[0], L || {}); LOOK = L;
+    var r = document.documentElement.style;
+    r.setProperty("--gold", L.acc); r.setProperty("--acc2", L.grad && L.acc2 ? L.acc2 : L.acc);
+    r.setProperty("--bg", L.bg); r.setProperty("--txt", L.txt);
+    r.setProperty("--onacc", lum(L.acc) > .45 ? "#16120a" : "#ffffff");
+    r.setProperty("--fz", (Number(L.fz) || 15) + "px");
+    document.documentElement.classList.toggle("light", lum(L.bg) > .5);
+    try{ localStorage.setItem("wca-crew-look", JSON.stringify(L)); }catch(e){}
+  }
+  try{ applyLook(JSON.parse(localStorage.getItem("wca-crew-look") || "null")); }catch(e){ applyLook(null); }
+  function renderLooks(){
+    var groups = [];
+    LOOKS.forEach(function(l){ if(groups.indexOf(l.g) < 0) groups.push(l.g); });
+    $("looks").innerHTML = groups.map(function(g){
+      return '<div class="lkgrp">' + esc(g) + '</div><div class="looks">' + LOOKS.filter(function(l){ return l.g === g; }).map(function(l){
+        var on = LOOK && LOOK.id === l.id;
+        return '<button class="lk' + (on ? " on" : "") + '" data-look="' + l.id + '" style="background:' + l.bg + ';color:' + l.txt + ';border-color:' + l.acc + '">' +
+          '<span class="sw" style="background:linear-gradient(90deg,' + l.acc + ',' + (l.acc2 || l.acc) + ')"></span>' + esc(l.label) + '</button>';
+      }).join("") + '</div>';
+    }).join("") + (LOOK && LOOK.id === "custom" ? '<div class="lkgrp">YOURS</div><div class="muted">You are using your own colors from FINE TUNE.</div>' : '');
+    Array.prototype.forEach.call(document.querySelectorAll("[data-look]"), function(b){ b.onclick = function(){
+      var l = LOOKS.find(function(x){ return x.id === b.getAttribute("data-look"); });
+      setLook(Object.assign({}, l, { acc2:l.acc2 || l.acc, grad:!!l.grad, fz:(LOOK && LOOK.fz) || 15 })); }; });
+    $("cAcc").value = LOOK.acc; $("cAcc2").value = LOOK.acc2 || LOOK.acc; $("cBg").value = LOOK.bg; $("cTxt").value = LOOK.txt;
+    $("cGrad").checked = !!LOOK.grad; $("cFz").value = LOOK.fz || 15; $("cFzV").textContent = (LOOK.fz || 15) + "px";
+  }
+  function setLook(L){ applyLook(L); renderLooks(); saveLook(); }
+  function fineTune(){
+    setLook({ id:"custom", label:"My colors", acc:$("cAcc").value, acc2:$("cAcc2").value, bg:$("cBg").value, txt:$("cTxt").value, grad:$("cGrad").checked, fz:Number($("cFz").value) || 15 });
+  }
+  ["cAcc","cAcc2","cBg","cTxt","cGrad"].forEach(function(id){ $(id).oninput = fineTune; $(id).onchange = fineTune; });
+  $("cFz").oninput = function(){ setLook(Object.assign({}, LOOK, { fz:Number(this.value) || 15 })); };
+  $("cReset").onclick = function(){ setLook(Object.assign({}, LOOKS[0], { fz:15 })); };
+  function saveLook(){
+    if(!USER) return;
+    $("lookStatus").textContent = "Saving…";
+    clearTimeout(LOOK_T); LOOK_T = setTimeout(async function(){
+      var r = await sb.from("crew_prefs").upsert({ auth_id:USER.id, prefs:{ look:LOOK }, updated_at:new Date().toISOString() });
+      $("lookStatus").textContent = r.error ? "Saved on this computer only (run WCA_CREW_UPDATE_3.sql to save it to your account)." : "Saved to your account.";
+    }, 700);
+  }
+  async function loadLook(){
+    var r = await sb.from("crew_prefs").select("prefs").eq("auth_id", USER.id).maybeSingle();
+    if(r && r.data && r.data.prefs && r.data.prefs.look) applyLook(r.data.prefs.look);
+    renderLooks();
+  }
+
+  /* ---------- navigation ---------- */
+  function go(p){
+    PAGE = p;
+    Array.prototype.forEach.call(document.querySelectorAll("nav button"), function(b){ b.classList.toggle("on", b.getAttribute("data-p") === p); });
+    Array.prototype.forEach.call(document.querySelectorAll(".page"), function(pg){ pg.classList.toggle("on", pg.id === "p-" + p); });
+    if(p === "msgs"){ UNREAD = 0; badge(); var th = $("thread"); th.scrollTop = th.scrollHeight; }
+    window.scrollTo(0, 0);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("nav button"), function(b){ b.onclick = function(){ go(b.getAttribute("data-p")); }; });
+  function badge(){ var b = $("msgBadge"); b.textContent = UNREAD; b.classList.toggle("show", UNREAD > 0); }
+
+  /* ---------- sign in ---------- */
+  function gate(html){ $("gate").innerHTML = html; $("gate").style.display = ""; $("nav").style.display = "none";
+    Array.prototype.forEach.call(document.querySelectorAll(".page"), function(pg){ pg.style.display = "none"; }); }
   function renderMe(){
     $("me").innerHTML = USER ? ((avatarOf(USER) ? '<img alt="" src="' + esc(avatarOf(USER)) + '">' : "") + '<span>' + esc(nameOf(USER)) + (ADMIN ? " · admin" : "") + '</span><button class="btn sm" id="signOut">Sign out</button>') : "";
     var so = $("signOut"); if(so) so.onclick = function(){ sb.auth.signOut().then(function(){ location.reload(); }); };
   }
-  function signIn(provider){ sb.auth.signInWithOAuth({ provider:provider || "discord", options:{ redirectTo: location.origin + location.pathname } }); }
+  function signIn(provider){ sb.auth.signInWithOAuth({ provider:provider, options:{ redirectTo: location.origin + location.pathname } }); }
   async function signInEmail(){
     var em = $("siEmail").value.trim(), pw = $("siPass").value;
     if(!em || !pw){ toast("Type your email and password"); return; }
-    $("siGo").disabled = true;
     var r = await sb.auth.signInWithPassword({ email:em, password:pw });
-    $("siGo").disabled = false;
     if(r.error){ toast("Sign in failed: " + r.error.message); return; }
     boot();
   }
-
   async function boot(){
     var s = await sb.auth.getSession();
     USER = s.data && s.data.session ? s.data.session.user : null;
@@ -211,158 +550,479 @@
     if(!USER){
       gate('<h2>WCA CREW DESK</h2><p>Sign in the same way you sign in on the WCA website.</p>' +
         '<div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto">' +
-        '<button class="btn gold" id="siDiscord">Sign in with Discord</button>' +
-        '<button class="btn" id="siGoogle">Sign in with Google</button>' +
-        '<div class="muted" style="font-size:12px;margin:6px 0 0">or with email and password</div>' +
-        '<input id="siEmail" type="email" placeholder="Email" autocomplete="username" style="background:#0B0C10;border:1px solid var(--line);border-radius:9px;padding:9px 11px">' +
-        '<input id="siPass" type="password" placeholder="Password" autocomplete="current-password" style="background:#0B0C10;border:1px solid var(--line);border-radius:9px;padding:9px 11px">' +
+        '<button class="btn gold" id="siDiscord">Sign in with Discord</button><button class="btn" id="siGoogle">Sign in with Google</button>' +
+        '<div class="muted" style="font-size:12px;margin-top:6px">or with email and password</div>' +
+        '<input class="f" id="siEmail" type="email" placeholder="Email" autocomplete="username"><input class="f" id="siPass" type="password" placeholder="Password" autocomplete="current-password">' +
         '<button class="btn" id="siGo">Sign in with Email</button></div>');
-      $("siDiscord").onclick = function(){ signIn("discord"); };
-      $("siGoogle").onclick = function(){ signIn("google"); };
-      $("siGo").onclick = signInEmail;
-      $("siPass").onkeydown = function(e){ if(e.key === "Enter") signInEmail(); };
+      $("siDiscord").onclick = function(){ signIn("discord"); }; $("siGoogle").onclick = function(){ signIn("google"); };
+      $("siGo").onclick = signInEmail; $("siPass").onkeydown = function(e){ if(e.key === "Enter") signInEmail(); };
       setLive(false, "Signed out"); return;
     }
     var a = await sb.rpc("crew_is_admin");
     if(a && a.error){
-      gate('<h2>CREW DESK NOT SET UP YET</h2><p>The website database doesn\'t have the Crew Desk tables yet. In Supabase, open SQL Editor, paste in <b>WCA_CREW_SETUP.sql</b> and run it, then refresh this page.</p><p class="muted" style="font-size:13px">(' + esc(a.error.message || "crew_is_admin missing") + ')</p><button class="btn" id="rf">Refresh</button>');
-      $("rf").onclick = function(){ location.reload(); }; setLive(false, "Not set up"); return;
+      gate('<h2>CREW DESK NOT SET UP YET</h2><p>In Supabase, open SQL Editor and run <b>WCA_CREW_SETUP.sql</b>, then refresh this page.</p><p class="muted" style="font-size:13px">(' + esc(a.error.message) + ')</p>');
+      setLive(false, "Not set up"); return;
     }
-    ADMIN = !!(a && a.data);
-    renderMe();
+    ADMIN = !!(a && a.data); renderMe();
     if(!ADMIN){
-      var r = await sb.from("crew_members").select("*").eq("auth_id", USER.id).maybeSingle();
-      var row = r && r.data;
+      var r = await sb.from("crew_members").select("*").eq("auth_id", USER.id).maybeSingle(), row = r && r.data;
       if(!row){
         gate('<h2>JOIN THE CREW</h2><p>You are signed in as <b>' + esc(nameOf(USER)) + '</b>. Ask for crew access and the host will approve you.</p><button class="btn gold" id="ask">Ask For Crew Access</button><p class="muted" style="font-size:12px;margin:16px 0 0">Account ID: ' + esc(USER.id) + '</p>');
-        $("ask").onclick = async function(){
-          var ins = await sb.from("crew_members").insert({ auth_id:USER.id, display_name:nameOf(USER), avatar_url:avatarOf(USER) });
-          if(ins.error){ toast("Could not send the request: " + ins.error.message); return; }
-          boot();
-        };
+        $("ask").onclick = async function(){ var ins = await sb.from("crew_members").insert({ auth_id:USER.id, display_name:nameOf(USER), avatar_url:avatarOf(USER) }); if(ins.error){ toast(ins.error.message); return; } boot(); };
         setLive(false, "Not approved"); return;
       }
       if(!row.approved){
-        gate('<h2>WAITING FOR APPROVAL</h2><p>Your request is in. Once the host approves you, this page opens the Crew Desk. Refresh this page after they tell you.</p><button class="btn" id="rf">Check Again</button>');
+        gate('<h2>WAITING FOR APPROVAL</h2><p>Your request is in. Once the host approves you, refresh this page.</p><button class="btn" id="rf">Check Again</button>');
         $("rf").onclick = boot; setLive(false, "Waiting for approval"); return;
       }
     }
-    $("gate").style.display = "none"; $("desk").style.display = "";
-    $("adminBox").style.display = ADMIN ? "" : "none";
-    await loadShow(); await loadCues();
+    $("gate").style.display = "none"; $("nav").style.display = "";
+    Array.prototype.forEach.call(document.querySelectorAll(".page"), function(pg){ pg.style.display = ""; });
+    $("navAdmin").style.display = ADMIN ? "" : "none";
+    await Promise.all([loadShow(), loadCues(), loadSite(), loadLook()]);
+    renderAll();
     if(ADMIN) loadMembers();
     subscribe();
   }
-
-  /* ---------- show data ---------- */
-  async function loadShow(){
-    var r = await sb.from("crew_show").select("*").eq("id", 1).maybeSingle();
-    if(r.error){ setLive(false, "Could not load the show"); return; }
-    applyShow(r.data || {});
-  }
-  function applyShow(row){
-    PACK = row.pack || {}; LIVE = row.live || {};
-    $("showChip").style.display = PACK.title ? "" : "none";
-    $("showChip").textContent = (PACK.title || "") + (row.pack_at ? " · published " + ago(row.pack_at) : "");
-    renderAll();
-  }
   function setLive(ok, txt){ $("liveDot").classList.toggle("ok", !!ok); $("liveTxt").textContent = txt; }
 
-  function segText(g){
-    if(!g) return "";
-    if(g.type === "sponsor") return g.text || "Sponsor break";
-    if(g.type === "custom") return g.label || g.text || "Segment";
-    return (g.names || []).join(" vs ") || "TBA";
+  /* ---------- website data (public, read only) ---------- */
+  async function loadSite(){
+    try{
+      var r = await Promise.all([
+        sb.from("events").select("*"), sb.from("event_matches").select("*"), sb.from("wrestlers").select("*"),
+        sb.from("v_division_rankings").select("*"), sb.from("v_faction_rankings").select("*"),
+        sb.from("v_current_champions").select("*"), loadSponsorRows(), loadReads()
+      ]);
+      DB.events = (r[0].data || []).filter(function(e){ return e.is_complete !== true; }).sort(function(a,b){ return evNum(a) - evNum(b); });
+      DB.matches = {}; (r[1].data || []).forEach(function(m){ (DB.matches[m.event_id] = DB.matches[m.event_id] || []).push(m); });
+      DB.wrestlers = (r[2].data || []).filter(function(w){ return w && w.name && w.status !== "hidden" && w.is_draft !== true; });
+      DB.wByLow = {}; DB.wrestlers.forEach(function(w){ DB.wByLow[low(w.name)] = w; if(w.nickname) DB.wByLow[low(w.nickname)] = DB.wByLow[low(w.nickname)] || w;
+        arr(w.aliases).forEach(function(a){ DB.wByLow[low(a)] = DB.wByLow[low(a)] || w; }); });
+      DB.ranks = {}; var byDiv = {};
+      (r[3].data || []).forEach(function(x){ if(!x || !x.name) return; (DB.ranks[low(x.name)] = DB.ranks[low(x.name)] || []).push(x); (byDiv[x.division] = byDiv[x.division] || []).push(x); });
+      Object.keys(byDiv).forEach(function(d){ sortRanked(byDiv[d].filter(function(x){ return !x.is_champion; })).forEach(function(x, i){ x._rank = i + 1; }); });
+      DB.facs = (r[4].data || []).filter(function(f){ return f && f.name && f.is_hidden !== true; });
+      sortRanked(DB.facs.filter(function(f){ return !f.is_champion; })).forEach(function(f, i){ f._rank = i + 1; });
+      DB.fByLow = {}; DB.facs.forEach(function(f){ f._members = String(f.members_txt || "").split(",").map(function(x){ return x.trim(); }).filter(Boolean); DB.fByLow[low(f.name)] = f; });
+      DB.champs = {}; (r[5].data || []).forEach(function(c){ var n = c.champion || c.name; if(n) DB.champs[low(n)] = (DB.champs[low(n)] || []).concat(c.division); });
+      DB.sponsors = r[6] || [];
+      if(DB.sel == null){ var withCard = DB.events.filter(function(e){ return (DB.matches[e.id] || []).length; }); DB.sel = (withCard[0] || DB.events[0] || {}).id; }
+      DB.loaded = true;
+    }catch(e){ DB.loaded = false; }
   }
-  function renderAll(){
-    var rd = PACK.rundown || [], L = LIVE.rd || {}, cur = Math.max(0, Math.min(rd.length - 1, L.cur|0));
+  /* every website sponsor, hidden ones too (crew_sponsor_list), falling back to the public list */
+  async function loadSponsorRows(){
+    var r = await sb.rpc("crew_sponsor_list");
+    if(r && !r.error && Array.isArray(r.data)) return r.data;
+    var t = await sb.from("sponsors").select("*").order("sort_order", { ascending:true });
+    return (t.data || []).filter(function(x){ return x.active !== false; });
+  }
+  /* ad reads saved on the website by the lower thirds control */
+  async function loadReads(){
+    var r = await sb.from("crew_sponsor_reads").select("*");
+    DB.reads = {}; (r && r.data || []).forEach(function(x){ DB.reads[String(x.sponsor_id)] = x; });
+    DB.rv = (DB.rv || 0) + 1;
+  }
+  function sortRanked(list){
+    return list.slice().sort(function(a,b){
+      if(!!a.is_ready_contender !== !!b.is_ready_contender) return a.is_ready_contender ? -1 : 1;
+      if((b.contender_points||0) !== (a.contender_points||0)) return (b.contender_points||0) - (a.contender_points||0);
+      if((b.wins||0) !== (a.wins||0)) return (b.wins||0) - (a.wins||0);
+      return (b.win_pct||0) - (a.win_pct||0);
+    });
+  }
+  function evNum(e){ var n = Number(e && e.show_number); if(isFinite(n) && n > 0) return n; var mm = String((e && e.name) || "").match(/(\d+)/); return mm ? +mm[1] : 0; }
+  function rec(x){ return (x.wins||0) + "-" + (x.losses||0) + "-" + (x.no_wins||0); }
+  function isChamp(name){ return (DB.champs[low(name)] || []).length > 0; }
+
+  /* ---------- show pack + live pointer ---------- */
+  async function loadShow(){
+    var r = await sb.from("crew_show").select("*").eq("id", 1).maybeSingle();
+    if(!r.error) applyShow(r.data || {}, true);
+  }
+  function applyShow(row, quiet){ PACK = row.pack || {}; LIVE = row.live || {}; PACK._at = row.pack_at; LIVE._at = row.live_at; if(!quiet){ renderShow(); renderSponsors(); renderReader(); } }
+  function isLive(){ return !!LIVE._at && (Date.now() - new Date(LIVE._at).getTime() < 6*3600e3); }
+  function segText(g){ if(!g) return ""; if(g.type === "sponsor") return g.text || "Sponsor break"; if(g.type === "custom") return g.label || g.text || "Segment"; return (g.names || []).join(" vs ") || "TBA"; }
+  function renderShow(){
+    var rd = PACK.rundown || [], L = LIVE.rd || {}, live = isLive(), cur = Math.max(0, Math.min(rd.length - 1, L.cur|0));
+    $("rdTitle").textContent = (PACK.title ? String(PACK.title).toUpperCase() + " · " : "TONIGHT'S ") + "RUNDOWN";
     $("rd").innerHTML = rd.length ? rd.map(function(g, i){
-      var lw = (L.winners || [])[i], w = Number(lw != null ? lw : g.winner);
-      var done = i < cur, win = g.type === "match" && w >= 0 && g.names && g.names[w];
-      return '<div class="seg' + (i === cur ? " cur" : "") + (done ? " done" : "") + '"><span class="n">' + (i+1) + '</span><span class="t"><div class="l">' +
+      var lw = (L.winners || [])[i], w = Number(lw != null ? lw : g.winner), win = g.type === "match" && w >= 0 && g.names && g.names[w];
+      return '<div class="seg' + (live && i === cur ? " cur" : "") + (live && i < cur ? " done" : "") + '"><span class="n">' + (i+1) + '</span><span class="t"><div class="lb">' +
         esc([g.type === "sponsor" ? "SPONSOR BREAK" : g.label, g.div].filter(Boolean).join(" · ")) + (g.title ? " · TITLE" : "") + '</div><div class="m">' +
-        (win ? '<span class="ck">✓</span> ' + esc(win) : esc(segText(g))) + '</div></span></div>';
-    }).join("") : '<span class="muted">Nothing published yet.</span>';
-    if(rd.length){
+        (win ? '<span class="ck">✓</span> ' + esc(win) + ' <span class="muted" style="font-size:13px">def. ' + esc(g.names.filter(function(_, k){ return k !== w; }).join(" and ")) + '</span>' : esc(segText(g))) + '</div></span></div>';
+    }).join("") : '<div class="empty">The host hasn\'t published tonight\'s rundown yet. The CARD tab has the matches from the website.</div>';
+    var more = "";
+    if(rd.length && live){
       var g = rd[cur];
-      $("nowLabel").textContent = (L.results ? "FINAL RESULTS" : "UP NEXT · SEGMENT " + (cur+1) + " OF " + rd.length) + (g && g.label ? " · " + String(g.label).toUpperCase() : "");
-      $("nowText").textContent = L.results ? "The show is wrapping up." : segText(g);
+      $("nowLabel").textContent = L.results ? "FINAL RESULTS" : "UP NEXT · SEGMENT " + (cur+1) + " OF " + rd.length;
+      $("nowText").textContent = L.results ? "The show is wrapping up." : ((g.label ? g.label + ": " : "") + segText(g));
+      if(!L.results && g.type === "match" && (g.names || []).length) more += '<button class="btn sm" id="openMatch">Talking points for this match</button> ';
     }
+    var sp = LIVE.sp || {}, s = sponsorById(sp.id);
+    if(s && live) more += '<button class="btn sm" id="openRead">Open the ' + esc(s.name) + ' read' + (sp.visible ? " (on screen)" : "") + '</button>';
+    $("nowMore").innerHTML = more;
+    var om = $("openMatch"); if(om) om.onclick = function(){ var g = rd[cur]; showPerson(g.names[0], "whoCard"); go("card"); };
+    var orb = $("openRead"); if(orb) orb.onclick = function(){ SP_SEL = s.id; IMG_SEL = -1; READ_SEL = sp.read|0; renderSponsors(); renderReader(); go("reads"); };
     $("notes").textContent = PACK.notes || "No notes yet."; $("notes").className = PACK.notes ? "" : "muted";
-    $("msgBox").style.display = LIVE.msg ? "" : "none"; $("msg").textContent = LIVE.msg || "";
-    renderBet(); renderReads();
-    setLive(true, "Live" + (LIVE.at ? " · updated " + ago(LIVE.at) : ""));
+    renderBet();
+    setLive(true, live ? "Live · updated " + ago(LIVE._at) : (PACK._at ? "Show published " + ago(PACK._at) : "Connected"));
   }
+  function money(n, cur){ var v = Math.round(Number(n) || 0).toLocaleString(); cur = String(cur || "").trim(); if(!cur) return v; return cur.length === 1 ? cur + v : v + " " + cur; }
+  var SEEN_BETS = {};
   function renderBet(){
-    var b = LIVE.bet;
-    if(!b || !b.state || b.state === "IDLE" || !(b.options || []).length){ $("bet").innerHTML = '<span class="muted">No betting open.</span>'; $("bet").className = ""; return; }
-    $("bet").className = "";
+    var b = LIVE.bet, live = isLive();
+    renderLb(b);
+    if(!live || !b || !b.state || b.state === "IDLE" || !(b.options || []).length){
+      $("bet").innerHTML = '<span class="muted">No betting open.</span>'; $("who").innerHTML = '<span class="muted">Bets show up here as chat places them.</span>'; $("whoTitle").textContent = "WHO BET"; return; }
+    var opts = b.options, total = b.total || opts.reduce(function(t, o){ return t + (o.count || 0); }, 0), pot = opts.reduce(function(t, o){ return t + (o.pot || 0); }, 0);
     $("bet").innerHTML = '<span class="state ' + esc(b.state) + '">' + esc(b.state === "OPEN" ? "BETS OPEN" : b.state === "CLOSED" ? "BETS LOCKED" : "SETTLED") + '</span>' +
-      '<div style="margin-top:8px;font:600 17px Oswald">' + esc(b.question || "Who will win the match?") + '</div><div class="opts">' +
-      b.options.map(function(o, i){ var win = b.state === "SETTLED" && b.winner === i;
-        return '<div class="opt"><span class="nm">' + (i+1) + '. ' + esc(o.name) + (win ? ' <span style="color:var(--ok)">✓</span>' : '') + '</span><span class="bar"><i style="width:' + (o.pct||0) + '%"></i></span><span class="pc">' + (o.pct||0) + '%</span></div>'; }).join("") +
-      '</div><div class="muted" style="font-size:12px;margin-top:6px">Odds refresh every so often, not every second.</div>';
+      '<div class="betq">' + esc(b.question || "Who will win the match?") + '</div>' +
+      opts.map(function(o, i){ var win = b.state === "SETTLED" && b.winner === i;
+        return '<div class="opt' + (win ? " win" : "") + '"><span class="nm">' + (i+1) + '. ' + esc(o.name) + (win ? ' <span class="ck">✓</span>' : '') +
+          (o.count != null ? '<small>' + (o.count || 0) + ' bet' + (o.count === 1 ? "" : "s") + (o.pot ? " · " + money(o.pot, b.cur) : "") + '</small>' : '') +
+          '</span><span class="bar"><i style="width:' + (o.pct||0) + '%"></i></span><span class="pc">' + (o.pct||0) + '%</span></div>'; }).join("") +
+      '<div class="betsum"><span><b>' + total + '</b> bets</span>' + (pot ? '<span><b>' + money(pot, b.cur) + '</b> in the pot</span>' : '') + '</div>' + betPoints(b, total, pot);
+    renderWho(b);
+  }
+  /* quick lines the crew can say about the betting */
+  function betPoints(b, total, pot){
+    var o = b.options, pts = [];
+    if(!total) pts.push("Nobody has bet yet. Push chat to get their picks in.");
+    else {
+      var fav = o.slice().sort(function(x, y){ return (y.pot||0) - (x.pot||0); })[0], dog = o.slice().sort(function(x, y){ return (x.pot||0) - (y.pot||0); })[0];
+      if(fav && fav.pct) pts.push("Chat likes " + fav.name + ": " + fav.pct + "% of the money.");
+      if(dog && dog !== fav && o.length > 1) pts.push(dog.name + " is the underdog" + (dog.count ? " with " + dog.count + " believer" + (dog.count === 1 ? "" : "s") : ", nobody's on them yet") + ".");
+      var big = (b.bets || []).slice().sort(function(x, y){ return (y.a||0) - (x.a||0); })[0];
+      if(big && big.a) pts.push("Biggest bet: " + big.n + " put " + money(big.a, b.cur) + " on " + ((o[big.o] || {}).name || "a pick") + ".");
+    }
+    if(b.state === "SETTLED" && (b.payouts || []).length){ var t = b.payouts[0]; pts.push(t.n + " won big: " + money(t.a, b.cur) + " back."); }
+    if(b.state === "SETTLED" && b.winner != null && !(b.payouts || []).length && total) pts.push("Nobody picked " + ((o[b.winner] || {}).name || "the winner") + ". The house wins this one.");
+    return pts.length ? '<ul class="tp">' + pts.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' : '';
+  }
+  function renderWho(b){
+    var o = b.options, bets = b.bets || [];
+    if(b.state === "SETTLED" && (b.payouts || []).length){
+      $("whoTitle").textContent = "WHO WON";
+      $("who").innerHTML = b.payouts.map(function(p){ return '<div class="wbr"><span>' + esc(p.n) + '</span><b>+' + money(p.g != null ? p.g : p.a, b.cur) + '</b></div>'; }).join("");
+      return;
+    }
+    $("whoTitle").textContent = "WHO BET" + (b.total ? " · " + b.total : "");
+    if(!bets.length){ $("who").innerHTML = '<span class="muted">No bets yet.</span>'; return; }
+    var seen = SEEN_BETS[b.question] || (SEEN_BETS[b.question] = {}), first = !Object.keys(seen).length;
+    $("who").innerHTML = '<div class="whobet">' + o.map(function(opt, i){
+      var mine = bets.filter(function(x){ return x.o === i; }).reverse();
+      return '<div class="wb"><h4>' + esc(opt.name) + ' <span>' + (opt.count || mine.length) + '</span></h4>' +
+        (mine.length ? mine.map(function(x){ var k = x.n + "|" + x.o + "|" + x.a, fresh = !first && !seen[k]; seen[k] = 1;
+          return '<div class="wbr' + (fresh ? " new" : "") + '"><span>' + esc(x.n) + '</span><b>' + money(x.a, b.cur) + '</b></div>'; }).join("") : '<div class="muted" style="font-size:13px">Nobody yet</div>') + '</div>';
+    }).join("") + '</div>' + (b.more ? '<div class="muted" style="font-size:13px;margin-top:8px">Plus ' + b.more + ' earlier bet' + (b.more === 1 ? "" : "s") + '.</div>' : '');
+    if(first) bets.forEach(function(x){ seen[x.n + "|" + x.o + "|" + x.a] = 1; });
+  }
+  function renderLb(b){
+    var lb = b && b.lb, rows = (lb && lb.rows) || [];
+    if(!rows.length){ return; }
+    $("lbTitle").textContent = "BETTING STANDINGS" + (lb.label ? " · " + String(lb.label).toUpperCase() : "");
+    $("lb").className = "";
+    $("lb").innerHTML = rows.map(function(r, i){ return '<div class="lbrow"><span class="r">' + (i+1) + '</span><span class="n">' + esc(r.n) + '</span><span class="v">' + esc(typeof r.p === "number" ? Math.round(r.p).toLocaleString() : r.p) + '</span><span class="s">' + esc(r.s || "") + '</span></div>'; }).join("");
   }
 
-  /* ---------- ad reads ---------- */
-  function fmt(t){ return esc(t).replace(/\[([^\]]+)\]/g, '<span class="c">[$1]</span>').replace(/\{([^}]+)\}/g, '<span class="p">{$1}</span>'); }
-  function renderReads(){
-    var list = PACK.sponsors || [], live = LIVE.sp || {};
-    if($("follow").checked && live.id && list.some(function(s){ return s.id === live.id; })){ if(SP_SEL !== live.id){ SP_SEL = live.id; } READ_SEL = live.read|0; }
-    if(!SP_SEL && list.length) SP_SEL = list[0].id;
-    $("sps").innerHTML = list.map(function(s){ return '<button data-sp="' + esc(s.id) + '" class="' + (s.id === SP_SEL ? "on" : "") + (s.id === live.id && live.visible ? " live" : "") + '">' + esc(s.name) + '</button>'; }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-sp]"), function(b){ b.onclick = function(){ SP_SEL = b.getAttribute("data-sp"); READ_SEL = 0; $("follow").checked = false; renderReads(); }; });
-    var s = list.find(function(x){ return x.id === SP_SEL; });
-    if(!s){ $("reads").innerHTML = ""; return; }
-    var reads = s.reads || []; READ_SEL = Math.max(0, Math.min(reads.length - 1, READ_SEL));
-    $("reads").innerHTML = reads.map(function(r, i){ return '<button data-rd="' + i + '" class="' + (i === READ_SEL ? "on" : "") + '">' + esc(r.label) + (r.secs ? " · " + r.secs + "s" : "") + '</button>'; }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rd]"), function(b){ b.onclick = function(){ READ_SEL = +b.getAttribute("data-rd"); $("follow").checked = false; renderReads(); }; });
-    $("opener").textContent = PACK.opener || "";
-    var r = reads[READ_SEL];
-    $("script").innerHTML = r && r.text ? fmt(r.text) : '<span class="muted">This read has no script yet.</span>';
+  /* ---------- CARD ---------- */
+  function asArr(v){ if(Array.isArray(v)) return v; if(typeof v === "string"){ var t = v.trim(); if(t[0] === "[" || t[0] === "{"){ try{ var j = JSON.parse(t); return Array.isArray(j) ? j : [j]; }catch(e){} } } return v == null || v === "" ? [] : [v]; }
+  function parseSide(sd){
+    if(sd == null) return null;
+    if(typeof sd === "string"){ var t = sd.trim(); if(!t) return null; var m = t.match(/^(.+?)\s*\((.+)\)$/); if(m) return { team:m[1].trim(), members:m[2].split(/\s*(?:,|&)\s*/) }; return { team:"", members:t.split(/\s*(?:,|&|\band\b)\s*/i).filter(Boolean) }; }
+    var team = String(sd.team_name || sd.team || sd.faction || "").trim();
+    var mem = asArr(sd.members || sd.wrestlers || sd.names || []).map(function(x){ return typeof x === "string" ? x : ((x && (x.name || x.wrestler)) || ""); }).filter(Boolean);
+    if(!mem.length && sd.name) mem = [String(sd.name)];
+    return team || mem.length ? { team:team, members:mem } : null;
+  }
+  function sidesOf(m){
+    var s = asArr(m.sides).map(parseSide).filter(Boolean);
+    if(!s.length) s = [m.side_a, m.side_b, m.side_c, m.side_d].map(parseSide).filter(Boolean);
+    return s.map(function(x){
+      if(!x.team && x.members.length === 1 && !DB.wByLow[low(x.members[0])] && DB.fByLow[low(x.members[0])]) x = { team:x.members[0], members:[] };
+      if(x.team && !x.members.length && DB.fByLow[low(x.team)]) x.members = DB.fByLow[low(x.team)]._members.slice();
+      return x;
+    });
+  }
+  function faceOf(n, cls){ var w = DB.wByLow[low(n)], u = w && (w.image_url || w.avatar_url);
+    return '<div class="face' + (cls ? " " + cls : "") + '"' + (u ? ' style="background-image:url(\'' + esc(u) + '\')"' : '') + '>' + (u ? "" : esc(initials(n))) + '</div>'; }
+  function divRow(name, div){ var rows = DB.ranks[low(name)] || []; return rows.find(function(x){ return x.division === div; }) || rows[0] || null; }
+  function sideStat(s, div){
+    if(s.team){ var f = DB.fByLow[low(s.team)]; return f ? rec(f) + " · " + pips(f.contender_points) : ""; }
+    var x = divRow(s.members[0], div); return x ? rec(x) + " · " + pips(x.contender_points) : "";
+  }
+  function matchPoints(m, sd){
+    var pts = [], div = m.division, title = m.championship || m.is_title || m.title_match;
+    var people = [];
+    sd.forEach(function(s){ if(s.team) people.push({ n:s.team, f:DB.fByLow[low(s.team)] }); else s.members.forEach(function(n){ people.push({ n:n, r:divRow(n, div) }); }); });
+    var champ = people.filter(function(p){ return isChamp(p.n) || (p.f && p.f.is_champion) || (p.r && p.r.is_champion); });
+    if(title) pts.push((DIV[div] || div || "The") + " title is on the line.");
+    champ.forEach(function(p){ pts.push(p.n + " walks in as the champion."); });
+    people.forEach(function(p){ var x = p.f || p.r; if(!x) return;
+      if((x.contender_points||0) >= 3 || x.is_ready_contender) pts.push(p.n + " has all 3 contender points and is ready for a title shot.");
+      else if((x.contender_points||0) > 0) pts.push(p.n + " has " + x.contender_points + " contender point" + (x.contender_points > 1 ? "s" : "") + ".");
+      if(x._rank && x._rank <= 3 && !x.is_champion) pts.push(p.n + " is ranked #" + x._rank + (p.f ? " among factions." : " in the " + (DIV[x.division] || x.division) + " division."));
+    });
+    if(sd.length > 2) pts.push(sd.length + " sides in this one, so anyone can take the fall.");
+    return pts;
+  }
+  function renderCard(){
+    $("evSel").innerHTML = DB.events.length ? DB.events.map(function(e){ var n = (DB.matches[e.id] || []).length; return '<option value="' + esc(e.id) + '">' + esc(e.name || ("Event " + e.id)) + ' · ' + (n ? n + " match" + (n > 1 ? "es" : "") : "no card yet") + '</option>'; }).join("") : '<option>No upcoming events on the website</option>';
+    if(DB.sel != null) $("evSel").value = String(DB.sel);
+    var ev = DB.events.find(function(e){ return String(e.id) === String(DB.sel); }) || {};
+    $("evInfo").textContent = ev.event_date ? new Date(ev.event_date).toLocaleDateString([], {weekday:"long", month:"long", day:"numeric"}) : "";
+    var ms = (DB.matches[DB.sel] || []).slice().sort(function(a,b){ return (Number(b.slot)||0) - (Number(a.slot)||0); });
+    $("matches").innerHTML = ms.length ? ms.map(function(m, i){
+      var main = Number(m.slot) === 1 || i === ms.length - 1, sd = sidesOf(m), title = m.championship || m.is_title || m.title_match;
+      var type = [m.match_type, m.stipulation].filter(Boolean).join(" · "), pts = matchPoints(m, sd);
+      return '<div class="match' + (main ? " main" : "") + '"><div class="top"><span class="lb">' + (main ? "MAIN EVENT" : "MATCH " + (i+1)) + (m.division ? " · " + esc(DIV[m.division] || m.division) : "") + '</span>' +
+        '<span class="ty">' + (title ? '<span class="tag gold">TITLE</span> ' : '') + esc(type) + '</span></div><div class="sides">' +
+        sd.map(function(s, k){
+          var people = s.members.length ? s.members : [s.team], key = s.team || s.members[0];
+          return (k ? '<span class="vs">VS</span>' : '') + '<button class="side" data-who="' + esc(key) + '"><div class="faces">' + people.slice(0,3).map(function(n){ return faceOf(n); }).join("") + '</div>' +
+            '<div class="nm">' + esc(s.team || s.members.join(" & ")) + (isChamp(key) ? ' <span class="tag gold">CHAMP</span>' : '') + '</div>' +
+            '<div class="st">' + sideStat(s, m.division) + '</div>' + (s.team && s.members.length ? '<div class="st muted">' + esc(s.members.join(", ")) + '</div>' : '') + '</button>';
+        }).join("") + '</div>' + (pts.length ? '<ul class="tps">' + pts.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join("") + '</ul>' : '') + '</div>';
+    }).join("") : '<div class="empty">' + (DB.loaded ? "No matches on this card yet." : "Could not load the card from the website.") + '</div>';
+    Array.prototype.forEach.call(document.querySelectorAll("#matches [data-who]"), function(b){ b.onclick = function(){
+      Array.prototype.forEach.call(document.querySelectorAll("#matches .side"), function(x){ x.classList.remove("sel"); }); b.classList.add("sel");
+      showPerson(b.getAttribute("data-who"), "whoCard"); }; });
+  }
+  $("evSel").onchange = function(){ DB.sel = this.value; renderCard(); };
+
+  /* ---------- talking points for one person or faction ---------- */
+  function lastFive(s){ return String(s || "").toUpperCase().replace(/[^WLND]/g, "").slice(-5).split(""); }
+  function showPerson(name, host){
+    var w = DB.wByLow[low(name)], f = DB.fByLow[low(name)], box = $(host); if(!box) return;
+    if(f && !w){
+      var mem = f._members;
+      box.innerHTML = '<div class="hero"><div class="pic">' + esc(initials(f.name)) + '</div><div><h2>' + esc(f.name) + '</h2><div class="muted">Faction · ' + mem.length + ' member' + (mem.length === 1 ? "" : "s") + '</div></div></div>' +
+        '<div class="facts"><div class="fact"><div class="k">RECORD</div><div class="v">' + rec(f) + '</div></div><div class="fact"><div class="k">CONTENDER POINTS</div><div class="v">' + pips(f.contender_points) + '</div></div>' +
+        '<div class="fact"><div class="k">STANDING</div><div class="v">' + (f.is_champion || isChamp(f.name) ? '<span class="tag gold">CHAMPIONS</span>' : f._rank ? "#" + f._rank + " faction" : "Unranked") + '</div></div>' +
+        '<div class="fact"><div class="k">WIN RATE</div><div class="v">' + (f.win_pct != null ? Math.round(f.win_pct * (f.win_pct <= 1 ? 100 : 1)) + "%" : "–") + '</div></div></div>' +
+        '<h3 style="margin-top:6px">MEMBERS</h3><div class="roster" style="grid-template-columns:1fr 1fr">' + mem.map(function(n){ return '<button class="rp" data-pick="' + esc(n) + '">' + faceOf(n) + '<span><div class="nm">' + esc(n) + '</div></span></button>'; }).join("") + '</div>';
+    } else if(w){
+      var rows = DB.ranks[low(w.name)] || [], facs = DB.facs.filter(function(x){ return x._members.some(function(m){ return low(m) === low(w.name); }); });
+      var best = rows.find(function(x){ return x.is_champion; }) || rows.slice().sort(function(a,b){ return (b.contender_points||0) - (a.contender_points||0); })[0];
+      var u = w.image_url || w.avatar_url, fin = arr(w.finishers), sig = arr(w.signatures), l5 = lastFive(w.last5);
+      box.innerHTML = '<div class="hero"><div class="pic"' + (u ? ' style="background-image:url(\'' + esc(u) + '\')"' : '') + '>' + (u ? "" : esc(initials(w.name))) + '</div><div><h2>' + esc(w.name) + '</h2>' +
+        (w.nickname ? '<div class="nick">"' + esc(w.nickname) + '"</div>' : '') + (isChamp(w.name) ? '<span class="tag gold">CHAMPION · ' + esc((DB.champs[low(w.name)] || []).map(function(d){ return DIV[d] || d; }).join(", ")) + '</span>' : '') + '</div></div>' +
+        '<div class="facts">' +
+          '<div class="fact"><div class="k">RECORD' + (best ? " · " + esc((DIV[best.division] || best.division || "").toUpperCase()) : "") + '</div><div class="v">' + (best ? rec(best) : "No matches yet") + '</div></div>' +
+          '<div class="fact"><div class="k">CONTENDER POINTS</div><div class="v">' + pips(best ? best.contender_points : 0) + '</div></div>' +
+          '<div class="fact"><div class="k">STANDING</div><div class="v">' + (best && best.is_champion ? "Champion" : best && best._rank ? "#" + best._rank + " contender" : "Unranked") + '</div></div>' +
+          '<div class="fact"><div class="k">LAST 5</div><div class="v">' + (l5.length ? '<span class="form">' + l5.map(function(r){ return '<b class="' + r + '">' + r + '</b>'; }).join("") + '</span>' : "–") + '</div></div>' +
+          (w.from_loc ? '<div class="fact"><div class="k">FROM</div><div class="v">' + esc(w.from_loc) + '</div></div>' : '') +
+          (w.height || w.weight ? '<div class="fact"><div class="k">SIZE</div><div class="v">' + esc([w.height, w.weight].filter(Boolean).join(" · ")) + '</div></div>' : '') +
+        '</div>' +
+        (rows.length > 1 ? '<h3 style="margin-top:6px">EVERY DIVISION</h3>' + rows.map(function(x){ return '<div class="divrow"><span>' + esc(DIV[x.division] || x.division) + (x.is_champion ? ' <span class="tag gold">CHAMP</span>' : '') + '</span><span>' + rec(x) + ' · ' + pips(x.contender_points) + '</span></div>'; }).join("") : '') +
+        (facs.length ? '<h3 style="margin-top:12px">FACTION</h3><div>' + facs.map(function(x){ return '<button class="btn sm" data-pick="' + esc(x.name) + '" style="margin:0 6px 6px 0">' + esc(x.name) + '</button>'; }).join("") + '</div>' : '') +
+        (fin.length ? '<h3 style="margin-top:12px">FINISHER' + (fin.length > 1 ? "S" : "") + '</h3><div style="font:600 17px Oswald">' + fin.map(esc).join(" · ") + '</div>' : '') +
+        (sig.length ? '<h3 style="margin-top:12px">SIGNATURES</h3><div>' + sig.map(esc).join(" · ") + '</div>' : '') +
+        (w.theme_song ? '<h3 style="margin-top:12px">THEME</h3><div>' + esc(w.theme_song) + '</div>' : '') +
+        (w.bio ? '<h3 style="margin-top:12px">BIO</h3><div style="white-space:pre-wrap;color:#d6d6d0">' + esc(w.bio) + '</div>' : '');
+    } else {
+      box.innerHTML = '<h2 style="font:700 24px Oswald">' + esc(name) + '</h2><div class="empty">Not on the website roster yet, so there are no stats for them.</div>';
+    }
+    Array.prototype.forEach.call(box.querySelectorAll("[data-pick]"), function(b){ b.onclick = function(){ showPerson(b.getAttribute("data-pick"), host); }; });
+  }
+
+  /* ---------- ROSTER ---------- */
+  function renderRoster(){
+    var q = low($("rq").value), d = $("rdiv").value;
+    var list = DB.wrestlers.map(function(w){ return { n:w.name, w:w }; }).concat(DB.facs.map(function(f){ return { n:f.name, f:f }; }));
+    list = list.filter(function(x){
+      if(q && low(x.n).indexOf(q) < 0 && !(x.w && low(x.w.nickname).indexOf(q) >= 0)) return false;
+      if(d === "Faction") return !!x.f;
+      if(d) return x.w && (DB.ranks[low(x.n)] || []).some(function(r){ return r.division === d; });
+      return true;
+    }).sort(function(a,b){ return a.n.localeCompare(b.n); });
+    $("roster").innerHTML = list.length ? list.map(function(x){
+      var st = x.f ? "Faction · " + rec(x.f) : (function(){ var r = (DB.ranks[low(x.n)] || [])[0]; return r ? (DIV[r.division] || r.division) + " · " + rec(r) : "No matches yet"; })();
+      return '<button class="rp" data-pick="' + esc(x.n) + '">' + (x.f ? '<div class="face">' + esc(initials(x.n)) + '</div>' : faceOf(x.n)) + '<span><div class="nm">' + esc(x.n) + (isChamp(x.n) || (x.f && x.f.is_champion) ? ' <span class="tag gold">CHAMP</span>' : '') + '</div><div class="st">' + esc(st) + '</div></span></button>';
+    }).join("") : '<div class="empty">' + (DB.loaded ? "Nobody matches that search." : "Could not load the roster from the website.") + '</div>';
+    Array.prototype.forEach.call(document.querySelectorAll("#roster [data-pick]"), function(b){ b.onclick = function(){
+      Array.prototype.forEach.call(document.querySelectorAll("#roster .rp"), function(x){ x.classList.remove("sel"); }); b.classList.add("sel");
+      showPerson(b.getAttribute("data-pick"), "whoRoster"); if(window.innerWidth < 1100) $("whoRoster").scrollIntoView({ behavior:"smooth" }); }; });
+  }
+  $("rq").oninput = renderRoster; $("rdiv").onchange = renderRoster;
+  $("rdiv").innerHTML = '<option value="">Everyone</option>' + Object.keys(DIV).map(function(k){ return '<option value="' + k + '">' + DIV[k] + '</option>'; }).join("");
+
+  /* ---------- AD READS ---------- */
+  /* reads come from the host's Show Pack, logos from the website Sponsors page */
+  /* names match even when they differ a little:
+     "Grandma Shirley's Sweet Rolls" = "Sweet Rolls", "Can't C Me (Fantasy Foods)" = "U Can't C Me".
+     Website sponsors that start with a sponsor's name ("Powerthirst Rawberry") become extra images of it. */
+  function nk(s){ return sq(String(s || "").replace(/\([^)]*\)/g, "")); }
+  function nmatch(a, b){ a = nk(a); b = nk(b); if(!a || !b) return 0; if(a === b) return 100;
+    if(Math.min(a.length, b.length) > 4 && (a.indexOf(b) >= 0 || b.indexOf(a) >= 0)) return 50 - Math.min(40, Math.abs(a.length - b.length)); return 0; }
+  function webSponsors(){ return DB.sponsors.filter(function(w){ return !/partner/i.test(w.section_key || ""); }); }
+  /* The website Sponsors page is the master list: names, order and logos come from it.
+     Reads come from the website (saved by the lower thirds control), then the Show Pack.
+     A website sponsor with no read of its own whose name starts with another sponsor's name
+     ("Powerthirst Rawberry") shows as an extra image of that sponsor. */
+  var SPL = { key:"", list:[] };
+  function hasText(rs){ return (rs || []).some(function(r){ return r && String(r.text || "").trim(); }); }
+  function sponsorList(){
+    var W = webSponsors().slice().sort(function(a,b){ return (Number(a.sort_order)||0) - (Number(b.sort_order)||0); });
+    var P = PACK.sponsors || [], key = JSON.stringify([PACK._at, W.length, P.length, DB.rv]);
+    if(SPL.key === key) return SPL.list;
+    var byWeb = {}, usedP = {}, out = [], flavors = [];
+    P.forEach(function(p){ if(p.web) byWeb[String(p.web)] = p; });
+    W.forEach(function(w){
+      var wid = String(w.id), saved = DB.reads[wid], pk = byWeb[wid];
+      if(!pk){
+        var best = null, bs = 0;
+        P.forEach(function(p){ if(p.web || usedP[p.id]) return; var sc = nmatch(p.name, w.name); if(sc > bs){ bs = sc; best = p; } });
+        if(best && bs < 100 && W.some(function(o){ return o !== w && nmatch(best.name, o.name) === 100; })) best = null;
+        pk = best;
+      }
+      var reads = saved && hasText(saved.reads) ? saved.reads : pk && hasText(pk.reads) ? pk.reads : [];
+      if(!reads.length){
+        var parent = W.find(function(o){ var a = nk(o.name); return o !== w && a.length > 4 && nk(w.name).indexOf(a) === 0; });
+        if(parent){ flavors.push({ parent:String(parent.id), w:w }); return; }
+      }
+      if(pk) usedP[pk.id] = 1;
+      var src = saved && hasText(saved.reads) ? saved : (pk || {});
+      out.push({ id: pk ? pk.id : "web_" + wid, web:wid, name:w.name, logo:w.logo_url || (pk && pk.thumb) || "", blurb:w.blurb,
+        hit: src.hit || (pk && pk.hit) || "", toss: src.toss || (pk && pk.toss) || "", notes: src.notes || (pk && pk.notes) || "", reads:reads, extras:[], webOnly:!pk && !reads.length });
+    });
+    flavors.forEach(function(f){
+      var host = out.find(function(s){ return s.web === f.parent; });
+      if(host){ if(f.w.logo_url) host.extras.push({ name:f.w.name, logo:f.w.logo_url }); }
+      else out.push({ id:"web_" + f.w.id, web:String(f.w.id), name:f.w.name, logo:f.w.logo_url, reads:[], extras:[], webOnly:true });
+    });
+    P.forEach(function(p){ if(usedP[p.id]) return; out.push(Object.assign({}, p, { reads:p.reads || [], logo:p.thumb || "", extras:[] })); });   // only in the lower thirds
+    SPL = { key:key, list:out };
+    return out;
+  }
+  function liveSponsor(list){ var L = LIVE.sp || {}; return list.find(function(s){ return s.id === L.id; }) || (L.web ? list.find(function(s){ return s.web === String(L.web); }) : null) || null; }
+  var IMG_SEL = -1;   // -1 = pick automatically from the read
+  function imagesOf(s){ return [s.logo ? { name:s.name, logo:s.logo } : null].concat(s.extras || []).filter(Boolean); }
+  function autoImg(s, r){
+    var imgs = imagesOf(s), lb = nk(r && r.label);
+    if(lb && lb !== "full" && lb !== "quick"){ for(var i = 1; i < imgs.length; i++){ if(nk(imgs[i].name).indexOf(lb) >= 0) return i; } }
+    return 0;
+  }
+  function sponsorById(id){ var l = sponsorList(); return l.find(function(s){ return s.id === id; }) || (id === (LIVE.sp || {}).id ? liveSponsor(l) : null); }
+  function fmt(t, hit){
+    var h = esc(t);
+    if(hit){ var eh = esc(hit); if(eh && h.indexOf(eh) >= 0) h = h.split(eh).join('<mark>' + eh + '</mark>'); }
+    return h.replace(/\*?\(([^()]{1,80})\)\*?/g, '<span class="c">($1)</span>').replace(/\[([^\[\]]{1,40})\]/g, '<span class="p">[$1]</span>');
+  }
+  function renderSponsors(){
+    var list = sponsorList(), live = LIVE.sp || {}, ls = liveSponsor(list);
+    if($("follow").checked && isLive() && ls){ SP_SEL = ls.id; READ_SEL = live.read|0; IMG_SEL = -1; }
+    if((!SP_SEL || !list.some(function(s){ return s.id === SP_SEL; })) && list.length) SP_SEL = list[0].id;
+    $("splist").innerHTML = list.length ? list.map(function(s){
+      return '<button class="sp' + (s.id === SP_SEL ? " on" : "") + '" data-sp="' + esc(s.id) + '">' + (s.logo ? '<img alt="" src="' + esc(s.logo) + '">' : '<span class="ph"></span>') +
+        '<span class="nm">' + esc(s.name) + '<div class="rc">' + (s.reads.length ? s.reads.map(function(r){ return esc(r.label); }).join(" · ") : "No read yet") + '</div></span>' + (isLive() && ls && s.id === ls.id && live.visible ? '<span class="live">ON AIR</span>' : '') + '</button>';
+    }).join("") : '<div class="empty">No sponsors yet.</div>';
+    Array.prototype.forEach.call(document.querySelectorAll("[data-sp]"), function(b){ b.onclick = function(){ pickSponsor(b.getAttribute("data-sp")); }; });
+  }
+  function pickSponsor(id){ SP_SEL = id; READ_SEL = 0; IMG_SEL = -1; $("follow").checked = false; resetTimer(); renderSponsors(); renderReader(); }
+  function stepSponsor(d){ var list = sponsorList(), i = list.findIndex(function(s){ return s.id === SP_SEL; }); if(!list.length) return; i = (i + d + list.length) % list.length; pickSponsor(list[i].id); }
+  $("spPrev").onclick = function(){ stepSponsor(-1); }; $("spNext").onclick = function(){ stepSponsor(1); };
+  function curRead(){ var s = sponsorList().find(function(x){ return x.id === SP_SEL; }); return { s:s, r: s && s.reads[READ_SEL] }; }
+  function renderReader(){
+    var cr = curRead(), s = cr.s;
+    if(!s){ $("logo").innerHTML = ""; $("rhead").innerHTML = '<h2 class="muted">No sponsor selected</h2>'; $("readTabs").innerHTML = ""; $("script").innerHTML = ""; $("opener").textContent = ""; $("tossBox").style.display = "none"; $("dnBox").style.display = "none"; return; }
+    READ_SEL = Math.max(0, Math.min(s.reads.length - 1, READ_SEL));
+    var imgs = imagesOf(s), ii = IMG_SEL >= 0 ? Math.min(IMG_SEL, imgs.length - 1) : autoImg(s, s.reads[READ_SEL]);
+    $("logo").innerHTML = imgs.length ? '<img alt="" src="' + esc(imgs[ii].logo) + '">' : '<span class="muted">No logo on the website yet</span>';
+    $("thumbs").innerHTML = imgs.length > 1 ? imgs.map(function(m, i){ return '<button data-im="' + i + '" class="' + (i === ii ? "on" : "") + '" title="' + esc(m.name) + '"><img alt="" src="' + esc(m.logo) + '"><span>' + esc(m.name) + '</span></button>'; }).join("") : "";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-im]"), function(b){ b.onclick = function(){ IMG_SEL = +b.getAttribute("data-im"); renderReader(); }; });
+    $("rhead").innerHTML = '<h2>' + esc(s.name) + '</h2>' + (s.hit ? '<span class="muted">' + esc(s.hit) + '</span>' : '') + (s.blurb ? '<span class="muted">' + esc(s.blurb) + '</span>' : '');
+    $("readTabs").innerHTML = s.reads.map(function(r, i){ return '<button data-rd="' + i + '" class="' + (i === READ_SEL ? "on" : "") + '">' + esc(r.label) + (r.secs ? " · " + r.secs + "s" : "") + '</button>'; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rd]"), function(b){ b.onclick = function(){ READ_SEL = +b.getAttribute("data-rd"); IMG_SEL = -1; $("follow").checked = false; resetTimer(); renderReader(); }; });
+    $("opener").textContent = s.reads.length ? (PACK.opener || "") : "";
+    var r = s.reads[READ_SEL];
+    $("script").style.setProperty("--fs", FS + "px");
+    $("script").innerHTML = r && r.text ? fmt(r.text, s.hit) : '<span class="muted">' + (s.webOnly ? "The host hasn't written a read for this sponsor yet." : "This read has no script yet.") + '</span>';
     var toss = String(s.toss || "").split(/\n+/).filter(Boolean);
     $("tossBox").style.display = toss.length ? "" : "none"; $("toss").innerHTML = toss.map(function(t){ return "<div>" + fmt(t) + "</div>"; }).join("");
     $("dnBox").style.display = s.notes ? "" : "none"; $("dn").textContent = s.notes || "";
+    if(!TM.on) paintClock();
   }
-  $("follow").onchange = renderReads;
+  $("follow").onchange = function(){ renderSponsors(); renderReader(); };
+  $("fsUp").onclick = function(){ FS = Math.min(40, FS + 2); try{ localStorage.setItem("wca-crew-fs", FS); }catch(e){} renderReader(); };
+  $("fsDown").onclick = function(){ FS = Math.max(14, FS - 2); try{ localStorage.setItem("wca-crew-fs", FS); }catch(e){} renderReader(); };
+  var TM = { on:false, start:0, el:0, t:null };
+  function target(){ var r = curRead().r; return r && r.secs ? r.secs : 0; }
+  function paintClock(){
+    var el = TM.el + (TM.on ? (Date.now() - TM.start)/1000 : 0), tg = target(), c = $("clock");
+    var show = tg ? tg - el : el, neg = show < 0; show = Math.abs(show);
+    c.textContent = (neg ? "+" : "") + Math.floor(show/60) + ":" + String(Math.floor(show % 60)).padStart(2, "0");
+    c.className = "clock" + (TM.on ? " run" : "") + (tg && tg - el <= 5 && tg - el > 0 ? " near" : "") + (tg && el > tg ? " over" : "");
+  }
+  function resetTimer(){ clearInterval(TM.t); TM.on = false; TM.el = 0; $("tStart").textContent = "Start"; paintClock(); }
+  $("tStart").onclick = function(){
+    if(TM.on){ TM.el += (Date.now() - TM.start)/1000; TM.on = false; clearInterval(TM.t); this.textContent = "Start"; paintClock(); return; }
+    TM.on = true; TM.start = Date.now(); this.textContent = "Pause"; TM.t = setInterval(paintClock, 200);
+  };
+  $("tReset").onclick = resetTimer;
 
-  /* ---------- cues ---------- */
+  /* ---------- MESSAGES ---------- */
+  async function loadCues(){ var r = await sb.from("crew_cues").select("*").order("id", { ascending:false }).limit(60); CUES = (r.data || []).reverse(); }
+  function renderThread(){
+    var th = $("thread"), atBottom = th.scrollHeight - th.scrollTop - th.clientHeight < 40;
+    th.innerHTML = CUES.length ? CUES.map(function(c){
+      var mine = !c.from_host && USER && c.from_auth === USER.id, msg = c.kind === "MESSAGE";
+      return '<div class="bub' + (c.from_host ? " host" : "") + (mine ? " mine" : "") + '"><div class="w">' + esc(c.from_host ? (c.from_name || "HOST") + " · HOST" : mine ? "YOU" : c.from_name) + ' · ' + hhmm(c.created_at) + '</div>' +
+        (msg ? '<div>' + esc(c.note) + '</div>' : '<div class="k">' + esc(c.kind) + '</div>' + (c.note ? '<div>' + esc(c.note) + '</div>' : '')) + '</div>';
+    }).join("") : '<div class="empty">No messages yet. Cues and messages between you and the host show up here.</div>';
+    if(atBottom || PAGE !== "msgs") th.scrollTop = th.scrollHeight;
+  }
   async function sendCue(kind, note){
-    var rd = PACK.rundown || [], cur = (LIVE.rd || {}).cur|0, g = rd[cur];
+    var rd = PACK.rundown || [], g = rd[(LIVE.rd || {}).cur|0];
     var r = await sb.from("crew_cues").insert({ from_auth:USER.id, from_name:nameOf(USER), kind:kind, note:note || "", segment: g ? ((g.label ? g.label + ": " : "") + segText(g)) : "" });
     if(r.error){ toast("Could not send: " + r.error.message); return; }
-    toast(kind === "MESSAGE" ? "Message sent to the host" : kind + " sent to the host");
+    toast(kind === "MESSAGE" ? "Sent to the host" : kind + " sent to the host");
   }
   Array.prototype.forEach.call(document.querySelectorAll("[data-cue]"), function(b){ b.onclick = function(){ sendCue(b.getAttribute("data-cue")); }; });
   $("noteSend").onclick = function(){ var v = $("noteIn").value.trim(); if(!v) return; sendCue("MESSAGE", v); $("noteIn").value = ""; };
   $("noteIn").onkeydown = function(e){ if(e.key === "Enter") $("noteSend").click(); };
-  async function loadCues(){
-    var r = await sb.from("crew_cues").select("*").order("id", { ascending:false }).limit(20);
-    CUES = (r.data || []); renderCues();
+  Array.prototype.forEach.call(document.querySelectorAll("[data-say]"), function(b){ b.onclick = function(){ sendCue("MESSAGE", b.getAttribute("data-say")); }; });
+  $("chime").onchange = function(){ try{ localStorage.setItem("wca-crew-chime", this.checked ? "1" : "0"); }catch(e){} };
+  function chime(){
+    if(!$("chime").checked) return;
+    try{ var A = new (window.AudioContext || window.webkitAudioContext)(), o = A.createOscillator(), g = A.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(880, A.currentTime); o.frequency.setValueAtTime(1320, A.currentTime + .12);
+      g.gain.setValueAtTime(.0001, A.currentTime); g.gain.exponentialRampToValueAtTime(.25, A.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, A.currentTime + .45);
+      o.connect(g); g.connect(A.destination); o.start(); o.stop(A.currentTime + .5); }catch(e){}
   }
-  function renderCues(){
-    $("hist").innerHTML = CUES.length ? CUES.map(function(c){
-      return '<div><span class="muted">' + new Date(c.created_at).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) + '</span> <b>' + esc(c.from_name) + '</b>: ' + esc(c.kind === "MESSAGE" ? c.note : c.kind) + '</div>';
-    }).join("") : '<span class="muted">No cues sent yet tonight.</span>';
+  function popup(c){
+    $("popW").textContent = "FROM " + String(c.from_name || "THE HOST").toUpperCase();
+    $("popT").textContent = c.kind === "MESSAGE" ? "MESSAGE" : c.kind;
+    $("popN").textContent = c.note || "";
+    $("pop").classList.add("show"); clearTimeout(popup.t); popup.t = setTimeout(function(){ $("pop").classList.remove("show"); }, 9000);
+    chime();
   }
+  $("pop").onclick = function(){ this.classList.remove("show"); go("msgs"); };
 
-  /* ---------- realtime: only changes come in, nothing is polled ---------- */
+  /* ---------- realtime ---------- */
   function subscribe(){
     sb.channel("crew-desk")
       .on("postgres_changes", { event:"UPDATE", schema:"public", table:"crew_show" }, function(p){ applyShow(p.new || {}); })
-      .on("postgres_changes", { event:"INSERT", schema:"public", table:"crew_cues" }, function(p){ CUES.unshift(p.new); CUES = CUES.slice(0, 20); renderCues(); })
-      .on("postgres_changes", { event:"DELETE", schema:"public", table:"crew_cues" }, function(){ loadCues(); })
-      .subscribe(function(status){ if(status === "SUBSCRIBED") setLive(true, "Live"); else if(status === "CLOSED" || status === "CHANNEL_ERROR") setLive(false, "Reconnecting…"); });
-    setInterval(function(){ if(LIVE.at) setLive(true, "Live · updated " + ago(LIVE.at)); }, 15000);
+      .on("postgres_changes", { event:"INSERT", schema:"public", table:"crew_cues" }, function(p){
+        var c = p.new || {}; CUES.push(c); CUES = CUES.slice(-60); renderThread();
+        if(c.from_host){ popup(c); if(PAGE !== "msgs"){ UNREAD++; badge(); } }
+      })
+      .on("postgres_changes", { event:"DELETE", schema:"public", table:"crew_cues" }, function(){ loadCues().then(renderThread); })
+      .on("postgres_changes", { event:"*", schema:"public", table:"crew_sponsor_reads" }, function(){ clearTimeout(subscribe.rt); subscribe.rt = setTimeout(function(){ loadReads().then(function(){ renderSponsors(); renderReader(); }); }, 800); })
+      .subscribe(function(status){ if(status === "CHANNEL_ERROR" || status === "CLOSED") setLive(false, "Reconnecting…"); });
+    setInterval(renderShow, 30000);
   }
+  function renderAll(){ renderShow(); renderCard(); renderRoster(); renderSponsors(); renderReader(); renderThread(); }
 
-  /* ---------- admin: approve crew, set the Show Key ---------- */
+  /* ---------- admin ---------- */
   async function loadMembers(){
-    var r = await sb.from("crew_members").select("*").order("requested_at", { ascending:false });
-    var rows = r.data || [];
+    var r = await sb.from("crew_members").select("*").order("requested_at", { ascending:false }), rows = r.data || [];
     $("members").innerHTML = rows.length ? rows.map(function(m){
-      return '<div class="mem">' + (m.avatar_url ? '<img alt="" src="' + esc(m.avatar_url) + '">' : '') + '<span class="who">' + esc(m.display_name || m.auth_id) +
-        ' <span class="tag ' + (m.approved ? "ok" : "wait") + '">' + (m.approved ? "APPROVED" : "WAITING") + '</span></span>' +
+      return '<div class="mem2">' + (m.avatar_url ? '<img alt="" src="' + esc(m.avatar_url) + '">' : '') + '<span style="flex:1">' + esc(m.display_name || m.auth_id) +
+        ' <span class="tag ' + (m.approved ? "ok" : "gold") + '">' + (m.approved ? "APPROVED" : "WAITING") + '</span></span>' +
         (m.approved ? '' : '<button class="btn gold sm" data-ap="' + m.auth_id + '">Approve</button>') +
         '<button class="btn red sm" data-rm="' + m.auth_id + '">' + (m.approved ? "Remove" : "Decline") + '</button></div>';
     }).join("") : '<span class="muted">Nobody has asked for crew access yet. Send guests the link to this page.</span>';
@@ -374,10 +1034,29 @@
       var d = await sb.from("crew_members").delete().eq("auth_id", b.getAttribute("data-rm"));
       if(d.error) toast(d.error.message); else { toast("Removed"); loadMembers(); } }; });
   }
+  $("memRefresh").onclick = loadMembers;
+  function copyText(t, done){
+    if(!t){ toast("Nothing to copy yet"); return; }
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ toast(done); }).catch(function(){
+      var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); toast(done); }catch(e){ toast("Could not copy"); } ta.remove(); });
+  }
+  var INVITE = location.origin + location.pathname;
+  $("inviteLink").value = INVITE;
+  $("inviteCopy").onclick = function(){ copyText(INVITE, "Crew Desk link copied"); };
+  try{ $("keyIn").value = localStorage.getItem("wca-crew-hostkey") || ""; }catch(e){}
+  $("keyShow").onclick = function(){ var k = $("keyIn"); k.type = k.type === "password" ? "text" : "password"; this.textContent = k.type === "password" ? "Show" : "Hide"; };
+  $("keyGen").onclick = function(){
+    var abc = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789", a = new Uint32Array(20), k = "";
+    crypto.getRandomValues(a); for(var i = 0; i < a.length; i++) k += abc[a[i] % abc.length];
+    $("keyIn").value = k; $("keyIn").type = "text"; $("keyShow").textContent = "Hide"; toast("New key made. Press Save Key to use it.");
+  };
+  $("keyCopy").onclick = function(){ copyText($("keyIn").value.trim(), "Show Key copied. Paste it in the lower thirds control under CREW."); };
   $("keySave").onclick = async function(){
-    var k = $("keyIn").value; if(k.length < 8){ toast("Use at least 8 characters"); return; }
+    var k = $("keyIn").value.trim(); if(k.length < 8){ toast("Use at least 8 characters"); return; }
     var r = await sb.rpc("crew_set_key", { p_key:k });
-    if(r.error) toast(r.error.message); else { toast("Show Key saved. Type the same key in the lower thirds control under CREW."); $("keyIn").value = ""; }
+    if(r.error){ toast(r.error.message); return; }
+    try{ localStorage.setItem("wca-crew-hostkey", k); }catch(e){}
+    toast("Show Key saved. Press Copy Show Key and paste it in the lower thirds control under CREW.");
   };
 
   boot();
