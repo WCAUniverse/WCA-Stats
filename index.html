@@ -6197,7 +6197,7 @@ async function loadDashStorylines(){
       .select('id,kind,title,body,payload,story_date,pinned,is_published,seed_likes,seed_dislikes')
       .eq('is_published', true);
     if(error) throw error;
-    rows = data || [];
+    rows = await slHideScheduled(data || []);
   }catch(e){ rows = []; }
 
   if(!rows.length){
@@ -10200,6 +10200,20 @@ async function slLoadSegmentTypeFilters(){
   }catch(e){ /* segment_types table may not exist yet */ }
 }
 
+/* SCHEDULED POSTS — a Feed post saved with a future publish_at stays hidden
+   until that moment. The database already hides them from visitors (see
+   SUPABASE_SETUP_feed_schedule.sql); this extra step only matters for the
+   admin's own login, which the database lets see everything. Fails soft if
+   the column doesn't exist yet. */
+async function slHideScheduled(rows){
+  if(!rows || !rows.length) return rows;
+  try{
+    const { data, error } = await sb.from('storylines').select('id').gt('publish_at', new Date().toISOString());
+    if(error || !data || !data.length) return rows;
+    const ids = new Set(data.map(r=>String(r.id)));
+    return rows.filter(r=>!ids.has(String(r.id)));
+  }catch(e){ return rows; }
+}
 async function loadStorylines(){
   SL_PAGE = 1;
   let rows = [];
@@ -10208,7 +10222,7 @@ async function loadStorylines(){
       .select('id,kind,title,body,payload,story_date,pinned,is_published,seed_likes,seed_dislikes,submitted_by')
       .eq('is_published', true);
     if(error) throw error;
-    rows = data || [];
+    rows = await slHideScheduled(data || []);
   }catch(e){ rows = []; }
 
   if(rows.length){
@@ -12741,7 +12755,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'showdown-2026-10-09a';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'showdown-2026-10-13a';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
@@ -15805,7 +15819,7 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
 .sd-note{font-family:var(--font-cond);font-size:13px;color:var(--muted);letter-spacing:.5px;margin-top:10px}
 
 /* ---- betting champs + trophy cabinet ---- */
-.sd-split{display:grid;grid-template-columns:1fr 1.3fr;gap:18px}
+.sd-split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .sd-split>*,.sd-rk>*,.sd-rival>*,.sd-hist>*,.sd-rosters>*,.sd-pools>*,.sd-room>*,.sd-hero>*,.sd-belts>*{min-width:0}
 .sd-bc{padding:18px}
 .sd-bc .sd-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid #ffffff0d;font-family:var(--font-cond);font-size:16px}
@@ -15916,17 +15930,103 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
 .sd-reign .who{font-weight:700;font-size:17px;flex:1}
 .sd-reign .when{color:var(--muted);font-size:13px;text-align:right}
 
+/* ---- belts (artwork from Admin → WCA Showdown) ---- */
+.sd-beltimg{height:20px;width:auto;max-width:72px;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 1px 3px #000c);flex-shrink:0}
+.sd-beltimg.nm{height:18px;margin-left:6px}
+.sd-beltimg.cl{height:30px;max-width:96px}
+.sd-beltimg.hd{height:30px;max-width:110px;margin-left:auto}
+.sd-rkp.b .sd-beltimg.hd{margin-left:0;margin-right:auto}
+.sd-beltimg.tg{height:14px;margin-right:6px;vertical-align:-2px}
+.sd-beltimg.cr{height:24px;margin-left:auto}
+.sd-belticon{font-size:16px;margin-left:6px;vertical-align:middle}
+.sd-belticon.a{color:var(--sd-a-lt)}.sd-belticon.b{color:var(--sd-b-lt)}
+.sd-beltart{height:74px;display:grid;place-items:center;margin:-2px 0 10px}
+.sd-beltart img{height:74px;width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(0 6px 14px #000d)}
+.sd-beltart.none i{font-size:46px;opacity:.5}
+.sd-belt.a .sd-beltart.none i{color:var(--sd-a-lt)}.sd-belt.b .sd-beltart.none i{color:var(--sd-b-lt)}
+.sd-belt{text-align:center}
+.sd-belt .sd-row{justify-content:center;text-align:left}
+/* the right half mirrors the left */
+.sd-rkp.b .sd-rkh{flex-direction:row-reverse;text-align:right}
+.sd-rkp.b .sd-rkh .sd-sw{margin-left:0;margin-right:auto}
+.sd-clash-txt{background-image:var(--sd-clash);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#fff}
+
 /* ---- Showdown episode on Upcoming Events / Live ---- */
-.sd-evbanner{display:flex;align-items:center;gap:14px;margin:18px 0 14px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:#000a}
-.sd-evbanner.a{border-color:transparent;background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.28),rgba(var(--sd-a2-rgb),.14) 40%,#08090d 72%) padding-box,linear-gradient(#0a0b10,#0a0b10) padding-box,linear-gradient(90deg,rgba(var(--sd-a-rgb),.7),rgba(var(--sd-a2-rgb),.7)) border-box}
-.sd-evbanner.b{border-color:transparent;background:linear-gradient(90deg,rgba(var(--sd-b-rgb),.28),rgba(var(--sd-b2-rgb),.14) 40%,#08090d 72%) padding-box,linear-gradient(#0a0b10,#0a0b10) padding-box,linear-gradient(90deg,rgba(var(--sd-b-rgb),.7),rgba(var(--sd-b2-rgb),.7)) border-box}
-.sd-evbanner.clash{background:linear-gradient(#0b0b10,#0b0b10) padding-box,var(--sd-clash) border-box;border:1px solid transparent}
-.sd-evbanner img.lg{height:44px}
-.sd-evbanner .t{font-family:var(--font-cond);font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:14px}
-.sd-evbanner .t b{font-family:var(--font-display);font-size:20px;letter-spacing:.5px;display:block}
-.sd-evbanner .go{margin-left:auto}
-.event-hero.sd-a{box-shadow:inset 0 0 0 1px rgba(var(--sd-a-rgb),.6)}
-.event-hero.sd-b{box-shadow:inset 0 0 0 1px rgba(var(--sd-b-rgb),.6)}
+.sd-evbanner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;margin:18px 0 16px;padding:16px 22px;border-radius:14px;border:1px solid var(--line);background:#000a;text-align:center}
+.sd-evbanner.a{border-color:transparent;background:radial-gradient(ellipse at 50% 0%,rgba(var(--sd-a-rgb),.30),transparent 70%) padding-box,linear-gradient(90deg,rgba(var(--sd-a-rgb),.18),#08090d 30%,#08090d 70%,rgba(var(--sd-a2-rgb),.18)) padding-box,linear-gradient(90deg,rgba(var(--sd-a-rgb),.8),rgba(var(--sd-a2-rgb),.8)) border-box}
+.sd-evbanner.b{border-color:transparent;background:radial-gradient(ellipse at 50% 0%,rgba(var(--sd-b-rgb),.30),transparent 70%) padding-box,linear-gradient(90deg,rgba(var(--sd-b-rgb),.18),#08090d 30%,#08090d 70%,rgba(var(--sd-b2-rgb),.18)) padding-box,linear-gradient(90deg,rgba(var(--sd-b-rgb),.8),rgba(var(--sd-b2-rgb),.8)) border-box}
+.sd-evbanner.clash{border-color:transparent;background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.2),#08090d 32%,#08090d 68%,rgba(var(--sd-b-rgb),.2)) padding-box,var(--sd-clash) border-box}
+.sd-evb-side{display:flex}.sd-evb-side:first-child{justify-content:flex-start}.sd-evb-side:last-child{justify-content:flex-end}
+.sd-evb-mid{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sd-evbanner img.lg{height:46px;margin-bottom:2px;filter:drop-shadow(0 4px 12px #000)}
+.sd-evbanner .kick{font-family:var(--font-cond);font-weight:700;letter-spacing:3px;text-transform:uppercase;font-size:13px;color:#d8dbe2}
+.sd-evbanner .big{font-family:var(--font-display);font-size:34px;line-height:1.05;letter-spacing:1px;text-transform:uppercase}
+.sd-evbanner .sub{font-family:var(--font-cond);font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.sd-evbanner .go{background:none;border:0;padding:0;color:#fff;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+/* event title and frame */
+.event-hero.sd-a,.live-banner.sd-a{box-shadow:inset 0 0 0 1px rgba(var(--sd-a-rgb),.7),0 0 40px rgba(var(--sd-a-rgb),.12)}
+.event-hero.sd-b,.live-banner.sd-b{box-shadow:inset 0 0 0 1px rgba(var(--sd-b-rgb),.7),0 0 40px rgba(var(--sd-b-rgb),.12)}
+.event-hero.sd-clash,.live-banner.sd-clash{box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.sd-ev-a .event-hero .ev-name,.sd-ev-a .lb-name{background-image:linear-gradient(90deg,var(--sd-a-lt),var(--sd-a2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sd-ev-b .event-hero .ev-name,.sd-ev-b .lb-name{background-image:linear-gradient(90deg,var(--sd-b-lt),var(--sd-b2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sd-ev-clash .event-hero .ev-name{background-image:var(--sd-clash);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sd-ev .event-meta i,.sd-ev .lb-meta i{color:#fff}
+.sd-ev-a .event-meta i{color:var(--sd-a-lt)}.sd-ev-b .event-meta i{color:var(--sd-b-lt)}
+/* bouts: framed in the brand of the people in them */
+.sd-ev .bout.sd-bout-a,.sd-ev .bout.sd-bout-a.main{border-color:transparent;background:linear-gradient(180deg,rgba(var(--sd-a-rgb),.16),rgba(10,11,16,.92) 55%) padding-box,linear-gradient(#0a0b10,#0a0b10) padding-box,linear-gradient(90deg,rgba(var(--sd-a-rgb),.75),rgba(var(--sd-a2-rgb),.75)) border-box}
+.sd-ev .bout.sd-bout-b,.sd-ev .bout.sd-bout-b.main{border-color:transparent;background:linear-gradient(180deg,rgba(var(--sd-b-rgb),.16),rgba(10,11,16,.92) 55%) padding-box,linear-gradient(#0a0b10,#0a0b10) padding-box,linear-gradient(90deg,rgba(var(--sd-b-rgb),.75),rgba(var(--sd-b2-rgb),.75)) border-box}
+.sd-ev .bout.sd-bout-clash,.sd-ev .bout.sd-bout-clash.main{border-color:transparent;background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.13),rgba(10,11,16,.94) 35%,rgba(10,11,16,.94) 65%,rgba(var(--sd-b-rgb),.13)) padding-box,var(--sd-clash) border-box}
+.sd-ev .bout.main{border-width:2px}
+.sd-ev .bout .bout-label{color:#e8eaf0;font-size:12px}
+.sd-ev .bout.main .bout-label,.sd-ev .bout.sd-title-bout .bout-label{font-size:14px;color:#fff}
+.sd-ev .bout-label::before,.sd-ev .bout-label::after{width:56px}
+.sd-ev .bout.sd-bout-a .bout-label::before,.sd-ev .bout.sd-bout-a .bout-label::after{background:linear-gradient(90deg,transparent,rgba(var(--sd-a-rgb),.9))}
+.sd-ev .bout.sd-bout-a .bout-label::after{background:linear-gradient(270deg,transparent,rgba(var(--sd-a2-rgb),.9))}
+.sd-ev .bout.sd-bout-b .bout-label::before{background:linear-gradient(90deg,transparent,rgba(var(--sd-b-rgb),.9))}
+.sd-ev .bout.sd-bout-b .bout-label::after{background:linear-gradient(270deg,transparent,rgba(var(--sd-b2-rgb),.9))}
+.sd-ev .bout.sd-bout-clash .bout-label::before{background:linear-gradient(90deg,transparent,rgba(var(--sd-a-rgb),.9))}
+.sd-ev .bout.sd-bout-clash .bout-label::after{background:linear-gradient(270deg,transparent,rgba(var(--sd-b-rgb),.9))}
+.sd-titlebelt{display:flex;justify-content:center;margin:-2px 0 6px}
+.sd-titlebelt img{height:42px;max-width:180px;object-fit:contain;filter:drop-shadow(0 4px 12px #000d)}
+/* with portraits on, the belt rides on the champion's square; the inline name
+   belt only appears when portraits are switched off */
+.sd-ev .bout .mp-row ~ .fname .sd-nbelt,.sd-ev .bout .mp-row ~ .fmembers .sd-nbelt{display:none}
+body.mp-off-events .sd-ev .bout .sd-nbelt{display:inline!important}
+.sd-ev .fighter .amp{color:#9aa0ab}
+.sd-ev .bout .vs{color:#fff;opacity:1;text-shadow:0 0 14px rgba(255,255,255,.35)}
+.sd-ev .bout.sd-bout-a .vs{color:var(--sd-a-lt);text-shadow:0 0 16px rgba(var(--sd-a-rgb),.7)}
+.sd-ev .bout.sd-bout-b .vs{color:var(--sd-b-lt);text-shadow:0 0 16px rgba(var(--sd-b-rgb),.7)}
+.sd-ev .bout.sd-bout-clash .vs{background-image:var(--sd-clash);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+/* portraits outlined in each side's brand */
+.sd-ev .sd-mp-a .mp{border-color:rgba(var(--sd-a-rgb),.85)}
+.sd-ev .sd-mp-b .mp{border-color:rgba(var(--sd-b-rgb),.85)}
+.sd-ev .sd-mp-a .mp-init{color:var(--sd-a-lt);background:linear-gradient(160deg,rgba(var(--sd-a-rgb),.28),#101016)}
+.sd-ev .sd-mp-b .mp-init{color:var(--sd-b-lt);background:linear-gradient(160deg,rgba(var(--sd-b-rgb),.28),#101016)}
+.sd-ev .mp.sd-champ-a{box-shadow:0 0 0 2px rgba(var(--sd-a-rgb),.5),0 0 22px rgba(var(--sd-a-rgb),.45)}
+.sd-ev .mp.sd-champ-b{box-shadow:0 0 0 2px rgba(var(--sd-b-rgb),.5),0 0 22px rgba(var(--sd-b-rgb),.45)}
+/* names: brand colour stays readable on dark (the light tint of each colour) */
+.sd-ev .fighter .fname{text-shadow:none}
+.sd-ev .fighter .fname .sd-a-txt,.sd-ev .fighter .fname .sd-b-txt,.sd-ev .fighter .fname.sd-a-txt,.sd-ev .fighter .fname.sd-b-txt{filter:drop-shadow(0 2px 6px rgba(0,0,0,.9))}
+.sd-ev .fmembers .sd-a-txt,.sd-ev .fmembers .sd-b-txt{font-weight:700}
+.sd-nbelt{height:.8em;max-width:3.2em;margin-left:.3em;vertical-align:baseline}
+.sd-ev .fighter.sd-side-a .side-pot,.sd-ev .fighter.sd-side-b .side-pot{color:#d5d8df}
+.sd-ev .fighter.sd-side-a .pick-btn{border-color:rgba(var(--sd-a-rgb),.8)}
+.sd-ev .fighter.sd-side-b .pick-btn{border-color:rgba(var(--sd-b-rgb),.8)}
+.sd-ev .section-title{color:#fff}
+
+/* ---- the "next Showdown episode" strip across the top of the site ---- */
+.sd-strip{position:relative;margin:12px 0 4px;border-radius:12px;border:1px solid transparent;overflow:hidden}
+.sd-strip.a{background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.32),rgba(8,9,13,.92) 28%,rgba(8,9,13,.92) 72%,rgba(var(--sd-a2-rgb),.32)) padding-box,linear-gradient(90deg,rgba(var(--sd-a-rgb),.85),rgba(var(--sd-a2-rgb),.85)) border-box}
+.sd-strip.b{background:linear-gradient(90deg,rgba(var(--sd-b-rgb),.32),rgba(8,9,13,.92) 28%,rgba(8,9,13,.92) 72%,rgba(var(--sd-b2-rgb),.32)) padding-box,linear-gradient(90deg,rgba(var(--sd-b-rgb),.85),rgba(var(--sd-b2-rgb),.85)) border-box}
+.sd-strip.clash{background:linear-gradient(90deg,rgba(var(--sd-a-rgb),.3),rgba(8,9,13,.92) 28%,rgba(8,9,13,.92) 72%,rgba(var(--sd-b-rgb),.3)) padding-box,var(--sd-clash) border-box}
+.sd-strip-in{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;padding:9px 46px;background:none;border:0;color:#fff;cursor:pointer;font:inherit}
+.sd-strip-txt{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 10px;font-family:var(--font-cond);font-weight:700;font-size:15px;letter-spacing:1.6px;text-transform:uppercase}
+.sd-strip-txt b{font-family:var(--font-display);font-weight:400;letter-spacing:1px}
+.sd-strip-txt .dot{opacity:.5}
+.sd-strip-x{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;border:1px solid #ffffff2a;background:#0008;color:#ccc;font-size:16px;line-height:1;cursor:pointer}
+.sd-strip-x:hover{color:#fff;border-color:#fff6}
+body:has(#page-showdown.active) .sd-strip,
+body:has(#page-events.active .sd-ev) .sd-strip,body:has(#page-live.active .sd-ev) .sd-strip{display:none}
 
 @media (max-width:1000px){
   .sd-hero{grid-template-columns:1fr}
@@ -15938,6 +16038,12 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
   .sd-steps{margin-left:0}
 }
 @media (max-width:640px){
+  .sd-evbanner{grid-template-columns:auto 1fr auto;padding:12px;gap:10px}
+  .sd-evbanner .sd-emb{width:40px!important;height:40px!important;font-size:17px!important}
+  .sd-evbanner .big{font-size:26px}
+  .sd-strip-in{padding:8px 40px 8px 10px;gap:8px}
+  .sd-strip-in .sd-emb{display:none}
+  .sd-strip-txt{font-size:13px;letter-spacing:1px}
   .sd-bname{font-size:32px}
   .sd-belts{grid-template-columns:1fr}
   .sd-nodes{grid-template-columns:repeat(8,1fr)!important;gap:5px}
@@ -15971,7 +16077,9 @@ const SD_DEFAULTS = {
   logo:'',
   titles:{ singles:'{brand} Championship', faction:'{brand} Faction Championship' },
   trophy:{ name:'Showdown Cup', image:'' },
-  points:{ win:3, loss:0, nc:1 }
+  points:{ win:3, loss:0, nc:1 },
+  belts:{ a:{ singles:'', faction:'' }, b:{ singles:'', faction:'' } },
+  announce:{ on:false, event_id:null, text:'' }
 };
 let SDS = JSON.parse(JSON.stringify(SD_DEFAULTS));   // live settings
 let SD = null;          // loaded data
@@ -16038,6 +16146,10 @@ function mergeSettings(saved){
   if(saved.titles){ if(saved.titles.singles) s.titles.singles = saved.titles.singles; if(saved.titles.faction) s.titles.faction = saved.titles.faction; }
   if(saved.trophy){ if(saved.trophy.name) s.trophy.name = saved.trophy.name; if(saved.trophy.image) s.trophy.image = saved.trophy.image; }
   if(saved.points){ ['win','loss','nc'].forEach(k=>{ if(saved.points[k]!=null && !isNaN(Number(saved.points[k]))) s.points[k] = Number(saved.points[k]); }); }
+  if(saved.belts){ ['a','b'].forEach(k=>['singles','faction'].forEach(f=>{ const v = (saved.belts[k]||{})[f]; if(v) s.belts[k][f] = v; })); }
+  if(saved.announce && typeof saved.announce==='object'){
+    s.announce = { on:!!saved.announce.on, event_id: saved.announce.event_id==null ? null : saved.announce.event_id, text:String(saved.announce.text||'') };
+  }
   return s;
 }
 async function sdLoadSettings(){
@@ -16231,6 +16343,34 @@ function currentChamp(brand, kind){
   const open = (SD.reigns||[]).filter(r=>r.brand===brand && r.kind===kind && reignOpen(r));
   return open.length ? open[open.length-1] : null;
 }
+/* Belt artwork uploaded in Admin → WCA Showdown → Brands & Look.
+   beltImg(k,kind)      → that title's belt (a crown icon when none is uploaded)
+   champBelts(name,team)→ belts for whatever Showdown titles this person or team holds now */
+function beltImg(k, kind, cls){
+  const url = ((SDS.belts||{})[k]||{})[kind];
+  const t = e(titleName(k, kind));
+  if(url) return `<img class="sd-beltimg ${cls||''}" src="${e(url)}" alt="${t}" title="${t}" loading="lazy">`;
+  return `<i class="ti ${kind==='faction'?'ti-users-group':'ti-crown'} sd-belticon ${k} ${cls||''}" title="${t}"></i>`;
+}
+function champTitles(name, team){
+  const n = norm(name), t = norm(team), out = [];
+  if(!SD) return out;
+  ['a','b'].forEach(k=>['singles','faction'].forEach(kind=>{
+    const r = currentChamp(k, kind); if(!r) return;
+    const mem = String(r.members||'').split(',').map(norm).filter(Boolean);
+    const h = norm(r.holder);
+    if((n && h===n) || (kind==='faction' && ((t && h===t) || (n && mem.includes(n))))) out.push({ k, kind });
+  }));
+  return out;
+}
+function champBelts(name, team, cls){ return champTitles(name, team).map(x=>beltImg(x.k, x.kind, cls)).join(''); }
+/* "HEAT Championship" written on a match → which Showdown title is it? */
+function titleFromText(txt){
+  const n = norm(txt); if(!n) return null;
+  let hit = null;
+  ['a','b'].forEach(k=>['faction','singles'].forEach(kind=>{ if(!hit && n.includes(norm(titleName(k,kind)))) hit = { k, kind }; }));
+  return hit;
+}
 function reignSince(r){
   const s = r.season_id ? seasonById(r.season_id) : null;
   if(!s) return '';
@@ -16323,7 +16463,8 @@ function brandCard(season, k){
   const meta = [holds ? `${seasonLabel(last)} winner` : '', count ? `${count} superstar${count===1?'':'s'}` : 'Draft pending'].filter(Boolean).join(' · ');
   const champLine = (kind, icon)=>{
     const c = currentChamp(k, kind);
-    return `<div class="sd-cl"><i class="ti ${icon}"></i><div><div class="t">${e(titleName(k,kind))}</div><div class="who">${c?e(c.holder):'Vacant'}</div></div></div>`;
+    const url = ((SDS.belts||{})[k]||{})[kind];
+    return `<div class="sd-cl">${url?beltImg(k,kind,'cl'):`<i class="ti ${icon}"></i>`}<div><div class="t">${e(titleName(k,kind))}</div><div class="who">${c?e(c.holder):'Vacant'}</div></div></div>`;
   };
   const trophy = holds ? `<div class="sd-trophy">${SDS.trophy.image?`<img src="${e(SDS.trophy.image)}" alt="">`:'<i class="ti ti-trophy"></i>'}Holds the<br>${e(SDS.trophy.name)}</div>` : '';
   return `<div class="sd-bcard ${k}">${trophy}
@@ -16381,13 +16522,17 @@ function renderRoad(season){
     <span><i style="background:var(--sd-clash)"></i>Finale · ${Number(season.finale_matches)||7} matches</span></div></div>`;
 }
 function renderBelts(){
+  /* mirrored: Brand A's two titles on the left, Brand B's on the right, with
+     each brand's singles title nearest the middle */
   const card = (k, kind)=>{
     const c = currentChamp(k, kind);
-    const icon = kind==='singles' ? 'ti-crown' : 'ti-users-group';
-    return `<div class="sd-belt ${k}"><i class="ti ${icon} wm"></i><div class="t">${e(titleName(k,kind))}</div>
+    const url = ((SDS.belts||{})[k]||{})[kind];
+    const art = url ? `<div class="sd-beltart"><img src="${e(url)}" alt="${e(titleName(k,kind))}" loading="lazy"></div>`
+                    : `<div class="sd-beltart none"><i class="ti ${kind==='singles'?'ti-crown':'ti-users-group'}"></i></div>`;
+    return `<div class="sd-belt ${k}">${art}<div class="t">${e(titleName(k,kind))}</div>
       <div class="sd-row">${portrait(c?c.holder:'?', k)}<div><div class="who">${c?e(c.holder):'Vacant'}</div><div class="since">${c?e(reignSince(c)||'Champion'):'Title up for grabs'}</div></div></div></div>`;
   };
-  return `<div class="sd-belts">${card('a','singles')}${card('a','faction')}${card('b','singles')}${card('b','faction')}</div>`;
+  return `<div class="sd-belts">${card('a','faction')}${card('a','singles')}${card('b','singles')}${card('b','faction')}</div>`;
 }
 function rankPanel(season, k, limit){
   let rows = standings(season.id, k, SD_RANK_KIND);
@@ -16398,7 +16543,7 @@ function rankPanel(season, k, limit){
     const mk = r.tiedTop ? '<span class="sd-mk">Tied · #1</span>' : (r.contender ? '<span class="sd-mk">#1 contender</span>' : '');
     const cls = (r.champ?'ch ':'') + ((r.contender||r.tiedTop)?'ct':'');
     const link = SD_RANK_KIND==='singles' ? ` data-wname="${e(r.name)}" style="cursor:pointer"` : '';
-    return `<tr class="${cls}"><td class="n">${r.rank}</td><td><div class="sd-nm"${link}>${portrait(r.name,k)}${e(r.name)}${r.champ?' <i class="ti ti-crown cr"></i>':''} ${mk}</div></td><td class="r">${recHTML(r)}</td><td class="p">${r.pts}</td></tr>`;
+    return `<tr class="${cls}"><td class="n">${r.rank}</td><td><div class="sd-nm"${link}>${portrait(r.name,k)}${e(r.name)}${r.champ?beltImg(k,SD_RANK_KIND,'nm'):''} ${mk}</div></td><td class="r">${recHTML(r)}</td><td class="p">${r.pts}</td></tr>`;
   }).join('') : `<tr><td colspan="4" class="sd-empty">${SD_RANK_KIND==='faction'?'No factions on this brand yet.':'No one drafted to this brand yet.'}</td></tr>`;
   const more = limit && total>limit ? `<div style="padding:10px 14px;text-align:right"><button type="button" class="sd-btn" data-sdtab="rankings">Full rankings</button></div>` : '';
   return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh">${emblem(k,34,15)}${e(bName(k))}${sw}</div>
@@ -16461,11 +16606,11 @@ function renderRosters(season){
     const list = rosterOf(season.id).filter(r=>r.brand===k);
     if(!list.length) return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh">${emblem(k,34,15)}${e(bName(k))}</div><div class="sd-empty">No one drafted yet.</div></div>`;
     const champNames = ['singles','faction'].map(kind=>currentChamp(k,kind)).filter(Boolean).map(c=>norm(c.holder));
-    const person = r => `<button type="button" class="sd-person" data-wname="${e(r.name)}">${portrait(r.name,k)}${e(r.name)}${champNames.includes(norm(r.name))?' <i class="ti ti-crown cr"></i>':''}</button>`;
+    const person = r => `<button type="button" class="sd-person" data-wname="${e(r.name)}">${portrait(r.name,k)}${e(r.name)}${champBelts(r.name, r.team_name, 'nm')}</button>`;
     const teams = {}; const solo = [];
     list.forEach(r=>{ if(r.team_name){ (teams[r.team_name]=teams[r.team_name]||[]).push(r); } else solo.push(r); });
     const groups = Object.keys(teams).sort().map(t=>
-      `<div class="sd-rgroup"><h5><i class="ti ti-users-group"></i>${e(t)}${champNames.includes(norm(t))?' <i class="ti ti-crown" style="color:var(--gold)"></i>':''} · ${teams[t].length}</h5><div class="sd-people">${teams[t].map(person).join('')}</div></div>`).join('');
+      `<div class="sd-rgroup"><h5><i class="ti ti-users-group"></i>${e(t)}${champBelts('', t, 'nm')} · ${teams[t].length}</h5><div class="sd-people">${teams[t].map(person).join('')}</div></div>`).join('');
     const soloH = solo.length ? `<div class="sd-rgroup"><h5><i class="ti ti-user"></i>Singles · ${solo.length}</h5><div class="sd-people">${solo.map(person).join('')}</div></div>` : '';
     return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh">${emblem(k,34,15)}${e(bName(k))}<span class="sd-sw" style="font-size:14px;color:#ddd">${list.length} superstars</span></div>${groups}${soloH}</div>`;
   };
@@ -16515,7 +16660,7 @@ async function loadEpisodeDetail(season, n){
   const rows = matches.map(m=>{
     const sides = (typeof parseSides==='function') ? parseSides(m) : [];
     const r = res[m.slot];
-    const title = r && r.is_title ? `<span class="sd-tag ${r.title_brand||'clash'}">${e(titleName(r.title_brand||'a', r.title_kind||'singles'))}</span>` : '';
+    const title = r && r.is_title ? `<span class="sd-tag ${r.title_brand||'clash'}">${beltImg(r.title_brand||'a', r.title_kind||'singles','tg')}${e(titleName(r.title_brand||'a', r.title_kind||'singles'))}</span>` : '';
     const label = m.match_title || m.match_type || 'Match';
     const pt = (k==='finale' && r && r.winner_brand) ? `<div style="margin-top:4px"><span class="sd-tag ${r.winner_brand}">Point · ${e(bName(r.winner_brand))}</span></div>` : '';
     const left = sides.slice(0, Math.ceil(sides.length/2)), right = sides.slice(Math.ceil(sides.length/2));
@@ -16547,7 +16692,7 @@ function renderHistory(){
       const lost = reignOpen(r) ? 'Current champion' : (r.vacated ? 'Vacated' : (ls ? `Lost ${seasonLabel(ls)}${r.lost_episode?' · Ep '+r.lost_episode:''}` : 'Ended'));
       return `<div class="sd-reign">${portrait(r.holder,k)}<div class="who">${e(r.holder)}${reignOpen(r)?' <i class="ti ti-crown" style="color:var(--gold)"></i>':''}</div><div class="when">${e(won)}<br>${e(lost)}</div></div>`;
     }).join('');
-    return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh" style="font-size:18px">${emblem(k,30,13)}${e(titleName(k,kind))}</div>${items||'<div class="sd-empty">No champions yet.</div>'}</div>`;
+    return `<div class="sd-panel sd-rkp ${k}"><div class="sd-rkh" style="font-size:18px">${emblem(k,30,13)}<span>${e(titleName(k,kind))}</span>${beltImg(k,kind,'hd')}</div>${items||'<div class="sd-empty">No champions yet.</div>'}</div>`;
   };
   return `<div class="sd-sec clash">The rivalry · all-time</div>${renderRivalry()}
     <div class="sd-sec clash">Trophy cabinet · ${e(SDS.trophy.name)}</div>${renderCabinet()}
@@ -16624,7 +16769,7 @@ function draftReset(){
   const log = DR.log;
   DR.idx = -1; DR.cols = { a:[], b:[] }; DR.pickNo = 0; DR.coinDone = false;
   // champions are placed before any spin
-  (log.champions||[]).forEach(c=>{ if(c.brand==='a'||c.brand==='b') DR.cols[c.brand].push({ kind:'champ', name:c.name, sub:`Placed · reigning ${c.kind==='faction'?'Faction ':''}champion`, team:c.team||'' }); });
+  (log.champions||[]).forEach(c=>{ if(c.brand==='a'||c.brand==='b') DR.cols[c.brand].push({ kind:'champ', name:c.name, sub:`Placed · reigning ${c.kind==='faction'?'Faction ':''}champion`, team:c.team||'', belt:{ k:c.brand, kind:c.kind==='faction'?'faction':'singles' } }); });
   const steps = stepsOf(log);
   DR.teamPool = uniq(steps.filter(s=>s.pool==='team').flatMap(s=>s.options||[]).concat(steps.filter(s=>s.pool==='team').map(s=>s.landed)));
   DR.soloPool = uniq(steps.filter(s=>s.pool==='solo').flatMap(s=>s.options||[]).concat(steps.filter(s=>s.pool==='solo').map(s=>s.landed)));
@@ -16647,7 +16792,7 @@ function draftCols(newest){
     const col = $s('sd-dcol-'+k); if(!col) return;
     const champs = DR.cols[k].filter(x=>x.kind==='champ');
     const picks = DR.cols[k].filter(x=>x.kind!=='champ');
-    const rowH = (x)=>`<div class="sd-pk${x.team?' team':''}${x===newest?' new '+k:''}"><span class="no">${x.no||'—'}</span>${portrait(x.name,k)}<div><div class="sd-nm">${e(x.name)}</div><div class="sub">${e(x.sub||'')}</div></div>${x.kind==='champ'?'<i class="ti ti-crown cr"></i>':''}</div>`;
+    const rowH = (x)=>`<div class="sd-pk${x.team?' team':''}${x===newest?' new '+k:''}"><span class="no">${x.no||'—'}</span>${portrait(x.name,k)}<div><div class="sd-nm">${e(x.name)}</div><div class="sub">${e(x.sub||'')}</div></div>${x.kind==='champ'?(x.belt?beltImg(x.belt.k,x.belt.kind,'cr'):'<i class="ti ti-crown cr"></i>'):''}</div>`;
     col.innerHTML = picks.map(rowH).join('') + champs.map(rowH).join('') || '<div class="sd-empty" style="padding:18px">No picks yet</div>';
     const n = DR.cols[k].reduce((t,x)=>t+(x.count||1),0);
     const ct = $s('sd-dct-'+k); if(ct) ct.textContent = n ? `${n} superstar${n===1?'':'s'}` : '';
@@ -16778,31 +16923,146 @@ function draftFinish(){
   DR.playing = false; draftBtns();
 }
 
-/* ── Showdown episodes on Upcoming Events and Live ────────────────── */
+/* ── Showdown episodes on Upcoming Events and Live ──────────────────
+   The whole card takes the brand's colours so nobody mistakes a Showdown
+   episode for a numbered WCA show: a centred, mirrored banner, the event
+   title in brand colour, every bout framed in the brand of the people in it,
+   portraits outlined per side, names in their brand colour, and Showdown
+   belts on the reigning champions. Main WCA belts and divisions are hidden
+   here because Showdown is non-canon. */
+const SD_EV_CLASSES = ['sd-ev','sd-ev-a','sd-ev-b','sd-ev-clash'];
+function sdBrandOfPerson(name, seasonId){ return brandOfName(name, seasonId) || ''; }
+function sdBrandOfTeam(team, seasonId){
+  const r = rosterOf(seasonId).find(x=>x.team_name && norm(x.team_name)===norm(team));
+  return r ? r.brand : '';
+}
 async function sdDecorateEvent(ev, host){
   if(!ev || !host) return;
   await sdLoad();
   const ep = (SD.episodes||[]).find(x=>String(x.id)===String(ev.id));
+  host.querySelectorAll('.sd-evbanner').forEach(x=>x.remove());
+  host.classList.remove(...SD_EV_CLASSES);
   if(!ep) return;
-  const s = seasonById(ep.sd_season_id);
+  const sid = ep.sd_season_id;
+  const s = seasonById(sid);
   const k = ep.sd_brand;
   const cls = (k==='a'||k==='b') ? k : 'clash';
-  const what = k==='finale' ? 'The Finale · brand vs brand' : (k==='dual' ? 'Title show · both brands' : `${bName(k)} night`);
-  const lg = SDS.logo ? `<img class="lg" src="${e(SDS.logo)}" alt="WCA Showdown">` : '';
-  const emb = (k==='a'||k==='b') ? emblem(k,40,17) : `${emblem('a',34,14)}${emblem('b',34,14)}`;
-  host.querySelectorAll('.sd-evbanner').forEach(x=>x.remove());
+  host.classList.add('sd-ev', 'sd-ev-'+cls);
+
+  /* banner: brand emblem · centred title · brand emblem (one of each brand on title shows) */
+  const what = k==='finale' ? 'The Finale' : (k==='dual' ? 'Title Show' : bName(k));
+  const sub  = k==='finale' ? 'Brand vs brand' : (k==='dual' ? 'Both brands · titles on the line' : 'Brand night');
+  const L = (k==='a'||k==='b') ? k : 'a', R = (k==='a'||k==='b') ? k : 'b';
   const div = document.createElement('div');
   div.className = 'sd-evbanner ' + cls;
-  div.innerHTML = `${lg}${emb}<div class="t">WCA Showdown${s?' · '+e(seasonLabel(s)):''}${ep.sd_episode?' · Episode '+ep.sd_episode:''}<b class="${cls!=='clash'?'sd-'+cls+'-txt':''}">${e(what)}</b></div><button type="button" class="sd-btn go">Showdown hub ↗</button>`;
+  div.innerHTML = `<div class="sd-evb-side">${emblem(L,58,24)}</div>
+    <div class="sd-evb-mid">
+      ${SDS.logo ? `<img class="lg" src="${e(SDS.logo)}" alt="WCA Showdown">` : `<div class="kick">WCA Showdown</div>`}
+      <div class="kick">${s?e(seasonLabel(s)):''}${ep.sd_episode?' · Episode '+ep.sd_episode:''}</div>
+      <div class="big ${cls!=='clash'?'sd-'+cls+'-txt':'sd-clash-txt'}">${e(what)}</div>
+      <div class="sub">${e(sub)} · <button type="button" class="go">Showdown hub ↗</button></div>
+    </div>
+    <div class="sd-evb-side">${emblem(R,58,24)}</div>`;
   div.querySelector('.go').onclick = ()=>goPage('showdown');
   host.insertBefore(div, host.firstChild);
-  const hero = host.querySelector('.event-hero');
-  if(hero && cls!=='clash') hero.classList.add('sd-'+cls);
-  // every superstar on the card wears their brand's colour
-  host.querySelectorAll('[data-wname]').forEach(n=>{
-    const b = brandOfName(n.dataset.wname, ep.sd_season_id);
-    if(b) n.classList.add('sd-'+b+'-txt');
+  const hero = host.querySelector('.event-hero, .live-banner');
+  if(hero){ hero.classList.remove('sd-a','sd-b','sd-clash'); hero.classList.add('sd-'+cls); }
+
+  /* each bout, side and portrait */
+  host.querySelectorAll('.bout, .rbout').forEach(bout=>{
+    // Showdown is non-canon: no main WCA belts or divisions on these cards
+    bout.querySelectorAll('.mp-belts,.mp-belts-below,.mp-teambelt,.title-on-line,.bout-div').forEach(x=>x.remove());
+    bout.querySelectorAll('.mp.is-champ').forEach(x=>x.classList.remove('is-champ'));
+    const brands = new Set();
+    bout.querySelectorAll('.fighter, .rside').forEach(f=>{
+      const sb = {};
+      const team = (()=>{ const fn = f.querySelector('.fname'); return fn && !fn.querySelector('[data-wname]') ? fn.textContent.trim() : ''; })();
+      // portraits
+      f.querySelectorAll('.mp-wrap').forEach(w=>{
+        const m = w.querySelector('.mp'); const nm = m ? (m.getAttribute('title')||'') : '';
+        const b = sdBrandOfPerson(nm, sid) || (team ? sdBrandOfTeam(team, sid) : '');
+        if(b){ w.classList.add('sd-mp-'+b); sb[b] = (sb[b]||0)+1; }
+        const t = champTitles(nm, team)[0];
+        if(t){
+          m.classList.add('is-champ', 'sd-champ-'+t.k);
+          const url = ((SDS.belts||{})[t.k]||{})[t.kind];
+          if(url){ const strip = `<img src="${e(url)}" alt="${e(titleName(t.k,t.kind))}">`;
+            w.insertAdjacentHTML('beforeend', `<div class="mp-belts sd-mpbelt">${strip}</div><div class="mp-belts-below sd-mpbelt">${strip}</div>`); }
+        }
+      });
+      // names
+      f.querySelectorAll('[data-wname]').forEach(n=>{
+        const b = sdBrandOfPerson(n.dataset.wname, sid);
+        if(b){ n.classList.add('sd-'+b+'-txt'); sb[b] = (sb[b]||0)+1; }
+        // inside a team, the team name carries the faction belt; members only show their own singles title
+        const own = champTitles(n.dataset.wname, team).filter(x=>!team || x.kind==='singles').map(x=>beltImg(x.k,x.kind,'sd-nbelt')).join('');
+        if(own && !n.parentElement.querySelector('.sd-nbelt')) n.insertAdjacentHTML('afterend', own);
+      });
+      if(team){
+        const fn = f.querySelector('.fname');
+        const b = sdBrandOfTeam(team, sid);
+        if(b){ fn.classList.add('sd-'+b+'-txt'); sb[b] = (sb[b]||0)+2; }
+        const tb = champBelts('', team, 'sd-nbelt');
+        if(tb && !fn.querySelector('.sd-nbelt')) fn.insertAdjacentHTML('beforeend', tb);
+      }
+      const top = Object.keys(sb).sort((x,y)=>sb[y]-sb[x])[0];
+      if(top){ f.classList.add('sd-side-'+top); brands.add(top); }
+    });
+    const bb = brands.size===1 ? [...brands][0] : (brands.size>1 ? 'clash' : cls);
+    bout.classList.add('sd-bout', 'sd-bout-'+bb);
+    // title matches: put the belt beside the match label
+    const lab = bout.querySelector('.bout-label, .rlabel');
+    if(lab){
+      const tt = titleFromText(lab.firstChild && lab.firstChild.nodeType===3 ? lab.firstChild.textContent : lab.textContent);
+      if(tt && !bout.querySelector('.sd-titlebelt')){
+        const url = ((SDS.belts||{})[tt.k]||{})[tt.kind];
+        // centred above the match label so the card stays symmetrical
+        if(url) lab.insertAdjacentHTML('beforebegin', `<div class="sd-titlebelt"><img src="${e(url)}" alt="${e(titleName(tt.k,tt.kind))}"></div>`);
+        bout.classList.add('sd-title-bout');
+      }
+    }
   });
+}
+
+/* ── site-wide "next Showdown episode" strip ──────────────────────────
+   Turned on in Admin → WCA Showdown → Episodes → Showdown strip on the site. */
+function sdStripTarget(){
+  const A = SDS.announce || {};
+  if(!A.on || !SD) return null;
+  if(A.event_id!=null){
+    const ep = (SD.episodes||[]).find(x=>String(x.id)===String(A.event_id));
+    return ep && !ep.is_complete ? ep : null;
+  }
+  // automatic: the next unplayed episode of the earliest season that still has one
+  const num = id => { const s = seasonById(id); return s ? s.number : 0; };
+  return (SD.episodes||[]).filter(x=>!x.is_complete && x.sd_episode)
+    .sort((x,y)=>(num(x.sd_season_id)-num(y.sd_season_id)) || ((x.sd_episode||0)-(y.sd_episode||0)))[0] || null;
+}
+async function sdRenderStrip(){
+  const old = document.getElementById('sd-strip');
+  let ep = null;
+  try{ await sdLoad(); ep = sdStripTarget(); }catch(_){}
+  let closed = false; try{ closed = sessionStorage.getItem('sd-strip-x')===String(ep&&ep.id); }catch(_){}
+  if(!ep || closed){ if(old) old.remove(); return; }
+  const k = ep.sd_brand, cls = (k==='a'||k==='b') ? k : 'clash';
+  const L = (k==='a'||k==='b') ? k : 'a', R = (k==='a'||k==='b') ? k : 'b';
+  const what = k==='finale' ? 'The Finale' : (k==='dual' ? 'Title Show' : bName(k));
+  let when = 'Date to be announced';
+  if(ep.event_date){
+    const d = new Date(ep.event_date);
+    if(!isNaN(d)) when = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  }
+  const extra = (SDS.announce||{}).text ? `<span class="dot">·</span><span>${e(SDS.announce.text)}</span>` : '';
+  const el = old || document.createElement('div');
+  el.id = 'sd-strip'; el.className = 'sd-strip '+cls;
+  el.innerHTML = `<button type="button" class="sd-strip-in" aria-label="Open WCA Showdown">
+      ${emblem(L,26,11)}
+      <span class="sd-strip-txt"><b>WCA Showdown</b><span class="dot">·</span><span class="${cls!=='clash'?'sd-'+cls+'-txt':''}">${e(what)}</span><span class="dot">·</span><span>Episode ${e(ep.sd_episode||'?')}</span><span class="dot">·</span><span>${e(when)}</span>${extra}</span>
+      ${emblem(R,26,11)}
+    </button><button type="button" class="sd-strip-x" aria-label="Hide">×</button>`;
+  el.querySelector('.sd-strip-in').onclick = ()=>goPage('showdown');
+  el.querySelector('.sd-strip-x').onclick = ()=>{ try{ sessionStorage.setItem('sd-strip-x', String(ep.id)); }catch(_){} el.remove(); };
+  if(!old){ const wrap = document.querySelector('body > .wrap') || document.querySelector('.wrap'); if(wrap) wrap.insertBefore(el, wrap.firstChild); }
 }
 
 /* ── entry points ─────────────────────────────────────────────────── */
@@ -16826,7 +17086,7 @@ window.__sd = { standings:(sid,b,k)=>standings(sid,b,k), scheduleFor:s=>schedule
 // Colours apply site-wide as soon as the settings arrive.
 function boot(){
   if(typeof sb==='undefined') return;
-  sdLoadSettings();
+  sdLoadSettings().then(()=>{ if((SDS.announce||{}).on) sdRenderStrip(); });
   // Upcoming Events / Live may have rendered before this script existed, so
   // watch both containers and add the Showdown banner whenever a Showdown
   // episode is the event on show.
@@ -16835,6 +17095,8 @@ function boot(){
     const check = ()=>{
       let ev = null; try{ ev = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null; }catch(_){}
       if(!ev || host.querySelector('.sd-evbanner')) return;
+      if(host.dataset.sdChecked===String(ev.id)+':'+host.childElementCount && !host.classList.contains('sd-ev')) return;
+      host.dataset.sdChecked = String(ev.id)+':'+host.childElementCount;
       const target = id==='live-content' ? (host.querySelector('.live-layout')||host) : host;
       if(!target.firstChild) return;
       sdDecorateEvent(ev, target);
