@@ -313,7 +313,11 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .nav-toggle{display:none; background:transparent; border:1px solid var(--line); color:var(--gold);
     font-size:22px; line-height:1; padding:7px 10px; border-radius:8px; cursor:pointer;}
   .nav-toggle:hover{border-color:var(--gold);}
-  @media(max-width:760px){
+  /* The menu button takes over below 1150px wide, not just on phones: the full
+     menu needs about 1150px to sit on one line, and between phone size and
+     that (an unfolded Galaxy Fold, tablets, a small laptop window) it used to
+     stack into a tall column of links. */
+  @media(max-width:1150px){
     .head-inner{padding:14px 16px; flex-wrap:nowrap;}
     .brand .sub{display:none;}                 /* drop the long subtitle on mobile */
     .nav-toggle{display:block; flex:0 0 auto;}
@@ -347,11 +351,11 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   }
 
   /* ===== DESKTOP HEADER LAYOUT (brand left | nav centered | userbox | socials right) =====
-     Desktop only (>=761px) so the mobile hamburger dropdown above is untouched.
+     Desktop only (>=1151px) so the menu-button dropdown above is untouched.
      .head-right spans the space next to the brand; inside it the NAV is centered,
      the USERBOX sits to its right (made slightly bigger so name + points read),
      and the SOCIALS are pushed to the far right. Layout only — no DOM/JS change. */
-  @media(min-width:761px){
+  @media(min-width:1151px){
     .head-right{ flex:1; flex-wrap:nowrap; gap:14px; }
     /* center the menu in the remaining space */
     .head-right > nav{ flex:1 1 auto; justify-content:center; gap:6px; }
@@ -2803,7 +2807,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     animation:navlive 1.4s ease-in-out infinite;
   }
   @keyframes navlive{0%,100%{opacity:1}50%{opacity:.3}}
-  @media(max-width:900px){
+  @media(max-width:1150px){
     .navdrop{display:block;width:100%;}
     .navdrop-menu{
       position:static;opacity:1;visibility:visible;transform:none;
@@ -3652,7 +3656,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   }
   .donate-btn:hover{background:rgba(var(--gold-rgb),.2); transform:translateY(-1px);}
   .donate-btn i{font-size:16px; color:#ff6b81;}
-  @media(max-width:760px){ .donate-btn{justify-content:center; padding:11px 14px; font-size:14px;} }
+  @media(max-width:1150px){ .donate-btn{justify-content:center; padding:11px 14px; font-size:14px;} }
 
   /* ── reveal on scroll ── */
   .hm-rise{opacity:0; transform:translateY(22px); transition:opacity .6s ease, transform .6s cubic-bezier(.22,.61,.36,1);}
@@ -15773,6 +15777,8 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
 .sd-road{padding:22px}
 .sd-nodes{display:grid;gap:8px}
 .sd-nd{text-align:center;font-family:var(--font-cond);font-size:12px;color:var(--muted);letter-spacing:1px;background:none;border:0;padding:0;cursor:pointer;color:var(--muted)}
+.sd-nodes>*{min-width:0}
+.sd-nd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sd-nd .c{height:44px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-display);font-size:18px;color:#fff;margin-bottom:6px;border:2px solid transparent;transition:transform .15s}
 .sd-nd:hover .c{transform:translateY(-2px)}
 .sd-nd.a .c{border-color:transparent;background:linear-gradient(135deg,rgba(var(--sd-a-rgb),.3),rgba(var(--sd-a2-rgb),.2)) padding-box,linear-gradient(#0b0b10,#0b0b10) padding-box,var(--sd-a-fill) border-box}
@@ -16013,6 +16019,10 @@ body.mp-off-events .sd-ev .bout .sd-nbelt{display:inline!important}
 .sd-ev .fighter.sd-side-a .pick-btn{border-color:rgba(var(--sd-a-rgb),.8)}
 .sd-ev .fighter.sd-side-b .pick-btn{border-color:rgba(var(--sd-b-rgb),.8)}
 .sd-ev .section-title{color:#fff}
+.sd-ev .sd-frec .frec-lbl{color:#c9ccd4}
+.sd-ev .sd-side-a .sd-frec .frec-lbl{color:var(--sd-a-lt)}.sd-ev .sd-side-b .sd-frec .frec-lbl{color:var(--sd-b-lt)}
+.sd-ev .sd-frec .frec-new{color:#c9ccd4}
+.sd-frec-pts{font-family:var(--font-cond);font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
 
 /* ---- the "next Showdown episode" strip across the top of the site ---- */
 .sd-strip{position:relative;margin:12px 0 4px;border-radius:12px;border:1px solid transparent;overflow:hidden}
@@ -16029,6 +16039,7 @@ body:has(#page-showdown.active) .sd-strip,
 body:has(#page-events.active .sd-ev) .sd-strip,body:has(#page-live.active .sd-ev) .sd-strip{display:none}
 
 @media (max-width:1000px){
+  .sd-nodes{grid-template-columns:repeat(8,1fr)!important}
   .sd-hero{grid-template-columns:1fr}
   .sd-mid{order:-1}
   .sd-belts{grid-template-columns:1fr 1fr}
@@ -16044,6 +16055,9 @@ body:has(#page-events.active .sd-ev) .sd-strip,body:has(#page-live.active .sd-ev
   .sd-strip-in{padding:8px 40px 8px 10px;gap:8px}
   .sd-strip-in .sd-emb{display:none}
   .sd-strip-txt{font-size:13px;letter-spacing:1px}
+}
+@media (max-width:480px){
+  .sd-strip-extra{display:none}
   .sd-bname{font-size:32px}
   .sd-belts{grid-template-columns:1fr}
   .sd-nodes{grid-template-columns:repeat(8,1fr)!important;gap:5px}
@@ -16970,8 +16984,8 @@ async function sdDecorateEvent(ev, host){
 
   /* each bout, side and portrait */
   host.querySelectorAll('.bout, .rbout').forEach(bout=>{
-    // Showdown is non-canon: no main WCA belts or divisions on these cards
-    bout.querySelectorAll('.mp-belts,.mp-belts-below,.mp-teambelt,.title-on-line,.bout-div').forEach(x=>x.remove());
+    // Showdown is non-canon: no main WCA belts, divisions or records on these cards
+    bout.querySelectorAll('.mp-belts,.mp-belts-below,.mp-teambelt,.title-on-line,.bout-div,.frec').forEach(x=>x.remove());
     bout.querySelectorAll('.mp.is-champ').forEach(x=>x.classList.remove('is-champ'));
     const brands = new Set();
     bout.querySelectorAll('.fighter, .rside').forEach(f=>{
@@ -17007,6 +17021,18 @@ async function sdDecorateEvent(ev, host){
       }
       const top = Object.keys(sb).sort((x,y)=>sb[y]-sb[x])[0];
       if(top){ f.classList.add('sd-side-'+top); brands.add(top); }
+      // Showdown record under each name (or under the team), same place as the main WCA record
+      if(team){
+        const anchor = f.querySelector('.fmembers') || f.querySelector('.fname');
+        const b = sdBrandOfTeam(team, sid) || top;
+        if(anchor && b) anchor.insertAdjacentHTML('afterend', sdRecBlock(team, b, sid, 'faction'));
+      } else {
+        f.querySelectorAll('.fname').forEach(fn=>{
+          const n = fn.querySelector('[data-wname]'); if(!n) return;
+          const b = sdBrandOfPerson(n.dataset.wname, sid); if(!b) return;
+          fn.insertAdjacentHTML('afterend', sdRecBlock(n.dataset.wname, b, sid, 'singles'));
+        });
+      }
     });
     const bb = brands.size===1 ? [...brands][0] : (brands.size>1 ? 'clash' : cls);
     bout.classList.add('sd-bout', 'sd-bout-'+bb);
@@ -17022,6 +17048,20 @@ async function sdDecorateEvent(ev, host){
       }
     }
   });
+}
+
+/* Showdown record block: Wins - Losses - No contest and points for this
+   season, built from the same numbers as the Showdown Rankings tab. */
+function sdRecBlock(name, brand, sid, kind){
+  const row = standings(sid, brand, kind).find(r=>norm(r.name)===norm(name));
+  const s = seasonById(sid);
+  const lbl = `${e(bName(brand))} · ${s?e(seasonLabel(s)):'Showdown'}`;
+  if(!row || (row.w+row.l+row.nc)===0)
+    return `<div class="frec sd-frec"><span class="frec-lbl">${lbl}</span><span class="frec-new">First Showdown match${s?' of '+e(seasonLabel(s)):''}</span></div>`;
+  const tag = row.rank==='C' ? 'Champion' : (row.contender ? '#1 contender' : (row.tiedTop ? 'Tied for #1' : `#${row.rank} on ${e(bName(brand))}`));
+  return `<div class="frec sd-frec" title="${e(name)} · Showdown record this season (Wins, Losses, No contest)"><span class="frec-lbl">${lbl}</span>
+    <span class="frec-line"><span class="w"><b>${row.w}</b>W</span><span class="sep">·</span><span class="l"><b>${row.l}</b>L</span><span class="sep">·</span><span class="nw"><b>${row.nc}</b>NC</span></span>
+    <span class="sd-frec-pts">${row.pts} pts · ${tag}</span></div>`;
 }
 
 /* ── site-wide "next Showdown episode" strip ──────────────────────────
@@ -17052,7 +17092,7 @@ async function sdRenderStrip(){
     const d = new Date(ep.event_date);
     if(!isNaN(d)) when = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
   }
-  const extra = (SDS.announce||{}).text ? `<span class="dot">·</span><span>${e(SDS.announce.text)}</span>` : '';
+  const extra = (SDS.announce||{}).text ? `<span class="dot sd-strip-extra">·</span><span class="sd-strip-extra">${e(SDS.announce.text)}</span>` : '';
   const el = old || document.createElement('div');
   el.id = 'sd-strip'; el.className = 'sd-strip '+cls;
   el.innerHTML = `<button type="button" class="sd-strip-in" aria-label="Open WCA Showdown">
