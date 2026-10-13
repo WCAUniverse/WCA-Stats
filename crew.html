@@ -193,23 +193,48 @@
     $("me").innerHTML = USER ? ((avatarOf(USER) ? '<img alt="" src="' + esc(avatarOf(USER)) + '">' : "") + '<span>' + esc(nameOf(USER)) + (ADMIN ? " · admin" : "") + '</span><button class="btn sm" id="signOut">Sign out</button>') : "";
     var so = $("signOut"); if(so) so.onclick = function(){ sb.auth.signOut().then(function(){ location.reload(); }); };
   }
-  function signIn(){ sb.auth.signInWithOAuth({ provider:"discord", options:{ redirectTo: location.origin + location.pathname } }); }
+  function signIn(provider){ sb.auth.signInWithOAuth({ provider:provider || "discord", options:{ redirectTo: location.origin + location.pathname } }); }
+  async function signInEmail(){
+    var em = $("siEmail").value.trim(), pw = $("siPass").value;
+    if(!em || !pw){ toast("Type your email and password"); return; }
+    $("siGo").disabled = true;
+    var r = await sb.auth.signInWithPassword({ email:em, password:pw });
+    $("siGo").disabled = false;
+    if(r.error){ toast("Sign in failed: " + r.error.message); return; }
+    boot();
+  }
 
   async function boot(){
     var s = await sb.auth.getSession();
     USER = s.data && s.data.session ? s.data.session.user : null;
     renderMe();
     if(!USER){
-      gate('<h2>WCA CREW DESK</h2><p>Sign in with the same Discord account you use on the WCA website.</p><button class="btn gold" id="si">Sign in with Discord</button>');
-      $("si").onclick = signIn; setLive(false, "Signed out"); return;
+      gate('<h2>WCA CREW DESK</h2><p>Sign in the same way you sign in on the WCA website.</p>' +
+        '<div style="display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto">' +
+        '<button class="btn gold" id="siDiscord">Sign in with Discord</button>' +
+        '<button class="btn" id="siGoogle">Sign in with Google</button>' +
+        '<div class="muted" style="font-size:12px;margin:6px 0 0">or with email and password</div>' +
+        '<input id="siEmail" type="email" placeholder="Email" autocomplete="username" style="background:#0B0C10;border:1px solid var(--line);border-radius:9px;padding:9px 11px">' +
+        '<input id="siPass" type="password" placeholder="Password" autocomplete="current-password" style="background:#0B0C10;border:1px solid var(--line);border-radius:9px;padding:9px 11px">' +
+        '<button class="btn" id="siGo">Sign in with Email</button></div>');
+      $("siDiscord").onclick = function(){ signIn("discord"); };
+      $("siGoogle").onclick = function(){ signIn("google"); };
+      $("siGo").onclick = signInEmail;
+      $("siPass").onkeydown = function(e){ if(e.key === "Enter") signInEmail(); };
+      setLive(false, "Signed out"); return;
     }
-    var a = await sb.rpc("crew_is_admin"); ADMIN = !!(a && a.data);
+    var a = await sb.rpc("crew_is_admin");
+    if(a && a.error){
+      gate('<h2>CREW DESK NOT SET UP YET</h2><p>The website database doesn\'t have the Crew Desk tables yet. In Supabase, open SQL Editor, paste in <b>WCA_CREW_SETUP.sql</b> and run it, then refresh this page.</p><p class="muted" style="font-size:13px">(' + esc(a.error.message || "crew_is_admin missing") + ')</p><button class="btn" id="rf">Refresh</button>');
+      $("rf").onclick = function(){ location.reload(); }; setLive(false, "Not set up"); return;
+    }
+    ADMIN = !!(a && a.data);
     renderMe();
     if(!ADMIN){
       var r = await sb.from("crew_members").select("*").eq("auth_id", USER.id).maybeSingle();
       var row = r && r.data;
       if(!row){
-        gate('<h2>JOIN THE CREW</h2><p>You are signed in as <b>' + esc(nameOf(USER)) + '</b>. Ask for crew access and the host will approve you.</p><button class="btn gold" id="ask">Ask For Crew Access</button>');
+        gate('<h2>JOIN THE CREW</h2><p>You are signed in as <b>' + esc(nameOf(USER)) + '</b>. Ask for crew access and the host will approve you.</p><button class="btn gold" id="ask">Ask For Crew Access</button><p class="muted" style="font-size:12px;margin:16px 0 0">Account ID: ' + esc(USER.id) + '</p>');
         $("ask").onclick = async function(){
           var ins = await sb.from("crew_members").insert({ auth_id:USER.id, display_name:nameOf(USER), avatar_url:avatarOf(USER) });
           if(ins.error){ toast("Could not send the request: " + ins.error.message); return; }
