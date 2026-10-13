@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WCA Crew Desk</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!--
+  WCA CREW DESK
+  Upload this file next to index.html in the WCA-Stats repo.
+  Guests sign in with Discord, ask for access, and you approve them here
+  (signed in as admin). Approved crew see the rundown, the betting, every
+  sponsor read and your messages, and can send you cues. Nothing here can
+  change bets, points or what is on screen.
+-->
+<style>
+  :root{--bg:#0B0B0D;--panel:#141416;--panel2:#1B1B1E;--line:#2A2A2E;--gold:#E9B949;--gold2:#F6D579;--txt:#F2F2F0;--muted:#8A8A86;--ok:#3ECF8E;--bad:#E24B4A;--cue:#F08A4B;--ph:#7AA7FF}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(900px 500px at 85% -10%,rgba(233,185,73,.08),transparent 60%),var(--bg);color:var(--txt);font:15px/1.45 'Barlow',system-ui,sans-serif;min-height:100vh}
+  button,input,textarea,select{font:inherit;color:inherit}
+  button{cursor:pointer}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid rgba(233,185,73,.34)}
+  header h1{font:700 22px 'Oswald',sans-serif;letter-spacing:2px;color:var(--gold)}
+  .chip{display:flex;align-items:center;gap:8px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .dot.ok{background:var(--ok)}
+  .spacer{flex:1}
+  .me{display:flex;align-items:center;gap:8px;font-size:14px}
+  .me img{width:28px;height:28px;border-radius:50%}
+  .btn{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:14px}
+  .btn.gold{background:linear-gradient(180deg,#f7df8e,var(--gold));color:#1a1407;border-color:var(--gold);font-weight:600}
+  .btn.red{border-color:#5a2626;color:#ffb3b3;background:#1a1012}
+  .btn.sm{padding:5px 10px;font-size:12.5px}
+  .gate{max-width:520px;margin:80px auto;padding:28px;background:var(--panel);border:1px solid var(--line);border-radius:14px;text-align:center}
+  .gate h2{font:600 24px 'Oswald',sans-serif;letter-spacing:2px;color:var(--gold);margin-bottom:10px}
+  .gate p{color:#c9c9c4;margin-bottom:16px}
+  main{display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,1.15fr) minmax(320px,1.35fr);gap:16px;padding:16px 20px 40px}
+  @media (max-width:1150px){ main{grid-template-columns:1fr} }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+  h3{font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:3px;color:var(--muted);margin-bottom:10px}
+  .rd{display:flex;flex-direction:column;gap:6px}
+  .seg{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;background:var(--panel2);border:1px solid var(--line)}
+  .seg .n{flex:0 0 22px;color:var(--muted);font:700 13px 'Barlow Condensed'}
+  .seg .t{flex:1;min-width:0}
+  .seg .l{font:700 11.5px 'Barlow Condensed';letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+  .seg .m{font:500 16px 'Oswald',sans-serif}
+  .seg.cur{background:#1F1D16;border-color:var(--gold)}
+  .seg.cur .n{color:var(--gold)}
+  .seg.done{opacity:.5}
+  .seg .ck{color:var(--ok);font-weight:700}
+  .now{font:600 26px 'Oswald',sans-serif;line-height:1.15}
+  .nowl{font:700 13px 'Barlow Condensed';letter-spacing:3px;color:var(--gold);margin-bottom:4px}
+  .opts{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .opt{display:flex;align-items:center;gap:10px}
+  .opt .nm{flex:1;font:500 16px 'Oswald',sans-serif}
+  .opt .bar{flex:1.4;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+  .opt .bar i{display:block;height:100%;background:var(--gold)}
+  .opt .pc{width:44px;text-align:right;font:600 15px 'Oswald'}
+  .state{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11px 'Barlow Condensed';letter-spacing:2px;background:var(--panel2);border:1px solid var(--line)}
+  .state.OPEN{background:#163222;border-color:var(--ok);color:#9ff0c6}
+  .state.CLOSED{background:#2a2410;border-color:var(--gold);color:var(--gold2)}
+  .msg{padding:12px 14px;border-radius:10px;background:#1F1D16;border:1px solid var(--gold);font-size:16px}
+  .cues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .cue{padding:16px 10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);font:700 17px 'Oswald',sans-serif;letter-spacing:1.5px}
+  .cue.ready{border-color:var(--ok);color:#9ff0c6}
+  .cue.wrap{border-color:var(--cue);color:#ffc49a}
+  .cue:active{transform:scale(.98)}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .row input{flex:1;background:#0B0C10;border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+  .hist{display:flex;flex-direction:column;gap:4px;margin-top:10px;max-height:180px;overflow:auto;font-size:13px;color:#c9c9c4}
+  .hist b{color:var(--txt)}
+  .sps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .sps button{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-size:12.5px}
+  .sps button.on{border-color:var(--gold);background:#1F1D16;color:var(--gold2)}
+  .sps button.live::after{content:' ●';color:var(--bad)}
+  .reads{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .reads button{padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);font-size:13px}
+  .reads button.on{border-color:var(--gold);color:var(--gold2)}
+  .script{font-size:21px;line-height:1.55;font-weight:600;white-space:pre-wrap;max-height:56vh;overflow:auto;padding-right:6px}
+  .script .c{color:var(--cue);font-style:italic;font-weight:700;font-size:.82em}
+  .script .p{color:var(--ph);font-weight:800}
+  .opener{color:var(--muted);font-style:italic;margin-bottom:10px}
+  .sub{margin-top:14px}
+  .sub h4{font:700 11px 'Barlow Condensed';letter-spacing:2.5px;color:var(--muted);margin-bottom:6px}
+  .toss div{background:var(--panel2);border-left:4px solid #2f9e52;border-radius:4px;padding:7px 11px;margin-bottom:5px;font-size:15px}
+  .muted{color:var(--muted)}
+  .follow{display:flex;align-items:center;gap:8px;font-size:13px;color:#c9c9c4;margin-left:auto}
+  .admin{grid-column:1/-1}
+  .mem{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #222226}
+  .mem:first-of-type{border-top:0}
+  .mem img{width:30px;height:30px;border-radius:50%}
+  .mem .who{flex:1}
+  .tag{font:700 10.5px 'Barlow Condensed';letter-spacing:2px;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+  .tag.ok{border-color:var(--ok);color:#9ff0c6}
+  .tag.wait{border-color:var(--gold);color:var(--gold2)}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1D1D20;border:1px solid var(--gold);padding:9px 18px;border-radius:9px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>WCA CREW DESK</h1>
+  <span class="chip"><span class="dot" id="liveDot"></span><span id="liveTxt">Connecting…</span></span>
+  <span class="chip" id="showChip" style="display:none"></span>
+  <span class="spacer"></span>
+  <span class="me" id="me"></span>
+</header>
+
+<div id="gate" class="gate" style="display:none"></div>
+
+<main id="desk" style="display:none">
+  <section>
+    <div class="card">
+      <h3>TONIGHT'S RUNDOWN</h3>
+      <div class="rd" id="rd"></div>
+    </div>
+    <div class="card">
+      <h3>NOTES FROM THE HOST</h3>
+      <div id="notes" class="muted" style="white-space:pre-wrap">No notes yet.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h3>RIGHT NOW</h3>
+      <div class="nowl" id="nowLabel">WAITING FOR THE SHOW</div>
+      <div class="now" id="nowText">The host has not published tonight's show yet.</div>
+      <div id="msgBox" style="margin-top:12px;display:none"><h3 style="margin-bottom:6px">MESSAGE FROM THE HOST</h3><div class="msg" id="msg"></div></div>
+    </div>
+    <div class="card">
+      <h3>BETTING</h3>
+      <div id="bet" class="muted">No betting open.</div>
+    </div>
+    <div class="card">
+      <h3>CUE THE HOST</h3>
+      <div class="cues">
+        <button class="cue ready" data-cue="READY">READY</button>
+        <button class="cue wrap" data-cue="WRAP IT UP">WRAP IT UP</button>
+        <button class="cue" data-cue="SEGMENT DONE">SEGMENT DONE</button>
+        <button class="cue" data-cue="READ DONE">READ DONE</button>
+      </div>
+      <div class="row"><input id="noteIn" maxlength="200" placeholder="Type a message for the host"><button class="btn gold" id="noteSend">Send</button></div>
+      <div class="hist" id="hist"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <div style="display:flex;align-items:center;margin-bottom:10px"><h3 style="margin:0">AD READS</h3>
+        <label class="follow"><input type="checkbox" id="follow" checked> Follow the host</label></div>
+      <div class="sps" id="sps"></div>
+      <div class="reads" id="reads"></div>
+      <div class="opener" id="opener"></div>
+      <div class="script" id="script"><span class="muted">Sponsor reads show up here once the host publishes the show.</span></div>
+      <div class="sub" id="tossBox" style="display:none"><h4>TOSS BACK LINES</h4><div class="toss" id="toss"></div></div>
+      <div class="sub" id="dnBox" style="display:none"><h4>DELIVERY NOTES</h4><div id="dn" class="muted" style="white-space:pre-wrap"></div></div>
+    </div>
+  </section>
+
+  <section class="admin" id="adminBox" style="display:none">
+    <div class="card">
+      <h3>CREW MEMBERS (ONLY YOU SEE THIS)</h3>
+      <div id="members" class="muted">Loading…</div>
+    </div>
+    <div class="card">
+      <h3>SHOW KEY</h3>
+      <p class="muted" style="margin-bottom:8px">Your lower thirds control uses this key to publish the show here. Set it once, then type the same key in the lower thirds control under CREW. At least 8 characters. Don't share it.</p>
+      <div class="row" style="margin-top:0"><input id="keyIn" type="password" placeholder="New Show Key"><button class="btn gold" id="keySave">Save Key</button></div>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+(function(){
+  var SB_URL = "https://dmfbhszvrbaknaevdhxh.supabase.co", SB_KEY = "sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD";
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+  var USER = null, ADMIN = false, PACK = {}, LIVE = {}, SP_SEL = null, READ_SEL = 0, CUES = [];
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function toast(t){ var el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(function(){ el.classList.remove("show"); }, 2200); }
+  function nameOf(u){ var m = (u && u.user_metadata) || {}; return m.custom_claims && m.custom_claims.global_name || m.full_name || m.name || m.user_name || (u && u.email) || "Crew"; }
+  function avatarOf(u){ var m = (u && u.user_metadata) || {}; return m.avatar_url || m.picture || ""; }
+  function ago(ts){ if(!ts) return ""; var s = Math.round((Date.now() - new Date(ts).getTime())/1000); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s/60) + "m ago" : new Date(ts).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); }
+
+  /* ---------- sign in and access ---------- */
+  function gate(html){ $("gate").innerHTML = html; $("gate").style.display = ""; $("desk").style.display = "none"; }
+  function renderMe(){
+    $("me").innerHTML = USER ? ((avatarOf(USER) ? '<img alt="" src="' + esc(avatarOf(USER)) + '">' : "") + '<span>' + esc(nameOf(USER)) + (ADMIN ? " · admin" : "") + '</span><button class="btn sm" id="signOut">Sign out</button>') : "";
+    var so = $("signOut"); if(so) so.onclick = function(){ sb.auth.signOut().then(function(){ location.reload(); }); };
+  }
+  function signIn(){ sb.auth.signInWithOAuth({ provider:"discord", options:{ redirectTo: location.origin + location.pathname } }); }
+
+  async function boot(){
+    var s = await sb.auth.getSession();
+    USER = s.data && s.data.session ? s.data.session.user : null;
+    renderMe();
+    if(!USER){
+      gate('<h2>WCA CREW DESK</h2><p>Sign in with the same Discord account you use on the WCA website.</p><button class="btn gold" id="si">Sign in with Discord</button>');
+      $("si").onclick = signIn; setLive(false, "Signed out"); return;
+    }
+    var a = await sb.rpc("crew_is_admin"); ADMIN = !!(a && a.data);
+    renderMe();
+    if(!ADMIN){
+      var r = await sb.from("crew_members").select("*").eq("auth_id", USER.id).maybeSingle();
+      var row = r && r.data;
+      if(!row){
+        gate('<h2>JOIN THE CREW</h2><p>You are signed in as <b>' + esc(nameOf(USER)) + '</b>. Ask for crew access and the host will approve you.</p><button class="btn gold" id="ask">Ask For Crew Access</button>');
+        $("ask").onclick = async function(){
+          var ins = await sb.from("crew_members").insert({ auth_id:USER.id, display_name:nameOf(USER), avatar_url:avatarOf(USER) });
+          if(ins.error){ toast("Could not send the request: " + ins.error.message); return; }
+          boot();
+        };
+        setLive(false, "Not approved"); return;
+      }
+      if(!row.approved){
+        gate('<h2>WAITING FOR APPROVAL</h2><p>Your request is in. Once the host approves you, this page opens the Crew Desk. Refresh this page after they tell you.</p><button class="btn" id="rf">Check Again</button>');
+        $("rf").onclick = boot; setLive(false, "Waiting for approval"); return;
+      }
+    }
+    $("gate").style.display = "none"; $("desk").style.display = "";
+    $("adminBox").style.display = ADMIN ? "" : "none";
+    await loadShow(); await loadCues();
+    if(ADMIN) loadMembers();
+    subscribe();
+  }
+
+  /* ---------- show data ---------- */
+  async function loadShow(){
+    var r = await sb.from("crew_show").select("*").eq("id", 1).maybeSingle();
+    if(r.error){ setLive(false, "Could not load the show"); return; }
+    applyShow(r.data || {});
+  }
+  function applyShow(row){
+    PACK = row.pack || {}; LIVE = row.live || {};
+    $("showChip").style.display = PACK.title ? "" : "none";
+    $("showChip").textContent = (PACK.title || "") + (row.pack_at ? " · published " + ago(row.pack_at) : "");
+    renderAll();
+  }
+  function setLive(ok, txt){ $("liveDot").classList.toggle("ok", !!ok); $("liveTxt").textContent = txt; }
+
+  function segText(g){
+    if(!g) return "";
+    if(g.type === "sponsor") return g.text || "Sponsor break";
+    if(g.type === "custom") return g.label || g.text || "Segment";
+    return (g.names || []).join(" vs ") || "TBA";
+  }
+  function renderAll(){
+    var rd = PACK.rundown || [], L = LIVE.rd || {}, cur = Math.max(0, Math.min(rd.length - 1, L.cur|0));
+    $("rd").innerHTML = rd.length ? rd.map(function(g, i){
+      var lw = (L.winners || [])[i], w = Number(lw != null ? lw : g.winner);
+      var done = i < cur, win = g.type === "match" && w >= 0 && g.names && g.names[w];
+      return '<div class="seg' + (i === cur ? " cur" : "") + (done ? " done" : "") + '"><span class="n">' + (i+1) + '</span><span class="t"><div class="l">' +
+        esc([g.type === "sponsor" ? "SPONSOR BREAK" : g.label, g.div].filter(Boolean).join(" · ")) + (g.title ? " · TITLE" : "") + '</div><div class="m">' +
+        (win ? '<span class="ck">✓</span> ' + esc(win) : esc(segText(g))) + '</div></span></div>';
+    }).join("") : '<span class="muted">Nothing published yet.</span>';
+    if(rd.length){
+      var g = rd[cur];
+      $("nowLabel").textContent = (L.results ? "FINAL RESULTS" : "UP NEXT · SEGMENT " + (cur+1) + " OF " + rd.length) + (g && g.label ? " · " + String(g.label).toUpperCase() : "");
+      $("nowText").textContent = L.results ? "The show is wrapping up." : segText(g);
+    }
+    $("notes").textContent = PACK.notes || "No notes yet."; $("notes").className = PACK.notes ? "" : "muted";
+    $("msgBox").style.display = LIVE.msg ? "" : "none"; $("msg").textContent = LIVE.msg || "";
+    renderBet(); renderReads();
+    setLive(true, "Live" + (LIVE.at ? " · updated " + ago(LIVE.at) : ""));
+  }
+  function renderBet(){
+    var b = LIVE.bet;
+    if(!b || !b.state || b.state === "IDLE" || !(b.options || []).length){ $("bet").innerHTML = '<span class="muted">No betting open.</span>'; $("bet").className = ""; return; }
+    $("bet").className = "";
+    $("bet").innerHTML = '<span class="state ' + esc(b.state) + '">' + esc(b.state === "OPEN" ? "BETS OPEN" : b.state === "CLOSED" ? "BETS LOCKED" : "SETTLED") + '</span>' +
+      '<div style="margin-top:8px;font:600 17px Oswald">' + esc(b.question || "Who will win the match?") + '</div><div class="opts">' +
+      b.options.map(function(o, i){ var win = b.state === "SETTLED" && b.winner === i;
+        return '<div class="opt"><span class="nm">' + (i+1) + '. ' + esc(o.name) + (win ? ' <span style="color:var(--ok)">✓</span>' : '') + '</span><span class="bar"><i style="width:' + (o.pct||0) + '%"></i></span><span class="pc">' + (o.pct||0) + '%</span></div>'; }).join("") +
+      '</div><div class="muted" style="font-size:12px;margin-top:6px">Odds refresh every so often, not every second.</div>';
+  }
+
+  /* ---------- ad reads ---------- */
+  function fmt(t){ return esc(t).replace(/\[([^\]]+)\]/g, '<span class="c">[$1]</span>').replace(/\{([^}]+)\}/g, '<span class="p">{$1}</span>'); }
+  function renderReads(){
+    var list = PACK.sponsors || [], live = LIVE.sp || {};
+    if($("follow").checked && live.id && list.some(function(s){ return s.id === live.id; })){ if(SP_SEL !== live.id){ SP_SEL = live.id; } READ_SEL = live.read|0; }
+    if(!SP_SEL && list.length) SP_SEL = list[0].id;
+    $("sps").innerHTML = list.map(function(s){ return '<button data-sp="' + esc(s.id) + '" class="' + (s.id === SP_SEL ? "on" : "") + (s.id === live.id && live.visible ? " live" : "") + '">' + esc(s.name) + '</button>'; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-sp]"), function(b){ b.onclick = function(){ SP_SEL = b.getAttribute("data-sp"); READ_SEL = 0; $("follow").checked = false; renderReads(); }; });
+    var s = list.find(function(x){ return x.id === SP_SEL; });
+    if(!s){ $("reads").innerHTML = ""; return; }
+    var reads = s.reads || []; READ_SEL = Math.max(0, Math.min(reads.length - 1, READ_SEL));
+    $("reads").innerHTML = reads.map(function(r, i){ return '<button data-rd="' + i + '" class="' + (i === READ_SEL ? "on" : "") + '">' + esc(r.label) + (r.secs ? " · " + r.secs + "s" : "") + '</button>'; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rd]"), function(b){ b.onclick = function(){ READ_SEL = +b.getAttribute("data-rd"); $("follow").checked = false; renderReads(); }; });
+    $("opener").textContent = PACK.opener || "";
+    var r = reads[READ_SEL];
+    $("script").innerHTML = r && r.text ? fmt(r.text) : '<span class="muted">This read has no script yet.</span>';
+    var toss = String(s.toss || "").split(/\n+/).filter(Boolean);
+    $("tossBox").style.display = toss.length ? "" : "none"; $("toss").innerHTML = toss.map(function(t){ return "<div>" + fmt(t) + "</div>"; }).join("");
+    $("dnBox").style.display = s.notes ? "" : "none"; $("dn").textContent = s.notes || "";
+  }
+  $("follow").onchange = renderReads;
+
+  /* ---------- cues ---------- */
+  async function sendCue(kind, note){
+    var rd = PACK.rundown || [], cur = (LIVE.rd || {}).cur|0, g = rd[cur];
+    var r = await sb.from("crew_cues").insert({ from_auth:USER.id, from_name:nameOf(USER), kind:kind, note:note || "", segment: g ? ((g.label ? g.label + ": " : "") + segText(g)) : "" });
+    if(r.error){ toast("Could not send: " + r.error.message); return; }
+    toast(kind === "MESSAGE" ? "Message sent to the host" : kind + " sent to the host");
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-cue]"), function(b){ b.onclick = function(){ sendCue(b.getAttribute("data-cue")); }; });
+  $("noteSend").onclick = function(){ var v = $("noteIn").value.trim(); if(!v) return; sendCue("MESSAGE", v); $("noteIn").value = ""; };
+  $("noteIn").onkeydown = function(e){ if(e.key === "Enter") $("noteSend").click(); };
+  async function loadCues(){
+    var r = await sb.from("crew_cues").select("*").order("id", { ascending:false }).limit(20);
+    CUES = (r.data || []); renderCues();
+  }
+  function renderCues(){
+    $("hist").innerHTML = CUES.length ? CUES.map(function(c){
+      return '<div><span class="muted">' + new Date(c.created_at).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) + '</span> <b>' + esc(c.from_name) + '</b>: ' + esc(c.kind === "MESSAGE" ? c.note : c.kind) + '</div>';
+    }).join("") : '<span class="muted">No cues sent yet tonight.</span>';
+  }
+
+  /* ---------- realtime: only changes come in, nothing is polled ---------- */
+  function subscribe(){
+    sb.channel("crew-desk")
+      .on("postgres_changes", { event:"UPDATE", schema:"public", table:"crew_show" }, function(p){ applyShow(p.new || {}); })
+      .on("postgres_changes", { event:"INSERT", schema:"public", table:"crew_cues" }, function(p){ CUES.unshift(p.new); CUES = CUES.slice(0, 20); renderCues(); })
+      .on("postgres_changes", { event:"DELETE", schema:"public", table:"crew_cues" }, function(){ loadCues(); })
+      .subscribe(function(status){ if(status === "SUBSCRIBED") setLive(true, "Live"); else if(status === "CLOSED" || status === "CHANNEL_ERROR") setLive(false, "Reconnecting…"); });
+    setInterval(function(){ if(LIVE.at) setLive(true, "Live · updated " + ago(LIVE.at)); }, 15000);
+  }
+
+  /* ---------- admin: approve crew, set the Show Key ---------- */
+  async function loadMembers(){
+    var r = await sb.from("crew_members").select("*").order("requested_at", { ascending:false });
+    var rows = r.data || [];
+    $("members").innerHTML = rows.length ? rows.map(function(m){
+      return '<div class="mem">' + (m.avatar_url ? '<img alt="" src="' + esc(m.avatar_url) + '">' : '') + '<span class="who">' + esc(m.display_name || m.auth_id) +
+        ' <span class="tag ' + (m.approved ? "ok" : "wait") + '">' + (m.approved ? "APPROVED" : "WAITING") + '</span></span>' +
+        (m.approved ? '' : '<button class="btn gold sm" data-ap="' + m.auth_id + '">Approve</button>') +
+        '<button class="btn red sm" data-rm="' + m.auth_id + '">' + (m.approved ? "Remove" : "Decline") + '</button></div>';
+    }).join("") : '<span class="muted">Nobody has asked for crew access yet. Send guests the link to this page.</span>';
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ap]"), function(b){ b.onclick = async function(){
+      var u = await sb.from("crew_members").update({ approved:true, approved_at:new Date().toISOString() }).eq("auth_id", b.getAttribute("data-ap"));
+      if(u.error) toast(u.error.message); else { toast("Approved"); loadMembers(); } }; });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rm]"), function(b){ b.onclick = async function(){
+      if(!confirm("Remove this person from the crew?")) return;
+      var d = await sb.from("crew_members").delete().eq("auth_id", b.getAttribute("data-rm"));
+      if(d.error) toast(d.error.message); else { toast("Removed"); loadMembers(); } }; });
+  }
+  $("keySave").onclick = async function(){
+    var k = $("keyIn").value; if(k.length < 8){ toast("Use at least 8 characters"); return; }
+    var r = await sb.rpc("crew_set_key", { p_key:k });
+    if(r.error) toast(r.error.message); else { toast("Show Key saved. Type the same key in the lower thirds control under CREW."); $("keyIn").value = ""; }
+  };
+
+  boot();
+})();
+</script>
+</body>
+</html>
