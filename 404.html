@@ -4353,6 +4353,24 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 #page-apply .af-grid2{gap:16px;}
 #page-apply .af-note{font-size:14px;}
 #page-apply .apply-success{margin:0 auto;}
+/* personality pairs: one slider per pair, like the game's */
+#page-apply .af-trait{background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:12px 16px 10px; margin-bottom:10px;}
+#page-apply .af-trait-ends{display:flex; justify-content:space-between; font-family:var(--font-cond); font-weight:600;
+  font-size:16px; letter-spacing:.6px; text-transform:uppercase; color:#e6e6e6;}
+#page-apply .af-trait input[type=range]{-webkit-appearance:none; appearance:none; width:100%; margin:10px 0 6px; height:22px;
+  cursor:pointer; background:transparent;}
+#page-apply .af-trait input[type=range]::-webkit-slider-runnable-track{height:6px; border-radius:6px;
+  background:linear-gradient(90deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px)), #2b2c34;}
+#page-apply .af-trait input[type=range]::-moz-range-track{height:6px; border-radius:6px;
+  background:linear-gradient(90deg, transparent calc(50% - 1px), var(--muted) calc(50% - 1px), var(--muted) calc(50% + 1px), transparent calc(50% + 1px)), #2b2c34;}
+#page-apply .af-trait input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-7px;
+  border-radius:50%; background:var(--gold); border:2px solid #111; box-shadow:0 0 10px rgba(var(--gold-rgb),.7);}
+#page-apply .af-trait input[type=range]::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--gold);
+  border:2px solid #111; box-shadow:0 0 10px rgba(var(--gold-rgb),.7);}
+#page-apply .af-trait-val{text-align:center; font-family:var(--font-body); font-size:14px; color:var(--gold);}
+@media(min-width:900px){
+  #page-apply .af-traits{display:grid; grid-template-columns:1fr 1fr; gap:0 14px;}
+}
 #page-apply .apply-success .as-next{font-size:15px;}
 @media(max-width:720px){
   #page-apply .af-head{padding:16px 16px;}
@@ -9242,6 +9260,25 @@ async function loadApply(){
   wireApplyForm();
 }
 
+/* The six personality pairs, in the same left/right order as the
+   personality sliders in WWE 2K. Stored on the application as
+   personality_traits = { egotistical_prideful: -2 … 2, … } where a
+   negative number leans left, a positive number leans right, 0 = middle. */
+const APPLY_TRAITS = [
+  ['egotistical_prideful',    'Egotistical',  'Prideful'],
+  ['disrespectful_respectful','Disrespectful','Respectful'],
+  ['desperate_perseverant',   'Desperate',    'Perseverant'],
+  ['treacherous_loyal',       'Treacherous',  'Loyal'],
+  ['cowardly_bold',           'Cowardly',     'Bold'],
+  ['aggressive_disciplined',  'Aggressive',   'Disciplined']
+];
+let APPLY_HOMETOWN = '';        // real / unknown / fictional
+function applyTraitWord(v, left, right){
+  v = Number(v)||0;
+  if(v === 0) return 'Right in the middle';
+  const w = v < 0 ? left : right, a = Math.abs(v);
+  return a === 1 ? 'A little ' + w.toLowerCase() : (a === 2 ? w : 'Very ' + w.toLowerCase());
+}
 function applyFormHTML(){
   const sec = (n,title,inner,open)=>`<div class="af-section${open?' open':''}" data-sec>
     <div class="af-head" onclick="this.parentNode.classList.toggle('open')">
@@ -9251,22 +9288,22 @@ function applyFormHTML(){
     <div class="af-content">${inner}</div>
   </div>`;
 
-  // Section 1 — path toggle
+  // 1. path toggle
   const s1 = `
     <div class="af-field">
       <label>Do you already have a WWE 2K25 CAW created? <span class="req">*</span></label>
-      <div class="af-help">Choose Yes if you've already built the character. We'll ask which platform next — only PC CAWs can be imported directly.</div>
+      <div class="af-help">Choose Yes if you've already built the character. We'll ask which platform next, since only PC CAWs can be imported directly.</div>
       <div class="af-toggle">
         <button type="button" id="caw-yes" onclick="applySetCaw(true)">Yes, I have a CAW</button>
         <button type="button" id="caw-no" onclick="applySetCaw(false)">No, create one for me</button>
       </div>
     </div>`;
 
-  // Section 2 — existing CAW (hidden until chosen)
+  // 2. existing CAW (hidden until chosen)
   const s2 = `
     <div class="af-field">
       <label>What platform is your CAW on? <span class="req">*</span></label>
-      <div class="af-help">WCA is on PC. CAWs from Xbox Series X|S or PS5 can't be imported — those need to be rebuilt as a new creation.</div>
+      <div class="af-help">WCA is on PC. CAWs from Xbox Series X|S or PS5 can't be imported, so those get rebuilt as a new creation.</div>
       <div class="af-seg" id="af_caw_platform">
         <button type="button" onclick="applySetPlatform('PC')">PC (Steam)</button>
         <button type="button" onclick="applySetPlatform('Xbox/PS')">Xbox Series X|S / PS5</button>
@@ -9275,97 +9312,146 @@ function applyFormHTML(){
     <div id="af-caw-blocked" style="display:none">
       <div class="apply-platform" style="margin:4px 0 0">
         <i class="ti ti-alert-triangle"></i>
-        <div><b>That CAW can't transfer to PC.</b> No worries — please describe your character below as a <b>new creation</b> and I'll rebuild it on PC, balanced to our 85 OVR cap. Add reference image URLs and as much detail as you can so it comes out just like yours.</div>
+        <div><b>That CAW can't transfer to PC.</b> No worries. Describe your character below as a <b>new creation</b> and I'll rebuild it on PC, balanced to our 85 OVR cap. Add reference image links and as much detail as you can so it comes out just like yours.</div>
       </div>
     </div>
     <div id="af-caw-pc" style="display:none">
       <div class="af-field"><label>Community Creations share code or exact search details</label>
         <input type="text" id="af_caw_code" placeholder="e.g. share code, creator name, or search terms"></div>
       <div class="af-field"><label>How to find it</label>
-        <div class="af-help">Creator tag, search terms, and anything that helps us locate the exact CAW on PC.</div>
+        <div class="af-help">Creator tag, search terms, and anything that helps us find the exact CAW on PC.</div>
         <textarea id="af_caw_find"></textarea></div>
       <div class="af-field"><label>Tweaks you want for our universe</label>
-        <div class="af-help">Anything we should adjust — including bringing the rating to our 85 OVR cap.</div>
+        <div class="af-help">Anything we should adjust, including bringing the rating down to our 85 OVR cap.</div>
         <textarea id="af_caw_tweaks"></textarea></div>
-      <div class="af-field"><label>Screenshot URLs (optional)</label>
+      <div class="af-field"><label>Screenshot links (optional)</label>
         <div class="af-help">Paste image links, one per line.</div>
-        <textarea id="af_caw_screens" placeholder="https://…"></textarea></div>
+        <textarea id="af_caw_screens" placeholder="https://..."></textarea></div>
     </div>`;
 
-  // Section 3 — character (new creation)
+  // 3. who they are
   const s3 = `
     <div class="af-grid2">
       <div class="af-field"><label>Wrestler name <span class="req">*</span></label>
         <input type="text" id="af_name" placeholder="Ring name"></div>
-      <div class="af-field"><label>Nickname / alias</label>
+      <div class="af-field"><label>Nickname</label>
         <input type="text" id="af_alias" placeholder="e.g. 'The Architect'"></div>
     </div>
-    <div class="af-field"><label>Gimmick, backstory & representation <span class="req">*</span></label>
-      <div class="af-help">Who is this character — their motivation, personality, and how they fit pro wrestling? If they represent you, explain how this version of you wrestles. Influences allowed with a clear wrestling spin. (150+ words recommended.)</div>
-      <textarea id="af_backstory" style="min-height:150px" oninput="applyCount()"></textarea>
-      <div class="af-counter" id="af_back_count">0 words</div></div>
-    <div class="af-field"><label>Alignment <span class="req">*</span></label>
+    <div class="af-grid2">
+      <div class="af-field"><label>Character's age <span class="req">*</span></label>
+        <div class="af-help">How old is the character? A number or a range is fine.</div>
+        <input type="text" id="af_age" placeholder="e.g. 28, or late 30s"></div>
+      <div class="af-field"><label>Hometown <span class="req">*</span></label>
+        <div class="af-help">Where are they from?</div>
+        <div class="af-seg" id="af_home_kind">
+          <button type="button" data-v="real" onclick="applySetHome('real')">Real place</button>
+          <button type="button" data-v="unknown" onclick="applySetHome('unknown')">Parts Unknown</button>
+          <button type="button" data-v="fictional" onclick="applySetHome('fictional')">Fictional</button>
+        </div>
+        <input type="text" id="af_hometown" placeholder="City, state or country" style="margin-top:8px;display:none">
+        <div class="af-help" id="af_home_note" style="margin-top:6px;display:none">Fictional places are fine as long as they're in the game's hometown list. Made up names can't be added to the game.</div>
+      </div>
+    </div>
+    <div class="af-field"><label>Is your character cheered, booed, or mixed? <span class="req">*</span></label>
+      <div class="af-help">Cheered is a good guy (a face). Booed is a bad guy (a heel). Mixed is somewhere in between (a tweener).</div>
       <div class="af-seg" id="af_align">
-        <button type="button" onclick="applySetAlign('Face')">Face</button>
-        <button type="button" onclick="applySetAlign('Heel')">Heel</button>
-        <button type="button" onclick="applySetAlign('Tweener')">Tweener</button>
-      </div></div>`;
+        <button type="button" data-v="Face" onclick="applySetAlign('Face')">Cheered (Face)</button>
+        <button type="button" data-v="Heel" onclick="applySetAlign('Heel')">Booed (Heel)</button>
+        <button type="button" data-v="Tweener" onclick="applySetAlign('Tweener')">Mixed (Tweener)</button>
+      </div></div>
+    <div class="af-field"><label>Gimmick, backstory & representation <span class="req">*</span></label>
+      <div class="af-help">Who is this character? Their motivation, personality, and how they fit pro wrestling. If they represent you, explain how this version of you wrestles. Influences are allowed with a clear wrestling spin. (150 or more words recommended.)</div>
+      <textarea id="af_backstory" style="min-height:150px" oninput="applyCount()"></textarea>
+      <div class="af-counter" id="af_back_count">0 words</div></div>`;
 
-  // Section 4 — physical
+  // 4. personality pairs (match the game's sliders)
   const s4 = `
+    <div class="af-help" style="margin:0 0 14px">These match the personality sliders in WWE 2K. Each one is a pair, so slide toward the side that fits your character, or leave it in the middle.</div>
+    <div class="af-traits">${APPLY_TRAITS.map(([k,l,r])=>`
+    <div class="af-trait">
+      <div class="af-trait-ends"><span>${l}</span><span>${r}</span></div>
+      <input type="range" id="af_tr_${k}" min="-3" max="3" step="1" value="0"
+        oninput="document.getElementById('af_trv_${k}').textContent=applyTraitWord(this.value,'${l}','${r}')">
+      <div class="af-trait-val" id="af_trv_${k}">Right in the middle</div>
+    </div>`).join('')}</div>
+    <div class="af-field" style="margin-top:6px"><label>Anything else about their personality?</label>
+      <div class="af-help">Catchphrases, taunts, mannerisms, how they talk and act.</div>
+      <textarea id="af_personality"></textarea></div>`;
+
+  // 5. look
+  const s5 = `
     <div class="af-grid2">
       <div class="af-field"><label>Height (estimate)</label><input type="text" id="af_height" placeholder="e.g. 6'1&quot;"></div>
       <div class="af-field"><label>Weight (estimate)</label><input type="text" id="af_weight" placeholder="e.g. 230 lbs"></div>
     </div>
     <div class="af-field"><label>Body type</label><input type="text" id="af_body" placeholder="e.g. lean athletic, powerhouse, cruiserweight"></div>
-    <div class="af-field"><label>Distinctive features</label>
-      <div class="af-help">Hair (style/color/length), skin tone, facial hair, tattoos/scars, anything that defines the look.</div>
+    <div class="af-grid2">
+      <div class="af-field"><label>Skin tone <span class="req">*</span></label><input type="text" id="af_skin" placeholder="e.g. light, olive, medium brown, dark"></div>
+      <div class="af-field"><label>Eye color</label><input type="text" id="af_eyes" placeholder="e.g. brown, green, glowing red"></div>
+    </div>
+    <div class="af-field"><label>Hair <span class="req">*</span></label>
+      <div class="af-help">Describe it. Style, length and color. Long, short, braids, bald, buzzed, ponytail, anything.</div>
+      <textarea id="af_hair"></textarea></div>
+    <div class="af-field"><label>Facial hair</label>
+      <div class="af-help">Beard, goatee, stubble, mustache, or none.</div>
+      <input type="text" id="af_facehair" placeholder="e.g. full beard, short and dark"></div>
+    <div class="af-field"><label>Tattoos, scars, face paint & other features</label>
+      <div class="af-help">Anything else that defines the look.</div>
       <textarea id="af_features"></textarea></div>
-    <div class="af-field"><label>Face / likeness reference URL</label>
-      <div class="af-help">Paste an image link of the face/likeness.</div>
-      <input type="text" id="af_face" placeholder="https://…"></div>
-    <div class="af-field"><label>Body / physique reference URL</label>
-      <input type="text" id="af_bodyref" placeholder="https://…"></div>`;
+    <div class="af-field"><label>Face / likeness reference link</label>
+      <div class="af-help">Paste an image link of the face or likeness.</div>
+      <input type="text" id="af_face" placeholder="https://..."></div>
+    <div class="af-field"><label>Body / physique reference link</label>
+      <input type="text" id="af_bodyref" placeholder="https://..."></div>
+    <div class="af-field"><label>Tattoo / marking reference link</label><input type="text" id="af_tattoo" placeholder="https://..."></div>`;
 
-  // Section 5 — style + rating
-  const s5 = `
+  // 6. attire + entrance
+  const s6 = `
+    <div class="af-field"><label>Entrance attire</label>
+      <div class="af-help">What they wear walking out to the ring. Jacket, robe, hoodie, mask, hat, colors, logos.</div>
+      <textarea id="af_attire_ent"></textarea></div>
+    <div class="af-field"><label>In-ring attire</label>
+      <div class="af-help">What they wrestle in. Trunks, tights, pants, boots, kneepads, colors, logos.</div>
+      <textarea id="af_attire_ring"></textarea></div>
+    <div class="af-field"><label>How does your character make their entrance?</label>
+      <div class="af-help">Don't know the game's entrance motions? No problem. Describe how they walk out and carry themselves. Slow and menacing, fired up and slapping hands, cocky and showing off, all business. I'll find the motion that matches.</div>
+      <textarea id="af_walkout" style="min-height:90px"></textarea></div>
+    <div class="af-field"><label>Entrance music, video & pyro</label>
+      <div class="af-help">Theme music mood or genre, song ideas, video screen concept, lighting and pyro.</div>
+      <textarea id="af_entrance"></textarea></div>`;
+
+  // 7. style + rating
+  const s7 = `
     <div class="af-field"><label>Wrestling style / archetype <span class="req">*</span></label>
-      <div class="af-help">e.g. technical submission specialist, brawling powerhouse, high-flyer, striker/technician hybrid. List wrestler influences with their wrestling adaptation.</div>
+      <div class="af-help">e.g. technical submission specialist, brawling powerhouse, high flyer, striker. List wrestler influences and how your character adapts them.</div>
       <textarea id="af_style"></textarea></div>
     <div class="af-field"><label>Overall rating preference <span class="req">*</span></label>
-      <div class="af-help">Hard cap is 85. This helps us balance every wrestler fairly.</div>
-      <input type="number" id="af_ovr" min="1" max="85" placeholder="85 or lower"></div>`;
-
-  // Section 6 — recommended + optional
-  const s6 = `
+      <div class="af-help">The cap is 85. This helps us balance every wrestler fairly.</div>
+      <input type="number" id="af_ovr" min="1" max="85" placeholder="85 or lower"></div>
     <div class="af-field"><label>Signature moves & finishers</label>
-      <div class="af-help">2–4 signatures and 1–2 finishers, or describe the in-ring style.</div>
-      <textarea id="af_moves"></textarea></div>
-    <div class="af-field"><label>Core attire</label>
-      <div class="af-help">Ring gear colors/theme, entrance gear, symbols/logos.</div>
-      <textarea id="af_attire"></textarea></div>
-    <div class="af-field"><label>Entrance presentation</label>
-      <div class="af-help">Theme music mood/genre or song ideas, titantron concept, lighting/pyro.</div>
-      <textarea id="af_entrance"></textarea></div>
-    <div class="af-field"><label>Personality, catchphrases, taunts & mannerisms</label>
-      <textarea id="af_personality"></textarea></div>
+      <div class="af-help">2 to 4 signatures and 1 or 2 finishers, or just describe the in-ring style.</div>
+      <textarea id="af_moves"></textarea></div>`;
+
+  // 8. extras
+  const s8 = `
     <div class="af-field"><label>Universe hooks</label>
-      <div class="af-help">Desired faction, manager, tag partner, story seeds, championship goals.</div>
+      <div class="af-help">Faction, manager, tag partner, story ideas, championship goals.</div>
       <textarea id="af_hooks"></textarea></div>
-    <div class="af-field"><label>Tattoo / marking reference URL</label><input type="text" id="af_tattoo" placeholder="https://…"></div>
-    <div class="af-field"><label>Inspiration / mood board URLs</label>
+    <div class="af-field"><label>Inspiration / mood board links</label>
       <div class="af-help">One per line.</div>
-      <textarea id="af_mood" placeholder="https://…"></textarea></div>
+      <textarea id="af_mood" placeholder="https://..."></textarea></div>
     <div class="af-field"><label>Anything else?</label><textarea id="af_other"></textarea></div>`;
 
   return `<form class="apply-form" id="applyForm" onsubmit="return false">
     ${sec(1,'Getting started', s1, true)}
     <div id="af-existing" style="display:none">${sec(2,'Your existing CAW', s2, true)}</div>
     <div id="af-new" style="display:none">
-      ${sec(3,'The character', s3, true)}
-      ${sec(4,'Physical description & references', s4)}
-      ${sec(5,'Wrestling style & rating', s5)}
-      ${sec(6,'Moves, attire & extras', s6)}
+      ${sec(3,'Who they are', s3, true)}
+      ${sec(4,'Personality', s4, true)}
+      ${sec(5,'Their look', s5, true)}
+      ${sec(6,'Attire & entrance', s6, true)}
+      ${sec(7,'Wrestling style & rating', s7, true)}
+      ${sec(8,'Extras', s8)}
     </div>
     <div id="af-submitwrap" style="display:none">
       <button class="af-submit" id="applySubmitBtn" onclick="submitApplication()">Submit application</button>
@@ -9375,7 +9461,7 @@ function applyFormHTML(){
   </form>`;
 }
 
-function wireApplyForm(){ APPLY_HAS_CAW=null; APPLY_ALIGN=''; APPLY_PLATFORM=''; }
+function wireApplyForm(){ APPLY_HAS_CAW=null; APPLY_ALIGN=''; APPLY_PLATFORM=''; APPLY_HOMETOWN=''; }
 function applySetCaw(yes){
   APPLY_HAS_CAW = yes;
   document.getElementById('caw-yes').classList.toggle('on', yes);
@@ -9408,7 +9494,27 @@ function applySetPlatform(p){
 }
 function applySetAlign(a){
   APPLY_ALIGN = a;
-  document.querySelectorAll('#af_align button').forEach(b=>b.classList.toggle('on', b.textContent===a));
+  document.querySelectorAll('#af_align button').forEach(b=>b.classList.toggle('on', b.dataset.v===a));
+}
+function applySetHome(k){
+  APPLY_HOMETOWN = k;
+  document.querySelectorAll('#af_home_kind button').forEach(b=>b.classList.toggle('on', b.dataset.v===k));
+  const inp = document.getElementById('af_hometown');
+  inp.style.display = k==='unknown' ? 'none' : '';
+  inp.placeholder = k==='fictional' ? 'The fictional place, from the game list' : 'City, state or country';
+  document.getElementById('af_home_note').style.display = k==='fictional' ? '' : 'none';
+  if(k!=='unknown') inp.focus();
+}
+/* Point the applicant at the field that still needs filling: open its
+   section, scroll to it, and show the message. */
+function applyNeed(id, msg){
+  const el = document.getElementById(id);
+  if(el){
+    const sec = el.closest('.af-section'); if(sec) sec.classList.add('open');
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    if(el.focus) setTimeout(()=>{ try{ el.focus({preventScroll:true}); }catch(e){} }, 350);
+  }
+  showApplyErr(msg);
 }
 function applyCount(){
   const t = (document.getElementById('af_backstory').value||'').trim();
@@ -9433,14 +9539,19 @@ async function submitApplication(){
     }
   }else{
     // new creation, or a non-PC CAW we must rebuild from scratch
-    if(!afv('af_name')){ showApplyErr('Your wrestler needs a name.'); return; }
-    if(!afv('af_backstory')){ showApplyErr('The backstory is required — it’s the heart of the character.'); return; }
-    if(!APPLY_ALIGN){ showApplyErr('Pick an alignment (Face / Heel / Tweener).'); return; }
-    if(!afv('af_style')){ showApplyErr('Describe the wrestling style / archetype.'); return; }
+    if(!afv('af_name')){ applyNeed('af_name','Your wrestler needs a name.'); return; }
+    if(!afv('af_age')){ applyNeed('af_age','Add your character\'s age.'); return; }
+    if(!APPLY_HOMETOWN){ applyNeed('af_home_kind','Pick where your character is from.'); return; }
+    if(APPLY_HOMETOWN!=='unknown' && !afv('af_hometown')){ applyNeed('af_hometown','Type the hometown.'); return; }
+    if(!APPLY_ALIGN){ applyNeed('af_align','Pick whether your character is cheered, booed, or mixed.'); return; }
+    if(!afv('af_backstory')){ applyNeed('af_backstory','The backstory is required. It\'s the heart of the character.'); return; }
+    if(!afv('af_skin')){ applyNeed('af_skin','Add your character\'s skin tone.'); return; }
+    if(!afv('af_hair')){ applyNeed('af_hair','Describe your character\'s hair.'); return; }
+    if(!afv('af_style')){ applyNeed('af_style','Describe the wrestling style.'); return; }
     const ovr = parseInt(afv('af_ovr')||'',10);
-    if(isNaN(ovr)){ showApplyErr('Add an overall rating preference (85 or lower).'); return; }
-    if(ovr>85){ showApplyErr('The overall rating cap is 85 — please choose 85 or lower.'); return; }
-    if(ovr<1){ showApplyErr('Overall rating must be at least 1.'); return; }
+    if(isNaN(ovr)){ applyNeed('af_ovr','Add an overall rating preference (85 or lower).'); return; }
+    if(ovr>85){ applyNeed('af_ovr','The overall rating cap is 85. Please choose 85 or lower.'); return; }
+    if(ovr<1){ applyNeed('af_ovr','Overall rating must be at least 1.'); return; }
   }
   // record platform note alongside the CAW details
   let cawFind = afv('af_caw_find');
@@ -9461,10 +9572,25 @@ async function submitApplication(){
     height_est: afv('af_height'), weight_est: afv('af_weight'), body_type: afv('af_body'),
     features: afv('af_features'), face_ref_url: afv('af_face'), body_ref_url: afv('af_bodyref'),
     style_archetype: afv('af_style'), ovr_pref: afv('af_ovr')?parseInt(afv('af_ovr'),10):null,
-    moves: afv('af_moves'), attire: afv('af_attire'), entrance: afv('af_entrance'),
+    moves: afv('af_moves'), entrance: afv('af_entrance'),
     personality: afv('af_personality'), universe_hooks: afv('af_hooks'),
     tattoo_ref_url: afv('af_tattoo'), moodboard_urls: afv('af_mood'), other_notes: afv('af_other')
   };
+  // added Oct 2026 (WCA_APPLICATIONS_new_fields.sql). Only sent for a new
+  // creation, so an importable PC CAW never touches the new columns.
+  if(!importablePC){
+    const traits = {};
+    APPLY_TRAITS.forEach(([k])=>{ const el = document.getElementById('af_tr_'+k); traits[k] = el ? Number(el.value)||0 : 0; });
+    Object.assign(payload, {
+      char_age: afv('af_age'),
+      hometown_kind: APPLY_HOMETOWN==='real' ? 'Real place' : (APPLY_HOMETOWN==='unknown' ? 'Parts Unknown' : 'Fictional (game list)'),
+      hometown: APPLY_HOMETOWN==='unknown' ? 'Parts Unknown' : afv('af_hometown'),
+      personality_traits: traits,
+      skin_tone: afv('af_skin'), hair: afv('af_hair'), facial_hair: afv('af_facehair'), eye_color: afv('af_eyes'),
+      attire_entrance: afv('af_attire_ent'), attire_ring: afv('af_attire_ring'),
+      entrance_walkout: afv('af_walkout')
+    });
+  }
   btn.disabled = true; btn.textContent = 'Submitting…';
   const { error } = await sb.from('applications').insert(payload);
   if(error){ btn.disabled=false; btn.textContent='Submit application'; showApplyErr('Couldn’t submit: '+error.message); return; }
