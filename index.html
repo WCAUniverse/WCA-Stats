@@ -2,6 +2,78 @@
 <html lang="en" data-backdrop="space-fire" data-surface="solid">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ===== ADDRESSES =====================================================
+   The site uses real addresses: wcauniverse.com/roster, /feed,
+   /archive?event=52, /roster?w=Ivan. No # in links any more.
+
+   GitHub Pages only knows real files, so 404.html is an exact copy of
+   this page (made automatically by the "Build share pages" action). Any
+   address GitHub doesn't recognise opens the site, and the code below
+   works out which tab to show.
+
+   This block runs before anything else on the page so that:
+     - an old # link (bookmarks, old Discord posts, old share pages) is
+       rewritten to the new address straight away, and keeps working;
+     - a trailing slash (/feed/) is trimmed, so pictures and files load.
+   Opened as a local file (file://) the site keeps using # links.
+   ==================================================================== */
+var WCA_PATHS = /^https?:$/.test(location.protocol);
+var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
+                 'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate'];
+var WCA_SEG_FOR  = { storylines:'feed' };                      // tab id -> address
+var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash' };    // address -> tab id
+(function(){
+  if(!WCA_PATHS) return;
+  var h = location.hash || '';
+  if(/access_token=|refresh_token=|error_description=/.test(h)) return;   // a sign in is finishing
+  var m = h.match(/^#([a-z][a-z0-9_-]*)(?:\?(.*))?$/i);
+  if(m && WCA_PAGES.indexOf(m[1].toLowerCase()) >= 0){
+    var pg = WCA_PAGE_FOR[m[1].toLowerCase()] || m[1].toLowerCase();
+    history.replaceState(null, '', '/' + (WCA_SEG_FOR[pg] || pg) + (m[2] ? '?' + m[2] : ''));
+    return;
+  }
+  var path = location.pathname;
+  // old names for a tab (/storylines, /dashboard) move to the current one (/feed, /dash)
+  var s0 = (path.split('/').filter(Boolean)[0] || '').toLowerCase();
+  var pg0 = WCA_PAGE_FOR[s0] || s0, want0 = WCA_SEG_FOR[pg0] || pg0;
+  if(s0 && WCA_PAGES.indexOf(s0) >= 0 && want0 !== s0){ history.replaceState(null, '', '/' + want0 + location.search + h); return; }
+  if(/^\/index\.html$/i.test(path)){ history.replaceState(null, '', '/' + location.search + h); return; }
+  if(path.length > 1 && /\/$/.test(path)) history.replaceState(null, '', path.replace(/\/+$/, '') + location.search + h);
+  // anything deeper than one level isn't a page on this site
+  if(location.pathname.split('/').filter(Boolean).length > 1) location.replace('/');
+})();
+// Which tab and ?query the current address is asking for.
+function wcaRoute(){
+  var pg = '', qs = '';
+  if(WCA_PATHS){
+    pg = (location.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
+    if(pg === 'index.html') pg = '';
+    qs = location.search.replace(/^\?/, '');
+  } else {
+    var raw = (location.hash || '').slice(1), i = raw.indexOf('?');
+    pg = i >= 0 ? raw.slice(0, i) : raw; qs = i >= 0 ? raw.slice(i + 1) : '';
+  }
+  pg = WCA_PAGE_FOR[pg] || pg;
+  // Discord sign in leaves ?code=… behind for a moment; it isn't part of the page
+  qs = qs.split('&').filter(function(x){ return x && !/^(code|state|error|error_code|error_description)=/.test(x); }).join('&');
+  return { pg: pg, qs: qs };
+}
+// The address for a tab (and optional query), e.g. wcaHref('storylines','post=35') -> "/feed?post=35"
+function wcaHref(pg, qs){
+  var seg = WCA_SEG_FOR[pg] || pg || '';
+  if(WCA_PATHS) return '/' + seg + (qs ? '?' + qs : '');
+  return '#' + (pg || '') + (qs ? '?' + qs : '');
+}
+// Show a tab's address in the address bar. push=true adds a Back button step.
+function wcaSetAddress(pg, qs, push){
+  if(WCA_PATHS && /[?&]code=/.test(location.search)) return;   // don't disturb a sign in that is finishing
+  var want = wcaHref(pg, qs);
+  var now  = WCA_PATHS ? location.pathname + location.search : location.hash;
+  if(now === want) return;
+  try{ history[push ? 'pushState' : 'replaceState'](null, '', want); }catch(e){}
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
   Content-Security-Policy (defense-in-depth). This tells the browser exactly which
@@ -4285,18 +4357,18 @@ try{ wcaApplyCachedFonts(); }catch(e){}
         <!-- Flat list on purpose. Dropdown groups are built at runtime from the
              admin's saved layout (Admin -> Layout), so they can be created,
              renamed, reordered and refilled without editing this markup. -->
-        <a href="#storylines" data-page="storylines" class="active">Feed</a>
-        <a href="#events" data-page="events">Upcoming Events</a>
-        <a href="#archive" data-page="archive">Past Events</a>
-        <a href="#live" data-page="live" id="nav-live-btn">Watch Live</a>
-        <a href="#rankings" data-page="rankings">Rankings</a>
-        <a href="#leaderboard" data-page="leaderboard">Leaderboard</a>
-        <a href="#roster" data-page="roster">Roster</a>
-        <a href="#timeline" data-page="timeline">Timeline</a>
-        <a href="#apply" data-page="apply">Apply</a>
-        <a href="#sponsors" data-page="sponsors">Sponsors</a>
-        <a href="#showdown" data-page="showdown">Showdown</a>
-        <a href="#firepro" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
+        <a href="/feed" data-page="storylines" class="active">Feed</a>
+        <a href="/events" data-page="events">Upcoming Events</a>
+        <a href="/archive" data-page="archive">Past Events</a>
+        <a href="/live" data-page="live" id="nav-live-btn">Watch Live</a>
+        <a href="/rankings" data-page="rankings">Rankings</a>
+        <a href="/leaderboard" data-page="leaderboard">Leaderboard</a>
+        <a href="/roster" data-page="roster">Roster</a>
+        <a href="/timeline" data-page="timeline">Timeline</a>
+        <a href="/apply" data-page="apply">Apply</a>
+        <a href="/sponsors" data-page="sponsors">Sponsors</a>
+        <a href="/showdown" data-page="showdown">Showdown</a>
+        <a href="/firepro/" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
       </nav>
       <div class="socials">
         <a href="https://infantryink-shop.fourthwall.com/" id="merchLink" data-social="merch" target="_blank" rel="noopener noreferrer" aria-label="Merch" title="Shop Merch"><i class="ti ti-shopping-bag"></i></a>
@@ -4712,7 +4784,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     <div class="section-title">Feed</div>
     <p class="sl-intro">What's happening in the WCA right now — social-media drama, breaking
       news, official announcements and reaction, newest first. For the history of how it all
-      got here, head to the <a href="#timeline" data-page="timeline">Timeline</a>.</p>
+      got here, head to the <a href="/timeline" data-page="timeline">Timeline</a>.</p>
     <div class="roster-filters" id="sl-filters">
       <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
       <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
@@ -5902,7 +5974,7 @@ async function refreshUser(){
     window._usernamePromptShown = true;
     // Don't steal navigation if the user deep-linked to a specific page on load
     // (e.g. #roster, #live). Only auto-open when they're on the default/dashboard.
-    const curHash = (location.hash||'').slice(1).split('?')[0];
+    const curHash = wcaRoute().pg;
     if(!curHash || curHash==='dashboard' || curHash==='account'){
       setTimeout(()=>{ openAccount(true); }, 400);
     }
@@ -5929,8 +6001,8 @@ function renderUserChip(){
       </div>
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
       <div class="navdrop-menu umenu" role="menu">
-        <a href="#dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
-        <a href="#account" role="menuitem" onclick="openAccount();return false;"><i class="ti ti-user-cog"></i> Account</a>
+        <a href="/dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
+        <a href="/account" role="menuitem" onclick="openAccount();return false;"><i class="ti ti-user-cog"></i> Account</a>
       </div>
     </div>`;
 }
@@ -7330,7 +7402,7 @@ const PROVIDER_META = {
 // Open the account PAGE (not a modal). firstTime=true shows the welcome banner.
 function openAccount(firstTime){
   if(typeof activatePage==='function') activatePage('account');
-  if(location.hash.slice(1)!=='account'){ history.replaceState(null,'','#account'); }
+  wcaSetAddress('account', '', true);
   window.scrollTo({top:0,behavior:'smooth'});
   renderAccountPage(!!firstTime);
 }
@@ -7646,7 +7718,7 @@ function goWrestler(name){
   if(!name) return;
   // record it in the URL so refresh / share / back-button all land here
   const enc = encodeURIComponent(name);
-  if(location.hash !== '#roster?w='+enc){ history.replaceState(null,'','#roster?w='+enc); }
+  wcaSetAddress('roster', 'w='+enc, wcaRoute().pg!=='roster');
   activatePage('roster');
 
   const show = ()=>{
@@ -8789,9 +8861,7 @@ async function archiveLoadNow(){
 // Back to the list. Separate from loadArchive() so the plain loader stays
 // free of URL side effects (deep-link restore calls it too).
 function archiveBackToList(){
-  if(location.hash.indexOf('#archive?') === 0){
-    try{ history.replaceState(null,'','#archive'); }catch(e){}
-  }
+  if(wcaRoute().pg === 'archive' && wcaRoute().qs) wcaSetAddress('archive', '');
   return loadArchive();
 }
 
@@ -8818,8 +8888,7 @@ async function openArchiveEvent(id, opts){
     return false;
   }
   if(!opts.silent){
-    const want = '#archive?event=' + encodeURIComponent(id);
-    if(location.hash !== want){ try{ history.replaceState(null,'',want); }catch(e){} }
+    wcaSetAddress('archive', 'event=' + encodeURIComponent(id));
   }
   listEl.style.display='none';
   detEl.style.display='';
@@ -10434,11 +10503,12 @@ function wcaLinkFor(kind, id){
 }
 /* The in-app address for the same thing — what the share page forwards to. */
 function wcaDeepLinkFor(kind, id){
-  const b = wcaShareBase();
-  if(kind === 'post')     return b + '#storylines?post=' + encodeURIComponent(id);
-  if(kind === 'event')    return b + '#archive?event=' + encodeURIComponent(id);
-  if(kind === 'wrestler') return b + '#roster?w=' + encodeURIComponent(id);
-  return b + '#' + encodeURIComponent(kind);
+  let h;
+  if(kind === 'post')          h = wcaHref('storylines', 'post=' + encodeURIComponent(id));
+  else if(kind === 'event')    h = wcaHref('archive', 'event=' + encodeURIComponent(id));
+  else if(kind === 'wrestler') h = wcaHref('roster', 'w=' + encodeURIComponent(id));
+  else                         h = wcaHref(kind, '');
+  return WCA_PATHS ? location.origin + h : wcaShareBase() + h;
 }
 /* Copy a link and show the confirmation popup. On phones this hands off to the
    native share sheet instead, which is what people expect there. */
@@ -10474,7 +10544,7 @@ function slShareLink(id){
     base = location.origin + location.pathname.replace(/[^/]*$/, '');
   }
   if(!base.endsWith('/')) base += '/';
-  return base + '#storylines?post=' + id;
+  return wcaDeepLinkFor('post', id);
 }
 async function slShare(id){
   return wcaShare('post', id, 'Share this post', 'Post ID <b>#'+esc(String(id))+'</b>');
@@ -11259,8 +11329,8 @@ document.querySelectorAll('nav a[data-page], nav button[data-page]').forEach(b=>
     e.preventDefault();
     const pg=b.dataset.page;
     activatePage(pg);
-    // remember the tab in the URL hash so a refresh restores it
-    if(location.hash.slice(1)!==pg){ history.replaceState(null,'','#'+pg); }
+    // put the tab in the address so a refresh, a shared link and Back all work
+    wcaSetAddress(pg, '', true);
   };
 });
 // Mobile nav: toggle the collapsed menu open/closed.
@@ -11357,18 +11427,18 @@ function activatePage(pg){
   }catch(e){}
   return true;
 }
-// On load (and on back/forward), open whatever tab the hash points to.
+// On load (and on Back/Forward), open whatever tab the address points to.
+// The name is from when the site used # links; it now reads the real path.
 function restorePageFromHash(){
-  const raw=(location.hash||'').slice(1);
-  // Split an optional query (e.g. "roster?w=Jay%20Martin") into page + params.
-  const qIdx=raw.indexOf('?');
-  const pg = qIdx>=0 ? raw.slice(0,qIdx) : raw;
-  const qs = qIdx>=0 ? raw.slice(qIdx+1) : '';
-  if(pg && document.querySelector('nav [data-page="'+pg+'"]')){
+  let { pg, qs } = wcaRoute();
+  const known = pg && (document.querySelector('nav [data-page="'+pg+'"]') ||
+                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate');
+  if(!known) pg = '';                     // unknown address: treat it like the front door
+  if(pg==='donate'){
+    activatePage('home');                 // the Home script opens the donate options
+  } else if(pg){
     activatePage(pg);
-  } else if(pg==='account' || pg==='home' || pg==='dash'){
-    activatePage(pg);
-  } else if(!pg){
+  } else {
     // No hash at all. First-time visitors land on Home, which explains what
     // WCA is; anyone who has been here before goes straight to the Dashboard.
     let seen = null;
@@ -11376,12 +11446,12 @@ function restorePageFromHash(){
     if(!seen){
       try{ localStorage.setItem('wca-seen-home','1'); }catch(e){}
       activatePage('home');
-      try{ history.replaceState(null,'','#home'); }catch(e){}
+      wcaSetAddress('home', '');
     } else {
       // Been here before — straight to the Feed, which reads like a timeline
       // of what's happened since their last visit.
       activatePage('storylines');
-      try{ history.replaceState(null,'','#storylines'); }catch(e){}
+      wcaSetAddress('storylines', '');
     }
   }
   // If the hash names a wrestler (?w=Name), show them on the big stage once ready.
@@ -11410,14 +11480,33 @@ function restorePageFromHash(){
     }
   }
 }
-window.addEventListener('hashchange', restorePageFromHash);
+window.addEventListener(WCA_PATHS ? 'popstate' : 'hashchange', restorePageFromHash);
 // Programmatic page switch reused by hero buttons / "see full standings".
 function goPage(pg){
   if(activatePage(pg)){
-    if(location.hash.slice(1)!==pg){ history.replaceState(null,'','#'+pg); }
+    wcaSetAddress(pg, '', true);
     window.scrollTo({top:0,behavior:'smooth'});
   }
 }
+/* Any ordinary link to one of the site's own tabs (e.g. <a href="/timeline">
+   in a post or a card) switches tabs in place instead of reloading the
+   whole site. Ctrl/Cmd/middle click still opens a new tab as normal. */
+document.addEventListener('click', function(e){
+  if(e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const a = e.target.closest && e.target.closest('a[href]');
+  if(!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+  let url; try{ url = new URL(a.getAttribute('href'), location.href); }catch(_){ return; }
+  if(WCA_PATHS && url.origin !== location.origin) return;
+  const segs = url.pathname.split('/').filter(Boolean);
+  if(segs.length !== 1) return;
+  const seg = segs[0].toLowerCase();
+  if(WCA_PAGES.indexOf(seg) < 0) return;
+  e.preventDefault();
+  const pg = WCA_PAGE_FOR[seg] || seg;
+  wcaSetAddress(pg, url.search.replace(/^\?/, ''), true);
+  restorePageFromHash();
+  window.scrollTo({top:0, behavior:'smooth'});
+});
 let ROSTER_SEARCH_T = null;
 { // Apply is static markup, so its share button can be wired once at load.
   const ab = document.getElementById('apply-share-btn');
@@ -11525,7 +11614,13 @@ if(!isConfigured){
   sb.auth.onAuthStateChange((event)=>{
     if(event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED'){
       if(window.location.hash && /access_token|code=/.test(window.location.hash)){
-        history.replaceState(null, '', window.location.origin + window.location.pathname);
+        history.replaceState(null, '', window.location.origin + window.location.pathname + window.location.search);
+      }
+      // the newer sign in flow leaves ?code=… in the address; tidy it away
+      if(/[?&](code|state)=/.test(window.location.search)){
+        const keep = window.location.search.replace(/^\?/, '').split('&')
+          .filter(x=>x && !/^(code|state)=/.test(x)).join('&');
+        history.replaceState(null, '', window.location.pathname + (keep ? '?'+keep : ''));
       }
       refreshUser();
       spOwnerComposerInit();
@@ -11844,7 +11939,7 @@ async function loadDashSponsors(){
 // up there would hit a not-yet-defined function and abort the whole init.
 if(typeof sb !== 'undefined' && sb){
   loadDashSponsors();
-  if((location.hash||'').slice(1).split('?')[0] === 'sponsors') loadSponsors();
+  if(wcaRoute().pg === 'sponsors') loadSponsors();
 }
 </script>
 
@@ -12381,7 +12476,7 @@ async function renderDashBets(){
   if(!bets.length){
     host.innerHTML = `<div class="dyou-empty">You haven't placed a bet yet.
       Betting opens on each match before it starts —
-      <a href="#events" data-page="events" onclick="goPage('events');return false;">see what's next</a>.</div>`;
+      <a href="/events" data-page="events" onclick="goPage('events');return false;">see what's next</a>.</div>`;
     return;
   }
 
@@ -12663,7 +12758,7 @@ async function renderDhNeeds(){
   host.innerHTML = `<div class="dh-needs">
     <div class="dh-needs-lbl">Needs you now</div>
     <div class="dh-needs-txt">${bits.join(' ')}
-      <a href="#events" onclick="goPage('events');return false;">See the card →</a></div>
+      <a href="/events" onclick="goPage('events');return false;">See the card →</a></div>
   </div>`;
 }
 
@@ -13619,16 +13714,16 @@ function openDonate(){
 function closeDonate(){
   const m = $h('donate-modal');
   if(m) m.classList.remove('open');
-  if(location.hash === '#donate'){ try{ history.replaceState(null,'','#home'); }catch(e){} }
+  if(wcaRoute().pg === 'donate') wcaSetAddress('home', '');
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDonate(); });
-// #donate is a shareable link (handy for stream panels): opens Home with the options up.
+// wcauniverse.com/donate is a shareable link (handy for stream panels): opens Home with the options up.
 function donateFromHash(){
-  if(location.hash !== '#donate') return;
+  if(wcaRoute().pg !== 'donate') return;
   if(typeof activatePage === 'function') activatePage('home');
   openDonate();
 }
-window.addEventListener('hashchange', donateFromHash);
+window.addEventListener(WCA_PATHS ? 'popstate' : 'hashchange', donateFromHash);
 
 /* ── "what's on now" — derived, never hand-maintained ─────────────── */
 async function paintNow(){
@@ -14844,9 +14939,7 @@ function openMember(m, opts){
   // keep the shareable deep link in sync (#roster?w=Name)
   if(!opts.silent){
     const enc = encodeURIComponent(w.name);
-    if(location.hash !== '#roster?w='+enc){
-      try{ history.replaceState(null,'','#roster?w='+enc); }catch(e){}
-    }
+    wcaSetAddress('roster', 'w='+enc);
   }
 }
 
@@ -14875,9 +14968,7 @@ function openTeam(f){
   $('sm-dbody').scrollTop = 0;
   focusOn(f.centroid, f.radius*3.4+140);
   markIndex(f.id);
-  if(location.hash.indexOf('#roster?w=')===0){
-    try{ history.replaceState(null,'','#roster'); }catch(e){}
-  }
+  if(wcaRoute().pg === 'roster' && /(^|&)w=/.test(wcaRoute().qs)) wcaSetAddress('roster', '');
 }
 
 function closeDossier(){
@@ -16374,7 +16465,7 @@ function wire(root){
 }
 function sdSetTab(k){
   SD_TAB = k; draftStop(); render();
-  try{ history.replaceState(null,'','#showdown'+(k!=='overview'?'?tab='+k:'')); }catch(_){}
+  wcaSetAddress('showdown', k!=='overview' ? 'tab='+k : '');
 }
 
 /* ── hero ─────────────────────────────────────────────────────────── */
@@ -16874,7 +16965,7 @@ async function sdDecorateEvent(ev, host){
 
 /* ── entry points ─────────────────────────────────────────────────── */
 async function showdownEnter(){
-  const m = (location.hash||'').match(/[?&]tab=([a-z]+)/);
+  const m = wcaRoute().qs.match(/(?:^|&)tab=([a-z]+)/);
   if(m && TABS.some(t=>t[0]===m[1])) SD_TAB = m[1];
   if(!SD) render();          // "Loading…"
   await sdLoad(true);
