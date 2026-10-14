@@ -145,7 +145,7 @@ export async function renderEventCard(ev, fontFiles) {
         letter-spacing="3" fill="${MUTED}">${esc([ev.date, ev.matchCount ? ev.matchCount + ' MATCHES' : '']
           .filter(Boolean).join('   ·   ').toUpperCase())}</text>
   <text x="${W / 2}" y="${H - 46}" text-anchor="middle" font-family="Barlow Condensed" font-size="16"
-        letter-spacing="2" fill="${GOLD_D}">WCAUNIVERSE.GITHUB.IO/WCA-STATS</text>
+        letter-spacing="2" fill="${GOLD_D}">WCAUNIVERSE.COM</text>
 </svg>`;
 
   const r = new Resvg(svg, {
