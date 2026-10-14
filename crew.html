@@ -177,6 +177,13 @@
   .thumbs button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:11.5px;line-height:1.2;text-align:center}
   .thumbs button.on{border-color:var(--gold);color:var(--gold2)}
   .thumbs img{width:100%;aspect-ratio:1/1;object-fit:contain}
+  .verbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:13px}
+  .verbar:empty{display:none}
+  .vtag{font:700 11px 'Barlow Condensed';letter-spacing:2px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .vtag.mine{background:var(--gold);border-color:var(--gold);color:var(--onacc)}
+  .verbar .warn{color:var(--cuet);font-weight:600}
+  .mymark{color:var(--gold2)}
+  .myedit{min-height:260px;font-size:var(--fs,22px);line-height:1.5;font-weight:600;resize:vertical}
   .script mark{background:color-mix(in srgb,var(--gold) 28%,transparent);color:inherit;border-radius:3px;padding:0 2px}
   .rhead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
   .rhead h2{font:700 28px 'Oswald',sans-serif;letter-spacing:1px}
@@ -231,7 +238,20 @@
     background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 18%,var(--bg)),color-mix(in srgb,var(--gold) 8%,var(--bg)));border:2px solid var(--gold);box-shadow:0 20px 60px rgba(0,0,0,.6);transition:all .35s cubic-bezier(.2,.85,.25,1);cursor:pointer}
   #pop.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
   #pop .w{font:700 12px 'Barlow Condensed';letter-spacing:2.5px;color:var(--gold)}
-  #pop .t{font:700 24px 'Oswald';letter-spacing:1px}
+  #pop{min-width:420px;max-width:min(680px,92vw);padding:16px 22px 18px}
+  #pop .t{font:700 30px 'Oswald';letter-spacing:1px;line-height:1.1;margin-top:2px}
+  #pop .n{font-size:19px;line-height:1.4;margin-top:6px;white-space:pre-wrap;word-break:break-word}
+  #pop .pa{display:flex;gap:8px;margin-top:12px}
+  #pop .pa:empty{display:none}
+  #pop .px{position:absolute;top:8px;right:10px;border:0;background:none;color:var(--muted);font-size:16px}
+  #pop.big{border-width:3px;animation:popPulse 1.2s ease-in-out infinite}
+  @keyframes popPulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--gold) 30%,transparent),0 20px 60px rgba(0,0,0,.6)}}
+  #alertAsk{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:none;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;padding:10px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--gold);box-shadow:0 10px 40px rgba(0,0,0,.5);z-index:55;font-size:14px;max-width:92vw}
+  #alertAsk.show{display:flex}
+  .readcues{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+  .readcues .cues{display:flex;gap:8px;flex-wrap:wrap}
+  .readcues .cue{padding:8px 12px;font-size:13px;border-radius:9px}
+  .cue.adread{border-color:var(--gold);color:var(--gold2)}
   #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);padding:9px 18px;border-radius:9px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60}
   #toast.show{opacity:1}
   .mem2{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line2)}
@@ -273,13 +293,8 @@
         <div id="nowMore" style="margin-top:12px"></div>
       </div>
       <div class="card">
-        <h3>CUE THE HOST</h3>
-        <div class="cues">
-          <button class="cue ready" data-cue="READY">READY</button>
-          <button class="cue wrap" data-cue="WRAP IT UP">WRAP IT UP</button>
-          <button class="cue" data-cue="SEGMENT DONE">SEGMENT DONE</button>
-          <button class="cue" data-cue="READ DONE">READ DONE</button>
-        </div>
+        <h3 class="cueTitle">CUE THE HOST</h3>
+        <div class="cues" data-cueset="main"></div>
       </div>
       <div class="card"><h3 id="lbTitle">BETTING STANDINGS</h3><div id="lb" class="muted">Standings show up once the host's betting dashboard is running.</div></div>
     </div>
@@ -321,12 +336,20 @@
     <div class="card readcard" style="margin:0">
       <div class="rmain">
         <div class="rhead" id="rhead"></div>
+        <div class="readcues"><span class="lb cueTitleRead">CUE THE HOST ABOUT THIS READ</span><div class="cues" data-cueset="read"></div></div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <div class="reads" id="readTabs"></div>
           <div class="timer"><span class="clock" id="clock">0:00</span><button class="btn gold sm" id="tStart">Start</button><button class="btn sm" id="tReset">Reset</button></div>
         </div>
         <div class="opener" id="opener"></div>
+        <div class="verbar" id="verBar"></div>
         <div class="script" id="script"></div>
+        <div id="myEditBox" style="display:none">
+          <textarea class="f myedit" id="myEdit" spellcheck="true"></textarea>
+          <div class="muted" style="font-size:12.5px;margin-top:4px">Write (words in brackets) for an orange delivery cue and [wrestler] for a blue fill in.</div>
+          <div class="tools"><button class="btn gold" id="myEditSave">Save My Version</button><button class="btn" id="myEditCancel">Cancel</button></div>
+        </div>
+        <div class="tools"><button class="btn" id="myEditBtn">✎ Edit This Read</button><button class="btn red" id="myResetBtn">Reset To Default</button></div>
         <div class="sub" id="tossBox" style="display:none"><h4>TOSS BACK LINES</h4><div class="toss" id="toss"></div></div>
         <div class="sub" id="dnBox" style="display:none"><h4>DELIVERY NOTES</h4><div id="dn" class="muted" style="white-space:pre-wrap"></div></div>
         <div class="navbtns"><button class="btn" id="spPrev">◀ Previous sponsor</button><button class="btn" id="spNext">Next sponsor ▶</button></div>
@@ -345,18 +368,14 @@
 <div class="page" id="p-msgs">
   <div class="msgwrap">
     <div class="card msgmain">
-      <h3>MESSAGES WITH THE HOST</h3>
+      <h3 id="msgTitle">MESSAGES WITH THE HOST</h3>
       <div class="thread" id="thread"></div>
       <div class="send"><input class="f" id="noteIn" maxlength="300" placeholder="Message the host, then press Enter"><button class="btn gold" id="noteSend">Send</button></div>
     </div>
     <div class="msgside">
-      <div class="card"><h3>CUES</h3>
-        <div class="cues">
-          <button class="cue ready" data-cue="READY">READY</button>
-          <button class="cue wrap" data-cue="WRAP IT UP">WRAP IT UP</button>
-          <button class="cue" data-cue="SEGMENT DONE">SEGMENT DONE</button>
-          <button class="cue" data-cue="READ DONE">READ DONE</button>
-        </div></div>
+      <div class="card"><h3 class="cueTitle">CUE THE HOST</h3>
+        <div class="cues" data-cueset="main"></div></div>
+      <div class="card"><h3>ALERTS</h3><div class="muted" style="font-size:13px;margin-bottom:8px" id="alertState"></div><button class="btn" id="alertOn2" style="width:100%">Turn On Desktop Alerts</button></div>
       <div class="card"><h3>QUICK REPLIES</h3>
         <div class="quick">
           <button data-say="Got it">Got it</button>
@@ -422,7 +441,8 @@
   </div>
 </div>
 
-<div id="pop"><div class="w" id="popW">FROM THE HOST</div><div class="t" id="popT"></div><div id="popN" style="font-size:16px;margin-top:2px"></div></div>
+<div id="pop"><button class="px" id="popX" title="Close">✕</button><div class="w" id="popW">FROM THE HOST</div><div class="t" id="popT"></div><div class="n" id="popN"></div><div class="pa" id="popA"></div></div>
+<div id="alertAsk"><span>See host cues even when this tab is in the background.</span><button class="btn gold sm" id="alertOn">Turn On Desktop Alerts</button><button class="btn sm" id="alertNo">Not Now</button></div>
 <div id="toast"></div>
 
 <script>
@@ -503,17 +523,28 @@
   ["cAcc","cAcc2","cBg","cTxt","cGrad"].forEach(function(id){ $(id).oninput = fineTune; $(id).onchange = fineTune; });
   $("cFz").oninput = function(){ setLook(Object.assign({}, LOOK, { fz:Number(this.value) || 15 })); };
   $("cReset").onclick = function(){ setLook(Object.assign({}, LOOKS[0], { fz:15 })); };
+  /* everything personal (MY LOOK + my own versions of the reads) is saved together in crew_prefs */
+  var MYREADS = {};   // { sponsorKey: { readLabel: { text, base } } }   base = the host's text when you edited it
+  try{ MYREADS = JSON.parse(localStorage.getItem("wca-crew-myreads") || "{}") || {}; }catch(e){ MYREADS = {}; }
+  var PREFS_T = null;
+  function savePrefs(done){
+    try{ localStorage.setItem("wca-crew-myreads", JSON.stringify(MYREADS)); }catch(e){}
+    if(!USER) return;
+    clearTimeout(PREFS_T); PREFS_T = setTimeout(async function(){
+      var r = await sb.from("crew_prefs").upsert({ auth_id:USER.id, prefs:{ look:LOOK, reads:MYREADS }, updated_at:new Date().toISOString() });
+      if(done) done(!r.error);
+    }, 600);
+  }
   function saveLook(){
     if(!USER) return;
     $("lookStatus").textContent = "Saving…";
-    clearTimeout(LOOK_T); LOOK_T = setTimeout(async function(){
-      var r = await sb.from("crew_prefs").upsert({ auth_id:USER.id, prefs:{ look:LOOK }, updated_at:new Date().toISOString() });
-      $("lookStatus").textContent = r.error ? "Saved on this computer only (run WCA_CREW_UPDATE_3.sql to save it to your account)." : "Saved to your account.";
-    }, 700);
+    savePrefs(function(ok){ $("lookStatus").textContent = ok ? "Saved to your account." : "Saved on this computer only (run WCA_CREW_UPDATE_3.sql to save it to your account)."; });
   }
   async function loadLook(){
     var r = await sb.from("crew_prefs").select("prefs").eq("auth_id", USER.id).maybeSingle();
-    if(r && r.data && r.data.prefs && r.data.prefs.look) applyLook(r.data.prefs.look);
+    var pr = r && r.data && r.data.prefs;
+    if(pr && pr.look) applyLook(pr.look);
+    if(pr && pr.reads && typeof pr.reads === "object"){ MYREADS = pr.reads; try{ localStorage.setItem("wca-crew-myreads", JSON.stringify(MYREADS)); }catch(e){} }
     renderLooks();
   }
 
@@ -580,7 +611,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".page"), function(pg){ pg.style.display = ""; });
     $("navAdmin").style.display = ADMIN ? "" : "none";
     await Promise.all([loadShow(), loadCues(), loadSite(), loadLook()]);
-    renderAll();
+    renderCues(); roleText(); renderAll(); renderAlertState();
     if(ADMIN) loadMembers();
     subscribe();
   }
@@ -848,7 +879,7 @@
       showPerson(b.getAttribute("data-pick"), "whoRoster"); if(window.innerWidth < 1100) $("whoRoster").scrollIntoView({ behavior:"smooth" }); }; });
   }
   $("rq").oninput = renderRoster; $("rdiv").onchange = renderRoster;
-  $("rdiv").innerHTML = '<option value="">Everyone</option>' + Object.keys(DIV).map(function(k){ return '<option value="' + k + '">' + DIV[k] + '</option>'; }).join("");
+  $("rdiv").innerHTML = '<option value="">Everyone</option>' + Object.keys(DIV).filter(function(k){ return k !== "Intergender"; }).map(function(k){ return '<option value="' + k + '">' + DIV[k] + '</option>'; }).join("");
 
   /* ---------- AD READS ---------- */
   /* reads come from the host's Show Pack, logos from the website Sponsors page */
@@ -918,11 +949,11 @@
     if((!SP_SEL || !list.some(function(s){ return s.id === SP_SEL; })) && list.length) SP_SEL = list[0].id;
     $("splist").innerHTML = list.length ? list.map(function(s){
       return '<button class="sp' + (s.id === SP_SEL ? " on" : "") + '" data-sp="' + esc(s.id) + '">' + (s.logo ? '<img alt="" src="' + esc(s.logo) + '">' : '<span class="ph"></span>') +
-        '<span class="nm">' + esc(s.name) + '<div class="rc">' + (s.reads.length ? s.reads.map(function(r){ return esc(r.label); }).join(" · ") : "No read yet") + '</div></span>' + (isLive() && ls && s.id === ls.id && live.visible ? '<span class="live">ON AIR</span>' : '') + '</button>';
+        '<span class="nm">' + esc(s.name) + '<div class="rc">' + (s.reads.length ? s.reads.map(function(r){ return esc(r.label) + (myRead(s, r) ? " ✎" : ""); }).join(" · ") : "No read yet") + '</div></span>' + (isLive() && ls && s.id === ls.id && live.visible ? '<span class="live">ON AIR</span>' : '') + '</button>';
     }).join("") : '<div class="empty">No sponsors yet.</div>';
     Array.prototype.forEach.call(document.querySelectorAll("[data-sp]"), function(b){ b.onclick = function(){ pickSponsor(b.getAttribute("data-sp")); }; });
   }
-  function pickSponsor(id){ SP_SEL = id; READ_SEL = 0; IMG_SEL = -1; $("follow").checked = false; resetTimer(); renderSponsors(); renderReader(); }
+  function pickSponsor(id){ EDITING = ""; SP_SEL = id; READ_SEL = 0; IMG_SEL = -1; $("follow").checked = false; resetTimer(); renderSponsors(); renderReader(); }
   function stepSponsor(d){ var list = sponsorList(), i = list.findIndex(function(s){ return s.id === SP_SEL; }); if(!list.length) return; i = (i + d + list.length) % list.length; pickSponsor(list[i].id); }
   $("spPrev").onclick = function(){ stepSponsor(-1); }; $("spNext").onclick = function(){ stepSponsor(1); };
   function curRead(){ var s = sponsorList().find(function(x){ return x.id === SP_SEL; }); return { s:s, r: s && s.reads[READ_SEL] }; }
@@ -935,18 +966,54 @@
     $("thumbs").innerHTML = imgs.length > 1 ? imgs.map(function(m, i){ return '<button data-im="' + i + '" class="' + (i === ii ? "on" : "") + '" title="' + esc(m.name) + '"><img alt="" src="' + esc(m.logo) + '"><span>' + esc(m.name) + '</span></button>'; }).join("") : "";
     Array.prototype.forEach.call(document.querySelectorAll("[data-im]"), function(b){ b.onclick = function(){ IMG_SEL = +b.getAttribute("data-im"); renderReader(); }; });
     $("rhead").innerHTML = '<h2>' + esc(s.name) + '</h2>' + (s.hit ? '<span class="muted">' + esc(s.hit) + '</span>' : '') + (s.blurb ? '<span class="muted">' + esc(s.blurb) + '</span>' : '');
-    $("readTabs").innerHTML = s.reads.map(function(r, i){ return '<button data-rd="' + i + '" class="' + (i === READ_SEL ? "on" : "") + '">' + esc(r.label) + (r.secs ? " · " + r.secs + "s" : "") + '</button>'; }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-rd]"), function(b){ b.onclick = function(){ READ_SEL = +b.getAttribute("data-rd"); IMG_SEL = -1; $("follow").checked = false; resetTimer(); renderReader(); }; });
+    $("readTabs").innerHTML = s.reads.map(function(r, i){ return '<button data-rd="' + i + '" class="' + (i === READ_SEL ? "on" : "") + '">' + esc(r.label) + (r.secs ? " · " + r.secs + "s" : "") + (myRead(s, r) ? ' <span class="mymark">✎</span>' : '') + '</button>'; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-rd]"), function(b){ b.onclick = function(){ READ_SEL = +b.getAttribute("data-rd"); IMG_SEL = -1; EDITING = ""; $("follow").checked = false; resetTimer(); renderReader(); }; });
     $("opener").textContent = s.reads.length ? (PACK.opener || "") : "";
-    var r = s.reads[READ_SEL];
+    var r = s.reads[READ_SEL], mine = myRead(s, r), txt = mine ? mine.text : (r && r.text);
     $("script").style.setProperty("--fs", FS + "px");
-    $("script").innerHTML = r && r.text ? fmt(r.text, s.hit) : '<span class="muted">' + (s.webOnly ? "The host hasn't written a read for this sponsor yet." : "This read has no script yet.") + '</span>';
+    $("myEdit").style.setProperty("--fs", FS + "px");
+    var editing = EDITING && r && EDITING === skey(s) + "|" + r.label;
+    $("script").style.display = editing ? "none" : "";
+    $("myEditBox").style.display = editing ? "" : "none";
+    $("script").innerHTML = txt ? fmt(txt, s.hit) : '<span class="muted">' + (s.webOnly ? "The host hasn't written a read for this sponsor yet." : "This read has no script yet.") + '</span>';
+    $("verBar").innerHTML = !r ? "" : mine
+      ? '<span class="vtag mine">MY VERSION</span><span class="muted">Only you see this version.' + (mine.base !== (r.text || "") ? ' <b class="warn">The host changed this read since you edited it.</b>' : '') + '</span>'
+      : '<span class="vtag">DEFAULT</span><span class="muted">The host\'s version.</span>';
+    $("myEditBtn").style.display = r && !editing ? "" : "none";
+    $("myResetBtn").style.display = mine && !editing ? "" : "none";
     var toss = String(s.toss || "").split(/\n+/).filter(Boolean);
     $("tossBox").style.display = toss.length ? "" : "none"; $("toss").innerHTML = toss.map(function(t){ return "<div>" + fmt(t) + "</div>"; }).join("");
     $("dnBox").style.display = s.notes ? "" : "none"; $("dn").textContent = s.notes || "";
     if(!TM.on) paintClock();
   }
   $("follow").onchange = function(){ renderSponsors(); renderReader(); };
+  /* my own version of a read: saved to my account only, never changes anything for the host or other crew */
+  var EDITING = "";
+  function skey(s){ return String(s.web || s.id); }
+  function myRead(s, r){ var m = s && r && MYREADS[skey(s)]; return m && m[r.label] && typeof m[r.label].text === "string" ? m[r.label] : null; }
+  $("myEditBtn").onclick = function(){
+    var cr = curRead(); if(!cr.s || !cr.r) return;
+    var mine = myRead(cr.s, cr.r);
+    EDITING = skey(cr.s) + "|" + cr.r.label; $("follow").checked = false;
+    $("myEdit").value = mine ? mine.text : (cr.r.text || "");
+    renderReader(); $("myEdit").focus();
+  };
+  $("myEditCancel").onclick = function(){ EDITING = ""; renderReader(); };
+  $("myEditSave").onclick = function(){
+    var cr = curRead(); if(!cr.s || !cr.r) return;
+    var t = $("myEdit").value, k = skey(cr.s);
+    if(t.trim() === String(cr.r.text || "").trim()){ if(MYREADS[k]) delete MYREADS[k][cr.r.label]; }
+    else { MYREADS[k] = MYREADS[k] || {}; MYREADS[k][cr.r.label] = { text:t, base:cr.r.text || "", at:new Date().toISOString() }; }
+    if(MYREADS[k] && !Object.keys(MYREADS[k]).length) delete MYREADS[k];
+    EDITING = ""; renderSponsors(); renderReader();
+    savePrefs(function(ok){ toast(ok ? "Your version is saved to your account" : "Saved on this computer only (the host needs to run WCA_CREW_UPDATE_3.sql)"); });
+  };
+  $("myResetBtn").onclick = function(){
+    var cr = curRead(); if(!cr.s || !cr.r) return;
+    if(!confirm("Go back to the host's version of this read? Your version will be deleted.")) return;
+    var k = skey(cr.s); if(MYREADS[k]){ delete MYREADS[k][cr.r.label]; if(!Object.keys(MYREADS[k]).length) delete MYREADS[k]; }
+    renderSponsors(); renderReader(); savePrefs(function(){ toast("Back to the default read"); });
+  };
   $("fsUp").onclick = function(){ FS = Math.min(40, FS + 2); try{ localStorage.setItem("wca-crew-fs", FS); }catch(e){} renderReader(); };
   $("fsDown").onclick = function(){ FS = Math.max(14, FS - 2); try{ localStorage.setItem("wca-crew-fs", FS); }catch(e){} renderReader(); };
   var TM = { on:false, start:0, el:0, t:null };
@@ -969,21 +1036,53 @@
   function renderThread(){
     var th = $("thread"), atBottom = th.scrollHeight - th.scrollTop - th.clientHeight < 40;
     th.innerHTML = CUES.length ? CUES.map(function(c){
-      var mine = !c.from_host && USER && c.from_auth === USER.id, msg = c.kind === "MESSAGE";
-      return '<div class="bub' + (c.from_host ? " host" : "") + (mine ? " mine" : "") + '"><div class="w">' + esc(c.from_host ? (c.from_name || "HOST") + " · HOST" : mine ? "YOU" : c.from_name) + ' · ' + hhmm(c.created_at) + '</div>' +
+      var mine = USER && (c.from_auth === USER.id || (ADMIN && c.from_host)), msg = c.kind === "MESSAGE";
+      return '<div class="bub' + (c.from_host ? " host" : "") + (mine ? " mine" : "") + '"><div class="w">' + esc(mine ? (c.from_host ? "YOU · HOST" : "YOU") : c.from_host ? (c.from_name || "HOST") + " · HOST" : c.from_name) + ' · ' + hhmm(c.created_at) + '</div>' +
         (msg ? '<div>' + esc(c.note) + '</div>' : '<div class="k">' + esc(c.kind) + '</div>' + (c.note ? '<div>' + esc(c.note) + '</div>' : '')) + '</div>';
     }).join("") : '<div class="empty">No messages yet. Cues and messages between you and the host show up here.</div>';
     if(atBottom || PAGE !== "msgs") th.scrollTop = th.scrollHeight;
   }
+  /* guests cue the host, the host cues the crew. Read cues carry the sponsor and read: "Sweet Rolls · Full" */
+  var CUESETS = {
+    guest: { main:[["READY","ready"],["WRAP IT UP","wrap"],["SEGMENT DONE",""],["READ DONE",""]],
+             read:[["READY","ready","READY FOR THIS READ"],["READ DONE","","READ DONE"],["MESSAGE","","NEED A MINUTE","Give me a minute before this read"]] },
+    host:  { main:[["STAND BY",""],["YOU'RE ON","ready"],["AD READ","adread","AD READ NEXT"],["WRAP IT UP","wrap"],["GO TO BREAK",""],["THANK YOU",""]],
+             read:[["AD READ","adread","CUE THIS READ"],["YOU'RE ON","ready","YOU'RE ON"],["WRAP IT UP","wrap","WRAP IT UP"]] }
+  };
+  function readNote(){ var cr = curRead(); return cr.s ? cr.s.name + (cr.r ? " · " + cr.r.label : "") : ""; }
+  function renderCues(){
+    var set = ADMIN ? CUESETS.host : CUESETS.guest;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cueset]"), function(box){
+      var which = box.getAttribute("data-cueset");
+      box.innerHTML = set[which].map(function(c, i){ return '<button class="cue ' + c[1] + '" data-ci="' + which + ':' + i + '">' + esc(c[2] || c[0]) + '</button>'; }).join("");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".cueTitle"), function(h){ h.textContent = ADMIN ? "CUE THE CREW" : "CUE THE HOST"; });
+    Array.prototype.forEach.call(document.querySelectorAll(".cueTitleRead"), function(h){ h.textContent = ADMIN ? "CUE THE CREW FOR THIS READ" : "CUE THE HOST ABOUT THIS READ"; });
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("[data-ci]"); if(!b) return;
+    var p = b.getAttribute("data-ci").split(":"), c = (ADMIN ? CUESETS.host : CUESETS.guest)[p[0]][+p[1]];
+    var note = c[3] || (p[0] === "read" ? readNote() : "");
+    if(c[3] && p[0] === "read" && readNote()) note = c[3] + " (" + readNote() + ")";
+    sendCue(c[0], note);
+  });
   async function sendCue(kind, note){
     var rd = PACK.rundown || [], g = rd[(LIVE.rd || {}).cur|0];
-    var r = await sb.from("crew_cues").insert({ from_auth:USER.id, from_name:nameOf(USER), kind:kind, note:note || "", segment: g ? ((g.label ? g.label + ": " : "") + segText(g)) : "" });
+    var row = { from_auth:USER.id, from_name:nameOf(USER), kind:kind, note:note || "", segment: g ? ((g.label ? g.label + ": " : "") + segText(g)) : "" };
+    if(ADMIN) row.from_host = true;
+    var r = await sb.from("crew_cues").insert(row);
+    if(r.error && ADMIN){
+      var k = ""; try{ k = localStorage.getItem("wca-crew-hostkey") || ""; }catch(e){}
+      if(k){ var h = await sb.rpc("crew_host_say", { p_key:k, p_kind:kind, p_note:note || "", p_name:nameOf(USER) }); r = h.error ? r : h; }
+      if(r.error){ toast("Could not send. Run WCA_CREW_UPDATE_4.sql in Supabase so you can cue the crew from this page."); return; }
+    }
     if(r.error){ toast("Could not send: " + r.error.message); return; }
-    toast(kind === "MESSAGE" ? "Sent to the host" : kind + " sent to the host");
+    var to = ADMIN ? "the crew" : "the host";
+    toast(kind === "MESSAGE" ? "Sent to " + to : kind + (note ? " · " + note : "") + " sent to " + to);
   }
-  Array.prototype.forEach.call(document.querySelectorAll("[data-cue]"), function(b){ b.onclick = function(){ sendCue(b.getAttribute("data-cue")); }; });
   $("noteSend").onclick = function(){ var v = $("noteIn").value.trim(); if(!v) return; sendCue("MESSAGE", v); $("noteIn").value = ""; };
   $("noteIn").onkeydown = function(e){ if(e.key === "Enter") $("noteSend").click(); };
+  function roleText(){ $("msgTitle").textContent = ADMIN ? "MESSAGES WITH THE CREW" : "MESSAGES WITH THE HOST"; $("noteIn").placeholder = ADMIN ? "Message the crew, then press Enter" : "Message the host, then press Enter"; }
   Array.prototype.forEach.call(document.querySelectorAll("[data-say]"), function(b){ b.onclick = function(){ sendCue("MESSAGE", b.getAttribute("data-say")); }; });
   $("chime").onchange = function(){ try{ localStorage.setItem("wca-crew-chime", this.checked ? "1" : "0"); }catch(e){} };
   function chime(){
@@ -993,22 +1092,83 @@
       g.gain.setValueAtTime(.0001, A.currentTime); g.gain.exponentialRampToValueAtTime(.25, A.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, A.currentTime + .45);
       o.connect(g); g.connect(A.destination); o.start(); o.stop(A.currentTime + .5); }catch(e){}
   }
+  var BIG = { "AD READ":1, "YOU'RE ON":1, "STAND BY":1, "WRAP IT UP":1, "GO TO BREAK":1, "READY":1 };
   function popup(c){
-    $("popW").textContent = "FROM " + String(c.from_name || "THE HOST").toUpperCase();
-    $("popT").textContent = c.kind === "MESSAGE" ? "MESSAGE" : c.kind;
+    var k = c.kind === "MESSAGE" ? "MESSAGE" : String(c.kind || "");
+    $("popW").textContent = "FROM " + String(c.from_name || (ADMIN ? "THE CREW" : "THE HOST")).toUpperCase() + (c.from_host ? " · HOST" : "");
+    $("popT").textContent = k;
     $("popN").textContent = c.note || "";
-    $("pop").classList.add("show"); clearTimeout(popup.t); popup.t = setTimeout(function(){ $("pop").classList.remove("show"); }, 9000);
+    var acts = "";
+    if(k === "AD READ" && findRead(c.note)) acts += '<button class="btn gold sm" id="popRead">Open The Read</button>';
+    acts += '<button class="btn sm" id="popMsgs">Open Messages</button>';
+    $("popA").innerHTML = acts;
+    var pr = $("popRead"); if(pr) pr.onclick = function(e){ e.stopPropagation(); $("pop").classList.remove("show"); openRead(c.note); };
+    $("popMsgs").onclick = function(e){ e.stopPropagation(); $("pop").classList.remove("show"); go("msgs"); };
+    var big = !!BIG[k];
+    $("pop").classList.toggle("big", big);
+    $("pop").classList.add("show"); clearTimeout(popup.t);
+    popup.t = setTimeout(function(){ $("pop").classList.remove("show"); }, big ? 30000 : 15000);
     chime();
   }
+  $("popX").onclick = function(e){ e.stopPropagation(); $("pop").classList.remove("show"); };
   $("pop").onclick = function(){ this.classList.remove("show"); go("msgs"); };
+  /* "Sweet Rolls · Full" -> that sponsor and read */
+  function findRead(note){
+    var m = String(note || "").match(/([^(]*?)\s*·\s*([^()]+?)\)?$/); if(!m) return null;
+    var name = m[1].replace(/^.*\(/, "").trim(), label = m[2].trim();
+    var list = sponsorList(), s = list.find(function(x){ return nk(x.name) === nk(name); }) || list.find(function(x){ return nmatch(x.name, name) > 0; });
+    if(!s) return null;
+    var i = s.reads.findIndex(function(r){ return low(r.label) === low(label); });
+    return { s:s, i:i < 0 ? 0 : i };
+  }
+  function openRead(note){
+    var f = findRead(note); if(!f) { go("reads"); return; }
+    EDITING = ""; SP_SEL = f.s.id; READ_SEL = f.i; IMG_SEL = -1; $("follow").checked = false; resetTimer();
+    renderSponsors(); renderReader(); go("reads");
+  }
+  /* desktop alerts + flashing tab, so cues are seen in any browser tab */
+  function alertsOn(){ return "Notification" in window && Notification.permission === "granted"; }
+  function renderAlertState(){
+    var st = !("Notification" in window) ? "This browser can't show desktop alerts." : Notification.permission === "granted" ? "Desktop alerts are on. Cues pop up even when this tab is in the background." : Notification.permission === "denied" ? "Desktop alerts are blocked. Allow notifications for this site in your browser settings." : "Desktop alerts are off.";
+    $("alertState").textContent = st;
+    $("alertOn2").style.display = ("Notification" in window) && Notification.permission === "default" ? "" : "none";
+    var ask = false; try{ ask = ("Notification" in window) && Notification.permission === "default" && localStorage.getItem("wca-crew-alertask") !== "no"; }catch(e){}
+    $("alertAsk").classList.toggle("show", !!(USER && ask && $("nav").style.display !== "none"));
+  }
+  function askAlerts(){ if(!("Notification" in window)) return; Notification.requestPermission().then(function(){ renderAlertState(); if(alertsOn()) toast("Desktop alerts are on"); }); }
+  $("alertOn").onclick = askAlerts; $("alertOn2").onclick = askAlerts;
+  $("alertNo").onclick = function(){ try{ localStorage.setItem("wca-crew-alertask", "no"); }catch(e){} renderAlertState(); };
+  function desktopAlert(c){
+    if(!alertsOn() || (document.visibilityState === "visible" && document.hasFocus())) return;
+    try{
+      var k = c.kind === "MESSAGE" ? "Message" : c.kind;
+      var n = new Notification(k + " · " + (c.from_name || (ADMIN ? "Crew" : "Host")), { body:c.note || "", tag:"wca-crew", renotify:true, requireInteraction:!!BIG[c.kind] });
+      n.onclick = function(){ window.focus(); n.close(); if(c.kind === "AD READ" && findRead(c.note)) openRead(c.note); else go("msgs"); };
+    }catch(e){}
+  }
+  var TITLE = document.title, FLASH = null;
+  function flashTitle(c){
+    if(document.visibilityState === "visible" && document.hasFocus()) return;
+    clearInterval(FLASH); var on = false, label = "🔔 " + (c.kind === "MESSAGE" ? "NEW MESSAGE" : c.kind);
+    FLASH = setInterval(function(){ on = !on; document.title = on ? label : TITLE; }, 1000);
+  }
+  function stopFlash(){ clearInterval(FLASH); FLASH = null; document.title = TITLE; }
+  window.addEventListener("focus", stopFlash);
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "visible") stopFlash(); });
+  function incoming(c){
+    if(USER && c.from_auth === USER.id) return;            // my own message
+    var forMe = ADMIN ? !c.from_host : !!c.from_host;
+    if(!forMe) return;
+    popup(c); desktopAlert(c); flashTitle(c);
+    if(PAGE !== "msgs"){ UNREAD++; badge(); }
+  }
 
   /* ---------- realtime ---------- */
   function subscribe(){
     sb.channel("crew-desk")
       .on("postgres_changes", { event:"UPDATE", schema:"public", table:"crew_show" }, function(p){ applyShow(p.new || {}); })
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"crew_cues" }, function(p){
-        var c = p.new || {}; CUES.push(c); CUES = CUES.slice(-60); renderThread();
-        if(c.from_host){ popup(c); if(PAGE !== "msgs"){ UNREAD++; badge(); } }
+        var c = p.new || {}; CUES.push(c); CUES = CUES.slice(-60); renderThread(); incoming(c);
       })
       .on("postgres_changes", { event:"DELETE", schema:"public", table:"crew_cues" }, function(){ loadCues().then(renderThread); })
       .on("postgres_changes", { event:"*", schema:"public", table:"crew_sponsor_reads" }, function(){ clearTimeout(subscribe.rt); subscribe.rt = setTimeout(function(){ loadReads().then(function(){ renderSponsors(); renderReader(); }); }, 800); })
@@ -1040,7 +1200,8 @@
     (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ toast(done); }).catch(function(){
       var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); toast(done); }catch(e){ toast("Could not copy"); } ta.remove(); });
   }
-  var INVITE = location.origin + location.pathname;
+  var SITE_CREW = "https://wcauniverse.github.io/WCA-Stats/crew.html";
+  var INVITE = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SITE_CREW;   // opened from a file on your PC: still hand out the website link
   $("inviteLink").value = INVITE;
   $("inviteCopy").onclick = function(){ copyText(INVITE, "Crew Desk link copied"); };
   try{ $("keyIn").value = localStorage.getItem("wca-crew-hostkey") || ""; }catch(e){}
