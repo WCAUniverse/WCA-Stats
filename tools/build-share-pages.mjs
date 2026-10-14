@@ -8,9 +8,9 @@
  * WHY THIS EXISTS
  *   Discord, X, Facebook, Reddit and iMessage do NOT run JavaScript when they
  *   fetch a link for a preview — they read the raw HTML's <meta> tags. The main
- *   site is one JS-driven file using hash routing, and the part after '#' never
- *   even reaches the server. So a link to a single storyline can't carry its own
- *   preview no matter what the app does at runtime.
+ *   site is one JS-driven file, so every address serves the same HTML and the
+ *   same preview. A link to a single post or event can't carry its own preview
+ *   no matter what the app does at runtime.
  *
  *   These pages solve that: each is a real URL with real meta tags. A crawler
  *   reads them; a human is forwarded straight into the app at the exact item.
@@ -262,7 +262,7 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
       kicker: KIND_LABEL[p.kind] || 'Storyline',
       description: summarise(p.body) || `A storyline from ${BRAND}.`,
       image: absolute(photo),
-      deepLink: `${BASE}#storylines?post=${encodeURIComponent(p.id)}`,
+      deepLink: `${BASE}feed?post=${encodeURIComponent(p.id)}`,
       date: p.story_date || null
     });
   }
@@ -289,7 +289,7 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
         ? `${name} — ${bits.join(', ')}. Full card, results and final standings.`
         : `${name} — full card, results and final standings from ${BRAND}.`,
       image: absolute(e.poster_url),
-      deepLink: `${BASE}#archive?event=${encodeURIComponent(e.id)}`,
+      deepLink: `${BASE}archive?event=${encodeURIComponent(e.id)}`,
       date: e.event_date || null
     });
   }
@@ -309,24 +309,24 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
       kicker: w.nickname ? String(w.nickname) : 'Roster',
       description: desc,
       image: absolute(w.image_url || w.avatar_url),
-      deepLink: `${BASE}#roster?w=${encodeURIComponent(w.name)}`
+      deepLink: `${BASE}roster?w=${encodeURIComponent(w.name)}`
     });
   }
 
   // plain pages worth their own preview
   for (const [dir, title, kicker, hash, description] of [
-    ['apply',       'Join the WCA Roster', 'Apply',   '#apply',
+    ['apply',       'Join the WCA Roster', 'Apply',   'apply',
      'Bring your own character into the World Championship Alliance. Here\u2019s how to apply and what happens next.'],
-    ['roster',      'The WCA Roster',      'Roster',  '#roster',
+    ['roster',      'The WCA Roster',      'Roster',  'roster',
      'Every competitor and stable in the World Championship Alliance, mapped as a constellation.'],
-    ['rankings',    'WCA Rankings',        'Rankings','#rankings',
+    ['rankings',    'WCA Rankings',        'Rankings','rankings',
      'Championship divisions, contender points and who is next in line for a title shot.'],
-    ['leaderboard', 'WCA Leaderboard',     'Leaderboard','#leaderboard',
-     'How the community is doing \u2014 coins, streaks and standings across the season.'],
-    ['storylines',  'WCA Storylines',      'Storylines','#storylines',
+    ['leaderboard', 'WCA Leaderboard',     'Leaderboard','leaderboard',
+     'How the community is doing. Money, streaks and standings across the season.'],
+    ['storylines',  'WCA Feed',            'Feed',    'feed',
      'Headlines, promos, interviews and dirt from around the World Championship Alliance.'],
-    ['events',      'WCA Events',          'Events',  '#events',
-     'The next WCA show \u2014 full card, start time and where to watch.']
+    ['events',      'WCA Events',          'Events',  'events',
+     'The next WCA show. Full card, start time and where to watch.']
   ]) out.push({ dir, title, kicker, description, image: null, deepLink: BASE + hash });
 
   return out;
