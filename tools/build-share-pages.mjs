@@ -33,9 +33,9 @@ import path from 'path';
 
 const ROOT     = process.cwd();
 const OUT_DIR  = path.join(ROOT, 's');
-const SITE     = process.env.WCA_SITE_URL || 'https://wcauniverse.github.io/WCA-Stats';
+const SITE     = process.env.WCA_SITE_URL || 'https://wcauniverse.com';
 const BASE     = SITE.replace(/\/+$/, '') + '/';
-const CARD     = BASE + 'share/wca-share-card.png';
+const CARD     = BASE + 'share/wca-card.png';
 const BRAND    = 'World Championship Alliance';
 
 const args    = process.argv.slice(2);
