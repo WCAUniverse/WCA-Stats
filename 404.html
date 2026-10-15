@@ -118,7 +118,7 @@ function wcaSetAddress(pg, qs, push){
 <meta property="og:title"        content="WCA — World Championship Alliance">
 <meta property="og:description"  content="A live pro wrestling universe. Championship divisions, roster stats, storylines, and money on the line.">
 <meta property="og:url"          content="https://wcauniverse.com/">
-<meta property="og:image"        content="https://wcauniverse.com/share/wca-card.png">
+<meta property="og:image"        content="https://wcauniverse.com/share/wca-card-2.png">
 <meta property="og:image:width"  content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt"    content="World Championship Alliance">
@@ -127,7 +127,7 @@ function wcaSetAddress(pg, qs, push){
 <meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:title"       content="WCA — World Championship Alliance">
 <meta name="twitter:description" content="A live pro wrestling universe. Championship divisions, roster stats, storylines, and money on the line.">
-<meta name="twitter:image"       content="https://wcauniverse.com/share/wca-card.png">
+<meta name="twitter:image"       content="https://wcauniverse.com/share/wca-card-2.png">
 
 <!-- PWA: lets the site install to the home screen and open fullscreen like an app -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -376,6 +376,13 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .brand{display:flex; align-items:baseline; gap:10px;}
   .brand .logo{font-family:var(--font-display); font-weight:700; font-size:28px; color:var(--gold); letter-spacing:2px;}
   .brand .sub{font-size:12px; color:var(--muted); letter-spacing:3px; text-transform:uppercase;}
+  /* the WCA mark, top left of every page */
+  .brand{align-items:center;}
+  .brand .logo-img{display:block; height:58px; width:auto;
+    filter:drop-shadow(0 2px 8px rgba(0,0,0,.65)) drop-shadow(0 0 16px rgba(255,255,255,.10));
+    transition:transform .2s ease, filter .2s ease;}
+  .brand:hover .logo-img{transform:scale(1.04); filter:drop-shadow(0 2px 8px rgba(0,0,0,.65)) drop-shadow(0 0 18px rgba(255,255,255,.22));}
+  @media (max-width:760px){ .brand .logo-img{height:40px;} }
   nav{display:flex; gap:4px; flex-wrap:wrap;}
   nav button,nav a{background:transparent; border:1px solid transparent; color:var(--muted); font-family:var(--font-display); font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; cursor:pointer; transition:.15s; text-decoration:none; display:inline-block;}
   nav button:hover,nav a:hover{color:var(--txt);}
@@ -4335,6 +4342,8 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 #page-apply .apply-platform{font-size:15px; line-height:1.6; padding:18px 20px;}
 #page-apply .apply-gatebox{max-width:640px; margin:0 auto;}
 #page-apply .apply-gatebox p{font-size:15.5px; line-height:1.6;}
+#page-apply .apply-signins{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+#page-apply .apply-signins .hbtn{min-width:140px; justify-content:center; font-size:15px;}
 #page-apply .apply-mine{font-size:15px;}
 #page-apply .af-head{padding:18px 22px;}
 #page-apply .af-head .af-title{font-size:19px;}
@@ -4411,7 +4420,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 <header>
   <div class="head-inner">
     <div class="brand">
-      <span class="logo">WCA</span>
+      <img class="logo-img" src="brand/wca-logo-sm.png" alt="WCA, World Championship Alliance" width="62" height="58">
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
     <div class="head-right" id="headRight">
@@ -6027,6 +6036,11 @@ async function refreshUser(){
   try{ const { data:adm } = await sb.rpc('is_admin'); IS_ADMIN = adm===true; }
   catch(e){ IS_ADMIN = false; }
   renderUserChip();
+  // The Apply page draws as soon as it opens, which can be before this sign in
+  // has loaded. Redraw it now so a signed in visitor sees the form, not the
+  // "Sign in to apply" box.
+  const apPg = document.getElementById('page-apply');
+  if(apPg && apPg.classList.contains('active') && typeof loadApply === 'function') loadApply();
   // First-time sign-in: if they've never set their own display name, open the
   // account page so they pick a username. It pre-fills with the name their
   // login provider gave (Discord/Google/Twitch), which they can keep or change.
@@ -9232,10 +9246,14 @@ async function loadApply(){
   if(!CURRENT_USER){
     body.style.display='none';
     gate.innerHTML = `<div class="apply-gatebox">
-      <div class="ag-ico"><i class="ti ti-brand-discord"></i></div>
+      <div class="ag-ico"><i class="ti ti-user-circle"></i></div>
       <h3>Sign in to apply</h3>
-      <p>Applications are tied to your Discord account so we can follow up with you. It only takes a second.</p>
-      <button class="hbtn primary" onclick="signInDiscord()"><i class="ti ti-brand-discord"></i> Sign in with Discord</button>
+      <p>Your application is tied to your WCA account so we can follow up with you. Sign in with any of these, it only takes a second.</p>
+      <div class="apply-signins">
+        <button class="hbtn" onclick="signInProvider('discord')"><i class="ti ti-brand-discord" style="color:#5865F2"></i> Discord</button>
+        <button class="hbtn" onclick="signInProvider('google')"><i class="ti ti-brand-google" style="color:#EA4335"></i> Google</button>
+        <button class="hbtn" onclick="signInProvider('twitch')"><i class="ti ti-brand-twitch" style="color:#9146FF"></i> Twitch</button>
+      </div>
     </div>`;
     return;
   }
@@ -9612,7 +9630,7 @@ function showApplySuccess(){
       1. I personally review your application.<br>
       2. I create your CAW on PC (or import it if it's already a PC CAW).<br>
       3. I balance it to our <b>85 OVR cap</b> and lock in the details.<br>
-      4. Your wrestler debuts on the roster — and you can start being booked.
+      4. Your wrestler debuts on the roster and you can start being booked.
     </div>
     <p>You can check your application status any time on this page.</p>
     <button class="hbtn primary" onclick="loadApply()">View my applications</button>
@@ -9623,7 +9641,7 @@ function showApplySuccess(){
 // ===== BET PLACEMENT =====
 let BET_CTX = null;   // {slot, side_index}
 function openBet(slot, side_index){
-  if(!CURRENT_USER){ alert('Sign in with Discord to place a bet.'); return; }
+  if(!CURRENT_USER){ alert('Sign in to place a bet.'); return; }
   const m = CURRENT_MATCHES.find(x=>x.slot===slot);
   if(!m) return;
   const sides = parseSides(m);
