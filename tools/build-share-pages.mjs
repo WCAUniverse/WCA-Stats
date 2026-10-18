@@ -107,7 +107,7 @@ async function gather() {
       'id,kind,title,body,payload,story_date,is_published', '&is_published=eq.true')),
     soft('events',     q(cred, 'v_archive_events', '*')),
     soft('wrestlers',  q(cred, 'wrestlers',
-      'name,nickname,bio,image_url,avatar_url,is_active,from_loc,finishers')),
+      'name,nickname,bio,image_url,avatar_url,is_active,status,is_draft,from_loc,finishers')),
     // v_archive_events doesn't pass poster_url through, so the posters come
     // straight off the events table and get merged in by id below. Doing it
     // here means the view never has to be rebuilt.
@@ -297,6 +297,10 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
   const seen = new Set();
   for (const w of wrestlers) {
     if (!w || !w.name) continue;
+    // Only wrestlers on the roster get a share page. Inactive, Hidden and
+    // New Names placeholders stay off (same rule as the site's roster).
+    const st = String(w.status || '').trim().toLowerCase();
+    if (w.is_draft === true || st === 'hidden' || st === 'inactive' || (!st && w.is_active === false)) continue;
     const s = slug(w.name);
     if (!s || seen.has(s)) continue;         // slug collision — first one wins
     seen.add(s);
