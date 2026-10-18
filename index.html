@@ -9831,8 +9831,11 @@ async function loadApply(){
       const nm = a.wrestler_name || a.caw_share_code || 'Application';
       const cls = a.status==='approved'?'am-approved':(a.status==='rejected'?'am-rejected':'am-pending');
       const when = a.created_at ? new Date(a.created_at).toLocaleDateString() : '';
-      return `<div class="apply-mine">Your application <b style="color:#ddd">${esc(nm)}</b> (${esc(when)}) — <span class="am-badge ${cls}">${esc(a.status)}</span></div>`;
+      const canEdit = a.status==='pending' || a.status==='rejected';
+      const editBtn = canEdit ? ` <button type="button" class="hbtn" style="margin-left:8px;padding:4px 12px" onclick="applyEditStart(${Number(a.id)})"><i class="ti ti-pencil"></i> ${a.status==='rejected'?'Edit and resend':'Edit'}</button>` : '';
+      return `<div class="apply-mine">Your application <b style="color:#ddd">${esc(nm)}</b> (${esc(when)}) — <span class="am-badge ${cls}">${esc(a.status)}</span>${editBtn}</div>`;
     }).join('');
+    if(mine.some(a=>a.status==='pending')) mineHtml += `<div class="apply-mine" style="opacity:.8">You can edit a pending application until it's approved.</div>`;
   }
   body.innerHTML = mineHtml + applyFormHTML();
   body.dataset.uid = String(CURRENT_USER.id);
@@ -10061,7 +10064,8 @@ function wireApplyForm(){
    It's cleared once the application is submitted, or with "Start over". */
 let APPLY_RESTORING = false;
 let APPLY_SAVE_T = null;
-function applyDraftKey(){ return 'wca_apply_draft_' + (CURRENT_USER ? CURRENT_USER.id : 'anon'); }
+let APPLY_EDIT_ID = null;      // set while editing an application already sent
+function applyDraftKey(){ return 'wca_apply_draft_' + (CURRENT_USER ? CURRENT_USER.id : 'anon') + (APPLY_EDIT_ID ? '_edit_'+APPLY_EDIT_ID : ''); }
 function applyQueueSave(){
   if(APPLY_RESTORING) return;
   clearTimeout(APPLY_SAVE_T);
@@ -10090,6 +10094,14 @@ function applyRestoreDraft(){
   let d = null;
   try{ d = JSON.parse(localStorage.getItem(applyDraftKey()) || 'null'); }catch(e){ d = null; }
   if(!d || d.v!==1) return;
+  applyFillFromDraft(d);
+  const st = document.getElementById('af-draftstate');
+  if(st && d.saved){
+    const when = new Date(d.saved).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+    st.innerHTML = '<i class="ti ti-history"></i> Welcome back! We restored the draft you saved on '+when+'.';
+  }
+}
+function applyFillFromDraft(d){
   APPLY_RESTORING = true;
   try{
     if(d.caw===true || d.caw===false) applySetCaw(d.caw);
@@ -10114,11 +10126,72 @@ function applyRestoreDraft(){
     if(document.getElementById('af_backstory')) applyCount();
   }catch(e){}
   APPLY_RESTORING = false;
+}
+
+/* ===== EDIT AN APPLICATION ALREADY SENT =====
+   Pending (or rejected) applications can be opened back up in the same
+   form. Saving updates that application instead of sending a new one;
+   a rejected one goes back to pending. */
+function applyRowToDraft(a){
+  const caw = a.has_existing_caw === true;
+  let find = a.caw_find_notes || '';
+  let plat = '';
+  const m = find.match(/^\[Platform:\s*([^\]]*)\]\s*\n?/);
+  if(m){ plat = /^PC$/i.test(m[1].trim()) ? 'PC' : 'XBOX-PS'; find = find.slice(m[0].length); }
+  if(caw && !plat) plat = a.caw_share_code ? 'PC' : 'XBOX-PS';
+  const hk = String(a.hometown_kind||'');
+  const home = /real/i.test(hk) ? 'real' : (/unknown/i.test(hk) ? 'unknown' : (hk ? 'fictional' : ''));
+  let traits = a.personality_traits;
+  if(typeof traits === 'string'){ try{ traits = JSON.parse(traits); }catch(e){ traits = null; } }
+  const fields = {
+    af_caw_code:a.caw_share_code, af_caw_find:find, af_caw_tweaks:a.caw_tweaks, af_caw_screens:a.caw_screens,
+    af_name:a.wrestler_name, af_alias:a.alias, af_backstory:a.backstory,
+    af_height:a.height_est, af_weight:a.weight_est, af_body:a.body_type, af_features:a.features,
+    af_face:a.face_ref_url, af_bodyref:a.body_ref_url, af_style:a.style_archetype,
+    af_ovr:(a.ovr_pref==null?'':String(a.ovr_pref)), af_moves:a.moves, af_entrance:a.entrance,
+    af_personality:a.personality, af_hooks:a.universe_hooks, af_tattoo:a.tattoo_ref_url,
+    af_mood:a.moodboard_urls, af_other:a.other_notes, af_age:a.char_age,
+    af_hometown:(home==='unknown' ? '' : a.hometown), af_skin:a.skin_tone, af_hair:a.hair,
+    af_facehair:a.facial_hair, af_eyes:a.eye_color, af_attire_ent:a.attire_entrance,
+    af_attire_ring:a.attire_ring, af_walkout:a.entrance_walkout
+  };
+  if(traits && typeof traits === 'object') APPLY_TRAITS.forEach(([k])=>{ if(traits[k]!=null) fields['af_tr_'+k] = String(traits[k]); });
+  Object.keys(fields).forEach(k=>{ if(fields[k]==null) fields[k] = ''; });
+  return { v:1, caw: (a.has_existing_caw===true||a.has_existing_caw===false) ? a.has_existing_caw : null,
+           plat, align:a.alignment||'', home, fields };
+}
+async function applyEditStart(id){
+  if(!CURRENT_USER) return;
+  const { data: a, error } = await sb.from('applications').select('*')
+    .eq('id', id).eq('user_id', CURRENT_USER.id).single();
+  if(error || !a){ wcaToast('Hold on', 'Couldn\u2019t open that application'+(error?': '+error.message:'.'), true); return; }
+  if(a.status!=='pending' && a.status!=='rejected'){ wcaToast('Already approved', 'Approved applications can\u2019t be edited here. Use the Superstar Portal for your character.', true); return; }
+  const body = document.getElementById('apply-body'); if(!body) return;
+  APPLY_EDIT_ID = a.id;
+  const nm = a.wrestler_name || a.caw_share_code || 'your application';
+  body.innerHTML = `<div class="apply-mine" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span><i class="ti ti-pencil"></i> Editing <b style="color:#ddd">${esc(nm)}</b>. Saving changes updates the application you already sent${a.status==='rejected'?' and sends it back for review':''}.</span>
+      <button type="button" class="hbtn" style="margin-left:auto;padding:4px 12px" onclick="applyEditCancel()">Cancel</button>
+    </div>` + applyFormHTML();
+  body.dataset.uid = String(CURRENT_USER.id);
+  wireApplyForm();
+  // an unsaved edit in this browser wins over the copy on file
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(applyDraftKey()) || 'null'); }catch(e){ d = null; }
+  applyFillFromDraft(d && d.v===1 ? d : applyRowToDraft(a));
+  const btn = document.getElementById('applySubmitBtn'); if(btn) btn.textContent = 'Save changes';
   const st = document.getElementById('af-draftstate');
-  if(st && d.saved){
-    const when = new Date(d.saved).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
-    st.innerHTML = '<i class="ti ti-history"></i> Welcome back! We restored the draft you saved on '+when+'.';
-  }
+  if(st) st.innerHTML = '<i class="ti ti-pencil"></i> '+(d && d.v===1 ? 'We restored the changes you hadn\u2019t saved yet.' : 'This is the application you sent. Change anything, then press Save changes at the bottom.');
+  document.querySelectorAll('#applyForm [data-sec]').forEach(sec=>sec.classList.add('open'));
+  body.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function applyEditCancel(){
+  try{ localStorage.removeItem(applyDraftKey()); }catch(e){}
+  APPLY_EDIT_ID = null;
+  const body = document.getElementById('apply-body');
+  if(body) delete body.dataset.uid;
+  const f = document.getElementById('applyForm'); if(f) f.remove();
+  loadApply();
 }
 function applyClearDraft(ask){
   if(ask && !confirm('Clear everything on this form and start over?')) return;
@@ -10265,6 +10338,18 @@ async function submitApplication(){
       attire_entrance: afv('af_attire_ent'), attire_ring: afv('af_attire_ring'),
       entrance_walkout: afv('af_walkout')
     });
+  }
+  if(APPLY_EDIT_ID){
+    btn.disabled = true; btn.textContent = 'Saving…';
+    payload.status = 'pending';
+    const { data: upd, error: uErr } = await sb.from('applications').update(payload)
+      .eq('id', APPLY_EDIT_ID).eq('user_id', CURRENT_USER.id).select('id');
+    btn.disabled = false; btn.textContent = 'Save changes';
+    if(uErr){ showApplyErr('Couldn\u2019t save: '+uErr.message); return; }
+    if(!upd || !upd.length){ showApplyErr('Couldn\u2019t save your changes. If your application was just approved, it can\u2019t be edited here anymore.'); return; }
+    wcaToast('Saved', 'Your application is updated.');
+    applyEditCancel();
+    return;
   }
   btn.disabled = true; btn.textContent = 'Submitting…';
   const { error } = await sb.from('applications').insert(payload);
