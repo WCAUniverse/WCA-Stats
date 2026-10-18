@@ -6575,7 +6575,7 @@ async function loadHiddenNames(){
     let {data,error}=await sb.from('wrestlers').select('name,status,performer,socials,last5,is_draft');
     // Same fallback as loadRoster: a database without the column just has no drafts.
     if(error) ({data} = await sb.from('wrestlers').select('name,status,performer,socials,last5'));
-    HIDDEN_NAMES = new Set((data||[]).filter(w=>w.status==='hidden').map(w=>w.name));
+    HIDDEN_NAMES = new Set((data||[]).filter(w=>isHiddenStatus(w.status)).map(w=>w.name));
     // Drafts are names picked up automatically off an event card that nobody
     // has filled in yet. They're real rows — a match photo can read their
     // gender — but they stay out of the roster page and every ranking until
@@ -6838,7 +6838,7 @@ async function loadRoster(){
   }
   if(error){grid.innerHTML=`<div class="err">${error.message}</div>`;return;}
   // track hidden names so rankings/dashboard can exclude them too
-  HIDDEN_NAMES = new Set((data||[]).filter(w=>w.status==='hidden').map(w=>w.name));
+  HIDDEN_NAMES = new Set((data||[]).filter(w=>isHiddenStatus(w.status)).map(w=>w.name));
   DRAFT_NAMES  = new Set((data||[]).filter(w=>w.is_draft===true).map(w=>w.name));
   // Two lists, deliberately:
   //   _rosterAll  every row, HIDDEN and drafts included — what wrestlerByName
@@ -6948,8 +6948,9 @@ function rosterCard(w){
 /* Should this wrestler be LISTED (roster, star map, dropdowns)? Hidden =
    no longer part of WCA; a draft = a placeholder nobody has finished. Both
    still resolve by name so past events show their picture. */
+function isHiddenStatus(st){ return String(st||'').trim().toLowerCase() === 'hidden'; }
 function wrestlerIsListed(w){
-  return !!w && w.status !== 'hidden' && w.is_draft !== true;
+  return !!w && !isHiddenStatus(w.status) && w.is_draft !== true;
 }
 function wrestlerByName(n){
   if(!n) return undefined;
