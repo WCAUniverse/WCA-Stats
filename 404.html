@@ -9822,7 +9822,13 @@ async function loadApply(){
   // show existing applications (status) + the form
   let mine = [];
   try{
-    const { data } = await sb.from('applications').select('id,wrestler_name,caw_share_code,status,created_at').eq('user_id', CURRENT_USER.id).order('created_at',{ascending:false});
+    // every application tied to this account: the ones it sent, plus any the
+    // admin linked to it (the same person signing in with Discord and Google)
+    const uid = CURRENT_USER.id;
+    let { data, error } = await sb.from('applications').select('id,wrestler_name,caw_share_code,status,created_at')
+      .or(`user_id.eq.${uid},extra_user_ids.cs.{${uid}}`).order('created_at',{ascending:false});
+    if(error) ({ data } = await sb.from('applications').select('id,wrestler_name,caw_share_code,status,created_at')
+      .eq('user_id', uid).order('created_at',{ascending:false}));
     mine = data || [];
   }catch(e){}
   let mineHtml = '';
@@ -10162,8 +10168,8 @@ function applyRowToDraft(a){
 }
 async function applyEditStart(id){
   if(!CURRENT_USER) return;
-  const { data: a, error } = await sb.from('applications').select('*')
-    .eq('id', id).eq('user_id', CURRENT_USER.id).single();
+  // the database only hands back applications tied to this account
+  const { data: a, error } = await sb.from('applications').select('*').eq('id', id).single();
   if(error || !a){ wcaToast('Hold on', 'Couldn\u2019t open that application'+(error?': '+error.message:'.'), true); return; }
   if(a.status!=='pending' && a.status!=='rejected'){ wcaToast('Already approved', 'Approved applications can\u2019t be edited here. Use the Superstar Portal for your character.', true); return; }
   const body = document.getElementById('apply-body'); if(!body) return;
@@ -10342,8 +10348,10 @@ async function submitApplication(){
   if(APPLY_EDIT_ID){
     btn.disabled = true; btn.textContent = 'Saving…';
     payload.status = 'pending';
+    delete payload.user_id;      // keep who it belongs to; a linked second account can edit too
+    delete payload.applicant;
     const { data: upd, error: uErr } = await sb.from('applications').update(payload)
-      .eq('id', APPLY_EDIT_ID).eq('user_id', CURRENT_USER.id).select('id');
+      .eq('id', APPLY_EDIT_ID).select('id');
     btn.disabled = false; btn.textContent = 'Save changes';
     if(uErr){ showApplyErr('Couldn\u2019t save: '+uErr.message); return; }
     if(!upd || !upd.length){ showApplyErr('Couldn\u2019t save your changes. If your application was just approved, it can\u2019t be edited here anymore.'); return; }
