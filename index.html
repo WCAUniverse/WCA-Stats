@@ -2454,6 +2454,62 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     -webkit-mask-composite:xor; mask-composite:exclude; z-index:1;}
   .sl-hr.slpost::before{display:none;} /* HR notice has its own gold frame */
 
+  /* ===== BETTING RESULTS POST (Feed). Same rules in admin.html for the preview. ===== */
+  .sl-betrep{--br-win:var(--win,#3ECF8E); --br-loss:var(--loss,#E24B4A); --br-gold:var(--gold,#E9B949);}
+  .sl-betrep .br-note{font-family:var(--font-body,inherit); font-size:15px; line-height:1.6; color:var(--txt-2,#d7d4cc);
+    margin:10px 0 0; white-space:pre-wrap;}
+  .sl-betrep .br-champ{display:flex; align-items:center; gap:16px; margin:16px 0 12px; padding:16px 18px;
+    border:1px solid rgba(var(--gold-rgb,233,185,73),.55); border-radius:12px;
+    background:linear-gradient(110deg,rgba(var(--gold-rgb,233,185,73),.16),rgba(var(--gold-rgb,233,185,73),.03) 60%,transparent);}
+  .sl-betrep .br-trophy{flex:0 0 54px; height:54px; border-radius:50%; display:grid; place-items:center;
+    background:rgba(var(--gold-rgb,233,185,73),.16); border:1px solid rgba(var(--gold-rgb,233,185,73),.6);
+    color:var(--br-gold); font-size:28px; box-shadow:0 0 22px -6px rgba(var(--gold-rgb,233,185,73),.7);}
+  .sl-betrep .br-champ-mid{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;}
+  .sl-betrep .br-kick{font-family:var(--font-cond,inherit); font-size:12px; letter-spacing:2.5px; text-transform:uppercase; color:var(--br-gold);}
+  .sl-betrep .br-champ-name{font-family:var(--font-display,inherit); font-size:clamp(22px,3.6vw,30px); line-height:1.05;
+    color:#fff; text-transform:uppercase; overflow-wrap:anywhere;}
+  .sl-betrep .br-champ-net{display:flex; flex-direction:column; align-items:flex-end; gap:2px; text-align:right;}
+  .sl-betrep .br-champ-net .br-net{font-size:clamp(22px,3.4vw,30px);}
+  .sl-betrep .br-net{font-family:var(--font-display,inherit); font-size:17px; white-space:nowrap;}
+  .sl-betrep .br-net.up{color:var(--br-win);} .sl-betrep .br-net.down{color:var(--br-loss);} .sl-betrep .br-net.even{color:var(--muted,#8a8a86);}
+  .sl-betrep .br-sub{font-family:var(--font-body,inherit); font-size:12.5px; color:var(--muted,#8a8a86); line-height:1.4;}
+  .sl-betrep .br-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 0 14px;}
+  .sl-betrep .br-stat{padding:9px 12px; border:1px solid var(--line,#2a2a2e); border-radius:9px; background:rgba(255,255,255,.025);}
+  .sl-betrep .br-stat b{display:block; font-family:var(--font-display,inherit); font-weight:400; font-size:20px; color:#fff; line-height:1.1;}
+  .sl-betrep .br-stat span{font-family:var(--font-cond,inherit); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted,#8a8a86);}
+  .sl-betrep .br-label{display:flex; align-items:center; gap:10px; font-family:var(--font-cond,inherit); font-size:12px;
+    letter-spacing:2.5px; text-transform:uppercase; color:var(--muted,#8a8a86); margin:4px 0 6px;}
+  .sl-betrep .br-label::after{content:''; flex:1; height:1px; background:var(--line,#2a2a2e);}
+  .sl-betrep .br-list{border:1px solid var(--line,#2a2a2e); border-radius:10px; overflow:hidden;}
+  .sl-betrep .br-row{display:flex; align-items:center; gap:12px; padding:9px 12px; border-top:1px solid var(--line,#2a2a2e);}
+  .sl-betrep .br-list > .br-row:first-child{border-top:0;}
+  .sl-betrep .br-row:nth-child(even){background:rgba(255,255,255,.02);}
+  .sl-betrep .br-place{flex:0 0 40px; font-family:var(--font-display,inherit); font-size:16px; color:var(--muted,#8a8a86);}
+  .sl-betrep .br-place.silver{color:#d6dbe2;} .sl-betrep .br-place.bronze{color:#d39b62;}
+  .sl-betrep .br-who{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;}
+  .sl-betrep .br-name{font-family:var(--font-cond,inherit); font-weight:600; font-size:17px; color:#eee;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sl-betrep .br-right{flex:0 0 108px; display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
+  .sl-betrep .br-bar{display:block; width:100%; height:4px; border-radius:4px; background:rgba(255,255,255,.06); overflow:hidden;}
+  .sl-betrep .br-bar i{display:block; height:100%; border-radius:4px; margin-left:auto;}
+  .sl-betrep .br-bar i.up{background:var(--br-win);} .sl-betrep .br-bar i.down{background:var(--br-loss);}
+  .sl-betrep .br-pips{display:inline-flex; gap:3px; flex-wrap:wrap; max-width:150px;}
+  .sl-betrep .br-champ-mid .br-pips{max-width:none; margin-top:3px;}
+  .sl-betrep .br-pip{display:inline-block; width:10px; height:10px; border-radius:3px; background:rgba(255,255,255,.12); vertical-align:middle;}
+  .sl-betrep .br-pip.W{background:var(--br-win);} .sl-betrep .br-pip.L{background:var(--br-loss);}
+  .sl-betrep .br-pip.V{background:#6b6b70;} .sl-betrep .br-pip.P{background:transparent; border:1px solid var(--muted,#8a8a86);}
+  .sl-betrep .br-more summary{cursor:pointer; padding:9px 12px; border-top:1px solid var(--line,#2a2a2e);
+    font-family:var(--font-cond,inherit); font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--br-gold);}
+  .sl-betrep .br-legend{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; font-family:var(--font-body,inherit);
+    font-size:12px; color:var(--muted,#8a8a86);}
+  .sl-betrep .br-legend span{display:inline-flex; align-items:center; gap:5px;}
+  @media(max-width:600px){
+    .sl-betrep .br-champ{flex-wrap:wrap; padding:14px;}
+    .sl-betrep .br-champ-net{flex-basis:100%; align-items:flex-start; text-align:left;}
+    .sl-betrep .br-row > .br-pips{display:none;}
+    .sl-betrep .br-right{flex-basis:86px;}
+    .sl-betrep .br-stat b{font-size:17px;}
+  }
   /* pagination */
   .sl-pager{display:flex; align-items:center; justify-content:center; gap:14px;
     margin-top:26px;}
@@ -10450,6 +10506,107 @@ function slPhotoZoom(url){
   modal.appendChild(img);
 }
 
+/* ===== BETTING RESULTS POST (Feed) =====
+   Posted from the admin After Action Report as an article with
+   payload.report === 'betting_results'. The SAME code lives in admin.html
+   (for the preview) and index.html (for the Feed), so the preview is exactly
+   what goes live. If you change one, change the other.
+   payload = { report, publication, event_id, event_name, final, note,
+               champion:{name,net,wins,losses,pending,bets,wagered,pips},
+               standings:[{name,net,wins,losses,pending,bets,wagered,pips}],  // includes the champion as row 0
+               totals:{bettors,wagered,matches,settled} } */
+function brEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function brMoney(n){ return '$'+Math.abs(Math.round(Number(n)||0)).toLocaleString('en-US'); }
+function brSigned(n){
+  n = Math.round(Number(n)||0);
+  const cls = n>0 ? 'up' : (n<0 ? 'down' : 'even');
+  return '<span class="br-net '+cls+'">'+(n>0?'+':(n<0?'−':''))+brMoney(n)+'</span>';
+}
+function brOrdinal(n){
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+function brDate(d){
+  if(!d) return '';
+  const dt = new Date(String(d).slice(0,10)+'T00:00:00');
+  return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+}
+function brPips(pips){
+  if(!Array.isArray(pips) || !pips.length) return '';
+  const t = {W:'Won',L:'Lost',P:'Not decided yet',V:'Voided, refunded'};
+  return '<span class="br-pips">'+pips.map(x=>'<i class="br-pip '+brEsc(x)+'" title="'+(t[x]||'')+'"></i>').join('')+'</span>';
+}
+function brRecord(r){
+  const parts = [ (r.bets||0)+' bet'+((r.bets||0)===1?'':'s'), (r.wins||0)+' won', (r.losses||0)+' lost' ];
+  if(r.pending) parts.push(r.pending+' pending');
+  parts.push(brMoney(r.wagered)+' wagered');
+  return parts.join(' · ');
+}
+function brRenderReport(p, opts){
+  opts = opts || {};
+  const pl = p.payload || {};
+  const all = Array.isArray(pl.standings) ? pl.standings : [];
+  const champ = pl.champion || all[0] || null;
+  const rest = all.slice(1);
+  const tot = pl.totals || {};
+  const maxAbs = Math.max(1, ...all.map(r=>Math.abs(Number(r.net)||0)));
+  const pin = p.pinned ? '<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>' : '';
+
+  const row = (r, i)=>{
+    const place = i + 2;                       // champion is 1st
+    const net = Number(r.net)||0;
+    const w = Math.max(3, Math.round(Math.abs(net)/maxAbs*100));
+    const medal = place===2 ? ' silver' : (place===3 ? ' bronze' : '');
+    return '<div class="br-row">'
+      + '<span class="br-place'+medal+'">'+brOrdinal(place)+'</span>'
+      + '<span class="br-who"><span class="br-name">'+brEsc(r.name)+'</span>'
+      +   '<span class="br-sub">'+brRecord(r)+'</span></span>'
+      + brPips(r.pips)
+      + '<span class="br-right">'+brSigned(net)
+      +   '<span class="br-bar"><i class="'+(net>=0?'up':'down')+'" style="width:'+w+'%"></i></span></span>'
+      + '</div>';
+  };
+  const SHOW = 10;
+  const rowsTop = rest.slice(0, SHOW).map(row).join('');
+  const rowsMore = rest.length > SHOW
+    ? '<details class="br-more"><summary>Show all '+all.length+' bettors</summary>'
+      + rest.slice(SHOW).map((r,i)=>row(r, i+SHOW)).join('') + '</details>'
+    : '';
+
+  const champHTML = champ
+    ? '<div class="br-champ">'
+      + '<div class="br-trophy"><i class="ti ti-trophy"></i></div>'
+      + '<div class="br-champ-mid">'
+      +   '<div class="br-kick">'+(pl.final===false ? 'Leading so far' : 'Betting Champion')+'</div>'
+      +   '<div class="br-champ-name">'+brEsc(champ.name)+'</div>'
+      +   '<div class="br-sub">'+brRecord(champ)+'</div>'
+      +   brPips(champ.pips)
+      + '</div>'
+      + '<div class="br-champ-net">'+brSigned(champ.net)+'<span class="br-sub">betting profit</span></div>'
+      + '</div>'
+    : '<div class="br-sub">No bets were placed on this show.</div>';
+
+  const stat = (n, l)=>'<div class="br-stat"><b>'+n+'</b><span>'+l+'</span></div>';
+  const stats = '<div class="br-stats">'
+    + stat(tot.bettors||all.length, 'Bettors')
+    + stat(brMoney(tot.wagered), 'Total wagered')
+    + stat((tot.settled!=null && tot.matches) ? (tot.settled+' of '+tot.matches) : (tot.matches||0), 'Matches decided')
+    + '</div>';
+
+  return '<article class="slpost sl-article sl-betrep">'+pin
+    + '<div class="sl-eyebrow"><span class="sl-pub">'+brEsc(pl.publication||'WCA NEWSWIRE · BETTING REPORT')+'</span>'
+    +   '<span class="sl-date"><i class="ti ti-calendar"></i>'+brEsc(brDate(p.story_date))+'</span></div>'
+    + '<h2 class="sl-headline">'+brEsc(p.title||((pl.event_name||'Show')+' Betting Results'))+'</h2>'
+    + (pl.note ? '<div class="br-note">'+brEsc(pl.note)+'</div>' : '')
+    + champHTML
+    + stats
+    + (rest.length ? '<div class="br-label">Final standings</div><div class="br-list">'+rowsTop+rowsMore+'</div>' : '')
+    + '<div class="br-legend"><span><i class="br-pip W"></i> Won</span><span><i class="br-pip L"></i> Lost</span>'
+    +   '<span><i class="br-pip V"></i> Refunded</span><span>Everyone starts the show at $0, so this is betting profit only.</span></div>'
+    + (opts.after || '')
+    + '</article>';
+}
+
 function slRenderPost(p){
   // Inject the post id onto the <article> (all types) so share-links can find it.
   let html = slRenderPostInner(p);
@@ -10484,7 +10641,9 @@ function slRenderPost(p){
 function slRenderPostInner(p){
   switch(p.kind){
     case 'social':    return slRenderSocial(p);
-    case 'article':   return slRenderArticle(p);
+    case 'article':   return (p.payload && p.payload.report==='betting_results')
+                        ? brRenderReport(p, { after: slEngageBar(p) })
+                        : slRenderArticle(p);
     case 'notice':    return slRenderNotice(p);
     case 'timeline':  return slRenderTimeline(p);
     case 'promo':     return slRenderPromo(p);
