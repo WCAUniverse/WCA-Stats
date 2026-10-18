@@ -1459,6 +1459,44 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .lr-foot{font-family:var(--font-body); font-size:10.5px; color:var(--muted2); text-align:center;
     padding:10px 0 2px; letter-spacing:.5px;}
 
+  /* ---- Watch Live replay mode: Previous Bets recap + spoiler results ---- */
+  .lb-name.lb-static{cursor:default;}
+  .lb-name.lb-static:hover{color:#fff;}
+  .live-banner-replay .lb-kick i{font-size:14px; vertical-align:-2px; margin-right:4px;}
+  .live-recap h3 i{font-size:17px;}
+  .lrc-reveal{display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 0 6px;
+    border-top:1px solid var(--line); margin-top:8px;}
+  .lrc-reveal[hidden], .lrc-results[hidden]{display:none;}
+  .lrc-btn{background:transparent; border:1px solid var(--gold-dim); color:var(--gold); cursor:pointer;
+    font-family:var(--font-display); font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
+    padding:10px 22px; border-radius:10px; display:inline-flex; align-items:center; gap:8px; transition:.15s;}
+  .lrc-btn:hover{background:rgba(var(--gold-rgb),.10); border-color:var(--gold);}
+  .lrc-btn.on{background:var(--gold); color:var(--on-gold); border-color:var(--gold);}
+  .lrc-btn i{font-size:16px;}
+  .lrc-warn{font-family:var(--font-body); font-size:11.5px; color:var(--muted); text-align:center; max-width:460px;}
+  .lrc-results{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:10px; margin:6px 0 8px;}
+  .lrc-card{border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.02); padding:10px 12px;}
+  .lrc-card.top{border-color:var(--gold);}
+  .lrc-card.me{border-color:var(--gold-dim); background:rgba(var(--gold-rgb),.05);}
+  .lrc-head{display:flex; align-items:center; gap:10px; padding-bottom:8px; margin-bottom:8px;
+    border-bottom:1px solid var(--line);}
+  .lrc-card.top .lrc-head .lr-rank{color:var(--gold); font-weight:700;}
+  .lrc-name{flex:1; min-width:0; font-family:var(--font-cond); font-size:16px; color:#eee;}
+  .lrc-tally{display:block; font-family:var(--font-body); font-size:11px; color:var(--muted); margin-top:1px;}
+  .lrc-bets{display:flex; flex-direction:column; gap:6px;}
+  .lrc-bet{padding:7px 9px; border-radius:7px; background:rgba(255,255,255,.03); border-left:3px solid var(--line);}
+  .lrc-bet.won{border-left-color:var(--win);}
+  .lrc-bet.lost{border-left-color:var(--loss);}
+  .lrc-match{font-family:var(--font-cond); font-size:12.5px; letter-spacing:.5px; color:var(--muted);
+    text-transform:uppercase; margin-bottom:3px;}
+  .lrc-line{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .lrc-pick{font-family:var(--font-body); font-size:13px; color:var(--txt-2, #cfd6de);}
+  .lrc-pick b{color:#fff; font-weight:600;}
+  .lrc-out{font-family:var(--font-cond); font-size:14px; font-weight:600; white-space:nowrap;}
+  .lrc-out.won{color:var(--win);} .lrc-out.lost{color:var(--loss);} .lrc-out.void{color:var(--muted);}
+  .lrc-none{font-family:var(--font-body); font-size:12.5px; color:var(--muted); font-style:italic;}
+  @media(max-width:520px){ .lrc-results{grid-template-columns:1fr;} }
+
   /* ---- Live Chat Hub ---- */
   .chat-hub{background:var(--panel); border:1px solid var(--line); border-radius:14px;
     padding:14px 16px 14px; display:flex; flex-direction:column;}
@@ -8412,20 +8450,30 @@ async function loadLive(){
   if(r.error){el.innerHTML=`<div class="err">Couldn't load live: ${esc(r.error.message)}</div>`;return;}
   const ev=CURRENT_EVENT;
 
-  // nothing live at all
+  // nothing featured at all: show the last show's replay instead
   if(!ev){
     if(navBtn) navBtn.classList.remove('is-live');
     setNavLive(false);
-    el.innerHTML='<div class="event-empty">Nothing live right now — check back for the next event.</div>';
-    return;
+    return renderLiveReplay(el);
   }
 
   // which match is flagged live?
-  let liveSlot=null;
+  let liveSlot=null, ln=null;
   try{
-    const {data:ln}=await sb.from('live_now').select('*').eq('id',1).single();
+    const lnR=await sb.from('live_now').select('*').eq('id',1).single();
+    ln = (lnR && lnR.data) || null;
     if(ln && ln.is_live && String(ln.event_id)===String(ev.id) && ln.slot!=null) liveSlot=ln.slot;
   }catch(e){}
+
+  // Not on air (show finished, or the next one hasn't started yet): the
+  // player plays the last show's YouTube replay and the betting section
+  // becomes a spoiler free recap of that show's bets. See wcaShowIsLive().
+  const showStatuses = Object.values((CURRENT_CTX && CURRENT_CTX.statusBySlot) || {});
+  if(!wcaShowIsLive(ev, ln, showStatuses)){
+    if(navBtn) navBtn.classList.remove('is-live');
+    setNavLive(false);
+    return renderLiveReplay(el);
+  }
 
   const liveMatch = liveSlot!=null ? CURRENT_MATCHES.find(m=>m.slot===liveSlot) : null;
   if(navBtn) navBtn.classList.toggle('is-live', !!liveMatch);
@@ -8605,6 +8653,355 @@ function startLiveRailPolling(){
 }
 function stopLiveRailPolling(){
   if(LIVE_RAIL_TIMER){ clearInterval(LIVE_RAIL_TIMER); LIVE_RAIL_TIMER=null; }
+  if(LIVE_MODE_TIMER){ clearInterval(LIVE_MODE_TIMER); LIVE_MODE_TIMER=null; }
+}
+
+/* ===== LIVE PAGE: REPLAY MODE (when no show is on air) =====
+   Watch Live has two modes.
+     LIVE    the featured show's stream + Live Betting and Standings (above).
+     REPLAY  the last finished show's YouTube replay (events.replay_url) and a
+             "Previous Bets" recap of that show: bettors in order, no results.
+             A "Show Results" button opens the spoiler part: every bet each
+             person made and whether it was right.
+
+   wcaShowIsLive() decides. The featured show counts as on air when ANY of:
+     1) a match is marked on now (live_now.is_live) for it
+     2) it isn't marked complete and we're inside its show window:
+        30 minutes before events.event_date until 10 hours after
+     3) it isn't marked complete, live_now points at it, live_now changed in
+        the last 3 hours and at least one match on it is closed or settled
+        (covers the gap between matches when "on now" is cleared)
+   Marking the show complete ends live mode (unless a match is still marked
+   on now from the last 12 hours). Replay mode checks once a minute and flips
+   back to live by itself when the next show goes on air. It never flips the
+   other way mid-visit, so nobody watching the end of a show gets cut off. */
+const LIVE_PRESHOW_MS  = 30*60*1000;
+const LIVE_WINDOW_MS   = 10*3600*1000;
+const LIVE_BETWEEN_MS  = 3*3600*1000;
+const LIVE_STALE_MS    = 12*3600*1000;
+const LIVE_REPLAY_INCLUDE_SHOWDOWN = false;   // true = Showdown episodes can be the replay too
+var LIVE_MODE_TIMER = null;   // var, not let: stopLiveRailPolling() reads it
+
+function wcaShowIsLive(ev, ln, statuses){
+  if(!ev) return false;
+  const now = Date.now();
+  const sameShow = !!(ln && String(ln.event_id)===String(ev.id));
+  const lnAt = (ln && ln.updated_at) ? new Date(ln.updated_at).getTime() : NaN;
+  const lnAge = isNaN(lnAt) ? null : now - lnAt;
+  // 1) a match is marked on now
+  if(sameShow && ln.is_live){
+    if(!ev.is_complete) return true;
+    if(lnAge===null || lnAge < LIVE_STALE_MS) return true;
+  }
+  if(ev.is_complete) return false;
+  // 2) inside the show window
+  const t = ev.event_date ? new Date(ev.event_date).getTime() : NaN;
+  if(!isNaN(t) && now >= t - LIVE_PRESHOW_MS && now <= t + LIVE_WINDOW_MS) return true;
+  // 3) between matches on a show that has started
+  const started = (statuses||[]).some(s=>s==='closed' || s==='settled');
+  if(sameShow && started && lnAge!==null && lnAge < LIVE_BETWEEN_MS) return true;
+  return false;
+}
+
+// Light check used by the replay page's once a minute poll.
+async function liveShowOnNow(){
+  const { data:evs } = await sb.from('v_featured_event').select('*');
+  const ev = evs && evs[0];
+  if(!ev) return false;
+  let ln = null, st = [];
+  try{ ln = (await sb.from('live_now').select('*').eq('id',1).single()).data || null; }catch(e){}
+  if(!ev.is_complete){
+    try{ st = ((await sb.from('match_betting').select('status').eq('event_id', ev.id)).data || []).map(r=>r.status); }catch(e){}
+  }
+  return wcaShowIsLive(ev, ln, st);
+}
+function startLiveModeWatch(){
+  if(LIVE_MODE_TIMER) clearInterval(LIVE_MODE_TIMER);
+  LIVE_MODE_TIMER = setInterval(async ()=>{
+    const pg = document.getElementById('page-live');
+    if(!pg || !pg.classList.contains('active')){ clearInterval(LIVE_MODE_TIMER); LIVE_MODE_TIMER=null; return; }
+    try{ if(await liveShowOnNow()) loadLive(); }catch(e){}
+  }, 60000);
+}
+
+// The newest finished main show (same list as Past Events). A featured show
+// that has its replay link saved but was never marked complete counts too.
+async function lastShowForReplay(){
+  let rows = [];
+  try{
+    const { data, error } = await sb.from('v_archive_events').select('*');
+    if(!error) rows = data || [];
+  }catch(e){}
+  const f = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null;
+  if(f && !f.is_complete && f.replay_url && !rows.some(r=>String(r.id)===String(f.id))) rows.push(f);
+  if(!LIVE_REPLAY_INCLUDE_SHOWDOWN){
+    try{ const sd = await sdShowdownIds(); rows = rows.filter(r=>!sd.has(String(r.id))); }catch(e){}
+  }
+  rows = wcaSortEventsNewestFirst(rows);
+  return rows[0] || null;
+}
+
+function liveYouTubeId(url){
+  const u = String(url||'').trim();
+  let m;
+  if((m=u.match(/[?&]v=([\w-]{6,})/)))                              return m[1];
+  if((m=u.match(/youtu\.be\/([\w-]{6,})/)))                          return m[1];
+  if((m=u.match(/youtube\.com\/(?:embed|live|shorts)\/([\w-]{6,})/))) return m[1];
+  if(/^[\w-]{6,}$/.test(u))                                           return u;
+  return null;
+}
+// Replay player sized exactly like the live stream (fills .stage-player).
+function liveReplayPlayer(rev){
+  const id = liveYouTubeId(rev.replay_url);
+  if(id){
+    return `<div class="stream-wrap"><div class="stream-frame"><iframe
+      src="https://www.youtube.com/embed/${esc(id)}?rel=0" title="${esc(rev.name||'Show')} replay"
+      allowfullscreen scrolling="no" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe></div></div>`;
+  }
+  if(rev.replay_url && /^https?:\/\//i.test(rev.replay_url)){
+    return `<div class="live-between">The ${esc(rev.name||'show')} replay is up.
+      <a href="${escAttr(rev.replay_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--gold)">Watch it here</a>.</div>`;
+  }
+  return `<div class="live-between">The ${esc(rev.name||'show')} replay is on its way. Check back soon!</div>`;
+}
+
+async function renderLiveReplay(el){
+  stopLiveRailPolling();
+  const rev = await lastShowForReplay();
+  if(!rev){
+    el.innerHTML = '<div class="event-empty">Nothing live right now. Check back for the next event!</div>';
+    startLiveModeWatch();
+    return;
+  }
+  // Already showing this replay? Leave the player alone so the video doesn't
+  // restart. Just refresh chat and the recap (sign in state may have changed).
+  const cur = el.querySelector('.live-layout.is-replay');
+  if(cur && cur.dataset.ev === String(rev.id)){
+    initChatHub();
+    loadReplayRecap(rev);
+    startLiveModeWatch();
+    return;
+  }
+
+  const meta = [];
+  if(rev.event_date) meta.push(`<span class="mi"><i class="ti ti-calendar-event"></i>${esc(fmtEventDate(rev.event_date))}</span>`);
+  // Next show button, if one is announced
+  const nx = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null;
+  const hasNext = !!(nx && !nx.is_complete && String(nx.id)!==String(rev.id));
+  const rightBtn = hasNext
+    ? `<button class="live-fullcard" onclick="goPage('events')">
+         <i class="ti ti-calendar-event"></i> Up next: ${esc(nx.name)} <i class="ti ti-arrow-right"></i>
+       </button>`
+    : `<button class="live-fullcard" onclick="goPage('archive')">
+         <i class="ti ti-archive"></i> All Past Events <i class="ti ti-arrow-right"></i>
+       </button>`;
+  const eventBar = `<div class="live-banner live-banner-replay">
+    <div class="lb-l">
+      <div class="lb-kick"><i class="ti ti-player-play"></i> Last Show Replay</div>
+      <div class="lb-name lb-static">${esc(rev.name)}${rev.tagline?` <em>${esc(rev.tagline)}</em>`:''}</div>
+      ${meta.length?`<div class="lb-meta">${meta.join('')}</div>`:''}
+    </div>
+    <div class="lb-r">${rightBtn}</div>
+  </div>`;
+
+  const clearBtn = IS_ADMIN
+    ? `<button class="ch-clear-all" onclick="clearAllChat()" title="Delete every message"><i class="ti ti-trash"></i> Clear chat</button>`
+    : '';
+  el.innerHTML = `<div class="live-layout is-replay" data-ev="${escAttr(String(rev.id))}">
+      ${eventBar}
+      <div class="live-stage">
+        <div class="stage-grid">
+          <div class="stage-player">${liveReplayPlayer(rev)}</div>
+          <section class="chat-hub" id="chat-hub">
+            <h3><i class="ti ti-messages" style="color:var(--gold)"></i> Live Chat${clearBtn}</h3>
+            <div class="ch-sub">Signed-in members can talk here — everyone can read along. Keep it clean.</div>
+            <div class="ch-feed" id="ch-feed"><div class="ch-empty">Loading chat…</div></div>
+            <div id="ch-composer-slot"></div>
+          </section>
+        </div>
+      </div>
+      <section class="live-rail live-betting live-recap" id="live-rail">
+        <h3><i class="ti ti-history"></i> Previous Bets for ${esc(rev.name)}</h3>
+        <div class="lr-sub">Everyone who bet on ${esc(rev.name)}, ranked by how they finished. No match results are shown here, so you can watch the replay without spoilers.</div>
+        <div class="lr-list" id="lr-list"><div class="lr-empty">Loading…</div></div>
+        <div class="lr-foot" id="lr-foot"></div>
+        <div class="lrc-reveal" id="lrc-reveal" hidden>
+          <button class="lrc-btn" id="lrc-btn" type="button" aria-expanded="false" aria-controls="lrc-results"
+            onclick="toggleReplayResults()"><i class="ti ti-eye"></i> <span>Show Results</span></button>
+          <div class="lrc-warn">Spoiler warning! This shows which bets everyone got right, which gives away the winners.</div>
+        </div>
+        <div class="lrc-results" id="lrc-results" hidden></div>
+      </section>
+    </div>`;
+  initChatHub();
+  loadReplayRecap(rev);
+  startLiveModeWatch();
+}
+
+function toggleReplayResults(){
+  const box = document.getElementById('lrc-results');
+  const btn = document.getElementById('lrc-btn');
+  if(!box || !btn) return;
+  const open = box.hasAttribute('hidden');
+  if(open) box.removeAttribute('hidden'); else box.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.classList.toggle('on', open);
+  btn.innerHTML = open ? '<i class="ti ti-eye-off"></i> <span>Hide Results</span>'
+                       : '<i class="ti ti-eye"></i> <span>Show Results</span>';
+}
+
+/* Works out every bettor's bets for one show with the same payout math as
+   the bet card and liveStandingsFromBets(): a right pick earns its share of
+   the losing side's pot (flat $250 when nobody bet against it), a wrong pick
+   costs its stake, a voided match refunds. */
+function replayBetBreakdown(board, statuses){
+  const stat = {};
+  (statuses||[]).forEach(s=>{ stat[s.slot] = s; });
+  const bySlot = {};
+  (board||[]).forEach(b=>{ (bySlot[b.slot] = bySlot[b.slot] || []).push(b); });
+  const people = {};
+  (board||[]).forEach(b=>{
+    const k = b.user_id || b.player_name;
+    if(!people[k]) people[k] = { user_id:b.user_id, display_name:b.player_name || 'Player', net:0, right:0, wrong:0, bets:[] };
+  });
+  Object.keys(bySlot).forEach(slot=>{
+    const bets = bySlot[slot];
+    const st = stat[slot] || {};
+    const settled = st.status === 'settled' && st.winner_idx !== null && st.winner_idx !== undefined;
+    const w = settled ? Number(st.winner_idx) : null;
+    let winTotal = 0, loseTotal = 0;
+    if(settled) bets.forEach(b=>{ if(Number(b.side_index)===w) winTotal += Number(b.amount)||0; else loseTotal += Number(b.amount)||0; });
+    bets.forEach(b=>{
+      const amt = Number(b.amount)||0;
+      const p = people[b.user_id || b.player_name];
+      const row = { slot:Number(slot), side_index:Number(b.side_index), amount:amt, result:'open', delta:0 };
+      if(st.status === 'void'){ row.result = 'void'; }
+      else if(settled){
+        if(Number(b.side_index)===w){
+          row.result = 'won';
+          row.delta = (loseTotal>0 && winTotal>0) ? Math.round(amt/winTotal*loseTotal) : 250;
+          p.right++;
+        } else {
+          row.result = 'lost'; row.delta = -amt; p.wrong++;
+        }
+        p.net += row.delta;
+      }
+      p.bets.push(row);
+    });
+  });
+  Object.values(people).forEach(p=>p.bets.sort((a,b)=>a.slot-b.slot));
+  return Object.values(people).sort((a,b)=> (b.net-a.net) || a.display_name.localeCompare(b.display_name));
+}
+
+async function loadReplayRecap(rev){
+  const list = document.getElementById('lr-list');
+  const foot = document.getElementById('lr-foot');
+  const reveal = document.getElementById('lrc-reveal');
+  const box = document.getElementById('lrc-results');
+  if(!list) return;
+  let matches = [], statuses = [], board = [], results = [];
+  try{
+    const [mR, sR, bR, rR] = await Promise.all([
+      sb.from('event_matches').select('*').eq('event_id', rev.id).order('slot'),
+      sb.from('match_betting').select('slot,status,winner_idx').eq('event_id', rev.id),
+      sb.from('v_bet_board').select('*').eq('event_id', rev.id),
+      sb.from('event_results').select('*').eq('event_id', rev.id).order('rank').then(r=>r, ()=>({data:[]}))
+    ]);
+    if(bR.error) throw bR.error;
+    matches = mR.data || []; statuses = sR.data || []; board = bR.data || []; results = (rR && rR.data) || [];
+  }catch(e){
+    list.innerHTML = `<div class="lr-empty">Previous bets are unavailable right now.</div>`;
+    if(foot) foot.textContent = '';
+    if(reveal) reveal.setAttribute('hidden','');
+    return;
+  }
+  // the page may have moved on while we were loading
+  const host = document.querySelector('#live-content .live-layout.is-replay');
+  if(!host || host.dataset.ev !== String(rev.id)) return;
+
+  const people = replayBetBreakdown(board, statuses);
+  // Order: the official final standings saved when the show was completed
+  // (event_results), else the order worked out from the bets themselves.
+  let rows = people;
+  if(results.length){
+    const byId = {}, byName = {};
+    people.forEach(p=>{ if(p.user_id) byId[p.user_id] = p; byName[String(p.display_name).toLowerCase()] = p; });
+    const used = new Set();
+    rows = results.map(r=>{
+      const p = (r.user_id && byId[r.user_id]) || byName[String(r.display_name||'').toLowerCase()] || null;
+      if(p) used.add(p);
+      return { user_id:r.user_id || (p&&p.user_id), display_name:r.display_name || (p&&p.display_name) || 'Player',
+               net:Number(r.net)||0, is_champion:!!r.is_champion,
+               right:p?p.right:0, wrong:p?p.wrong:0, bets:p?p.bets:[] };
+    });
+    people.forEach(p=>{ if(!used.has(p)) rows.push(p); });
+  }
+
+  if(!rows.length){
+    list.innerHTML = `<div class="lr-empty">Nobody placed a bet on ${esc(rev.name)}.</div>`;
+    if(foot) foot.textContent = '';
+    if(reveal) reveal.setAttribute('hidden','');
+    if(box){ box.innerHTML = ''; }
+    return;
+  }
+  const myId = CURRENT_USER ? CURRENT_USER.id : null;
+  list.innerHTML = rows.map((r,i)=>{
+    const net = Number(r.net)||0;
+    const cls = net>0 ? 'up' : (net<0 ? 'down' : 'even');
+    const mine = myId && r.user_id===myId;
+    const rowCls = `lr-row${i===0?' lr-top':(i%2?' alt':'')}${mine?' lr-me':''}`;
+    return `<div class="${rowCls}">
+      <span class="lr-rank">${i+1}</span>
+      <span class="lr-name">${esc(r.display_name)}${r.is_champion?'<span class="lr-me-tag">CHAMP</span>':''}${mine?'<span class="lr-me-tag">YOU</span>':''}</span>
+      <span class="lr-net ${cls}">${fmtNet(net)}</span>
+    </div>`;
+  }).join('');
+  if(foot) foot.textContent = `${rows.length} bettor${rows.length===1?'':'s'}`;
+
+  // the spoiler part, built now but hidden until "Show Results"
+  const bySlot = {};
+  matches.forEach(m=>{ bySlot[m.slot] = m; });
+  const mainSlot = matches.some(x=>x.slot===1) ? 1 : (matches[0] ? matches[0].slot : null);
+  const matchName = slot=>{
+    const m = bySlot[slot];
+    if(!m) return { label:`Match ${slot}`, sides:[] };
+    const sides = parseSides(m);
+    const vs = sides.map(sideLabel).join(' vs ');
+    const kick = m.match_title || (m.slot===mainSlot ? 'Main Event' : (m.match_type && m.match_type!=='Singles' ? m.match_type : ''));
+    return { label: kick ? `${kick}: ${vs}` : vs, sides };
+  };
+  const outTxt = b=>{
+    if(b.result==='won')  return `<span class="lrc-out won">Right ${fmtNet(b.delta)}</span>`;
+    if(b.result==='lost') return `<span class="lrc-out lost">Wrong ${fmtNet(b.delta)}</span>`;
+    if(b.result==='void') return `<span class="lrc-out void">Refunded</span>`;
+    return `<span class="lrc-out void">Not settled</span>`;
+  };
+  if(box){
+    box.innerHTML = rows.map((r,i)=>{
+      const net = Number(r.net)||0;
+      const cls = net>0 ? 'up' : (net<0 ? 'down' : 'even');
+      const mine = myId && r.user_id===myId;
+      const tally = (r.right||r.wrong) ? `${r.right} right, ${r.wrong} wrong` : 'No settled bets';
+      const bets = (r.bets||[]).map(b=>{
+        const mn = matchName(b.slot);
+        const pick = sideLabel(mn.sides[b.side_index]);
+        return `<div class="lrc-bet ${b.result}">
+          <div class="lrc-match">${esc(mn.label)}</div>
+          <div class="lrc-line"><span class="lrc-pick">Picked <b>${esc(pick)}</b> for ${fmtMoney(b.amount)}</span>${outTxt(b)}</div>
+        </div>`;
+      }).join('') || `<div class="lrc-none">No bets on record.</div>`;
+      return `<div class="lrc-card${i===0?' top':''}${mine?' me':''}">
+        <div class="lrc-head">
+          <span class="lr-rank">${i+1}</span>
+          <span class="lrc-name">${esc(r.display_name)}${r.is_champion?'<span class="lr-me-tag">CHAMP</span>':''}${mine?'<span class="lr-me-tag">YOU</span>':''}
+            <span class="lrc-tally">${tally}</span></span>
+          <span class="lr-net ${cls}">${fmtNet(net)}</span>
+        </div>
+        <div class="lrc-bets">${bets}</div>
+      </div>`;
+    }).join('');
+  }
+  if(reveal) reveal.removeAttribute('hidden');
 }
 
 // ===== LIVE CHAT HUB =====
@@ -13444,7 +13841,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'showdown-2026-10-09a';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'live-replay-2026-10-18a';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
@@ -17561,6 +17958,8 @@ function boot(){
     const check = ()=>{
       let ev = null; try{ ev = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null; }catch(_){}
       if(!ev || host.querySelector('.sd-evbanner')) return;
+      // Watch Live in replay mode shows a different show than CURRENT_EVENT
+      if(host.querySelector('.live-layout.is-replay')) return;
       const target = id==='live-content' ? (host.querySelector('.live-layout')||host) : host;
       if(!target.firstChild) return;
       sdDecorateEvent(ev, target);
