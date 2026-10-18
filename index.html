@@ -536,6 +536,19 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .apply-mine .am-badge{font-family:var(--font-display); font-size:11px; letter-spacing:1px; padding:2px 8px;
     border-radius:5px; text-transform:uppercase;}
   .am-pending{color:var(--gold); border:1px solid var(--gold-dim);}
+  /* your application card on the Apply page, with a filled Edit button */
+  .apply-mine-card{display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:var(--bg); border:1px solid var(--gold-dim);
+    border-radius:12px; padding:14px 16px; margin-bottom:10px}
+  .apply-mine-card .amc-info{flex:1 1 220px; min-width:0}
+  .apply-mine-card .amc-name{font-family:var(--font-display); font-size:20px; letter-spacing:.5px; color:#eee; line-height:1.2}
+  .apply-mine-card .amc-meta{font-size:13px; color:var(--muted); margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .apply-mine-card .am-badge{font-family:var(--font-display); font-size:11px; letter-spacing:1px; padding:2px 8px; border-radius:999px; text-transform:uppercase}
+  .am-edit{display:inline-flex; align-items:center; gap:8px; background:var(--gold); color:#160f02; border:0; border-radius:10px;
+    padding:11px 20px; font-family:var(--font-display); font-size:15px; letter-spacing:1px; text-transform:uppercase; font-weight:700;
+    cursor:pointer; box-shadow:0 4px 14px rgba(233,185,73,.25); transition:filter .15s, transform .15s}
+  .am-edit:hover{filter:brightness(1.1); transform:translateY(-1px)}
+  .am-edit i{font-size:18px}
+  @media (max-width:560px){ .am-edit{width:100%; justify-content:center} }
   .am-approved{color:var(--win); border:1px solid var(--win);}
   .am-rejected{color:var(--loss); border:1px solid var(--loss);}
   /* ---- Next-event countdown ---- */
@@ -9838,10 +9851,24 @@ async function loadApply(){
       const cls = a.status==='approved'?'am-approved':(a.status==='rejected'?'am-rejected':'am-pending');
       const when = a.created_at ? new Date(a.created_at).toLocaleDateString() : '';
       const canEdit = a.status==='pending' || a.status==='rejected';
-      const editBtn = canEdit ? ` <button type="button" class="hbtn" style="margin-left:8px;padding:4px 12px" onclick="applyEditStart(${Number(a.id)})"><i class="ti ti-pencil"></i> ${a.status==='rejected'?'Edit and resend':'Edit'}</button>` : '';
-      return `<div class="apply-mine">Your application <b style="color:#ddd">${esc(nm)}</b> (${esc(when)}) — <span class="am-badge ${cls}">${esc(a.status)}</span>${editBtn}</div>`;
+      const editBtn = canEdit
+        ? `<button type="button" class="am-edit" onclick="applyEditStart(${Number(a.id)})"><i class="ti ti-pencil"></i> ${a.status==='rejected'?'Edit and resend':'Review and edit'}</button>`
+        : '';
+      const note = a.status==='pending' ? 'You can review and change your answers until it\u2019s approved.'
+        : a.status==='rejected' ? 'Make your changes and send it again for another look.'
+        : 'Approved! Your character is edited from the Superstar Portal now.';
+      return `<div class="apply-mine-card">
+        <div class="amc-info">
+          <div class="amc-name">${esc(nm)}</div>
+          <div class="amc-meta"><span class="am-badge ${cls}">${esc(a.status)}</span><span>Sent ${esc(when)}</span></div>
+          <div class="amc-meta">${note}</div>
+        </div>
+        ${editBtn}
+      </div>`;
     }).join('');
-    if(mine.some(a=>a.status==='pending')) mineHtml += `<div class="apply-mine" style="opacity:.8">You can edit a pending application until it's approved.</div>`;
+    mineHtml = `<div style="font-family:var(--font-display);font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);margin:0 0 8px">Your application${mine.length>1?'s':''}</div>`
+      + mineHtml
+      + `<div class="apply-mine" style="opacity:.8;margin-bottom:16px">Want to apply with a brand new character instead? Fill in the form below.</div>`;
   }
   body.innerHTML = mineHtml + applyFormHTML();
   body.dataset.uid = String(CURRENT_USER.id);
@@ -9867,6 +9894,43 @@ function applyTraitWord(v, left, right){
   if(v === 0) return 'Right in the middle';
   const w = v < 0 ? left : right, a = Math.abs(v);
   return a === 1 ? 'A little ' + w.toLowerCase() : (a === 2 ? w : 'Very ' + w.toLowerCase());
+}
+/* Height and weight are picked from lists so they always read the same way:
+   5'11" and 230 lbs. Anything typed before (an old application or draft,
+   "5 foot 6", "180cm", "104 kg") is converted to the closest choice. */
+const APPLY_H_MIN = 58, APPLY_H_MAX = 90;      // 4'10" to 7'6"
+const APPLY_W_MIN = 100, APPLY_W_MAX = 500;    // pounds, in steps of 5
+function applyFmtHeight(inches){ return Math.floor(inches/12) + "'" + (inches%12) + '"'; }
+function applyHeightOptions(){
+  let h = '<option value="">Pick a height</option>';
+  for(let i=APPLY_H_MIN;i<=APPLY_H_MAX;i++){ const v = applyFmtHeight(i); h += `<option value="${v.replace(/"/g,'&quot;')}">${v}</option>`; }
+  return h;
+}
+function applyWeightOptions(){
+  let h = '<option value="">Pick a weight</option>';
+  for(let w=APPLY_W_MIN;w<=APPLY_W_MAX;w+=5) h += `<option value="${w} lbs">${w} lbs</option>`;
+  return h;
+}
+function applyParseHeight(t){
+  t = String(t||'').toLowerCase().replace(/[\u2018\u2019\u2032]/g,"'").replace(/[\u201c\u201d\u2033]/g,'"').trim();
+  if(!t) return '';
+  let inches = null, m;
+  if((m = t.match(/(\d+(?:\.\d+)?)\s*(cm|centimet)/))) inches = Math.round(parseFloat(m[1]) / 2.54);
+  else if((m = t.match(/(\d(?:\.\d+)?)\s*m(?:et(?:er|re)s?)?\b/)) && parseFloat(m[1]) < 3) inches = Math.round(parseFloat(m[1]) * 39.37);
+  else if((m = t.match(/(\d)\s*(?:'|ft\.?|feet|foot)\s*(?:and\s*)?(\d{1,2})?/))) inches = parseInt(m[1],10)*12 + (m[2] ? parseInt(m[2],10) : 0);
+  else if((m = t.match(/^(\d{2,3})\s*(?:"|in\b|inch)/))) inches = parseInt(m[1],10);
+  else if((m = t.match(/^(\d)\s+(\d{1,2})$/))) inches = parseInt(m[1],10)*12 + parseInt(m[2],10);
+  else if((m = t.match(/^(\d)$/))) inches = parseInt(m[1],10)*12;
+  if(inches == null || isNaN(inches)) return '';
+  return applyFmtHeight(Math.min(APPLY_H_MAX, Math.max(APPLY_H_MIN, inches)));
+}
+function applyParseWeight(t){
+  t = String(t||'').toLowerCase().replace(/,/g,'').trim();
+  const m = t.match(/(\d{2,4}(?:\.\d+)?)\s*(kg|kilo)?/);
+  if(!m) return '';
+  let lbs = parseFloat(m[1]) * (m[2] ? 2.20462 : 1);
+  lbs = Math.round(lbs/5)*5;
+  return Math.min(APPLY_W_MAX, Math.max(APPLY_W_MIN, lbs)) + ' lbs';
 }
 function applyFormHTML(){
   const sec = (n,title,inner,open)=>`<div class="af-section${open?' open':''}" data-sec>
@@ -9970,8 +10034,8 @@ function applyFormHTML(){
   // 5. look
   const s5 = `
     <div class="af-grid2">
-      <div class="af-field"><label>Height (estimate)</label><input type="text" id="af_height" placeholder="e.g. 6'1&quot;"></div>
-      <div class="af-field"><label>Weight (estimate)</label><input type="text" id="af_weight" placeholder="e.g. 230 lbs"></div>
+      <div class="af-field"><label>Height (estimate)</label><select id="af_height">${applyHeightOptions()}</select></div>
+      <div class="af-field"><label>Weight (estimate)</label><select id="af_weight">${applyWeightOptions()}</select></div>
     </div>
     <div class="af-field"><label>Body type</label><input type="text" id="af_body" placeholder="e.g. lean athletic, powerhouse, cruiserweight"></div>
     <div class="af-grid2">
@@ -10117,6 +10181,8 @@ function applyFillFromDraft(d){
     Object.keys(d.fields||{}).forEach(id=>{
       const el = document.getElementById(id); if(!el) return;
       if(el.type==='checkbox') el.checked = !!d.fields[id];
+      else if(id==='af_height') el.value = applyParseHeight(d.fields[id]);
+      else if(id==='af_weight') el.value = applyParseWeight(d.fields[id]);
       else el.value = d.fields[id];
     });
     // the personality sliders also show a word under them
