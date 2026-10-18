@@ -4425,6 +4425,14 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 #page-apply .af-grid2{gap:16px;}
 #page-apply .af-note{font-size:14px;}
 #page-apply .apply-success{margin:0 auto;}
+#page-apply .af-draftbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 14px; padding:10px 14px;
+  border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.02);
+  font-family:var(--font-body); font-size:13.5px; color:var(--muted);}
+#page-apply .af-draftbar #af-draftstate{flex:1; min-width:200px;}
+#page-apply .af-draftbar i{color:var(--win);}
+#page-apply .af-draftclear{background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px;
+  padding:6px 12px; cursor:pointer; font-family:var(--font-cond); font-size:13px; letter-spacing:1px; text-transform:uppercase;}
+#page-apply .af-draftclear:hover{color:var(--loss); border-color:var(--loss);}
 /* personality pairs: one slider per pair, like the game's */
 #page-apply .af-trait{background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:12px 16px 10px; margin-bottom:10px;}
 #page-apply .af-trait-ends{display:flex; justify-content:space-between; font-family:var(--font-cond); font-weight:600;
@@ -6506,6 +6514,22 @@ let DRAFT_NAMES  = new Set();   // auto-added from an event card, not reviewed y
 /* One test for "should the public site list this name?" — used by the roster,
    the rankings, the leaderboard and every name picker. */
 function isUnlistedName(n){ return HIDDEN_NAMES.has(n) || DRAFT_NAMES.has(n); }
+/* The Rankings tab used to load once when the site opened, so a page left
+   open during a show kept showing the old records. Opening the tab now pulls
+   fresh numbers (no more than once every 20 seconds). */
+let RANKINGS_LOADED_AT = Date.now();
+function refreshRankingsIfStale(){
+  if(Date.now() - RANKINGS_LOADED_AT < 20000) return;
+  RANKINGS_LOADED_AT = Date.now();
+  INACTIVE_WRESTLERS = null; INACTIVE_FACTIONS = null;
+  loadWrestlerRatings().then(()=>{
+    loadDivision('Mens','mens-content');
+    loadDivision('Womens','womens-content');
+    loadDivision('Undisputed','undisputed-content');
+    loadFactions();
+  });
+  loadChampions();
+}
 // Load the set of hidden wrestler names so rankings/dashboard exclude them.
 let WRESTLER_META = {};  // name -> {performer, socials, last5} for ranking rows
 async function loadHiddenNames(){
@@ -9374,6 +9398,10 @@ async function loadApply(){
   }
   gate.innerHTML = '';
   body.style.display='';
+  // Already showing the form for this person (coming back to the tab, a
+  // sign-in refresh, reopening the Apply page): leave it exactly as it is.
+  // Rebuilding it here is what used to wipe everything they had typed.
+  if(document.getElementById('applyForm') && body.dataset.uid === String(CURRENT_USER.id)) return;
   // show existing applications (status) + the form
   let mine = [];
   try{
@@ -9390,7 +9418,9 @@ async function loadApply(){
     }).join('');
   }
   body.innerHTML = mineHtml + applyFormHTML();
+  body.dataset.uid = String(CURRENT_USER.id);
   wireApplyForm();
+  applyRestoreDraft();
 }
 
 /* The six personality pairs, in the same left/right order as the
@@ -9576,6 +9606,10 @@ function applyFormHTML(){
     <div class="af-field"><label>Anything else?</label><textarea id="af_other"></textarea></div>`;
 
   return `<form class="apply-form" id="applyForm" onsubmit="return false">
+    <div class="af-draftbar" id="af-draftbar">
+      <span id="af-draftstate"><i class="ti ti-device-floppy"></i> Your answers save automatically as you type, so you can leave and come back to finish.</span>
+      <button type="button" class="af-draftclear" onclick="applyClearDraft(true)">Start over</button>
+    </div>
     ${sec(1,'Getting started', s1, true)}
     <div id="af-existing" style="display:none">${sec(2,'Your existing CAW', s2, true)}</div>
     <div id="af-new" style="display:none">
@@ -9594,7 +9628,94 @@ function applyFormHTML(){
   </form>`;
 }
 
-function wireApplyForm(){ APPLY_HAS_CAW=null; APPLY_ALIGN=''; APPLY_PLATFORM=''; APPLY_HOMETOWN=''; }
+function wireApplyForm(){
+  APPLY_HAS_CAW=null; APPLY_ALIGN=''; APPLY_PLATFORM=''; APPLY_HOMETOWN='';
+  const f = document.getElementById('applyForm');
+  if(f){
+    f.addEventListener('input', applyQueueSave);
+    f.addEventListener('change', applyQueueSave);
+  }
+}
+
+/* ===== APPLICATION DRAFT =====
+   Everything typed or picked on the Apply form is kept in this browser
+   (per signed-in account) and put back when the form is shown again: after
+   switching tabs, refreshing, closing the browser, or signing in again.
+   It's cleared once the application is submitted, or with "Start over". */
+let APPLY_RESTORING = false;
+let APPLY_SAVE_T = null;
+function applyDraftKey(){ return 'wca_apply_draft_' + (CURRENT_USER ? CURRENT_USER.id : 'anon'); }
+function applyQueueSave(){
+  if(APPLY_RESTORING) return;
+  clearTimeout(APPLY_SAVE_T);
+  APPLY_SAVE_T = setTimeout(applySaveDraft, 400);
+}
+function applySaveDraft(){
+  if(APPLY_RESTORING) return;
+  const f = document.getElementById('applyForm'); if(!f) return;
+  const fields = {};
+  f.querySelectorAll('input[id],textarea[id],select[id]').forEach(el=>{
+    if(el.type==='checkbox') fields[el.id] = el.checked;
+    else fields[el.id] = el.value;
+  });
+  const anyText = Object.values(fields).some(v=>typeof v==='string' && v.trim() && !/^0$/.test(v));
+  if(!anyText && APPLY_HAS_CAW===null && !APPLY_ALIGN && !APPLY_HOMETOWN) return;   // nothing worth keeping yet
+  const open = [...f.querySelectorAll('[data-sec]')].map(sec=>sec.classList.contains('open'));
+  const draft = { v:1, saved:Date.now(), caw:APPLY_HAS_CAW, plat:APPLY_PLATFORM, align:APPLY_ALIGN, home:APPLY_HOMETOWN, open, fields };
+  try{ localStorage.setItem(applyDraftKey(), JSON.stringify(draft)); }catch(e){ return; }
+  const st = document.getElementById('af-draftstate');
+  if(st){
+    const t = new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    st.innerHTML = '<i class="ti ti-circle-check"></i> Draft saved at '+t+'. You can leave this page and come back to finish.';
+  }
+}
+function applyRestoreDraft(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(applyDraftKey()) || 'null'); }catch(e){ d = null; }
+  if(!d || d.v!==1) return;
+  APPLY_RESTORING = true;
+  try{
+    if(d.caw===true || d.caw===false) applySetCaw(d.caw);
+    if(d.caw===true && d.plat) applySetPlatform(d.plat);
+    if(d.align) applySetAlign(d.align);
+    if(d.home) applySetHome(d.home, true);
+    Object.keys(d.fields||{}).forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      if(el.type==='checkbox') el.checked = !!d.fields[id];
+      else el.value = d.fields[id];
+    });
+    // the personality sliders also show a word under them
+    APPLY_TRAITS.forEach(([k,l,r])=>{
+      const el = document.getElementById('af_tr_'+k), lab = document.getElementById('af_trv_'+k);
+      if(el && lab) lab.textContent = applyTraitWord(el.value, l, r);
+    });
+    if(Array.isArray(d.open)){
+      document.querySelectorAll('#applyForm [data-sec]').forEach((sec,i)=>{
+        if(typeof d.open[i]==='boolean') sec.classList.toggle('open', d.open[i]);
+      });
+    }
+    if(document.getElementById('af_backstory')) applyCount();
+  }catch(e){}
+  APPLY_RESTORING = false;
+  const st = document.getElementById('af-draftstate');
+  if(st && d.saved){
+    const when = new Date(d.saved).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+    st.innerHTML = '<i class="ti ti-history"></i> Welcome back! We restored the draft you saved on '+when+'.';
+  }
+}
+function applyClearDraft(ask){
+  if(ask && !confirm('Clear everything on this form and start over?')) return;
+  try{ localStorage.removeItem(applyDraftKey()); }catch(e){}
+  if(ask){
+    const body = document.getElementById('apply-body');
+    if(body) delete body.dataset.uid;
+    const f = document.getElementById('applyForm'); if(f) f.remove();
+    loadApply();
+  }
+}
+// save straight away when the tab is hidden or the page is closing
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden && document.getElementById('applyForm')){ clearTimeout(APPLY_SAVE_T); applySaveDraft(); } });
+window.addEventListener('pagehide', ()=>{ if(document.getElementById('applyForm')){ clearTimeout(APPLY_SAVE_T); applySaveDraft(); } });
 function applySetCaw(yes){
   APPLY_HAS_CAW = yes;
   document.getElementById('caw-yes').classList.toggle('on', yes);
@@ -9612,6 +9733,7 @@ function applySetCaw(yes){
     document.getElementById('af-new').style.display='';
     document.getElementById('af-submitwrap').style.display='';
   }
+  applyQueueSave();
 }
 function applySetPlatform(p){
   APPLY_PLATFORM = p;
@@ -9624,19 +9746,22 @@ function applySetPlatform(p){
   // non-PC: route them to the full new-creation form (we rebuild from scratch)
   document.getElementById('af-new').style.display = isPC ? 'none' : '';
   document.getElementById('af-submitwrap').style.display = '';
+  applyQueueSave();
 }
 function applySetAlign(a){
   APPLY_ALIGN = a;
   document.querySelectorAll('#af_align button').forEach(b=>b.classList.toggle('on', b.dataset.v===a));
+  applyQueueSave();
 }
-function applySetHome(k){
+function applySetHome(k, quiet){
   APPLY_HOMETOWN = k;
   document.querySelectorAll('#af_home_kind button').forEach(b=>b.classList.toggle('on', b.dataset.v===k));
   const inp = document.getElementById('af_hometown');
   inp.style.display = k==='unknown' ? 'none' : '';
   inp.placeholder = k==='fictional' ? 'The fictional place, from the game list' : 'City, state or country';
   document.getElementById('af_home_note').style.display = k==='fictional' ? '' : 'none';
-  if(k!=='unknown') inp.focus();
+  if(k!=='unknown' && !quiet) inp.focus();
+  applyQueueSave();
 }
 /* Point the applicant at the field that still needs filling: open its
    section, scroll to it, and show the message. */
@@ -9727,6 +9852,7 @@ async function submitApplication(){
   btn.disabled = true; btn.textContent = 'Submitting…';
   const { error } = await sb.from('applications').insert(payload);
   if(error){ btn.disabled=false; btn.textContent='Submit application'; showApplyErr('Couldn’t submit: '+error.message); return; }
+  applyClearDraft(false);
   showApplySuccess();
 }
 function showApplyErr(msg){
@@ -11839,6 +11965,7 @@ function activatePage(pg){
   if(pg!=='dashboard' && COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
   if(pg==='storylines'){ loadStorylines(); spOwnerComposerInit(); }
   if(pg==='leaderboard') loadLeaderboard();
+  if(pg==='rankings') refreshRankingsIfStale();
   if(pg==='archive') loadArchive();
   if(pg==='apply') loadApply();
   if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
@@ -13370,6 +13497,15 @@ async function tlLoad(){
     if(!tl.error && (tl.data||[]).length){
       TL_DIAG = `timeline view: ${(tl.data||[]).length} rows`;
       rows = tl.data;
+      // The timeline view leaves out the show that is still marked as the
+      // featured show on Upcoming Events (WCA 51 right after it finished).
+      // Past Events already lists every finished public show, so anything it
+      // has that the timeline view doesn't gets added here.
+      try{
+        const ar = await sb.from('v_archive_events').select('*');
+        const have = new Set(rows.map(r=>String(r.id)));
+        (ar.data||[]).forEach(r=>{ if(!have.has(String(r.id))){ rows.push(r); TL_DIAG += ' + '+(r.name||r.id); } });
+      }catch(_){}
     }
     const arch = rows.length ? {data:[],error:null} : await sb.from('v_archive_events').select('*');
     if(!rows.length) TL_DIAG = `archive view: ${arch.error ? 'ERROR '+arch.error.message : (arch.data||[]).length+' rows'}`;
