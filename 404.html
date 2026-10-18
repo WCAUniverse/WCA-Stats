@@ -1447,6 +1447,13 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .lr-net{font-family:var(--font-cond); font-size:16px; font-weight:600; flex-shrink:0;
     white-space:nowrap;}
   .lr-net.up{color:var(--win);} .lr-net.down{color:var(--loss);} .lr-net.even{color:var(--muted);}
+  .live-betting{display:flex; flex-direction:column;}
+  .live-betting .card-list{margin:0 0 6px;}
+  .lbet-sub{display:flex; align-items:center; gap:8px; font-family:var(--font-cond); font-weight:600;
+    font-size:13px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:10px 0 8px;}
+  .lbet-sub::after{content:''; flex:1; height:1px; background:var(--line);}
+  .live-betting .live-between{margin:4px 0 6px; padding:18px 16px; font-size:14px; letter-spacing:.5px;}
+  .lr-inplay{display:block; font-family:var(--font-body); font-size:11px; color:var(--muted); margin-top:1px;}
   .lr-empty{font-family:var(--font-body); font-size:13px; color:var(--muted); font-style:italic;
     padding:14px 4px; text-align:center; grid-column:1/-1;}
   .lr-foot{font-family:var(--font-body); font-size:10.5px; color:var(--muted2); text-align:center;
@@ -8367,27 +8374,26 @@ async function loadLive(){
     </div>
   </div>`;
 
-  // the current-match block
+  // the current-match bet card. It lives in the ONE betting area under the
+  // player (with the standings), never above the stream.
   let liveBlock='';
   if(liveMatch){
-    liveBlock=`<div class="section-title"><span class="live-dot"></span> Current Match — LIVE</div>
+    liveBlock=`<div class="lbet-sub"><span class="live-dot"></span> Current Match</div>
       <div class="card-list">${boutHTML(liveMatch, true, CURRENT_CTX)}</div>`;
   }else{
-    liveBlock=`<div class="live-between">No match is live right now — the full card is below.</div>`;
+    liveBlock=`<div class="live-between">No match is live right now. Bets for every match on the card are on the <a onclick="goPage('events')" style="color:var(--gold);cursor:pointer">Upcoming Events</a> page.</div>`;
   }
 
-  // NEW LAYOUT:
-  //   1) event banner (name + tagline) on top, Events-style
-  //   2) current-match tab above the player
-  //   3) row: player on the left, the site's own Live Chat on the right
-  //   4) Live Standings (bets) full-width below
+  // LAYOUT (Watch Live tab):
+  //   1) event banner
+  //   2) row: player on the left, the site's own Live Chat on the right
+  //   3) ONE Live Betting and Standings section, directly under the player
   const clearBtn = IS_ADMIN
     ? `<button class="ch-clear-all" onclick="clearAllChat()" title="Delete every message"><i class="ti ti-trash"></i> Clear chat</button>`
     : '';
   el.innerHTML = `<div class="live-layout">
       ${eventBar}
       <div class="live-stage">
-        ${liveBlock}
         <div class="stage-grid">
           <div class="stage-player">${stream||'<div class="live-between">Stream link coming soon.</div>'}</div>
           <section class="chat-hub" id="chat-hub">
@@ -8398,8 +8404,10 @@ async function loadLive(){
           </section>
         </div>
       </div>
-      <section class="live-rail" id="live-rail">
-        <h3><span class="live-dot"></span> Live Standings</h3>
+      <section class="live-rail live-betting" id="live-rail">
+        <h3><span class="live-dot"></span> Live Betting and Standings</h3>
+        ${liveBlock}
+        <div class="lbet-sub">Standings</div>
         <div class="lr-sub">Everyone betting tonight, ranked by how much they're up or down. Final totals stay a surprise.</div>
         <div class="lr-list" id="lr-list"><div class="lr-empty">Loading…</div></div>
         <div class="lr-foot" id="lr-foot"></div>
@@ -8422,22 +8430,72 @@ function fmtNet(n){
   const sign = v>0 ? '+' : (v<0 ? '−' : '');
   return sign + '$' + Math.abs(v).toLocaleString('en-US');
 }
+/* Standings are worked out from the public bet board for this show, using the
+   same payout math as the bet card: a winning bet earns its share of the losing
+   side's pot (or a flat $250 when nobody bet against it), a losing bet costs its
+   stake, a voided match refunds. Bets on matches not decided yet count as in play.
+   The old live_winnings() lookup came back empty during shows, so it is only
+   used now if the bet board itself can't be read. */
+async function liveStandingsFromBets(evId){
+  const [boardR, statusR] = await Promise.all([
+    sb.from('v_bet_board').select('*').eq('event_id', evId),
+    sb.from('match_betting').select('slot,status,winner_idx').eq('event_id', evId)
+  ]);
+  if(boardR.error) throw boardR.error;
+  const board = boardR.data || [];
+  const stat = {};
+  (statusR.data || []).forEach(s=>{ stat[s.slot] = s; });
+  const bySlot = {};
+  board.forEach(b=>{ (bySlot[b.slot] = bySlot[b.slot] || []).push(b); });
+  const people = {};
+  board.forEach(b=>{
+    const k = b.user_id || b.player_name;
+    if(!people[k]) people[k] = { user_id:b.user_id, display_name:b.player_name || 'Player', net:0, inplay:0 };
+  });
+  Object.keys(bySlot).forEach(slot=>{
+    const bets = bySlot[slot];
+    const st = stat[slot] || {};
+    const settled = st.status === 'settled' && st.winner_idx !== null && st.winner_idx !== undefined;
+    if(st.status === 'void') return;
+    if(!settled){
+      bets.forEach(b=>{ people[b.user_id || b.player_name].inplay += Number(b.amount)||0; });
+      return;
+    }
+    const w = Number(st.winner_idx);
+    let winTotal = 0, loseTotal = 0;
+    bets.forEach(b=>{ if(Number(b.side_index)===w) winTotal += Number(b.amount)||0; else loseTotal += Number(b.amount)||0; });
+    bets.forEach(b=>{
+      const amt = Number(b.amount)||0;
+      const p = people[b.user_id || b.player_name];
+      if(Number(b.side_index)===w){
+        p.net += (loseTotal>0 && winTotal>0) ? Math.round(amt/winTotal*loseTotal) : 250;
+      } else {
+        p.net -= amt;
+      }
+    });
+  });
+  return Object.values(people).sort((a,b)=> (b.net-a.net) || (b.inplay-a.inplay) || a.display_name.localeCompare(b.display_name));
+}
 async function loadLiveRail(){
   const list = document.getElementById('lr-list');
   const foot = document.getElementById('lr-foot');
   if(!list || !CURRENT_EVENT) return;
   let rows;
   try{
-    const { data, error } = await sb.rpc('live_winnings', { p_event: CURRENT_EVENT.id });
-    if(error) throw error;
-    rows = data || [];
+    rows = await liveStandingsFromBets(CURRENT_EVENT.id);
   }catch(e){
-    list.innerHTML = `<div class="lr-empty">Standings unavailable right now.</div>`;
-    if(foot) foot.textContent='';
-    return;
+    try{
+      const { data, error } = await sb.rpc('live_winnings', { p_event: CURRENT_EVENT.id });
+      if(error) throw error;
+      rows = data || [];
+    }catch(e2){
+      list.innerHTML = `<div class="lr-empty">Standings unavailable right now.</div>`;
+      if(foot) foot.textContent='';
+      return;
+    }
   }
   if(!rows.length){
-    list.innerHTML = `<div class="lr-empty">No bets in yet — be the first to wager.</div>`;
+    list.innerHTML = `<div class="lr-empty">No bets in yet. Be the first to wager!</div>`;
     if(foot) foot.textContent='';
     return;
   }
@@ -8447,9 +8505,10 @@ async function loadLiveRail(){
     const cls = net>0 ? 'up' : (net<0 ? 'down' : 'even');
     const mine = myId && r.user_id===myId;
     const rowCls = `lr-row${i===0?' lr-top':(i%2?' alt':'')}${mine?' lr-me':''}`;
+    const inplay = Number(r.inplay)||0;
     return `<div class="${rowCls}">
       <span class="lr-rank">${i+1}</span>
-      <span class="lr-name">${esc(r.display_name)}${mine?'<span class="lr-me-tag">YOU</span>':''}</span>
+      <span class="lr-name">${esc(r.display_name)}${mine?'<span class="lr-me-tag">YOU</span>':''}${inplay?`<span class="lr-inplay">${fmtMoney(inplay)} in play</span>`:''}</span>
       <span class="lr-net ${cls}">${fmtNet(net)}</span>
     </div>`;
   }).join('');
