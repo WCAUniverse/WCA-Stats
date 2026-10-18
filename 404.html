@@ -93,7 +93,7 @@ function wcaSetAddress(pg, qs, push){
   img-src 'self' data: blob: https:;
   media-src 'self' blob: https:;
   connect-src 'self' https://dmfbhszvrbaknaevdhxh.supabase.co wss://dmfbhszvrbaknaevdhxh.supabase.co https://api.github.com;
-  frame-src https://www.youtube.com https://youtube.com https://player.vimeo.com https://streamable.com https://player.twitch.tv https://www.twitch.tv;
+  frame-src https://www.youtube.com https://youtube.com https://player.vimeo.com https://streamable.com https://player.twitch.tv https://www.twitch.tv https://clips.twitch.tv;
   object-src 'none';
   manifest-src 'self';
   worker-src 'self';
@@ -10210,6 +10210,30 @@ function slRenderMystery(p){
 // (YouTube, Vimeo, Imgur, Tenor, Giphy, direct .jpg/.gif/.mp4, etc.). We just
 // reference it. Returns HTML for any media links found, or "" if none.
 // ---------------------------------------------------------------------------
+/* Twitch clips and past broadcasts (VODs) play right in the post or comment.
+   Twitch only plays embeds on the domains named in "parent", so the current
+   site and wcauniverse.com are both passed. (Opened as a local file there is
+   no domain, so Twitch shows a link instead.) */
+function wcaTwitchEmbed(url){
+  let m, src = '';
+  if((m = url.match(/clips\.twitch\.tv\/(?:embed\?clip=)?([A-Za-z0-9_-]{4,})/i)) && m[1].toLowerCase()!=='embed'){
+    src = 'https://clips.twitch.tv/embed?clip=' + encodeURIComponent(m[1]) + '&autoplay=false';
+  } else if((m = url.match(/twitch\.tv\/(?:[A-Za-z0-9_]+\/)?clip\/([A-Za-z0-9_-]{4,})/i))){
+    src = 'https://clips.twitch.tv/embed?clip=' + encodeURIComponent(m[1]) + '&autoplay=false';
+  } else if((m = url.match(/twitch\.tv\/videos\/(\d+)/i))){
+    src = 'https://player.twitch.tv/?video=v' + m[1] + '&autoplay=false';
+  }
+  if(!src) return '';
+  const host = (location.hostname||'').toLowerCase();
+  if(!host){
+    return '<div class="sl-embed"><a href="'+url.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener">Watch on Twitch ↗</a></div>';
+  }
+  const parents = [...new Set([host, host.replace(/^www\./,''), 'wcauniverse.com', 'www.wcauniverse.com'])];
+  src += parents.map(p=>'&parent='+encodeURIComponent(p)).join('');
+  return '<div class="sl-embed sl-embed-video"><iframe src="'+src+'" title="Twitch clip" frameborder="0"'
+    + ' allow="autoplay; fullscreen" allowfullscreen scrolling="no" loading="lazy"></iframe></div>';
+}
+
 function slMedia(text){
   if(!text) return '';
   const urls = (text.match(/https?:\/\/[^\s<>"']+/gi) || []);
@@ -10220,7 +10244,8 @@ function slMedia(text){
     let url = raw.replace(/[.,)]+$/, '');   // trim trailing punctuation
     if(seen.has(url)) continue; seen.add(url);
     const u = url.toLowerCase();
-    let html = '';
+    let html = wcaTwitchEmbed(url);
+    if(html){ out.push(html); continue; }
 
     // --- YouTube ---
     let m = url.match(/(?:youtube\.com\/(?:watch\?v=|live\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
@@ -10598,6 +10623,7 @@ function brRenderReport(p, opts){
     +   '<span class="sl-date"><i class="ti ti-calendar"></i>'+brEsc(brDate(p.story_date))+'</span></div>'
     + '<h2 class="sl-headline">'+brEsc(p.title||((pl.event_name||'Show')+' Betting Results'))+'</h2>'
     + (pl.note ? '<div class="br-note">'+brEsc(pl.note)+'</div>' : '')
+    + (pl.note && typeof slMedia==='function' ? slMedia(pl.note) : '')
     + champHTML
     + stats
     + (rest.length ? '<div class="br-label">Final standings</div><div class="br-list">'+rowsTop+rowsMore+'</div>' : '')
