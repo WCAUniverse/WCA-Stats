@@ -6840,16 +6840,15 @@ async function loadRoster(){
   // track hidden names so rankings/dashboard can exclude them too
   HIDDEN_NAMES = new Set((data||[]).filter(w=>w.status==='hidden').map(w=>w.name));
   DRAFT_NAMES  = new Set((data||[]).filter(w=>w.is_draft===true).map(w=>w.name));
-  // hidden wrestlers never appear on the public site
-  const visible = (data||[]).filter(w=>w.status!=='hidden');
   // Two lists, deliberately:
-  //   _rosterAll  every row, drafts included — what wrestlerByName searches, so
-  //               a name on an old card resolves to its gender and photo.
-  //   _roster     what the site LISTS: roster page, pickers, star map, rankings.
-  // A draft is a placeholder the admin hasn't finished; it shouldn't turn up in
-  // a dropdown or on the roster, but its silhouette should already be right.
-  window._rosterAll = visible;
-  window._roster    = visible.filter(w=>w.is_draft!==true);
+  //   _rosterAll  every row, HIDDEN and drafts included — what wrestlerByName
+  //               searches, so a name on an old card still resolves to its
+  //               photo, gender and belt. Someone who has left WCA (status
+  //               "hidden") keeps their face on the past shows they were in.
+  //   _roster     what the site LISTS: roster page, star map, pickers,
+  //               rankings. Hidden wrestlers and unfinished drafts stay out.
+  window._rosterAll = (data||[]).slice();
+  window._roster    = window._rosterAll.filter(wrestlerIsListed);
 
   // build rank + division membership from the division rankings view
   RANK_BY_NAME = {};
@@ -6946,6 +6945,12 @@ function rosterCard(w){
     <div class="info"><div class="rn">${esc(w.name)}</div>${sub}</div>
   </div>`;
 }
+/* Should this wrestler be LISTED (roster, star map, dropdowns)? Hidden =
+   no longer part of WCA; a draft = a placeholder nobody has finished. Both
+   still resolve by name so past events show their picture. */
+function wrestlerIsListed(w){
+  return !!w && w.status !== 'hidden' && w.is_draft !== true;
+}
 function wrestlerByName(n){
   if(!n) return undefined;
   // _rosterAll so a draft still resolves — that's the whole point of drafts.
@@ -6981,8 +6986,10 @@ function renderRoster(q){
       // match names to roster rows; fall back to a name-only stub so no one is dropped
       const members = f.members.map(nm=>{
         const w = wrestlerByName(nm);
+        if(w && !wrestlerIsListed(w)) return null;   // hidden / draft: not on the roster
         return w || { name:nm, _stub:true };
       }).filter(w=>{
+        if(!w) return false;
         if(!q) return true;
         return w.name.toLowerCase().includes(q) || f.name.toLowerCase().includes(q);
       });
@@ -7951,7 +7958,7 @@ function xlinkName(name){
   if(!name) return safe;
   const hasRoster = (window._roster||[]).length>0;
   // If roster isn't loaded yet we can't verify — render plain (avoids dead links).
-  if(hasRoster && (typeof wrestlerByName==='function') && wrestlerByName(name)){
+  if(hasRoster && (typeof wrestlerByName==='function') && wrestlerIsListed(wrestlerByName(name))){
     return `<span class="xlink" role="link" tabindex="0" title="View ${escAttr(name)}\u2019s profile"
       onclick="event.stopPropagation();goWrestler('${escAttr(name)}')"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(name)}');}">${safe}</span>`;
@@ -14965,6 +14972,7 @@ function buildData(){
     (f.members||[]).forEach(nm=>{
       const w = (typeof wrestlerByName==='function') ? wrestlerByName(nm) : null;
       if(!w) return;                                   // faction member with no roster row
+      if(!wrestlerIsListed(w)) return;                 // hidden / draft: stays off the roster
       const key = w.name.toLowerCase();
       if(claimed.has(key)) return;                     // already placed in another stable
       claimed.add(key);
