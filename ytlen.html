@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>WCA Video Lengths</title>
+<!--
+  Helper for the admin Channels tab. The admin opens this page in a small
+  window and sends it a list of YouTube video ids. It loads each one in a
+  real YouTube player (which works here because this page is on
+  wcauniverse.com, unlike admin.html opened from disk), reads the length
+  and title, and sends them back. It stores nothing and changes nothing.
+-->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com;
+  frame-src https://www.youtube.com;
+  img-src 'self' data: https:;
+  style-src 'self' 'unsafe-inline';
+  connect-src 'self';">
+<style>
+  :root{ --bg:#08090c; --panel:#12141a; --line:#2a2d36; --gold:#e9b949; --txt:#e8e6e1; --muted:#9a948a; }
+  html,body{margin:0; background:var(--bg); color:var(--txt); font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;}
+  .wrap{padding:16px;}
+  h1{font-size:15px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin:0 0 6px;}
+  #msg{color:var(--muted); margin-bottom:10px;}
+  #bar{height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin-bottom:10px;}
+  #bar i{display:block; height:100%; width:0; background:var(--gold); transition:width .2s;}
+  #box{width:320px; height:180px; max-width:100%; background:#000; border:1px solid var(--line);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>WCA Video Lengths</h1>
+  <div id="msg">Waiting for the admin…</div>
+  <div id="bar"><i></i></div>
+  <div id="box"><div id="yt"></div></div>
+</div>
+<script>
+(function(){
+  var msg = document.getElementById('msg'), bar = document.querySelector('#bar i');
+  var opener = window.opener;
+  var player = null, ready = false, queue = null, lastErr = null;
+  function say(t){ msg.textContent = t; }
+  function send(o){ try{ if(opener) opener.postMessage(o, '*'); }catch(e){} }
+  if(!opener){ say('Open this from the admin Channels tab (Get lengths).'); return; }
+
+  var s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = function(){ say('The YouTube player could not load.'); send({type:'wca-ytlen-error', error:'YouTube player could not load'}); };
+  document.head.appendChild(s);
+  window.onYouTubeIframeAPIReady = function(){
+    player = new YT.Player('yt', {
+      width:'320', height:'180',
+      playerVars:{ mute:1, playsinline:1, rel:0, origin:location.origin },
+      events:{
+        onReady:function(){ ready = true; say('Ready.'); send({type:'wca-ytlen-ready'}); if(queue) run(queue); },
+        onError:function(e){ lastErr = (e && e.data) || 'error'; }
+      }
+    });
+  };
+
+  window.addEventListener('message', function(ev){
+    if(ev.source !== opener) return;
+    var d = ev.data || {};
+    if(d.type !== 'wca-ytlen' || !Array.isArray(d.ids)) return;
+    var ids = d.ids.map(String).filter(function(x){ return /^[\w-]{6,20}$/.test(x); }).slice(0, 200);
+    if(ready) run(ids); else queue = ids;
+  });
+
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  async function measure(id){
+    lastErr = null;
+    player.cueVideoById(id);
+    for(var i=0;i<40;i++){                       // up to 10s just cued
+      await wait(250);
+      if(lastErr) return null;
+      var d = player.getDuration && player.getDuration();
+      if(d > 0) return { secs:Math.round(d), title:(player.getVideoData()||{}).title || '' };
+    }
+    player.mute(); player.playVideo();           // some videos only report once playing
+    for(var j=0;j<40;j++){
+      await wait(250);
+      if(lastErr) break;
+      var d2 = player.getDuration && player.getDuration();
+      if(d2 > 0){ player.pauseVideo(); return { secs:Math.round(d2), title:(player.getVideoData()||{}).title || '' }; }
+    }
+    try{ player.pauseVideo(); }catch(e){}
+    return null;
+  }
+  async function run(ids){
+    queue = null;
+    var results = {}, failed = [];
+    for(var k=0;k<ids.length;k++){
+      say('Reading ' + (k+1) + ' of ' + ids.length + '…');
+      bar.style.width = Math.round(k / ids.length * 100) + '%';
+      var r = null;
+      try{ r = await measure(ids[k]); }catch(e){}
+      if(r) results[ids[k]] = r; else failed.push(ids[k]);
+      send({type:'wca-ytlen-progress', done:k+1, total:ids.length});
+    }
+    bar.style.width = '100%';
+    try{ player.stopVideo(); }catch(e){}
+    send({type:'wca-ytlen-result', results:results, failed:failed});
+    say('Done. ' + Object.keys(results).length + ' of ' + ids.length + ' read. This window will close.');
+    setTimeout(function(){ window.close(); }, 1200);
+  }
+})();
+</script>
+</body>
+</html>
