@@ -1473,29 +1473,40 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     padding:10px 0 2px; letter-spacing:.5px;}
 
   /* ---- WCA Channels: the channel dial + synced rerun player (Watch Live, off air) ---- */
-  .tv-dial{position:relative; margin:18px 0 0; padding:14px 0 12px; border:1px solid var(--line);
+  .tv-dial{position:relative; width:100%; max-width:640px; margin:0 auto; border:1px solid var(--line);
     border-radius:14px; overflow:hidden;
-    background:radial-gradient(ellipse 60% 70% at 50% 58%, rgba(var(--gold-rgb),.12), transparent 70%), var(--panel);}
-  .tv-head{display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:4px 14px;
-    padding:0 16px; text-align:center;}
-  .tv-onair{font-family:var(--font-display); font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--gold);}
-  .tv-onair i{font-size:16px; vertical-align:-2px; margin-right:3px;}
-  .tv-headnote{font-family:var(--font-body); font-size:12px; color:var(--muted);}
-  .tv-track{--tv-gap:230px; --tv-w:200px; position:relative; height:150px; margin-top:6px;
+    background:radial-gradient(ellipse 70% 80% at 50% 70%, rgba(var(--gold-rgb),.10), transparent 70%), var(--panel);}
+  .tv-bar{display:flex; align-items:center; gap:8px; padding:6px 10px 6px 6px;}
+  .tv-toggle{flex:1; min-width:0; display:flex; align-items:center; gap:9px; background:none; border:0; cursor:pointer;
+    color:var(--txt-2); padding:6px 8px; border-radius:9px; text-align:left;}
+  .tv-toggle:hover{background:rgba(255,255,255,.04);}
+  .tv-toggle > .ti-broadcast{color:var(--gold); font-size:17px;}
+  .tv-onair{font-family:var(--font-display); font-size:13px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold);}
+  .tv-bar-now{font-family:var(--font-cond); font-size:14px; color:var(--muted); min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .tv-bar-now b{color:#fff; font-weight:600;}
+  .tv-caret{margin-left:auto; font-size:17px; color:var(--muted); transition:transform .25s;}
+  .tv-dial.closed .tv-caret{transform:rotate(-90deg);}
+  .tv-bar-arrows{display:none; gap:2px;}
+  .tv-dial.closed .tv-bar-arrows{display:flex;}
+  .tv-arrow.sm{font-size:20px; padding:2px 6px;}
+  .tv-dial-body{padding:0 0 12px; border-top:1px solid var(--line);}
+  .tv-dial.closed .tv-dial-body{display:none;}
+  .tv-track{--tv-gap:170px; --tv-w:150px; position:relative; height:124px; margin-top:6px;
     touch-action:pan-y; outline:none; user-select:none;}
   .tv-track:focus-visible{box-shadow:inset 0 0 0 1px var(--gold-dim);}
-  .tv-tile{position:absolute; left:50%; top:50%; width:var(--tv-w); height:128px; padding:0; margin:0;
+  .tv-tile{position:absolute; left:50%; top:50%; width:var(--tv-w); height:104px; padding:0; margin:0;
     border:0; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
     transform:translate(-50%,-50%); filter:grayscale(.55) brightness(.8);
     transition:transform .38s cubic-bezier(.2,.8,.2,1), opacity .38s, filter .38s;}
   .tv-tile.on{filter:none; cursor:default;}
-  .tv-tile img{max-width:100%; max-height:118px; object-fit:contain; pointer-events:none;
+  .tv-tile img{max-width:100%; max-height:98px; object-fit:contain; pointer-events:none;
     filter:drop-shadow(0 6px 16px rgba(0,0,0,.6));}
   .tv-tile.on img{filter:drop-shadow(0 0 18px rgba(var(--gold-rgb),.45)) drop-shadow(0 6px 16px rgba(0,0,0,.6));}
   .tv-tile .tv-tile-txt{display:flex; align-items:center; justify-content:center; width:100%; height:100%;
     padding:10px 14px; border:2px solid var(--gold-dim); border-radius:14px; overflow:hidden;
     background:linear-gradient(180deg, rgba(var(--gold-rgb),.16), rgba(0,0,0,.4));
-    font-family:var(--font-display); font-weight:700; font-size:24px; line-height:1.05; letter-spacing:1px;
+    font-family:var(--font-display); font-weight:700; font-size:20px; line-height:1.05; letter-spacing:1px;
     text-transform:uppercase; color:#fff; text-align:center; word-break:break-word;}
   .tv-tile.has-logo .tv-tile-txt{display:none;}
   .tv-tile.on .tv-tile-txt{border-color:var(--gold); box-shadow:0 0 26px rgba(var(--gold-rgb),.35);}
@@ -1504,7 +1515,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     line-height:1; transition:.15s; flex-shrink:0;}
   .tv-arrow:hover{color:var(--gold); transform:scale(1.12);}
   .tv-info{text-align:center; min-width:0; flex:0 1 520px;}
-  .tv-name{font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:2px;
+  .tv-name{font-family:var(--font-display); font-weight:700; font-size:17px; letter-spacing:2px;
     text-transform:uppercase; color:#fff;}
   .tv-desc{font-family:var(--font-body); font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.4;}
 
@@ -1537,9 +1548,9 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .tv-sync:hover{background:rgba(var(--gold-rgb),.12);}
   #tv-recap:empty{display:none;}
   @media(max-width:680px){
-    .tv-track{--tv-gap:150px; --tv-w:140px; height:118px;}
-    .tv-tile{height:100px;}
-    .tv-tile img{max-height:92px;}
+    .tv-track{--tv-gap:118px; --tv-w:110px; height:100px;}
+    .tv-tile{height:84px;}
+    .tv-tile img{max-height:80px;}
     .tv-tile .tv-tile-txt{font-size:17px; padding:8px;}
     .tv-name{font-size:17px;}
     .tv-pick{gap:8px;}
@@ -9231,18 +9242,6 @@ async function renderTv(el, chans){
     ? `<button class="ch-clear-all" onclick="clearAllChat()" title="Delete every message"><i class="ti ti-trash"></i> Clear chat</button>`
     : '';
   el.innerHTML = `<div class="live-layout is-tv">
-      <section class="tv-dial" id="tv-dial" aria-label="WCA Channels">
-        <div class="tv-head">
-          <span class="tv-onair"><i class="ti ti-broadcast"></i> WCA Channels</span>
-          <span class="tv-headnote">We're off air right now. Pick a channel and watch along with everyone else!</span>
-        </div>
-        <div class="tv-track" id="tv-track" tabindex="0" aria-label="Channels. Use the left and right arrow keys to change channel."></div>
-        <div class="tv-pick">
-          <button class="tv-arrow" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
-          <div class="tv-info"><div class="tv-name" id="tv-name"></div><div class="tv-desc" id="tv-desc"></div></div>
-          <button class="tv-arrow" type="button" onclick="tvStep(1)" aria-label="Next channel"><i class="ti ti-chevron-right"></i></button>
-        </div>
-      </section>
       <div class="live-stage">
         <div class="stage-grid">
           <div class="stage-player"><div class="stream-wrap"><div class="stream-frame tv-frame">
@@ -9264,6 +9263,28 @@ async function renderTv(el, chans){
         <span class="tv-now-r"><span id="tv-now-next"></span>
           <button class="tv-sync" id="tv-sync" type="button" onclick="tvSyncNow()" hidden><i class="ti ti-player-track-next"></i> Catch Up</button></span>
       </div>
+      <section class="tv-dial${tvDialClosed()?' closed':''}" id="tv-dial" aria-label="WCA Channels">
+        <div class="tv-bar">
+          <button class="tv-toggle" id="tv-toggle" type="button" onclick="tvToggleDial()"
+            aria-expanded="${tvDialClosed()?'false':'true'}" aria-controls="tv-dial-body">
+            <i class="ti ti-broadcast"></i><span class="tv-onair">Channels</span>
+            <span class="tv-bar-now">Watching <b id="tv-bar-name"></b></span>
+            <i class="ti ti-chevron-down tv-caret"></i>
+          </button>
+          <span class="tv-bar-arrows">
+            <button class="tv-arrow sm" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
+            <button class="tv-arrow sm" type="button" onclick="tvStep(1)" aria-label="Next channel"><i class="ti ti-chevron-right"></i></button>
+          </span>
+        </div>
+        <div class="tv-dial-body" id="tv-dial-body">
+          <div class="tv-track" id="tv-track" tabindex="0" aria-label="Channels. Use the left and right arrow keys to change channel."></div>
+          <div class="tv-pick">
+            <button class="tv-arrow" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
+            <div class="tv-info"><div class="tv-name" id="tv-name"></div><div class="tv-desc" id="tv-desc"></div></div>
+            <button class="tv-arrow" type="button" onclick="tvStep(1)" aria-label="Next channel"><i class="ti ti-chevron-right"></i></button>
+          </div>
+        </div>
+      </section>
       <div id="tv-recap"></div>
     </div>`;
   tvDrawDial();
@@ -9302,6 +9323,19 @@ function tvLayoutDial(){
   const nm = document.getElementById('tv-name'), ds = document.getElementById('tv-desc');
   if(nm) nm.textContent = ch.name || '';
   if(ds) ds.textContent = ch.description || '';
+  const bn = document.getElementById('tv-bar-name');
+  if(bn) bn.textContent = ch.name || '';
+}
+// The channel box can be folded away; each viewer's choice is remembered.
+const TV_DIAL_KEY = 'wca-tv-dial-closed';
+function tvDialClosed(){ try{ return localStorage.getItem(TV_DIAL_KEY) === '1'; }catch(e){ return false; } }
+function tvToggleDial(){
+  const box = document.getElementById('tv-dial'), btn = document.getElementById('tv-toggle');
+  if(!box) return;
+  const closed = !box.classList.contains('closed');
+  box.classList.toggle('closed', closed);
+  if(btn) btn.setAttribute('aria-expanded', closed ? 'false' : 'true');
+  try{ localStorage.setItem(TV_DIAL_KEY, closed ? '1' : '0'); }catch(e){}
 }
 function tvPick(i){
   if(!TV.list.length) return;
@@ -14534,7 +14568,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'channels-2026-10-19a';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'channels-2026-10-19b';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
