@@ -1792,6 +1792,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .arch-name{font-family:var(--font-display); font-weight:600; font-size:20px; color:#fff; line-height:1.1;}
   .arch-name em{font-family:var(--font-cond); font-style:italic; font-weight:600;
     font-size:.72em; color:var(--gold); margin-left:6px;}
+  .fparent{font-family:var(--font-cond); font-size:11.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--gold-dim); text-align:center; margin-top:2px;}
   .arch-sub{font-family:var(--font-body); font-size:12.5px; color:var(--muted); margin-top:4px;
     display:flex; gap:14px; flex-wrap:wrap;}
   .arch-sub .arch-champ{color:var(--gold-dim);}
@@ -6085,16 +6086,24 @@ function mpRowFor(members, teamName){
 // team name and no faces. Look the roster up from the faction instead, so
 // every already-saved show gets its portraits without being re-entered.
 let FACTION_ROSTER = {};                 // lowercased faction name -> [member names]
+let FACTION_PARENT = {};                 // lowercased sub-team name -> the stable it belongs to ("The Longshots" -> "GrapStars")
 async function loadFactionRosters(){
   try{
-    const { data } = await sb.from('factions').select('name,members_txt');
-    FACTION_ROSTER = {};
+    let { data, error } = await sb.from('factions').select('name,members_txt,parent_faction');
+    if(error) ({ data } = await sb.from('factions').select('name,members_txt'));   // column not added yet
+    FACTION_ROSTER = {}; FACTION_PARENT = {};
     (data||[]).forEach(f=>{
+      if(f.name && f.parent_faction) FACTION_PARENT[String(f.name).trim().toLowerCase()] = String(f.parent_faction).trim();
       const list = String(f.members_txt||'').split(/[,&]|\band\b/i)
         .map(s=>s.trim()).filter(Boolean);
       if(f.name && list.length) FACTION_ROSTER[String(f.name).trim().toLowerCase()] = list;
     });
   }catch(e){ /* column missing — teams simply keep showing no faces */ }
+}
+// "Part of GrapStars" under a sub-team's name, when it belongs to a bigger stable
+function factionParentHTML(team, cls){
+  const p = team ? FACTION_PARENT[String(team).trim().toLowerCase()] : '';
+  return p ? `<div class="${cls||'fparent'}">Part of ${esc(p)}</div>` : '';
 }
 // Members to draw for a side: the ones actually recorded win, since a match may
 // use only part of a stable. Fall back to the full faction only when none are.
@@ -8571,7 +8580,7 @@ function sideCellInner(side, isMain){
   const members = sideMembers(side);
   const pics = mpRowFor(members, side.team_name);
   if(side.team_name){
-    let h=pics+`<div class="fname">${esc(side.team_name)}</div>`;
+    let h=pics+`<div class="fname">${esc(side.team_name)}</div>`+factionParentHTML(side.team_name);
     if(members.length) h+=`<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
     return h + recTeamBlock(side.team_name, members);
   }
@@ -10492,7 +10501,7 @@ function archBoutHTML(m, isMain, status, winningSide){
     const pics = mpRowFor(members, s.team_name);
     let nameHtml;
     if(s.team_name){
-      nameHtml = pics + `<div class="rfname">${esc(s.team_name)}</div>`
+      nameHtml = pics + `<div class="rfname">${esc(s.team_name)}</div>` + factionParentHTML(s.team_name)
         + (members.length?`<div class="arch-sub" style="justify-content:center">${members.map(nameLink).join(' &amp; ')}</div>`:'')
         + recTeamBlock(s.team_name, members);
     }else if(members.length===1){
