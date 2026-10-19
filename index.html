@@ -4213,6 +4213,24 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 
   /* THE NOTE. This is where the rivalries and the stories get explained, so
      it is set as body copy to actually be read — not as a caption. */
+  /* elimination log (Events, Past Events, Timeline) */
+  .elog{margin:10px auto 2px; max-width:560px; text-align:left; border:1px solid var(--line); border-radius:10px;
+    background:rgba(0,0,0,.25); font-family:var(--font-body); font-size:13.5px;}
+  .elog summary{cursor:pointer; padding:8px 12px; font-family:var(--font-cond); letter-spacing:1px; text-transform:uppercase;
+    font-size:12.5px; color:var(--gold); list-style:none; display:flex; align-items:center; gap:7px;}
+  .elog summary::-webkit-details-marker{display:none;}
+  .elog summary::after{content:'\25BE'; margin-left:auto; opacity:.6;}
+  .elog[open] summary::after{content:'\25B4';}
+  .elog-list{list-style:none; margin:0; padding:2px 12px 10px;}
+  .elog-list li{display:flex; align-items:baseline; gap:10px; padding:5px 0; border-top:1px solid rgba(255,255,255,.05); flex-wrap:wrap;}
+  .elog-no{flex:0 0 30px; font-family:var(--font-display); color:var(--muted); text-align:right;}
+  .elog-nm{font-weight:600; color:var(--txt);}
+  .elog-out{color:var(--txt-2); font-size:13px;}
+  .elog-how{color:var(--muted);}
+  .elog-win{color:var(--gold); font-family:var(--font-cond); letter-spacing:1px; text-transform:uppercase; font-size:12px;}
+  .elog-last .elog-no{color:var(--gold);}
+  .elog-pts{max-width:560px; margin:6px auto 0; font-size:12.5px; color:var(--txt-2); text-align:center;}
+  .tl-match .elog, .tl-match .elog-pts{margin-left:0; text-align:left;}
   .tl-note{
     font-family:var(--font-body);font-size:15.5px;line-height:1.8;
     color:#c3ced9;margin:10px 0 0;max-width:68ch;
@@ -8238,6 +8256,67 @@ function matchDivision(m){
   if(d) return d;
   return String((m && m.championship) || '').trim();
 }
+/* ===== MATCH RULES + ELIMINATIONS (shown on Events, Past Events, Timeline) =====
+   match_type   = the structure (Singles, Tag Team (2v2), Royal Rumble ...)
+   stipulation  = the rules (Steel Cage, Ladder ...)
+   match_details = { elimination, eliminations:[{out,by:[],how}], entrants:[{no,name}],
+                     points:'custom', points_note }  (set in the admin Show Editor) */
+const MD_ELIM_ALWAYS = /rumble|battle royal|gauntlet|chamber|survivor series/i;
+function mdOf(m){
+  let d = m && m.match_details;
+  if(typeof d === 'string'){ try{ d = JSON.parse(d); }catch(e){ d = null; } }
+  return (d && typeof d === 'object') ? d : {};
+}
+function mdIsElimMatch(m){
+  const d = mdOf(m);
+  return !!d.elimination || MD_ELIM_ALWAYS.test(String(m.match_type||''));
+}
+/* The rules line under a match: "Steel Cage", "Elimination", "Steel Cage · Elimination".
+   Leaves out "Elimination" when the type or rules already say it. */
+function mdRulesLine(m){
+  const stip = String(m.stipulation||'').trim();
+  const d = mdOf(m);
+  const parts = [];
+  if(stip) parts.push(stip);
+  if(d.elimination && !/elimination/i.test(stip + ' ' + (m.match_type||'')) && !MD_ELIM_ALWAYS.test(String(m.match_type||''))) parts.push('Elimination');
+  return parts.join(' · ');
+}
+const mdOrd = n => n + (['th','st','nd','rd'][((n%100)-20)%10] || ['th','st','nd','rd'][n%100] || 'th');
+/* Who went out, in order, and who did it. With entry numbers (Rumble,
+   Gauntlet, Chamber) it reads by entry number instead. Collapsed by default. */
+function mdElimHTML(m, winnerLabel){
+  const d = mdOf(m);
+  const el = Array.isArray(d.eliminations) ? d.eliminations.filter(e=>e && e.out) : [];
+  const en = Array.isArray(d.entrants) ? d.entrants.filter(e=>e && e.name).slice().sort((a,b)=>(+a.no||0)-(+b.no||0)) : [];
+  const pts = d.points === 'custom' && d.points_note
+    ? `<div class="elog-pts"><i class="ti ti-adjustments"></i> Custom points rule: ${esc(d.points_note)}</div>` : '';
+  if(!el.length && !en.length) return pts;
+  const link = n => (typeof xlinkName === 'function') ? xlinkName(n) : esc(n);
+  const by = e => (Array.isArray(e.by) ? e.by : (e.by ? [e.by] : [])).filter(Boolean);
+  const outIdx = {};
+  el.forEach((e,k)=>{ outIdx[String(e.out).toLowerCase()] = k; });
+  const win = String(winnerLabel||'').toLowerCase();
+  let rows;
+  if(en.length){
+    rows = en.map(x=>{
+      const k = outIdx[String(x.name).toLowerCase()];
+      const e = k != null ? el[k] : null;
+      const isWin = !e && win && (win === String(x.name).toLowerCase() || win.split(' & ').includes(String(x.name).toLowerCase()));
+      const res = e
+        ? `<span class="elog-out">${mdOrd(k+1)} out${by(e).length?`, by ${by(e).map(link).join(' &amp; ')}`:''}${e.how?` <span class="elog-how">(${esc(e.how)})</span>`:''}</span>`
+        : (isWin ? `<span class="elog-win"><i class="ti ti-trophy"></i> Winner</span>` : '');
+      return `<li><span class="elog-no">#${esc(x.no)}</span><span class="elog-nm">${link(x.name)}</span>${res}</li>`;
+    }).join('');
+  } else {
+    rows = el.map((e,k)=>`<li><span class="elog-no">${k+1}</span><span class="elog-nm">${link(e.out)}</span>
+        <span class="elog-out">${by(e).length?`eliminated by ${by(e).map(link).join(' &amp; ')}`:'eliminated'}${e.how?` <span class="elog-how">(${esc(e.how)})</span>`:''}</span></li>`).join('')
+      + (winnerLabel ? `<li class="elog-last"><span class="elog-no"><i class="ti ti-trophy"></i></span><span class="elog-nm">${esc(winnerLabel)}</span><span class="elog-win">Last one standing</span></li>` : '');
+  }
+  const title = en.length ? 'Entry order and eliminations' : 'Elimination order';
+  return `<details class="elog"><summary><i class="ti ti-list-numbers"></i> ${title}${el.length?` · ${el.length} elimination${el.length===1?'':'s'}`:''}</summary>
+    <ol class="elog-list">${rows}</ol></details>${pts}`;
+}
+
 function boutHTML(m, isMain, ctx){
   const sides=parseSides(m);
   const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
@@ -8254,7 +8333,8 @@ function boutHTML(m, isMain, ctx){
       : `<i class="ti ti-trophy" style="color:var(--gold)"></i>`;
     titleTag=`<div class="title-on-line">${img}<span>${esc(m.championship)} Championship</span></div>`;
   }
-  const stip = m.stipulation ? `<div class="stip">${esc(m.stipulation)}</div>` : '';
+  const rulesTxt = mdRulesLine(m);
+  const stip = rulesTxt ? `<div class="stip">${esc(rulesTxt)}</div>` : '';
   const notes = m.notes ? `<div class="bnotes">${esc(m.notes)}</div>` : '';
 
   const status = ctx.statusBySlot[m.slot] || null;   // 'open'|'closed'|'settled'|'void'|null
@@ -10428,13 +10508,16 @@ function archBoutHTML(m, isMain, status, winningSide){
       ${isWin?`<div class="rwin-tag"><i class="ti ti-trophy"></i> Winner</div>`:''}
     </div>`;
   });
-  const stip = m.stipulation ? `<div class="rstip">${esc(m.stipulation)}</div>` : '';
+  const rulesTxt = mdRulesLine(m);
+  const stip = rulesTxt ? `<div class="rstip">${esc(rulesTxt)}</div>` : '';
   const voidLine = voided ? `<div class="rvoid">Match voided — all bets refunded</div>` : '';
+  const winLbl = (!voided && winningSide!=null && sides[winningSide]) ? sideLabel(sides[winningSide]) : '';
   return `<div class="rbout ${isMain?'main':''}">
     <div class="rbout-label">${esc(label)}</div>
     ${titleTag}
     <div class="rvs">${vs}</div>
     ${stip}${voidLine}
+    ${mdElimHTML(m, winLbl)}
     ${ratingWidget(m.slot)}
   </div>`;
 }
@@ -15169,6 +15252,7 @@ function tlBoutHTML(m, winIdx){
   const champ = (m.championship || '').trim();
   const type  = (m.match_type || '').trim();
   const stip  = (m.stipulation || '').trim();
+  const elimTag = mdIsElimMatch(m) && !/elimination/i.test(type + ' ' + stip) && !MD_ELIM_ALWAYS.test(type);
 
   // The match type and the stipulation are stored separately but very often
   // say the same thing — "Tag Team (2v2)" alongside "2v2", "Triple Threat"
@@ -15188,6 +15272,7 @@ function tlBoutHTML(m, winIdx){
   const badges = [];
   if(champ) badges.push(`<span class="tl-badge gold">★ ${E(champ)} Championship</span>`);
   labels.forEach(l=> badges.push(`<span class="tl-badge">${E(l)}</span>`));
+  if(elimTag) badges.push(`<span class="tl-badge">Elimination</span>`);
 
   let bout;
   if(winIdx == null){
@@ -15210,6 +15295,7 @@ function tlBoutHTML(m, winIdx){
   return `<div class="tl-match${champ?' title':''}">
     ${badges.join(' ')}
     <div class="tl-bout">${bout}</div>
+    ${mdElimHTML(m, winIdx != null ? tlSideName(sides[winIdx]) : '')}
     ${m.notes ? `<p class="tl-note">${E(m.notes)}</p>` : ''}
   </div>`;
 }
