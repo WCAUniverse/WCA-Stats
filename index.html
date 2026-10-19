@@ -87,7 +87,7 @@ function wcaSetAddress(pg, qs, push){
 -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.youtube.com https://s.ytimg.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
   font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:;
   img-src 'self' data: blob: https:;
@@ -1471,6 +1471,83 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     padding:14px 4px; text-align:center; grid-column:1/-1;}
   .lr-foot{font-family:var(--font-body); font-size:10.5px; color:var(--muted2); text-align:center;
     padding:10px 0 2px; letter-spacing:.5px;}
+
+  /* ---- WCA Channels: the channel dial + synced rerun player (Watch Live, off air) ---- */
+  .tv-dial{position:relative; margin:18px 0 0; padding:14px 0 12px; border:1px solid var(--line);
+    border-radius:14px; overflow:hidden;
+    background:radial-gradient(ellipse 60% 70% at 50% 58%, rgba(var(--gold-rgb),.12), transparent 70%), var(--panel);}
+  .tv-head{display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:4px 14px;
+    padding:0 16px; text-align:center;}
+  .tv-onair{font-family:var(--font-display); font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--gold);}
+  .tv-onair i{font-size:16px; vertical-align:-2px; margin-right:3px;}
+  .tv-headnote{font-family:var(--font-body); font-size:12px; color:var(--muted);}
+  .tv-track{--tv-gap:230px; --tv-w:200px; position:relative; height:150px; margin-top:6px;
+    touch-action:pan-y; outline:none; user-select:none;}
+  .tv-track:focus-visible{box-shadow:inset 0 0 0 1px var(--gold-dim);}
+  .tv-tile{position:absolute; left:50%; top:50%; width:var(--tv-w); height:128px; padding:0; margin:0;
+    border:0; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transform:translate(-50%,-50%); filter:grayscale(.55) brightness(.8);
+    transition:transform .38s cubic-bezier(.2,.8,.2,1), opacity .38s, filter .38s;}
+  .tv-tile.on{filter:none; cursor:default;}
+  .tv-tile img{max-width:100%; max-height:118px; object-fit:contain; pointer-events:none;
+    filter:drop-shadow(0 6px 16px rgba(0,0,0,.6));}
+  .tv-tile.on img{filter:drop-shadow(0 0 18px rgba(var(--gold-rgb),.45)) drop-shadow(0 6px 16px rgba(0,0,0,.6));}
+  .tv-tile .tv-tile-txt{display:flex; align-items:center; justify-content:center; width:100%; height:100%;
+    padding:10px 14px; border:2px solid var(--gold-dim); border-radius:14px; overflow:hidden;
+    background:linear-gradient(180deg, rgba(var(--gold-rgb),.16), rgba(0,0,0,.4));
+    font-family:var(--font-display); font-weight:700; font-size:24px; line-height:1.05; letter-spacing:1px;
+    text-transform:uppercase; color:#fff; text-align:center; word-break:break-word;}
+  .tv-tile.has-logo .tv-tile-txt{display:none;}
+  .tv-tile.on .tv-tile-txt{border-color:var(--gold); box-shadow:0 0 26px rgba(var(--gold-rgb),.35);}
+  .tv-pick{display:flex; align-items:center; justify-content:center; gap:18px; padding:4px 16px 0;}
+  .tv-arrow{background:none; border:0; color:#fff; font-size:30px; cursor:pointer; padding:4px 8px;
+    line-height:1; transition:.15s; flex-shrink:0;}
+  .tv-arrow:hover{color:var(--gold); transform:scale(1.12);}
+  .tv-info{text-align:center; min-width:0; flex:0 1 520px;}
+  .tv-name{font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:2px;
+    text-transform:uppercase; color:#fff;}
+  .tv-desc{font-family:var(--font-body); font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.4;}
+
+  .tv-frame .tv-state{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:24px; background:rgba(5,7,15,.9); font-family:var(--font-display);
+    letter-spacing:1.5px; color:var(--muted); font-size:18px; line-height:1.4;}
+  .tv-frame .tv-state[hidden], .tv-tunein[hidden], .tv-sync[hidden]{display:none;}
+  .tv-tunein{position:absolute; z-index:4; left:16px; top:16px; display:inline-flex; align-items:center; gap:8px;
+    background:var(--gold); color:var(--on-gold); border:0; cursor:pointer; border-radius:999px;
+    padding:10px 18px; font-family:var(--font-display); font-size:13px; font-weight:600; letter-spacing:1.5px;
+    text-transform:uppercase; box-shadow:0 6px 22px rgba(0,0,0,.5); animation:tvPulse 2s infinite;}
+  .tv-tunein i{font-size:17px;}
+  @keyframes tvPulse{0%,100%{box-shadow:0 0 0 0 rgba(var(--gold-rgb),.55),0 6px 22px rgba(0,0,0,.5);}
+    60%{box-shadow:0 0 0 12px rgba(var(--gold-rgb),0),0 6px 22px rgba(0,0,0,.5);}}
+
+  .tv-now{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px 16px;
+    padding:10px 16px; border:1px solid var(--line); border-radius:12px; background:var(--panel);
+    font-family:var(--font-cond); font-size:15px; color:var(--txt-2);}
+  .tv-now-l{display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; min-width:0;}
+  .tv-now b{color:#fff; font-weight:600; font-size:17px;}
+  .tv-now-k{font-family:var(--font-display); font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold);}
+  .tv-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold);
+    align-self:center; animation:tvBlink 1.6s ease-in-out infinite;}
+  @keyframes tvBlink{0%,100%{opacity:1} 50%{opacity:.25}}
+  .tv-now-left{color:var(--muted);}
+  .tv-now-r{display:flex; align-items:center; gap:12px; color:var(--muted);}
+  .tv-sync{background:transparent; border:1px solid var(--gold-dim); color:var(--gold); cursor:pointer;
+    border-radius:8px; padding:6px 12px; font-family:var(--font-display); font-size:12px; letter-spacing:1px;
+    text-transform:uppercase; display:inline-flex; align-items:center; gap:6px;}
+  .tv-sync:hover{background:rgba(var(--gold-rgb),.12);}
+  #tv-recap:empty{display:none;}
+  @media(max-width:680px){
+    .tv-track{--tv-gap:150px; --tv-w:140px; height:118px;}
+    .tv-tile{height:100px;}
+    .tv-tile img{max-height:92px;}
+    .tv-tile .tv-tile-txt{font-size:17px; padding:8px;}
+    .tv-name{font-size:17px;}
+    .tv-pick{gap:8px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .tv-tile{transition:none;}
+    .tv-tunein, .tv-dot{animation:none;}
+  }
 
   /* ---- Watch Live replay mode: Previous Bets recap + spoiler results ---- */
   .lb-name.lb-static{cursor:default;}
@@ -8487,7 +8564,7 @@ async function loadLive(){
   if(!ev){
     if(navBtn) navBtn.classList.remove('is-live');
     setNavLive(false);
-    return renderLiveReplay(el);
+    return renderOffAir(el);
   }
 
   // which match is flagged live?
@@ -8505,8 +8582,10 @@ async function loadLive(){
   if(!wcaShowIsLive(ev, ln, showStatuses)){
     if(navBtn) navBtn.classList.remove('is-live');
     setNavLive(false);
-    return renderLiveReplay(el);
+    return renderOffAir(el);
   }
+  // LIVE wins over everything: stop any channel that was playing
+  try{ tvStop(); }catch(e){}
 
   const liveMatch = liveSlot!=null ? CURRENT_MATCHES.find(m=>m.slot===liveSlot) : null;
   if(navBtn) navBtn.classList.toggle('is-live', !!liveMatch);
@@ -8677,10 +8756,17 @@ async function loadLiveRail(){
 }
 function startLiveRailPolling(){
   stopLiveRailPolling();
+  let n = 0;
   LIVE_RAIL_TIMER = setInterval(()=>{
     // only poll while the Live page is actually showing
     const pg = document.getElementById('page-live');
-    if(pg && pg.classList.contains('active')){ loadLiveRail(); }
+    if(pg && pg.classList.contains('active')){
+      loadLiveRail();
+      // once a minute: has the show ended? If so, everyone goes back to the channels
+      if(++n % 4 === 0){
+        liveShowOnNow().then(on=>{ if(!on) loadLive(); }).catch(()=>{});
+      }
+    }
     else { stopLiveRailPolling(); }
   }, 15000);
 }
@@ -8726,6 +8812,8 @@ function wcaShowIsLive(ev, ln, statuses){
     if(!ev.is_complete) return true;
     if(lnAge===null || lnAge < LIVE_STALE_MS) return true;
   }
+  // "Stop following live" in Show Results ends it right away
+  if(sameShow && ln.stopped_at && !ln.is_live) return false;
   if(ev.is_complete) return false;
   // 2) inside the show window
   const t = ev.event_date ? new Date(ev.event_date).getTime() : NaN;
@@ -8754,7 +8842,7 @@ function startLiveModeWatch(){
     const pg = document.getElementById('page-live');
     if(!pg || !pg.classList.contains('active')){ clearInterval(LIVE_MODE_TIMER); LIVE_MODE_TIMER=null; return; }
     try{ if(await liveShowOnNow()) loadLive(); }catch(e){}
-  }, 60000);
+  }, 30000);
 }
 
 // The newest finished main show (same list as Past Events). A featured show
@@ -8800,6 +8888,7 @@ function liveReplayPlayer(rev){
 
 async function renderLiveReplay(el){
   stopLiveRailPolling();
+  try{ tvStop(); }catch(e){}
   const rev = await lastShowForReplay();
   if(!rev){
     el.innerHTML = '<div class="event-empty">Nothing live right now. Check back for the next event!</div>';
@@ -8853,9 +8942,18 @@ async function renderLiveReplay(el){
           </section>
         </div>
       </div>
-      <section class="live-rail live-betting live-recap" id="live-rail">
+      ${recapSectionHTML(rev)}
+    </div>`;
+  initChatHub();
+  loadReplayRecap(rev);
+  startLiveModeWatch();
+}
+
+// "Previous Bets" recap block. Shared by replay mode and the channels.
+function recapSectionHTML(rev){
+  return `<section class="live-rail live-betting live-recap" id="live-rail" data-ev="${escAttr(String(rev.id))}">
         <h3><i class="ti ti-history"></i> Previous Bets for ${esc(rev.name)}</h3>
-        <div class="lr-sub">Everyone who bet on ${esc(rev.name)}, ranked by how they finished. No match results are shown here, so you can watch the replay without spoilers.</div>
+        <div class="lr-sub">Everyone who bet on ${esc(rev.name)}, ranked by how they finished. No match results are shown here, so you can watch without spoilers.</div>
         <div class="lr-list" id="lr-list"><div class="lr-empty">Loading…</div></div>
         <div class="lr-foot" id="lr-foot"></div>
         <div class="lrc-reveal" id="lrc-reveal" hidden>
@@ -8864,11 +8962,7 @@ async function renderLiveReplay(el){
           <div class="lrc-warn">Spoiler warning! This shows which bets everyone got right, which gives away the winners.</div>
         </div>
         <div class="lrc-results" id="lrc-results" hidden></div>
-      </section>
-    </div>`;
-  initChatHub();
-  loadReplayRecap(rev);
-  startLiveModeWatch();
+      </section>`;
 }
 
 function toggleReplayResults(){
@@ -8949,7 +9043,7 @@ async function loadReplayRecap(rev){
     return;
   }
   // the page may have moved on while we were loading
-  const host = document.querySelector('#live-content .live-layout.is-replay');
+  const host = document.getElementById('live-rail');
   if(!host || host.dataset.ev !== String(rev.id)) return;
 
   const people = replayBetBreakdown(board, statuses);
@@ -9035,6 +9129,413 @@ async function loadReplayRecap(rev){
     }).join('');
   }
   if(reveal) reveal.removeAttribute('hidden');
+}
+
+/* ===== WCA CHANNELS (Watch Live while no show is on air) =====
+   Rerun channels you build in the admin (Channels tab, table tv_channels).
+   Nothing is streamed. Each channel is a playlist of YouTube videos with a
+   start moment (starts_at). Every visitor works out the same spot from the
+   clock: time since starts_at, wrapped around the playlist when it loops.
+   So everyone on a channel is watching the same moment.
+
+   Priority on Watch Live:  LIVE show  >  channels  >  last show replay.
+   loadLive() decides live vs off air (wcaShowIsLive). Off air calls
+   renderOffAir(): channels if any have playable videos, else the replay.
+
+   playlist item: { vid, title, secs, event_id }   secs = length in seconds.
+   Items without a length are skipped (the admin flags them).
+
+   The player is the YouTube IFrame API (needs www.youtube.com in the CSP
+   script-src line). If that script is blocked it falls back to a plain
+   embed with ?start=, which still syncs on tune in and on each new video. */
+const TV = { list:[], idx:0, sig:'', player:null, ready:false, creating:false, apiP:null, apiFailed:false,
+             key:null, tick:null, unmuted:false, needSync:false, suspended:false, holdUntil:0,
+             recapId:null, errVid:null };
+const TV_SAVE_KEY = 'wca-tv-channel';
+
+function tvItems(ch){
+  return (Array.isArray(ch && ch.playlist) ? ch.playlist : []).filter(it=>it && it.vid && Number(it.secs)>0);
+}
+// Where the channel is right now. Pure function of the channel + the clock.
+function tvSchedule(ch, nowMs){
+  const items = tvItems(ch);
+  if(!items.length) return { state:'empty' };
+  const total = items.reduce((a,it)=>a+Number(it.secs), 0);
+  const start = new Date(ch.starts_at || ch.created_at || 0).getTime();
+  let t = ((nowMs==null ? Date.now() : nowMs) - (isNaN(start) ? 0 : start)) / 1000;
+  if(t < 0) return { state:'soon', startsAt:start, first:items[0] };
+  let cycle = 0;
+  if(t >= total){
+    if(!ch.loop_playlist) return { state:'ended' };
+    cycle = Math.floor(t / total);
+    t -= cycle * total;
+  }
+  let acc = 0;
+  for(let i=0;i<items.length;i++){
+    const len = Number(items[i].secs);
+    if(t < acc + len){
+      const last = i === items.length-1;
+      const next = last ? (ch.loop_playlist ? items[0] : null) : items[i+1];
+      return { state:'on', i, cycle, item:items[i], offset:t-acc, left:acc+len-t, next, count:items.length };
+    }
+    acc += len;
+  }
+  return { state:'ended' };
+}
+function tvLeft(sec){
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60);
+  if(h) return `${h}h ${m}m`;
+  if(m) return `${m}m`;
+  return `${sec}s`;
+}
+function tvSaved(){ try{ return localStorage.getItem(TV_SAVE_KEY); }catch(e){ return null; } }
+function tvSave(id){ try{ localStorage.setItem(TV_SAVE_KEY, String(id)); }catch(e){} }
+
+async function tvFetch(){
+  const { data, error } = await sb.from('tv_channels').select('*')
+    .eq('is_enabled', true).order('sort_order', { ascending:true }).order('id', { ascending:true });
+  if(error) return null;          // table not created yet: fall back quietly
+  return data || [];
+}
+
+// Off air: channels if there are any to play, otherwise the last show replay.
+async function renderOffAir(el){
+  let chans = null;
+  try{ chans = await tvFetch(); }catch(e){}
+  const usable = (chans||[]).filter(c=>tvItems(c).length);
+  if(!usable.length) return renderLiveReplay(el);
+  return renderTv(el, usable);
+}
+
+async function renderTv(el, chans){
+  stopLiveRailPolling();
+  const sig = JSON.stringify(chans.map(c=>[c.id,c.updated_at,c.name,c.logo_url,c.description,c.starts_at,c.loop_playlist,tvItems(c).length]));
+  const existing = el.querySelector('.live-layout.is-tv');
+  const keepId = (existing && TV.list[TV.idx]) ? TV.list[TV.idx].id : tvSaved();
+  TV.list = chans;
+  TV.idx = Math.max(0, chans.findIndex(c=>String(c.id)===String(keepId)));
+
+  // Already on screen: keep the player (no restart), just refresh around it
+  if(existing){
+    if(sig !== TV.sig){ TV.sig = sig; tvDrawDial(); TV.key = null; }
+    initChatHub();
+    tvResume();
+    startLiveModeWatch();
+    return;
+  }
+
+  tvStop();
+  TV.sig = sig; TV.key = null; TV.recapId = null; TV.errVid = null;
+  const clearBtn = IS_ADMIN
+    ? `<button class="ch-clear-all" onclick="clearAllChat()" title="Delete every message"><i class="ti ti-trash"></i> Clear chat</button>`
+    : '';
+  el.innerHTML = `<div class="live-layout is-tv">
+      <section class="tv-dial" id="tv-dial" aria-label="WCA Channels">
+        <div class="tv-head">
+          <span class="tv-onair"><i class="ti ti-broadcast"></i> WCA Channels</span>
+          <span class="tv-headnote">We're off air right now. Pick a channel and watch along with everyone else!</span>
+        </div>
+        <div class="tv-track" id="tv-track" tabindex="0" aria-label="Channels. Use the left and right arrow keys to change channel."></div>
+        <div class="tv-pick">
+          <button class="tv-arrow" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
+          <div class="tv-info"><div class="tv-name" id="tv-name"></div><div class="tv-desc" id="tv-desc"></div></div>
+          <button class="tv-arrow" type="button" onclick="tvStep(1)" aria-label="Next channel"><i class="ti ti-chevron-right"></i></button>
+        </div>
+      </section>
+      <div class="live-stage">
+        <div class="stage-grid">
+          <div class="stage-player"><div class="stream-wrap"><div class="stream-frame tv-frame">
+            <div id="tv-yt"></div>
+            <div class="tv-state" id="tv-state" hidden></div>
+            <button class="tv-tunein" id="tv-tunein" type="button" onclick="tvTuneIn()" hidden><i class="ti ti-volume"></i> Tune In</button>
+          </div></div></div>
+          <section class="chat-hub" id="chat-hub">
+            <h3><i class="ti ti-messages" style="color:var(--gold)"></i> Live Chat${clearBtn}</h3>
+            <div class="ch-sub">Signed-in members can talk here — everyone can read along. Keep it clean.</div>
+            <div class="ch-feed" id="ch-feed"><div class="ch-empty">Loading chat…</div></div>
+            <div id="ch-composer-slot"></div>
+          </section>
+        </div>
+      </div>
+      <div class="tv-now" id="tv-now">
+        <span class="tv-now-l"><span class="tv-dot"></span><span class="tv-now-k" id="tv-now-k">Now Playing</span>
+          <b id="tv-now-title"></b><span class="tv-now-left" id="tv-now-left"></span></span>
+        <span class="tv-now-r"><span id="tv-now-next"></span>
+          <button class="tv-sync" id="tv-sync" type="button" onclick="tvSyncNow()" hidden><i class="ti ti-player-track-next"></i> Catch Up</button></span>
+      </div>
+      <div id="tv-recap"></div>
+    </div>`;
+  tvDrawDial();
+  tvBindTrack();
+  initChatHub();
+  tvResume();
+  startLiveModeWatch();
+}
+
+/* ---- the channel dial ---- */
+function tvDrawDial(){
+  const track = document.getElementById('tv-track');
+  if(!track) return;
+  track.innerHTML = TV.list.map((c,i)=>`<button class="tv-tile${c.logo_url?' has-logo':''}" type="button" data-i="${i}"
+      onclick="tvPick(${i})" aria-label="${escAttr(c.name||'Channel')}">
+      ${c.logo_url?`<img src="${escAttr(c.logo_url)}" alt="" draggable="false" onerror="this.parentNode.classList.remove('has-logo');this.remove()">`:''}
+      <span class="tv-tile-txt">${esc(c.name||'Channel')}</span>
+    </button>`).join('');
+  tvLayoutDial();
+}
+function tvLayoutDial(){
+  const n = TV.list.length;
+  document.querySelectorAll('#tv-track .tv-tile').forEach(t=>{
+    const i = Number(t.dataset.i);
+    let d = i - TV.idx;
+    if(n > 2){ if(d > n/2) d -= n; if(d < -n/2) d += n; }   // wrap around like a dial
+    const ad = Math.abs(d);
+    t.classList.toggle('on', d===0);
+    t.style.opacity = ad===0 ? '1' : ad===1 ? '.55' : ad===2 ? '.22' : '0';
+    t.style.pointerEvents = ad > 2 ? 'none' : '';
+    t.style.zIndex = String(10 - ad);
+    t.style.transform = `translate(-50%,-50%) translateX(calc(${d} * var(--tv-gap))) scale(${ad===0 ? 1 : ad===1 ? .68 : .5})`;
+    t.setAttribute('aria-current', d===0 ? 'true' : 'false');
+  });
+  const ch = TV.list[TV.idx] || {};
+  const nm = document.getElementById('tv-name'), ds = document.getElementById('tv-desc');
+  if(nm) nm.textContent = ch.name || '';
+  if(ds) ds.textContent = ch.description || '';
+}
+function tvPick(i){
+  if(!TV.list.length) return;
+  i = ((i % TV.list.length) + TV.list.length) % TV.list.length;
+  if(i === TV.idx) return;
+  TV.idx = i;
+  tvSave(TV.list[i].id);
+  tvLayoutDial();
+  // scrubbing fast through channels shouldn't load every video on the way
+  TV.holdUntil = Date.now() + 350;
+  setTimeout(tvTick, 380);
+}
+function tvStep(dir){ tvPick(TV.idx + dir); }
+function tvBindTrack(){
+  const track = document.getElementById('tv-track');
+  if(!track || track._tvBound) return;
+  track._tvBound = true;
+  track.addEventListener('keydown', e=>{
+    if(e.key==='ArrowLeft'){ e.preventDefault(); tvStep(-1); }
+    if(e.key==='ArrowRight'){ e.preventDefault(); tvStep(1); }
+  });
+  let x0 = null;
+  track.addEventListener('pointerdown', e=>{ x0 = e.clientX; });
+  track.addEventListener('pointerup', e=>{
+    if(x0 === null) return;
+    const dx = e.clientX - x0; x0 = null;
+    if(Math.abs(dx) > 40) tvStep(dx < 0 ? 1 : -1);
+  });
+  track.addEventListener('pointercancel', ()=>{ x0 = null; });
+}
+
+/* ---- the player ---- */
+function tvApi(){
+  if(window.YT && window.YT.Player) return Promise.resolve();
+  if(TV.apiP) return TV.apiP;
+  TV.apiP = new Promise((res, rej)=>{
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function(){ try{ if(typeof prev==='function') prev(); }catch(e){} res(); };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.async = true;
+    s.onerror = ()=>rej(new Error('YouTube player script was blocked'));
+    document.head.appendChild(s);
+    setTimeout(()=>{ if(!(window.YT && window.YT.Player)) rej(new Error('YouTube player script timed out')); }, 12000);
+  });
+  TV.apiP.catch(()=>{});
+  return TV.apiP;
+}
+async function tvEnsurePlayer(){
+  await tvApi();
+  if(TV.player) return;
+  const host = document.getElementById('tv-yt');
+  if(!host) throw new Error('no player box');
+  TV.ready = false;
+  TV.player = new YT.Player(host, {
+    width:'100%', height:'100%',
+    playerVars:{ autoplay:1, mute:1, rel:0, playsinline:1, modestbranding:1, origin:location.origin },
+    events:{
+      onReady: ()=>{ TV.ready = true; TV.key = null; tvTick(); },
+      onError: e=>{
+        // 100 removed, 101/150 embedding turned off on YouTube
+        try{ TV.errVid = TV.player.getVideoData().video_id || TV.errVid; }catch(_){}
+        console.warn('[channels] YouTube player error', e && e.data);
+        tvTick();
+      }
+    }
+  });
+}
+function tvPlainIframe(vid, start){
+  const f = document.querySelector('#live-content .tv-frame');
+  if(!f) return;
+  let ifr = f.querySelector('iframe.tv-plain');
+  if(!ifr){
+    ifr = document.createElement('iframe');
+    ifr.className = 'tv-plain';
+    ifr.title = 'WCA Channels';
+    ifr.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
+    ifr.setAttribute('allowfullscreen', '');
+    const yt = f.querySelector('#tv-yt');
+    if(yt) yt.replaceWith(ifr); else f.prepend(ifr);
+  }
+  ifr.src = vid
+    ? `https://www.youtube.com/embed/${encodeURIComponent(vid)}?autoplay=1&start=${start}&rel=0&playsinline=1${TV.unmuted?'':'&mute=1'}`
+    : 'about:blank';
+}
+function tvPlay(vid, offset){
+  const start = Math.max(0, Math.floor(offset));
+  TV.errVid = null;
+  if(TV.apiFailed){ tvPlainIframe(vid, start); return; }
+  if(TV.player && TV.ready){
+    try{
+      if(!TV.unmuted) TV.player.mute();
+      TV.player.loadVideoById({ videoId:vid, startSeconds:start });
+    }catch(e){}
+    return;
+  }
+  if(!TV.player && !TV.creating){
+    TV.creating = true;
+    tvEnsurePlayer()
+      .catch(()=>{ TV.apiFailed = true; })
+      .finally(()=>{ TV.creating = false; TV.key = null; tvTick(); });
+  }
+  TV.key = null;      // try again once the player is ready
+}
+function tvHalt(){
+  if(TV.apiFailed){ tvPlainIframe('', 0); return; }
+  try{ if(TV.player && TV.ready) TV.player.stopVideo(); }catch(e){}
+}
+function tvTuneIn(){
+  TV.unmuted = true;
+  if(TV.apiFailed){ TV.key = null; tvTick(); return; }   // reload with sound (this click allows it)
+  try{ if(TV.player && TV.ready){ TV.player.unMute(); TV.player.playVideo(); } }catch(e){}
+  TV.needSync = true;
+  tvTick();
+}
+function tvSyncNow(){
+  TV.needSync = true;
+  if(TV.apiFailed) TV.key = null;
+  tvTick();
+}
+
+/* ---- the clock: once a second ---- */
+function tvTick(){
+  const pg = document.getElementById('page-live');
+  const layout = document.querySelector('#live-content .live-layout.is-tv');
+  if(!layout || !pg || !pg.classList.contains('active')){ if(!layout) tvStop(); else tvSuspend(); return; }
+  const ch = TV.list[TV.idx];
+  if(!ch) return;
+  if(Date.now() < TV.holdUntil) return;
+  const s = tvSchedule(ch, Date.now());
+  tvPaintNow(ch, s);
+  const stateEl = document.getElementById('tv-state');
+
+  if(s.state !== 'on'){
+    const k = s.state + ':' + ch.id;
+    if(TV.key !== k){
+      TV.key = k;
+      tvHalt();
+      tvRecap(null);
+    }
+    if(stateEl){
+      stateEl.hidden = false;
+      stateEl.textContent = s.state==='soon'
+        ? `${ch.name} starts ${fmtEventDate(new Date(s.startsAt).toISOString())}. Try another channel for now!`
+        : `${ch.name} has finished its playlist. Try another channel!`;
+    }
+    tvPaintButtons(null);
+    return;
+  }
+
+  const key = ch.id + ':' + s.cycle + ':' + s.i;
+  if(key !== TV.key){
+    TV.key = key;
+    TV.needSync = false;
+    tvPlay(s.item.vid, s.offset);
+    tvRecap(s.item);
+  } else if(TV.needSync){
+    TV.needSync = false;
+    try{ if(TV.player && TV.ready){ TV.player.seekTo(s.offset, true); TV.player.playVideo(); } }catch(e){}
+  }
+  if(stateEl){
+    const bad = TV.errVid && TV.errVid === s.item.vid;
+    stateEl.hidden = !bad;
+    if(bad) stateEl.textContent = `This video can't be played on the site. The next one starts in ${tvLeft(s.left)}.`;
+  }
+  tvPaintButtons(s);
+}
+function tvPaintNow(ch, s){
+  const k = document.getElementById('tv-now-k'), t = document.getElementById('tv-now-title');
+  const l = document.getElementById('tv-now-left'), n = document.getElementById('tv-now-next');
+  if(!t) return;
+  const set = (el, v)=>{ if(el && el.textContent !== v) el.textContent = v; };
+  if(s.state === 'on'){
+    set(k, 'Now Playing'); set(t, s.item.title || ch.name || 'WCA');
+    set(l, tvLeft(s.left) + ' left');
+    set(n, s.next ? 'Up next: ' + (s.next.title || 'the next video') : 'Last video on this channel');
+  } else if(s.state === 'soon'){
+    set(k, 'Coming Up'); set(t, (s.first && s.first.title) || ch.name || '');
+    set(l, 'Starts ' + fmtEventDate(new Date(s.startsAt).toISOString())); set(n, '');
+  } else {
+    set(k, 'Off Air'); set(t, ch.name || ''); set(l, 'Playlist finished'); set(n, '');
+  }
+}
+function tvPaintButtons(s){
+  const tune = document.getElementById('tv-tunein'), sync = document.getElementById('tv-sync');
+  let muted = false, behind = false;
+  if(s){
+    if(TV.apiFailed) muted = !TV.unmuted;
+    else if(TV.player && TV.ready){
+      try{
+        muted = TV.player.isMuted();
+        const st = TV.player.getPlayerState();           // 1 playing, 2 paused, 3 buffering
+        if(st === 2) behind = true;
+        else if(st === 1) behind = Math.abs(TV.player.getCurrentTime() - s.offset) > 10;
+      }catch(e){}
+    }
+  }
+  if(tune) tune.hidden = !muted;
+  if(sync) sync.hidden = !behind;
+}
+function tvRecap(item){
+  const host = document.getElementById('tv-recap');
+  if(!host) return;
+  const evId = item && item.event_id ? String(item.event_id) : null;
+  if(evId === TV.recapId) return;
+  TV.recapId = evId;
+  if(!evId){ host.innerHTML = ''; return; }
+  const rev = { id:evId, name:item.title || 'this show' };
+  host.innerHTML = recapSectionHTML(rev);
+  loadReplayRecap(rev);
+}
+
+/* ---- start / pause / tear down ---- */
+function tvResume(){
+  if(TV.suspended){
+    TV.suspended = false;
+    TV.needSync = true;
+    if(TV.apiFailed) TV.key = null;
+  }
+  if(!TV.tick) TV.tick = setInterval(tvTick, 1000);
+  tvTick();
+}
+function tvSuspend(){
+  if(TV.tick){ clearInterval(TV.tick); TV.tick = null; }
+  if(!document.querySelector('#live-content .live-layout.is-tv')) return;
+  TV.suspended = true;
+  if(TV.apiFailed){ tvPlainIframe('', 0); return; }
+  try{ if(TV.player && TV.ready) TV.player.pauseVideo(); }catch(e){}
+}
+function tvStop(){
+  if(TV.tick){ clearInterval(TV.tick); TV.tick = null; }
+  try{ if(TV.player && TV.player.destroy) TV.player.destroy(); }catch(e){}
+  TV.player = null; TV.ready = false; TV.creating = false;
+  TV.key = null; TV.recapId = null; TV.suspended = false; TV.needSync = false;
 }
 
 // ===== LIVE CHAT HUB =====
@@ -12537,7 +13038,7 @@ function activatePage(pg){
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
   if(pg==='live') loadLive();   // always fetch the latest live state on open
-  else { stopLiveRailPolling(); stopChatRealtime(); }   // leaving Live — stop polls/realtime
+  else { stopLiveRailPolling(); stopChatRealtime(); try{ tvSuspend(); }catch(e){} }   // leaving Live — stop polls/realtime, pause the channel
   if(pg!=='dashboard' && COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
   if(pg==='storylines'){ loadStorylines(); spOwnerComposerInit(); }
   if(pg==='leaderboard') loadLeaderboard();
@@ -13788,13 +14289,29 @@ function applyPitch(){
   </div></div>`;
 }
 
+/* The division records (Mens / Womens / Undisputed / their stable) come from
+   the same data the roster's record card uses, which the roster loader fills in
+   at start-up. Give it a few seconds if the dashboard got here first. */
+async function dhWaitRanks(){
+  for(let i=0;i<40;i++){
+    if(typeof RANK_BY_NAME!=='undefined' && Object.keys(RANK_BY_NAME).length) return true;
+    await new Promise(r=>setTimeout(r,200));
+  }
+  return false;
+}
 async function renderDhCharCard(){
   const host = $d('dh-char-card');
   if(!host) return;
   const w = await loadDhCharacter();
   if(!w){ host.innerHTML = applyPitch(); return; }
   const s = await charStats(w);
-  const standing = s.champion ? 'Champion'
+  await dhWaitRanks();
+  const recList = (typeof rcRecordsFor==='function') ? rcRecordsFor(w.name) : [];
+  RC_STATE['dh-rc'] = { name:w.name, list:recList, idx: rcDefaultIdx(recList) };
+  // same rank number the Rankings page and the record card show
+  const mainRec = recList.find(r=>r.kind==='div' && r.division===s.division);
+  const standing = (mainRec ? mainRec.champ : s.champion) ? 'Champion'
+    : mainRec ? (mainRec.slot ? 'Rank #' + mainRec.slot : 'Unranked')
     : s.rank ? 'Rank #' + s.rank : 'Unranked';
   const streak = s.last.length
     ? `<div class="dh-streak">${s.last.map(r=>{
@@ -13810,11 +14327,11 @@ async function renderDhCharCard(){
     <div class="dh-char-body">
       <h3 class="dh-char-name">${E(w.name)}</h3>
       <div class="dh-char-meta">${E(s.division)} Division · ${E(standing)}</div>
-      ${streak}
-      <div class="dh-tally">${ tally || '<span class="dim">No recorded matches yet</span>' }</div>
-      ${ s.champion ? '' : `<div class="dh-cp"><span class="dim">Contender points</span>${dots(s.points)}</div>` }
+      ${streak ? `<div class="dh-char-meta" style="margin-top:8px">Last 5 matches</div>${streak}` : ''}
     </div>
-  </div></div>`;
+  </div>
+  ${rcCardHTML('dh-rc')}
+  </div>`;
 }
 
 /* ---- betting summary card ---- */
@@ -13910,10 +14427,6 @@ async function renderDhCharFull(){
     <div class="dh-char-body">
       <h3 class="dh-char-name">${E(w.name)}</h3>
       <div class="dh-char-meta">${E(s.division)} Division · ${E(standing)}</div>
-      ${ s.champion ? '' : `<div class="dh-cp"><span class="dim">Contender points</span>${dots(s.points)}</div>` }
-      <div class="dh-tally">${
-        [s.wins?s.wins+'W':'', s.losses?s.losses+'L':'', s.nowins?s.nowins+'NW':'']
-          .filter(Boolean).join(' · ') || '<span class="dim">No recorded matches yet</span>'}</div>
       <button class="hbtn" style="margin-top:14px"
         onclick="(typeof goWrestler==='function'?goWrestler('${(w.name||'').replace(/'/g,"\\'")}'):goPage('roster'))">
         <i class="ti ti-external-link"></i> <span class="hbtn-label">Public profile</span></button>
@@ -13921,6 +14434,7 @@ async function renderDhCharFull(){
   </div>`;
   if(hist && typeof renderWrestlerHistory === 'function'){
     hist.innerHTML = '<div id="dh-mh"></div>';
+    await dhWaitRanks();
     renderWrestlerHistory(w.name, 'dh-mh');
   }
 }
@@ -14020,7 +14534,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'live-replay-2026-10-18a';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'channels-2026-10-19a';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
@@ -18139,7 +18653,7 @@ function boot(){
       let ev = null; try{ ev = (typeof CURRENT_EVENT!=='undefined') ? CURRENT_EVENT : null; }catch(_){}
       if(!ev || host.querySelector('.sd-evbanner')) return;
       // Watch Live in replay mode shows a different show than CURRENT_EVENT
-      if(host.querySelector('.live-layout.is-replay')) return;
+      if(host.querySelector('.live-layout.is-replay, .live-layout.is-tv')) return;
       const target = id==='live-content' ? (host.querySelector('.live-layout')||host) : host;
       if(!target.firstChild) return;
       sdDecorateEvent(ev, target);
