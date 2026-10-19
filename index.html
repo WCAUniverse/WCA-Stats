@@ -1522,7 +1522,27 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .tv-frame .tv-state{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center;
     text-align:center; padding:24px; background:rgba(5,7,15,.9); font-family:var(--font-display);
     letter-spacing:1.5px; color:var(--muted); font-size:18px; line-height:1.4;}
-  .tv-frame .tv-state[hidden], .tv-tunein[hidden], .tv-sync[hidden]{display:none;}
+  .tv-frame .tv-state[hidden], .tv-tunein[hidden], .tv-sync[hidden], .tv-golive[hidden]{display:none;}
+  /* Back to Live: big and on the player, top right (Tune In sits top left) */
+  .tv-golive{position:absolute; z-index:4; right:16px; top:16px; display:grid;
+    grid-template-columns:auto auto; grid-template-rows:auto auto; column-gap:9px; align-items:center;
+    background:var(--loss); color:#fff; border:2px solid rgba(255,255,255,.85); cursor:pointer;
+    border-radius:14px; padding:10px 18px 9px 14px; text-align:left;
+    box-shadow:0 8px 28px rgba(0,0,0,.6); animation:tvGoLive 1.6s ease-in-out infinite;}
+  .tv-golive:hover{filter:brightness(1.1); transform:scale(1.03);}
+  .tv-golive-dot{grid-row:1 / span 2; width:12px; height:12px; border-radius:50%; background:#fff;
+    box-shadow:0 0 0 0 rgba(255,255,255,.7); animation:tvBlink 1s ease-in-out infinite;}
+  .tv-golive-t{font-family:var(--font-display); font-size:19px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; line-height:1.1;}
+  .tv-golive-sub{font-family:var(--font-cond); font-size:13px; opacity:.9; line-height:1.2;}
+  .tv-golive-sub:empty{display:none;}
+  @keyframes tvGoLive{0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,.55),0 8px 28px rgba(0,0,0,.6);}
+    60%{box-shadow:0 0 0 14px rgba(226,75,74,0),0 8px 28px rgba(0,0,0,.6);}}
+  @media(max-width:680px){
+    .tv-golive{right:10px; top:10px; padding:8px 12px 7px 10px; border-radius:11px;}
+    .tv-golive-t{font-size:15px;}
+    .tv-golive-sub{font-size:11.5px;}
+  }
   .tv-tunein{position:absolute; z-index:4; left:16px; top:16px; display:inline-flex; align-items:center; gap:8px;
     background:var(--gold); color:var(--on-gold); border:0; cursor:pointer; border-radius:999px;
     padding:10px 18px; font-family:var(--font-display); font-size:13px; font-weight:600; letter-spacing:1.5px;
@@ -1557,7 +1577,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   }
   @media (prefers-reduced-motion: reduce){
     .tv-tile{transition:none;}
-    .tv-tunein, .tv-dot{animation:none;}
+    .tv-tunein, .tv-dot, .tv-golive, .tv-golive-dot{animation:none;}
   }
 
   /* ---- Watch Live replay mode: Previous Bets recap + spoiler results ---- */
@@ -1656,6 +1676,34 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   @media(max-width:560px){
     .ch-feed{height:300px;}
   }
+
+  /* Chat | Watching tabs */
+  .ch-tabs{display:flex; gap:4px; margin:2px 0 10px; border-bottom:1px solid var(--line);}
+  .ch-tab{background:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; cursor:pointer;
+    color:var(--muted); font-family:var(--font-cond); font-weight:600; font-size:14px; letter-spacing:1px;
+    text-transform:uppercase; padding:6px 10px 7px; display:inline-flex; align-items:center; gap:6px;}
+  .ch-tab:hover{color:var(--txt-2);}
+  .ch-tab.on{color:var(--gold); border-bottom-color:var(--gold);}
+  .ch-tab-count{font-family:var(--font-body); font-size:11px; background:var(--gold-deep); color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:999px; padding:0 7px; line-height:17px; letter-spacing:0;}
+  .ch-tab-count:empty{display:none;}
+  .ch-people{display:none; flex-direction:column; gap:8px; height:340px; overflow-y:auto; padding:2px 6px 4px 2px; margin-bottom:12px;}
+  .chat-hub.show-people .ch-people{display:flex;}
+  .chat-hub.show-people .ch-feed, .chat-hub.show-people #ch-composer-slot, .chat-hub.show-people .ch-sub{display:none;}
+  .stage-grid .ch-people{height:auto; flex:1 1 auto; min-height:0;}
+  .ch-ptotal{font-family:var(--font-cond); font-size:13px; color:var(--muted); letter-spacing:.5px; margin-bottom:2px;}
+  .ch-person{display:flex; gap:10px; align-items:center; padding:5px 6px; border-radius:9px;}
+  .ch-person.me{background:rgba(var(--gold-rgb),.06);}
+  .ch-pname{font-family:var(--font-cond); font-weight:600; font-size:15px; color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ch-ptag{font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gold);
+    border:1px solid var(--gold-dim); border-radius:4px; padding:1px 5px; margin-left:6px; vertical-align:2px;}
+  .ch-ptag.you{color:var(--txt-2); border-color:var(--line);}
+  .ch-pwatch{font-family:var(--font-body); font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ch-pdot{width:7px; height:7px; border-radius:50%; background:var(--win); flex-shrink:0;}
+  .ch-pguests{font-family:var(--font-body); font-size:12.5px; color:var(--muted); padding:6px; display:flex; align-items:center; gap:6px;}
+  @media(max-width:980px){ .stage-grid .ch-people{height:340px; flex:none;} }
 
   /* ---- Points Leaderboard page ---- */
   .lb-champ{display:flex; align-items:center; gap:16px; background:var(--gold-deep);
@@ -9248,6 +9296,9 @@ async function renderTv(el, chans){
             <div id="tv-yt"></div>
             <div class="tv-state" id="tv-state" hidden></div>
             <button class="tv-tunein" id="tv-tunein" type="button" onclick="tvTuneIn()" hidden><i class="ti ti-volume"></i> Tune In</button>
+            <button class="tv-golive" id="tv-golive" type="button" onclick="tvSyncNow()" hidden>
+              <span class="tv-golive-dot"></span><span class="tv-golive-t">Back to Live</span>
+              <span class="tv-golive-sub" id="tv-golive-sub"></span></button>
           </div></div></div>
           <section class="chat-hub" id="chat-hub">
             <h3><i class="ti ti-messages" style="color:var(--gold)"></i> Live Chat${clearBtn}</h3>
@@ -9261,7 +9312,7 @@ async function renderTv(el, chans){
         <span class="tv-now-l"><span class="tv-dot"></span><span class="tv-now-k" id="tv-now-k">Now Playing</span>
           <b id="tv-now-title"></b><span class="tv-now-left" id="tv-now-left"></span></span>
         <span class="tv-now-r"><span id="tv-now-next"></span>
-          <button class="tv-sync" id="tv-sync" type="button" onclick="tvSyncNow()" hidden><i class="ti ti-player-track-next"></i> Catch Up</button></span>
+          <button class="tv-sync" id="tv-sync" type="button" onclick="tvSyncNow()" hidden><i class="ti ti-player-track-next"></i> Back to Live</button></span>
       </div>
       <section class="tv-dial${tvDialClosed()?' closed':''}" id="tv-dial" aria-label="WCA Channels">
         <div class="tv-bar">
@@ -9347,6 +9398,7 @@ function tvPick(i){
   // scrubbing fast through channels shouldn't load every video on the way
   TV.holdUntil = Date.now() + 350;
   setTimeout(tvTick, 380);
+  try{ presTrack(); }catch(e){}
 }
 function tvStep(dir){ tvPick(TV.idx + dir); }
 function tvBindTrack(){
@@ -9521,20 +9573,27 @@ function tvPaintNow(ch, s){
 }
 function tvPaintButtons(s){
   const tune = document.getElementById('tv-tunein'), sync = document.getElementById('tv-sync');
-  let muted = false, behind = false;
+  const golive = document.getElementById('tv-golive'), sub = document.getElementById('tv-golive-sub');
+  let muted = false, behind = false, note = '';
   if(s){
     if(TV.apiFailed) muted = !TV.unmuted;
     else if(TV.player && TV.ready){
       try{
         muted = TV.player.isMuted();
         const st = TV.player.getPlayerState();           // 1 playing, 2 paused, 3 buffering
-        if(st === 2) behind = true;
-        else if(st === 1) behind = Math.abs(TV.player.getCurrentTime() - s.offset) > 10;
+        const diff = TV.player.getCurrentTime() - s.offset;   // minus = behind, plus = ahead
+        if(st === 2){ behind = true; note = 'Paused'; }
+        else if(st === 1 && Math.abs(diff) > 10){
+          behind = true;
+          note = diff < 0 ? `You're ${tvLeft(-diff)} behind` : `You're ${tvLeft(diff)} ahead`;
+        }
       }catch(e){}
     }
   }
   if(tune) tune.hidden = !muted;
   if(sync) sync.hidden = !behind;
+  if(golive) golive.hidden = !behind;
+  if(sub && sub.textContent !== note) sub.textContent = note;
 }
 function tvRecap(item){
   const host = document.getElementById('tv-recap');
@@ -9642,7 +9701,147 @@ function chatAppend(m){
   CHAT_LAST_TS = m.created_at;
   if(near) chatScrollBottom();
 }
+/* ===== WHO'S WATCHING (Watch Live) =====
+   A "Watching" tab beside Live Chat lists everyone on the Watch Live page
+   right now, live or reruns. Uses Supabase Realtime Presence on one shared
+   channel: nothing is stored in the database, and a person drops off the
+   list on their own when they leave the page or close the tab.
+   Signed in members show with name and picture (one entry even with
+   several tabs open); guests are only counted. During reruns each person
+   also shows which channel they're on, so people can say "tune in here". */
+const PRES = { ch:null, key:null, state:{}, tab:'chat' };
+function presKey(){
+  if(CURRENT_USER) return 'u:' + CURRENT_USER.id;
+  try{
+    let k = sessionStorage.getItem('wca-pres-key');
+    if(!k){ k = 'g:' + Math.random().toString(36).slice(2, 12); sessionStorage.setItem('wca-pres-key', k); }
+    return k;
+  }catch(e){ return PRES.key && PRES.key.startsWith('g:') ? PRES.key : 'g:' + Math.random().toString(36).slice(2, 12); }
+}
+function presWatching(){
+  const host = document.getElementById('live-content');
+  if(!host) return '';
+  if(host.querySelector('.live-layout.is-tv')){
+    const ch = (typeof TV !== 'undefined' && TV.list && TV.list[TV.idx]) || null;
+    return ch ? ch.name : 'Reruns';
+  }
+  if(host.querySelector('.live-layout.is-replay')) return 'Last show replay';
+  if(host.querySelector('.live-layout')) return 'Live show';
+  return '';
+}
+function presMe(){
+  const signed = !!CURRENT_USER;
+  return {
+    name:   signed ? ((MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member') : null,
+    avatar: signed ? ((MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || null) : null,
+    guest:  !signed,
+    admin:  !!IS_ADMIN,
+    watching: presWatching(),
+    at: Date.now()
+  };
+}
+function presStart(){
+  if(typeof sb === 'undefined' || !sb || typeof sb.channel !== 'function') return;
+  const key = presKey();
+  if(PRES.ch && PRES.key === key){ presTrack(); return; }
+  presStop();
+  PRES.key = key;
+  try{
+    PRES.ch = sb.channel('wca-watch-live', { config:{ presence:{ key } } });
+    PRES.ch.on('presence', { event:'sync' }, ()=>{
+      try{ PRES.state = PRES.ch.presenceState() || {}; }catch(e){ PRES.state = {}; }
+      presRender();
+    }).subscribe(status=>{ if(status === 'SUBSCRIBED') presTrack(); });
+  }catch(e){ PRES.ch = null; }
+}
+let PRES_TRACK_T = null;
+function presTrack(){
+  clearTimeout(PRES_TRACK_T);
+  PRES_TRACK_T = setTimeout(()=>{ try{ if(PRES.ch) PRES.ch.track(presMe()); }catch(e){} }, 150);
+}
+function presStop(){
+  clearTimeout(PRES_TRACK_T);
+  if(PRES.ch){
+    try{ PRES.ch.untrack(); }catch(e){}
+    try{ sb.removeChannel(PRES.ch); }catch(e){}
+    PRES.ch = null;
+  }
+  PRES.state = {};
+}
+// one entry per person: the newest of their tabs
+function presPeople(){
+  const people = [];
+  Object.keys(PRES.state || {}).forEach(k=>{
+    const metas = PRES.state[k] || [];
+    if(!metas.length) return;
+    const m = metas.slice().sort((a,b)=>(b.at||0)-(a.at||0))[0];
+    people.push(Object.assign({ key:k }, m));
+  });
+  return people;
+}
+function presRender(){
+  const people = presPeople();
+  const members = people.filter(p=>!p.guest).sort((a,b)=> (b.admin - a.admin) || String(a.name).localeCompare(String(b.name)));
+  const guests = people.length - members.length;
+  const cnt = document.getElementById('ch-tab-count');
+  if(cnt) cnt.textContent = people.length || '';
+  const box = document.getElementById('ch-people');
+  if(!box) return;
+  const me = PRES.key;
+  const row = p=>{
+    const init = String(p.name||'?').slice(0,2).toUpperCase();
+    const ava = p.avatar
+      ? `<img class="ch-ava" src="${escAttr(p.avatar)}" alt="" onerror="this.outerHTML='<div class=\\'ch-ava-init\\'>${esc(init)}</div>'">`
+      : `<div class="ch-ava-init">${esc(init)}</div>`;
+    return `<div class="ch-person${p.key===me?' me':''}">
+      ${ava}
+      <div class="ch-body">
+        <div class="ch-pname">${esc(p.name||'Member')}${p.admin?'<span class="ch-ptag">ADMIN</span>':''}${p.key===me?'<span class="ch-ptag you">YOU</span>':''}</div>
+        ${p.watching?`<div class="ch-pwatch"><span class="ch-pdot"></span>${esc(p.watching)}</div>`:''}
+      </div>
+    </div>`;
+  };
+  const total = people.length;
+  box.innerHTML = `<div class="ch-ptotal">${total} watching right now</div>`
+    + (members.map(row).join('') || '')
+    + (guests ? `<div class="ch-pguests"><i class="ti ti-user"></i> ${guests} guest${guests===1?'':'s'} not signed in</div>` : '')
+    + (!total ? `<div class="ch-empty">Connecting…</div>` : '');
+}
+// Chat | Watching tabs, added to whichever Watch Live layout is on screen
+function chatHubTabs(){
+  const hub = document.getElementById('chat-hub');
+  if(!hub || hub.querySelector('.ch-tabs')) return;
+  const h3 = hub.querySelector('h3');
+  const tabs = document.createElement('div');
+  tabs.className = 'ch-tabs';
+  tabs.setAttribute('role', 'tablist');
+  tabs.innerHTML = `<button type="button" class="ch-tab" data-t="chat" role="tab" onclick="chatHubTab('chat')"><i class="ti ti-messages"></i> Chat</button>
+    <button type="button" class="ch-tab" data-t="people" role="tab" onclick="chatHubTab('people')"><i class="ti ti-users"></i> Watching <span class="ch-tab-count" id="ch-tab-count"></span></button>`;
+  if(h3) h3.after(tabs); else hub.prepend(tabs);
+  const people = document.createElement('div');
+  people.className = 'ch-people';
+  people.id = 'ch-people';
+  const feed = document.getElementById('ch-feed');
+  if(feed) feed.after(people); else hub.appendChild(people);
+  chatHubTab(PRES.tab);
+  presRender();
+}
+function chatHubTab(t){
+  PRES.tab = t === 'people' ? 'people' : 'chat';
+  const hub = document.getElementById('chat-hub');
+  if(!hub) return;
+  hub.classList.toggle('show-people', PRES.tab === 'people');
+  hub.querySelectorAll('.ch-tab').forEach(b=>{
+    const on = b.dataset.t === PRES.tab;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  if(PRES.tab === 'chat') chatScrollBottom();
+}
+
 async function initChatHub(){
+  chatHubTabs();
+  presStart();
   renderChatComposer();
   const feed = document.getElementById('ch-feed');
   if(!feed) return;
@@ -13072,7 +13271,7 @@ function activatePage(pg){
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
   if(pg==='live') loadLive();   // always fetch the latest live state on open
-  else { stopLiveRailPolling(); stopChatRealtime(); try{ tvSuspend(); }catch(e){} }   // leaving Live — stop polls/realtime, pause the channel
+  else { stopLiveRailPolling(); stopChatRealtime(); try{ tvSuspend(); }catch(e){} try{ presStop(); }catch(e){} }   // leaving Live — stop polls/realtime, pause the channel, leave "Watching"
   if(pg!=='dashboard' && COUNTDOWN_TIMER){ clearInterval(COUNTDOWN_TIMER); COUNTDOWN_TIMER=null; }
   if(pg==='storylines'){ loadStorylines(); spOwnerComposerInit(); }
   if(pg==='leaderboard') loadLeaderboard();
@@ -14568,7 +14767,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'channels-2026-10-19b';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'channels-2026-10-19d';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
