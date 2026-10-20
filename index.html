@@ -130,7 +130,7 @@ function wcaSetAddress(pg, qs, push){
 <meta name="twitter:image"       content="https://wcauniverse.com/share/wca-card-2.png">
 
 <!-- PWA: lets the site install to the home screen and open fullscreen like an app -->
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0d0d0f">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -437,6 +437,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     /* visual order: nav (1) → userbox (2) → socials (3, far right) */
     .head-right > nav{ order:1; }
     .head-right > .donate-btn{ order:2; flex:0 0 auto; }
+    .head-right > .app-btn{ order:2; flex:0 0 auto; }
     .head-right > .userbox{ order:3; flex:0 0 auto; }
     .head-right > .socials{ order:4; flex:0 0 auto; margin-left:4px; }
 
@@ -1473,51 +1474,66 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     padding:10px 0 2px; letter-spacing:.5px;}
 
   /* ---- WCA Channels: the channel dial + synced rerun player (Watch Live, off air) ---- */
-  .tv-dial{position:relative; width:100%; max-width:640px; margin:0 auto; border:1px solid var(--line);
-    border-radius:14px; overflow:hidden;
-    background:radial-gradient(ellipse 70% 80% at 50% 70%, rgba(var(--gold-rgb),.10), transparent 70%), var(--panel);}
-  .tv-bar{display:flex; align-items:center; gap:8px; padding:6px 10px 6px 6px;}
-  .tv-toggle{flex:1; min-width:0; display:flex; align-items:center; gap:9px; background:none; border:0; cursor:pointer;
-    color:var(--txt-2); padding:6px 8px; border-radius:9px; text-align:left;}
-  .tv-toggle:hover{background:rgba(255,255,255,.04);}
-  .tv-toggle > .ti-broadcast{color:var(--gold); font-size:17px;}
-  .tv-onair{font-family:var(--font-display); font-size:13px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold);}
-  .tv-bar-now{font-family:var(--font-cond); font-size:14px; color:var(--muted); min-width:0;
+  .tv-dial{position:relative; width:100%; max-width:820px; margin:0 auto; border:1px solid var(--line);
+    border-radius:16px; overflow:hidden;
+    background:radial-gradient(ellipse 70% 80% at 50% 60%, rgba(var(--gold-rgb),.12), transparent 70%), var(--panel);}
+  .tv-bar{display:flex; align-items:center; gap:10px; padding:10px;}
+  /* the big yellow "Channels" button: open or fold the channel picker */
+  .tv-toggle{flex:1; min-width:0; display:flex; align-items:center; gap:12px; cursor:pointer; text-align:left;
+    background:linear-gradient(180deg, #ffd766, var(--gold) 55%, #c9951f); color:var(--on-gold);
+    border:0; border-radius:12px; padding:10px 16px 10px 10px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.25) inset, 0 6px 22px rgba(var(--gold-rgb),.35);
+    transition:transform .15s, box-shadow .15s, filter .15s;}
+  .tv-toggle:hover{filter:brightness(1.06); transform:translateY(-1px);
+    box-shadow:0 0 0 1px rgba(255,255,255,.35) inset, 0 10px 30px rgba(var(--gold-rgb),.5);}
+  .tv-tg-ico{width:40px; height:40px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.82); color:var(--gold); font-size:22px;}
+  .tv-tg-txt{display:flex; flex-direction:column; min-width:0; line-height:1.15;}
+  .tv-onair{font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:3px; text-transform:uppercase;}
+  .tv-bar-now{font-family:var(--font-cond); font-size:14px; font-weight:600; opacity:.8; min-width:0;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .tv-bar-now b{color:#fff; font-weight:600;}
-  .tv-caret{margin-left:auto; font-size:17px; color:var(--muted); transition:transform .25s;}
-  .tv-dial.closed .tv-caret{transform:rotate(-90deg);}
-  .tv-bar-arrows{display:none; gap:2px;}
+  .tv-bar-now b{font-weight:700;}
+  .tv-tg-cta{margin-left:auto; display:flex; align-items:center; gap:6px; flex-shrink:0;
+    font-family:var(--font-display); font-size:13px; letter-spacing:1.5px; text-transform:uppercase;}
+  .tv-tg-open{display:inline;} .tv-tg-closed{display:none;}
+  .tv-dial.closed .tv-tg-open{display:none;} .tv-dial.closed .tv-tg-closed{display:inline;}
+  .tv-caret{font-size:20px; transition:transform .25s;}
+  .tv-dial:not(.closed) .tv-caret{transform:rotate(180deg);}
+  .tv-bar-arrows{display:none; gap:4px;}
   .tv-dial.closed .tv-bar-arrows{display:flex;}
-  .tv-arrow.sm{font-size:20px; padding:2px 6px;}
-  .tv-dial-body{padding:0 0 12px; border-top:1px solid var(--line);}
+  .tv-arrow.sm{font-size:24px; padding:6px 8px; border-radius:10px; border:1px solid var(--line); background:rgba(0,0,0,.35);}
+  .tv-dial-body{padding:6px 0 18px;}
   .tv-dial.closed .tv-dial-body{display:none;}
-  .tv-track{--tv-gap:170px; --tv-w:150px; position:relative; height:124px; margin-top:6px;
-    touch-action:pan-y; outline:none; user-select:none;}
-  .tv-track:focus-visible{box-shadow:inset 0 0 0 1px var(--gold-dim);}
-  .tv-tile{position:absolute; left:50%; top:50%; width:var(--tv-w); height:104px; padding:0; margin:0;
+  /* big logos with the arrows either side, like a radio dial */
+  .tv-stage{display:flex; align-items:center; gap:6px; padding:0 8px;}
+  .tv-track{--tv-gap:215px; --tv-w:240px; position:relative; flex:1; min-width:0; height:250px;
+    overflow:hidden; touch-action:pan-y; outline:none; user-select:none;}
+  .tv-track:focus-visible{box-shadow:inset 0 0 0 1px var(--gold-dim); border-radius:12px;}
+  .tv-tile{position:absolute; left:50%; top:50%; width:var(--tv-w); height:220px; padding:0; margin:0;
     border:0; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    transform:translate(-50%,-50%); filter:grayscale(.55) brightness(.8);
+    transform:translate(-50%,-50%); filter:grayscale(.55) brightness(.75);
     transition:transform .38s cubic-bezier(.2,.8,.2,1), opacity .38s, filter .38s;}
   .tv-tile.on{filter:none; cursor:default;}
-  .tv-tile img{max-width:100%; max-height:98px; object-fit:contain; pointer-events:none;
-    filter:drop-shadow(0 6px 16px rgba(0,0,0,.6));}
-  .tv-tile.on img{filter:drop-shadow(0 0 18px rgba(var(--gold-rgb),.45)) drop-shadow(0 6px 16px rgba(0,0,0,.6));}
+  .tv-tile img{max-width:100%; max-height:214px; object-fit:contain; pointer-events:none;
+    filter:drop-shadow(0 8px 20px rgba(0,0,0,.65));}
+  .tv-tile.on img{filter:drop-shadow(0 0 22px rgba(var(--gold-rgb),.45)) drop-shadow(0 8px 20px rgba(0,0,0,.65));}
   .tv-tile .tv-tile-txt{display:flex; align-items:center; justify-content:center; width:100%; height:100%;
-    padding:10px 14px; border:2px solid var(--gold-dim); border-radius:14px; overflow:hidden;
+    padding:16px 18px; border:2px solid var(--gold-dim); border-radius:18px; overflow:hidden;
     background:linear-gradient(180deg, rgba(var(--gold-rgb),.16), rgba(0,0,0,.4));
-    font-family:var(--font-display); font-weight:700; font-size:20px; line-height:1.05; letter-spacing:1px;
+    font-family:var(--font-display); font-weight:700; font-size:30px; line-height:1.05; letter-spacing:1px;
     text-transform:uppercase; color:#fff; text-align:center; word-break:break-word;}
   .tv-tile.has-logo .tv-tile-txt{display:none;}
-  .tv-tile.on .tv-tile-txt{border-color:var(--gold); box-shadow:0 0 26px rgba(var(--gold-rgb),.35);}
-  .tv-pick{display:flex; align-items:center; justify-content:center; gap:18px; padding:4px 16px 0;}
+  .tv-tile.on .tv-tile-txt{border-color:var(--gold); box-shadow:0 0 30px rgba(var(--gold-rgb),.35);}
   .tv-arrow{background:none; border:0; color:#fff; font-size:30px; cursor:pointer; padding:4px 8px;
     line-height:1; transition:.15s; flex-shrink:0;}
   .tv-arrow:hover{color:var(--gold); transform:scale(1.12);}
-  .tv-info{text-align:center; min-width:0; flex:0 1 520px;}
-  .tv-name{font-family:var(--font-display); font-weight:700; font-size:17px; letter-spacing:2px;
+  .tv-arrow.big{width:56px; height:56px; padding:0; border-radius:50%; font-size:34px; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.45); border:1px solid var(--line); z-index:2;}
+  .tv-arrow.big:hover{border-color:var(--gold); background:rgba(var(--gold-rgb),.12); transform:scale(1.08);}
+  .tv-info{text-align:center; max-width:600px; margin:6px auto 0; padding:0 18px;}
+  .tv-name{font-family:var(--font-display); font-weight:700; font-size:24px; letter-spacing:2.5px;
     text-transform:uppercase; color:#fff;}
-  .tv-desc{font-family:var(--font-body); font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.4;}
+  .tv-desc{font-family:var(--font-body); font-size:15.5px; color:var(--txt-2); margin-top:5px; line-height:1.5;}
 
   .tv-frame .tv-state{position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center;
     text-align:center; padding:24px; background:rgba(5,7,15,.9); font-family:var(--font-display);
@@ -1574,12 +1590,16 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   .tv-sync:hover{background:rgba(var(--gold-rgb),.12);}
   #tv-recap:empty{display:none;}
   @media(max-width:680px){
-    .tv-track{--tv-gap:118px; --tv-w:110px; height:100px;}
-    .tv-tile{height:84px;}
-    .tv-tile img{max-height:80px;}
-    .tv-tile .tv-tile-txt{font-size:17px; padding:8px;}
-    .tv-name{font-size:17px;}
-    .tv-pick{gap:8px;}
+    .tv-track{--tv-gap:125px; --tv-w:160px; height:175px;}
+    .tv-tile{height:150px;}
+    .tv-tile img{max-height:146px;}
+    .tv-tile .tv-tile-txt{font-size:20px; padding:10px;}
+    .tv-arrow.big{width:40px; height:40px; font-size:26px;}
+    .tv-stage{padding:0 4px; gap:2px;}
+    .tv-name{font-size:19px;}
+    .tv-desc{font-size:14.5px;}
+    .tv-onair{font-size:16px; letter-spacing:2px;}
+    .tv-tg-cta .tv-tg-closed, .tv-tg-cta .tv-tg-open{display:none !important;}
   }
   @media (prefers-reduced-motion: reduce){
     .tv-tile{transition:none;}
@@ -4010,6 +4030,15 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   }
   .donate-btn:hover{background:rgba(var(--gold-rgb),.2); transform:translateY(-1px);}
   .donate-btn i{font-size:16px; color:#ff6b81;}
+  .app-btn i{color:var(--gold);}
+  .app-btn[hidden]{display:none !important;}
+  #app-modal .modal-box{max-width:460px;}
+  .app-steps{margin:14px 0 4px; padding:0; list-style:none; counter-reset:st;}
+  .app-steps li{counter-increment:st; display:flex; gap:12px; align-items:flex-start; padding:9px 0;
+    border-top:1px solid var(--line); font-family:var(--font-body); font-size:15px; color:var(--txt-2); line-height:1.45;}
+  .app-steps li::before{content:counter(st); flex:0 0 26px; height:26px; border-radius:50%; background:var(--gold);
+    color:var(--on-gold); font-family:var(--font-display); font-size:13px; display:flex; align-items:center; justify-content:center;}
+  .app-steps b{color:#fff;}
   @media(max-width:760px){ .donate-btn{justify-content:center; padding:11px 14px; font-size:14px;} }
 
   /* ── reveal on scroll ── */
@@ -4733,6 +4762,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
         <a href="https://discord.gg/SBFAnU8SDT" data-social="discord" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
       </div>
       <button class="donate-btn" id="donateBtn" type="button" onclick="openDonate()" title="Help fund the website"><i class="ti ti-heart"></i> Donate</button>
+      <button class="donate-btn app-btn" id="appBtn" type="button" onclick="wcaInstall()" title="Install WCA on your phone or computer" hidden><i class="ti ti-download"></i> Get the App</button>
       <div class="userbox" id="userbox">
         <button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>
       </div>
@@ -5242,6 +5272,16 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     <h2 class="hm-h2" id="donate-modal-title">Support WCA</h2>
     <p class="hm-lede" id="donate-modal-body" style="font-size:14.5px">Every donation goes into running the website and getting it a proper domain. Thank you!</p>
     <div class="donate-opts" id="donate-modal-opts"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="app-modal" onclick="if(event.target===this)closeAppModal()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="app-modal-title">
+    <button class="modal-close" onclick="closeAppModal()" aria-label="Close"><i class="ti ti-x"></i></button>
+    <div class="hm-eyebrow">WCA on your home screen</div>
+    <h2 class="hm-h2" id="app-modal-title" style="font-size:24px">Get the App</h2>
+    <p class="hm-lede" style="font-size:14.5px">Install WCA and it opens full screen like a real app, with its own icon. It's free, and it's always the latest version of the site.</p>
+    <ol class="app-steps" id="app-steps"></ol>
   </div>
 </div>
 
@@ -9501,9 +9541,11 @@ async function renderTv(el, chans){
         <div class="tv-bar">
           <button class="tv-toggle" id="tv-toggle" type="button" onclick="tvToggleDial()"
             aria-expanded="${tvDialClosed()?'false':'true'}" aria-controls="tv-dial-body">
-            <i class="ti ti-broadcast"></i><span class="tv-onair">Channels</span>
-            <span class="tv-bar-now">Watching <b id="tv-bar-name"></b></span>
-            <i class="ti ti-chevron-down tv-caret"></i>
+            <span class="tv-tg-ico"><i class="ti ti-broadcast"></i></span>
+            <span class="tv-tg-txt"><span class="tv-onair">Channels</span>
+              <span class="tv-bar-now">Watching <b id="tv-bar-name"></b></span></span>
+            <span class="tv-tg-cta"><span class="tv-tg-closed">Change channel</span><span class="tv-tg-open">Hide</span>
+              <i class="ti ti-chevron-down tv-caret"></i></span>
           </button>
           <span class="tv-bar-arrows">
             <button class="tv-arrow sm" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
@@ -9511,12 +9553,12 @@ async function renderTv(el, chans){
           </span>
         </div>
         <div class="tv-dial-body" id="tv-dial-body">
-          <div class="tv-track" id="tv-track" tabindex="0" aria-label="Channels. Use the left and right arrow keys to change channel."></div>
-          <div class="tv-pick">
-            <button class="tv-arrow" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
-            <div class="tv-info"><div class="tv-name" id="tv-name"></div><div class="tv-desc" id="tv-desc"></div></div>
-            <button class="tv-arrow" type="button" onclick="tvStep(1)" aria-label="Next channel"><i class="ti ti-chevron-right"></i></button>
+          <div class="tv-stage">
+            <button class="tv-arrow big" type="button" onclick="tvStep(-1)" aria-label="Previous channel"><i class="ti ti-chevron-left"></i></button>
+            <div class="tv-track" id="tv-track" tabindex="0" aria-label="Channels. Use the left and right arrow keys to change channel."></div>
+            <button class="tv-arrow big" type="button" onclick="tvStep(1)" aria-label="Next channel"><i class="ti ti-chevron-right"></i></button>
           </div>
+          <div class="tv-info"><div class="tv-name" id="tv-name"></div><div class="tv-desc" id="tv-desc"></div></div>
         </div>
       </section>
       <div id="tv-recap"></div>
@@ -13757,34 +13799,106 @@ if(!isConfigured){
 }
 </script>
 
-<!-- SERVICE WORKER: REMOVED ON PURPOSE.
-     The worker cached the site and kept serving an old index.html, so uploads
-     appeared to do nothing — two copies were found wedged on "trying to
-     install", which is why several fixes never reached the browser at all.
-     For a site whose content comes live from Supabase, offline caching buys
-     very little and costs a class of bug that is near-impossible to diagnose
-     from a screenshot. This actively removes any worker still registered and
-     clears its caches, so every visitor self-heals on their next load. -->
+<!-- APP INSTALL (Oct 2026).
+     The old sw.js cached the site and kept serving an old index.html, so it
+     is still removed here (with its caches) and every visitor self-heals.
+     app-sw.js replaces it and caches NOTHING: it only exists because Chrome,
+     Edge and Android need a worker before they offer "Install app". Uploads
+     stay live on the next visit exactly as before.
+     "Get the App" in the header uses the browser's own install prompt when it
+     offers one, otherwise it shows the steps for that phone or browser. -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs=>{
       let had = false;
-      regs.forEach(r=>{ had = true; r.unregister().catch(()=>{}); });
+      regs.forEach(r=>{
+        const w = r.active || r.waiting || r.installing;
+        const url = (w && w.scriptURL) || '';
+        if (/\/app-sw\.js(\?|$)/.test(url)) return;          // ours: keep
+        had = true; r.unregister().catch(()=>{});
+      });
       if (had && window.caches) {
         caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))).catch(()=>{});
       }
-      // One reload once the stale worker is gone, so this visit gets the real
-      // files rather than whatever it was holding.
+      // One reload once the stale worker is gone, so this visit gets the real files.
       if (had) {
         let done = false;
         try{ done = sessionStorage.getItem('wca-sw-cleared') === '1'; }catch(e){}
         if (!done) {
           try{ sessionStorage.setItem('wca-sw-cleared','1'); }catch(e){}
-          setTimeout(()=>location.reload(true), 300);
+          setTimeout(()=>location.reload(), 300);
+          return;
         }
       }
+      navigator.serviceWorker.register('/app-sw.js', { scope:'/' }).catch(()=>{});
     }).catch(()=>{});
   }
+
+  let WCA_INSTALL_EVT = null;
+  function wcaIsApp(){
+    try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }catch(e){ return false; }
+  }
+  function wcaAppBtn(){
+    const b = document.getElementById('appBtn');
+    if(b) b.hidden = wcaIsApp();               // already opened as the app: no button
+  }
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); WCA_INSTALL_EVT = e; wcaAppBtn(); });
+  window.addEventListener('appinstalled', ()=>{
+    WCA_INSTALL_EVT = null; closeAppModal();
+    try{ if(typeof wcaToast === 'function') wcaToast('WCA installed', 'Find it on your home screen or in your apps.'); }catch(e){}
+  });
+  document.addEventListener('DOMContentLoaded', wcaAppBtn);
+  wcaAppBtn();
+
+  async function wcaInstall(){
+    const hr = document.getElementById('headRight'); if(hr) hr.classList.remove('open');
+    if(WCA_INSTALL_EVT){
+      const ev = WCA_INSTALL_EVT;
+      WCA_INSTALL_EVT = null;
+      try{ ev.prompt(); await ev.userChoice; }catch(e){ openAppModal(); }
+      return;
+    }
+    openAppModal();
+  }
+  // steps for browsers that don't offer a one click install
+  function openAppModal(){
+    const ua = navigator.userAgent || '';
+    const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const android = /Android/.test(ua);
+    const firefox = /Firefox\//.test(ua);
+    const safariMac = /Macintosh/.test(ua) && /Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua) && !ios;
+    let steps;
+    if(ios) steps = [
+      'Open <b>wcauniverse.com</b> in <b>Safari</b>.',
+      'Tap the <b>Share</b> button (the square with the arrow pointing up).',
+      'Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.'];
+    else if(android && firefox) steps = [
+      'Tap the <b>⋮</b> menu.',
+      'Tap <b>Install</b> or <b>Add to Home screen</b>.'];
+    else if(android) steps = [
+      'Tap the <b>⋮</b> menu at the top right of Chrome.',
+      'Tap <b>Install app</b> or <b>Add to Home screen</b>.',
+      'Tap <b>Install</b>. WCA shows up with your other apps.'];
+    else if(safariMac) steps = [
+      'In Safari, open the <b>File</b> menu.',
+      'Choose <b>Add to Dock</b>, then <b>Add</b>.'];
+    else if(firefox) steps = [
+      'Firefox on a computer can\'t install websites as apps.',
+      'Open <b>wcauniverse.com</b> in <b>Chrome</b> or <b>Edge</b> and press <b>Get the App</b> again.'];
+    else steps = [
+      'Look for the <b>install icon</b> at the right end of the address bar (a small screen with an arrow) and click it.',
+      'No icon? Open the browser\'s <b>⋮</b> or <b>…</b> menu and look for <b>Install</b>.',
+      'WCA opens in its own window and gets a shortcut like any other app.'];
+    const box = document.getElementById('app-steps');
+    if(box) box.innerHTML = steps.map(t=>'<li><span>'+t+'</span></li>').join('');
+    const m = document.getElementById('app-modal');
+    if(m) m.classList.add('open');
+  }
+  function closeAppModal(){
+    const m = document.getElementById('app-modal');
+    if(m) m.classList.remove('open');
+  }
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAppModal(); });
 </script>
 <!-- ===== SPONSORS & PARTNERS (public page) =====
      Reads sponsor_sections + sponsors from Supabase and renders one
@@ -14990,7 +15104,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'channels-twitch-2026-10-20a';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'channels-twitch-2026-10-20b';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
