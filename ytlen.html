@@ -7,7 +7,8 @@
 <title>WCA Video Lengths</title>
 <!--
   Helper for the admin Channels tab. The admin opens this page in a small
-  window and sends it a list of YouTube video ids. It loads each one in a
+  window and sends it a list of YouTube video ids (and/or playlist ids, which
+  it opens to read the videos inside, in order). It loads each one in a
   real YouTube player (which works here because this page is on
   wcauniverse.com, unlike admin.html opened from disk), reads the length
   and title, and sends them back. It stores nothing and changes nothing.
@@ -41,7 +42,7 @@
 (function(){
   var msg = document.getElementById('msg'), bar = document.querySelector('#bar i');
   var opener = window.opener;
-  var player = null, ready = false, queue = null, lastErr = null;
+  var player = null, ready = false, queue = null, lastErr = null, busy = false;
   function say(t){ msg.textContent = t; }
   function send(o){ try{ if(opener) opener.postMessage(o, '*'); }catch(e){} }
   if(!opener){ say('Open this from the admin Channels tab (Get lengths).'); return; }
@@ -64,9 +65,11 @@
   window.addEventListener('message', function(ev){
     if(ev.source !== opener) return;
     var d = ev.data || {};
-    if(d.type !== 'wca-ytlen' || !Array.isArray(d.ids)) return;
-    var ids = d.ids.map(String).filter(function(x){ return /^[\w-]{6,20}$/.test(x); }).slice(0, 200);
-    if(ready) run(ids); else queue = ids;
+    if(d.type !== 'wca-ytlen' || busy) return;          // ignore repeats once a job has started
+    var ids = (Array.isArray(d.ids) ? d.ids : []).map(String).filter(function(x){ return /^[\w-]{6,20}$/.test(x); }).slice(0, 300);
+    var lists = (Array.isArray(d.playlists) ? d.playlists : []).map(String).filter(function(x){ return /^[\w-]{10,64}$/.test(x); }).slice(0, 10);
+    var job = { ids:ids, lists:lists };
+    if(ready) run(job); else queue = job;
   });
 
   function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
@@ -89,8 +92,36 @@
     try{ player.pauseVideo(); }catch(e){}
     return null;
   }
-  async function run(ids){
+  // the videos in a playlist, in order
+  async function expand(list){
+    lastErr = null;
+    player.cuePlaylist({ listType:'playlist', list:list });
+    var last = -1, same = 0;
+    for(var i=0;i<60;i++){                       // up to 15s
+      await wait(250);
+      var p = player.getPlaylist && player.getPlaylist();
+      if(p && p.length){
+        if(p.length === last){ if(++same >= 4) return p.slice(); }   // stable for a second
+        else { last = p.length; same = 0; }
+      }
+    }
+    var p2 = player.getPlaylist && player.getPlaylist();
+    return (p2 && p2.slice()) || [];
+  }
+  async function run(job){
     queue = null;
+    if(busy) return;
+    busy = true;
+    var playlists = {};
+    for(var q=0;q<job.lists.length;q++){
+      say('Opening playlist ' + (q+1) + ' of ' + job.lists.length + '…');
+      send({type:'wca-ytlen-progress', phase:'playlist', done:q+1, total:job.lists.length});
+      var vids = [];
+      try{ vids = await expand(job.lists[q]); }catch(e){}
+      playlists[job.lists[q]] = vids;
+    }
+    var ids = job.ids.slice();
+    Object.keys(playlists).forEach(function(k){ playlists[k].forEach(function(v){ if(ids.indexOf(v) < 0) ids.push(v); }); });
     var results = {}, failed = [];
     for(var k=0;k<ids.length;k++){
       say('Reading ' + (k+1) + ' of ' + ids.length + '…');
@@ -98,11 +129,11 @@
       var r = null;
       try{ r = await measure(ids[k]); }catch(e){}
       if(r) results[ids[k]] = r; else failed.push(ids[k]);
-      send({type:'wca-ytlen-progress', done:k+1, total:ids.length});
+      send({type:'wca-ytlen-progress', phase:'length', done:k+1, total:ids.length});
     }
     bar.style.width = '100%';
     try{ player.stopVideo(); }catch(e){}
-    send({type:'wca-ytlen-result', results:results, failed:failed});
+    send({type:'wca-ytlen-result', results:results, failed:failed, playlists:playlists});
     say('Done. ' + Object.keys(results).length + ' of ' + ids.length + ' read. This window will close.');
     setTimeout(function(){ window.close(); }, 1200);
   }
