@@ -393,13 +393,18 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     font-size:22px; line-height:1; padding:7px 10px; border-radius:8px; cursor:pointer;}
   .nav-toggle:hover{border-color:var(--gold);}
   @media(max-width:760px){
-    .head-inner{padding:14px 16px; flex-wrap:nowrap;}
+    /* logo left, menu button right; the open menu drops onto its own full-width row */
+    .head-inner{padding:14px 16px; flex-wrap:wrap; row-gap:0;}
+    .brand{flex:1 1 auto; min-width:0;}
     .brand .sub{display:none;}                 /* drop the long subtitle on mobile */
     .nav-toggle{display:block; flex:0 0 auto;}
     /* collapse the menu: hidden until toggled open, then a stacked dropdown */
-    .head-right{display:none; flex-basis:100%; flex-direction:column; align-items:stretch; gap:12px;
-      margin-top:12px; order:3;}
+    .head-right{display:none; flex:0 0 100%; width:100%; min-width:0; flex-direction:column; align-items:stretch; gap:12px;
+      margin-top:12px; order:3; padding-bottom:16px;
+      max-height:calc(100vh - 90px); max-height:calc(100dvh - 90px); overflow-y:auto; overscroll-behavior:contain;}
     .head-right.open{display:flex;}
+    .head-right > .donate-btn{width:100%;}
+    .head-right > .userbox{display:flex;}
     nav{flex-direction:column; gap:4px;}
     nav button,nav a{width:100%; text-align:left; font-size:15px; padding:12px 14px;}
     .socials{justify-content:center; gap:22px;}
@@ -4001,7 +4006,12 @@ try{ wcaApplyCachedFonts(); }catch(e){}
 
   /* ── support / donate (home section + the header modal share these) ── */
   .hm-donate{padding:clamp(22px,3.6vw,36px); text-align:center;}
-  .donate-opts{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px;}
+  .donate-opts{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; justify-content:center;}
+  #hm-donate-opts[data-count="1"]{grid-template-columns:minmax(0,320px);}
+  #hm-donate-opts[data-count="2"]{grid-template-columns:repeat(2,minmax(0,300px));}
+  .donate-opt{min-width:0;}
+  .donate-opt > div{min-width:0; flex:1 1 auto;}
+  .donate-opt b,.donate-opt span{overflow-wrap:anywhere;}
   .donate-opt{
     display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:12px;
     text-decoration:none; color:#fff; text-align:left;
@@ -4050,7 +4060,8 @@ try{ wcaApplyCachedFonts(); }catch(e){}
   @media(max-width:980px){ .hm-pillars{grid-template-columns:repeat(2,1fr);} }
   @media(max-width:760px){
     .hm-wrap{padding-top:14px;}
-    .hm-guide,.donate-opts{grid-template-columns:1fr;}
+    .hm-guide,.donate-opts,
+    #hm-donate-opts[data-count]{grid-template-columns:minmax(0,1fr);}
   }
   @media(max-width:520px){
     .hm-pillars{grid-template-columns:1fr; gap:10px;}
@@ -13520,7 +13531,18 @@ function setNavLive(on){
 }
 
 function toggleNav(){
-  document.getElementById('headRight')?.classList.toggle('open');
+  const hr = document.getElementById('headRight');
+  if(!hr) return;
+  hr.classList.toggle('open');
+  wcaNavIcon();
+}
+/* the menu button shows an X while the mobile menu is open */
+function wcaNavIcon(){
+  const hr = document.getElementById('headRight'), ic = document.querySelector('#navToggle i');
+  if(!hr || !ic) return;
+  const open = hr.classList.contains('open');
+  ic.className = 'ti ' + (open ? 'ti-x' : 'ti-menu-2');
+  document.getElementById('navToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 // Activate a page by its data-page key (shared by clicks, goPage, and hash restore).
 function activatePage(pg){
@@ -13529,6 +13551,7 @@ function activatePage(pg){
   // (both from the user chip) and home (the logo).
   if(!btn && pg!=='account' && pg!=='home' && pg!=='dash') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
+  if(typeof wcaNavIcon==='function') wcaNavIcon();
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
   if(typeof markNavGroupActive==='function') setTimeout(markNavGroupActive,0);
   if(btn) btn.classList.add('active');
@@ -15104,7 +15127,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'channels-twitch-2026-10-20b';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'mobile-fix-2026-10-20c';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
@@ -15908,20 +15931,32 @@ function paintGuide(){
 }
 
 /* ── donate ───────────────────────────────────────────────────────── */
+/* The icon and colour follow the service the link goes to, so moving
+   Cash App into a different slot in the admin still shows Cash App's mark. */
+const DONATE_BRANDS = [
+  { re:/cash\.app|cash ?app/i,           icon:'ti-brand-cashapp',   color:'#00a83e' },
+  { re:/paypal/i,                         icon:'ti-brand-paypal',    color:'#1f6fd6' },
+  { re:/streamelements/i,                 icon:'ti-heart-handshake', color:'#5b4cf0' },
+  { re:/ko-?fi/i,                         icon:'ti-coffee',          color:'#ff5e5b' },
+  { re:/patreon/i,                        icon:'ti-brand-patreon',   color:'#f96854' },
+  { re:/venmo/i,                          icon:'ti-currency-dollar', color:'#3d95ce' },
+  { re:/twitch/i,                         icon:'ti-brand-twitch',    color:'#9146ff' },
+  { re:/buymeacoffee|buy me a coffee/i,   icon:'ti-coffee',          color:'#e0a800' }
+];
 function donateOptions(){
-  return DONATE_SLOTS.map(s=>({
-    name: HOME['donate'+s.n+'_name'] || '',
-    note: HOME['donate'+s.n+'_note'] || '',
-    url:  safeUrl(HOME['donate'+s.n+'_url']),
-    icon: s.icon, color: s.color
-  })).filter(o=>o.url && o.name);
+  return DONATE_SLOTS.map(s=>{
+    const name = HOME['donate'+s.n+'_name'] || '';
+    const url  = safeUrl(HOME['donate'+s.n+'_url']);
+    const b = DONATE_BRANDS.find(x=>x.re.test(url)) || DONATE_BRANDS.find(x=>x.re.test(name));
+    return { name, url, note: HOME['donate'+s.n+'_note'] || '',
+             icon: b ? b.icon : s.icon, color: b ? b.color : s.color };
+  }).filter(o=>o.url && o.name);
 }
 function paintDonateOpts(host){
   if(!host) return;
   const opts = donateOptions();
-  host.style.gridTemplateColumns = (host.id === 'hm-donate-opts' && opts.length && opts.length < 3)
-    ? 'repeat('+opts.length+',minmax(0,280px))' : '';
-  host.style.justifyContent = 'center';
+  // the column count lives in CSS so phones can still stack the cards
+  host.dataset.count = String(opts.length);
   host.innerHTML = opts.map(o=>
     `<a class="donate-opt" href="${attrH(o.url)}" target="_blank" rel="noopener noreferrer" style="--dc:${attrH(o.color)}">
        <i class="ti ${o.icon}"></i>
