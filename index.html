@@ -1528,6 +1528,10 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     font-family:var(--font-display); font-weight:700; font-size:30px; line-height:1.05; letter-spacing:1px;
     text-transform:uppercase; color:#fff; text-align:center; word-break:break-word;}
   .tv-tile.has-logo .tv-tile-txt{display:none;}
+  /* a streamer's profile picture as the logo: a big round badge */
+  .tv-tile.is-avatar img{width:200px; height:200px; max-width:none; max-height:none; object-fit:cover;
+    border-radius:50%; border:3px solid rgba(255,255,255,.18); background:#000;}
+  .tv-tile.is-avatar.on img{border-color:var(--gold);}
   .tv-tile.on .tv-tile-txt{border-color:var(--gold); box-shadow:0 0 30px rgba(var(--gold-rgb),.35);}
   .tv-arrow{background:none; border:0; color:#fff; font-size:30px; cursor:pointer; padding:4px 8px;
     line-height:1; transition:.15s; flex-shrink:0;}
@@ -1544,7 +1548,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     text-align:center; padding:24px; background:rgba(5,7,15,.9); font-family:var(--font-display);
     letter-spacing:1.5px; color:var(--muted); font-size:18px; line-height:1.4;}
   .tv-frame .tv-state[hidden], .tv-tunein[hidden], .tv-sync[hidden], .tv-golive[hidden]{display:none;}
-  /* Twitch channels */
+  /* Twitch and YouTube live channels */
   .tv-frame iframe.tv-twitch{position:absolute; inset:0; width:100%; height:100%; border:0; z-index:2; background:#000;}
   .tv-livetag{position:absolute; top:4px; right:4px; display:inline-flex; align-items:center; gap:5px;
     background:var(--loss); color:#fff; font-family:var(--font-display); font-size:10px; letter-spacing:1.2px;
@@ -1598,6 +1602,7 @@ try{ wcaApplyCachedFonts(); }catch(e){}
     .tv-track{--tv-gap:125px; --tv-w:160px; height:175px;}
     .tv-tile{height:150px;}
     .tv-tile img{max-height:146px;}
+    .tv-tile.is-avatar img{width:138px; height:138px; max-height:none;}
     .tv-tile .tv-tile-txt{font-size:20px; padding:10px;}
     .tv-arrow.big{width:40px; height:40px; font-size:26px;}
     .tv-stage{padding:0 4px; gap:2px;}
@@ -9048,10 +9053,10 @@ function startLiveModeWatch(){
     if(!pg || !pg.classList.contains('active')){ clearInterval(LIVE_MODE_TIMER); LIVE_MODE_TIMER=null; return; }
     try{
       if(await liveShowOnNow()){ loadLive(); return; }
-      // on the last show replay: a Twitch channel going live brings the channels back
+      // on the last show replay: a Twitch or YouTube channel going live brings the channels back
       if(document.querySelector('#live-content .live-layout.is-replay')){
         if(!TV.all.length){ try{ TV.all = (await tvFetch()) || []; }catch(e){} }
-        if(TV.all.some(tvIsTwitch)){ await tvTwitchCheck(); if(tvUsable(TV.all).length) loadLive(); }
+        if(TV.all.some(tvIsStream)){ await tvStreamCheck(); if(tvUsable(TV.all).length) loadLive(); }
       }
     }catch(e){}
   }, 30000);
@@ -9363,7 +9368,7 @@ async function loadReplayRecap(rev){
 const TV = { list:[], idx:0, sig:'', player:null, ready:false, creating:false, apiP:null, apiFailed:false,
              key:null, tick:null, unmuted:false, needSync:false, suspended:false, holdUntil:0,
              recapId:null, errVid:null,
-             all:[], twitch:{}, twitchAt:0, twitchBusy:false };
+             all:[], twitch:{}, twitchAt:0, twitchBusy:false, yt:{}, streamBusy:false };
 const TV_SAVE_KEY = 'wca-tv-channel';
 
 /* ---- Twitch channels ----
@@ -9374,8 +9379,37 @@ const TV_SAVE_KEY = 'wca-tv-channel';
    Twitch channels simply never appear. */
 function tvIsTwitch(c){ return !!(c && c.kind === 'twitch' && c.twitch_login); }
 function tvTwitchInfo(c){ return tvIsTwitch(c) ? (TV.twitch[String(c.twitch_login).toLowerCase()] || null) : null; }
+/* YouTube live channels work the same way: kind 'youtube' with their channel
+   ID, shown only while the youtube-live Edge Function says they're live. */
+function tvIsYt(c){ return !!(c && c.kind === 'youtube' && c.youtube_channel); }
+function tvYtInfo(c){ return tvIsYt(c) ? (TV.yt[c.youtube_channel] || null) : null; }
+function tvIsStream(c){ return tvIsTwitch(c) || tvIsYt(c); }
+function tvStreamInfo(c){ return tvIsTwitch(c) ? tvTwitchInfo(c) : tvYtInfo(c); }
+// the logo on the dial: their profile picture when the admin chose that, else the uploaded logo
+function tvAvatar(c){ const i = c && c.use_avatar ? tvStreamInfo(c) : null; return (i && i.avatar) || ''; }
+function tvLogo(c){ return tvAvatar(c) || (c && c.logo_url) || ''; }
 function tvUsable(all){
-  return (all||[]).filter(c=> tvIsTwitch(c) ? !!tvTwitchInfo(c) : tvItems(c).length > 0);
+  return (all||[]).filter(c=> tvIsStream(c) ? !!tvStreamInfo(c) : tvItems(c).length > 0);
+}
+async function tvYtCheck(){
+  const ids = [...new Set((TV.all||[]).filter(tvIsYt).map(c=>String(c.youtube_channel)))];
+  if(!ids.length){ TV.yt = {}; return; }
+  try{
+    const call = sb.functions.invoke('youtube-live', { body:{ channels:ids } });
+    const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), 8000));
+    const { data, error } = await Promise.race([call, timeout]);
+    if(error || !data || data.error) throw new Error((error && error.message) || (data && data.error) || 'no data');
+    TV.yt = data.live || {};
+  }catch(e){
+    console.warn('[channels] YouTube live check failed:', e.message || e);   // keep the last answer
+  }
+}
+// Twitch and YouTube checked together
+async function tvStreamCheck(){
+  if(TV.streamBusy) return;
+  TV.streamBusy = true;
+  try{ await Promise.all([tvTwitchCheck(), tvYtCheck()]); }
+  finally{ TV.twitchAt = Date.now(); TV.streamBusy = false; }
 }
 async function tvTwitchCheck(){
   const logins = [...new Set((TV.all||[]).filter(tvIsTwitch).map(c=>String(c.twitch_login).toLowerCase()))];
@@ -9398,13 +9432,13 @@ async function tvTwitchCheck(){
 // once a minute while channels are on screen: add channels that went live,
 // drop ones that ended
 async function tvTwitchRefresh(){
-  await tvTwitchCheck();
+  await tvStreamCheck();
   const host = document.getElementById('live-content');
   if(!host || !host.querySelector('.live-layout.is-tv')) return;
   const next = tvUsable(TV.all);
   if(!next.length){ loadLive(); return; }       // nothing left to play: back to the last show replay
-  const before = TV.list.map(c=>c.id).join(',');
-  if(next.map(c=>c.id).join(',') === before){ tvLayoutDial(); return; }
+  const before = TV.list.map(c=>c.id + '|' + tvLogo(c)).join(',');
+  if(next.map(c=>c.id + '|' + tvLogo(c)).join(',') === before){ tvLayoutDial(); return; }
   const cur = TV.list[TV.idx];
   TV.list = next;
   const keep = cur ? next.findIndex(c=>String(c.id)===String(cur.id)) : -1;
@@ -9426,14 +9460,22 @@ function tvTwitchShow(ch){
     ifr = document.createElement('iframe');
     ifr.className = 'tv-twitch';
     ifr.title = 'Twitch stream';
-    ifr.setAttribute('allow', 'autoplay; fullscreen');
+    ifr.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
     ifr.setAttribute('allowfullscreen', '');
     ifr.setAttribute('scrolling', 'no');
     f.prepend(ifr);
   }
-  const parent = encodeURIComponent(location.hostname || 'wcauniverse.com');
-  ifr.src = `https://player.twitch.tv/?channel=${encodeURIComponent(String(ch.twitch_login).toLowerCase())}`
-          + `&parent=${parent}&autoplay=true&muted=${TV.unmuted ? 'false' : 'true'}`;
+  if(tvIsYt(ch)){
+    const info = tvYtInfo(ch) || {};
+    ifr.title = 'YouTube live stream';
+    ifr.src = `https://www.youtube.com/embed/${encodeURIComponent(info.video_id || '')}`
+            + `?autoplay=1&mute=${TV.unmuted ? 0 : 1}&playsinline=1&rel=0`;
+  }else{
+    const parent = encodeURIComponent(location.hostname || 'wcauniverse.com');
+    ifr.title = 'Twitch stream';
+    ifr.src = `https://player.twitch.tv/?channel=${encodeURIComponent(String(ch.twitch_login).toLowerCase())}`
+            + `&parent=${parent}&autoplay=true&muted=${TV.unmuted ? 'false' : 'true'}`;
+  }
   f.classList.add('on-twitch');
 }
 function tvTwitchHide(){
@@ -9495,7 +9537,7 @@ async function renderOffAir(el){
   let chans = null;
   try{ chans = await tvFetch(); }catch(e){}
   TV.all = chans || [];
-  if(TV.all.some(tvIsTwitch) && Date.now() - TV.twitchAt > 20000) await tvTwitchCheck();
+  if(TV.all.some(tvIsStream) && Date.now() - TV.twitchAt > 20000) await tvStreamCheck();
   const usable = tvUsable(TV.all);
   if(!usable.length) return renderLiveReplay(el);
   return renderTv(el, usable);
@@ -9503,7 +9545,7 @@ async function renderOffAir(el){
 
 async function renderTv(el, chans){
   stopLiveRailPolling();
-  const sig = JSON.stringify(chans.map(c=>[c.id,c.updated_at,c.name,c.logo_url,c.description,c.starts_at,c.loop_playlist,tvItems(c).length,c.kind,c.twitch_login]));
+  const sig = JSON.stringify(chans.map(c=>[c.id,c.updated_at,c.name,c.logo_url,c.description,c.starts_at,c.loop_playlist,tvItems(c).length,c.kind,c.twitch_login,c.youtube_channel,c.use_avatar,tvLogo(c)]));
   const existing = el.querySelector('.live-layout.is-tv');
   const keepId = (existing && TV.list[TV.idx]) ? TV.list[TV.idx].id : tvSaved();
   TV.list = chans;
@@ -9585,12 +9627,15 @@ async function renderTv(el, chans){
 function tvDrawDial(){
   const track = document.getElementById('tv-track');
   if(!track) return;
-  track.innerHTML = TV.list.map((c,i)=>`<button class="tv-tile${c.logo_url?' has-logo':''}" type="button" data-i="${i}"
+  track.innerHTML = TV.list.map((c,i)=>{
+    const logo = tvLogo(c), av = !!tvAvatar(c);
+    return `<button class="tv-tile${logo?' has-logo':''}${av?' is-avatar':''}" type="button" data-i="${i}"
       onclick="tvPick(${i})" aria-label="${escAttr(c.name||'Channel')}">
-      ${c.logo_url?`<img src="${escAttr(c.logo_url)}" alt="" draggable="false" onerror="this.parentNode.classList.remove('has-logo');this.remove()">`:''}
+      ${logo?`<img src="${escAttr(logo)}" alt="" draggable="false" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('has-logo','is-avatar');this.remove()">`:''}
       <span class="tv-tile-txt">${esc(c.name||'Channel')}</span>
-      ${tvIsTwitch(c)?'<span class="tv-livetag"><i></i>LIVE</span>':''}
-    </button>`).join('');
+      ${tvIsStream(c)?'<span class="tv-livetag"><i></i>LIVE</span>':''}
+    </button>`;
+  }).join('');
   tvLayoutDial();
 }
 function tvLayoutDial(){
@@ -9735,7 +9780,7 @@ function tvHalt(){
 }
 function tvTuneIn(){
   TV.unmuted = true;
-  if(tvIsTwitch(TV.list[TV.idx])){ TV.key = null; tvTick(); return; }   // reload the Twitch player with sound
+  if(tvIsStream(TV.list[TV.idx])){ TV.key = null; tvTick(); return; }   // reload the Twitch/YouTube live player with sound
   if(TV.apiFailed){ TV.key = null; tvTick(); return; }   // reload with sound (this click allows it)
   try{ if(TV.player && TV.ready){ TV.player.unMute(); TV.player.playVideo(); } }catch(e){}
   TV.needSync = true;
@@ -9755,12 +9800,12 @@ function tvTick(){
   const ch = TV.list[TV.idx];
   if(!ch) return;
   if(Date.now() < TV.holdUntil) return;
-  if(TV.all.some(tvIsTwitch) && Date.now() - TV.twitchAt > 60000 && !TV.twitchBusy) tvTwitchRefresh();
+  if(TV.all.some(tvIsStream) && Date.now() - TV.twitchAt > 60000 && !TV.streamBusy) tvTwitchRefresh();
   const stateEl0 = document.getElementById('tv-state');
 
-  if(tvIsTwitch(ch)){
-    // someone else's live Twitch stream: no schedule, no syncing
-    const k = 'tw:' + ch.id + ':' + (TV.unmuted ? 1 : 0);
+  if(tvIsStream(ch)){
+    // someone else's live Twitch or YouTube stream: no schedule, no syncing
+    const k = 'tw:' + ch.id + ':' + ((tvYtInfo(ch)||{}).video_id || '') + ':' + (TV.unmuted ? 1 : 0);
     if(TV.key !== k){
       TV.key = k;
       try{ if(TV.player && TV.ready) TV.player.stopVideo(); }catch(e){}
@@ -9819,12 +9864,13 @@ function tvPaintNowTwitch(ch){
   const l = document.getElementById('tv-now-left'), n = document.getElementById('tv-now-next');
   if(!t) return;
   const set = (el, v)=>{ if(el && el.textContent !== v) el.textContent = v; };
-  const info = tvTwitchInfo(ch) || {};
+  const yt = tvIsYt(ch);
+  const info = tvStreamInfo(ch) || {};
   const note = (TV.offNote && Date.now() < (TV.offNoteUntil||0)) ? TV.offNote : '';
-  set(k, 'Live on Twitch');
+  set(k, yt ? 'Live on YouTube' : 'Live on Twitch');
   set(t, info.title || ch.name || '');
   set(l, info.viewers != null ? `${Number(info.viewers).toLocaleString('en-US')} watching` : '');
-  set(n, note || (info.game ? 'Playing ' + info.game : (info.name || ch.twitch_login)));
+  set(n, note || (info.game ? 'Playing ' + info.game : (info.name || (yt ? ch.youtube_name : ch.twitch_login) || ch.name || '')));
 }
 function tvPaintNow(ch, s){
   const k = document.getElementById('tv-now-k'), t = document.getElementById('tv-now-title');
@@ -15127,7 +15173,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'mobile-fix-2026-10-20c';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'yt-live-2026-10-21';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
