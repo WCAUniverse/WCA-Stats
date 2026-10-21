@@ -718,6 +718,15 @@ const ICONS = {
     [circ(50,22,4),'#E8343F',null]
   ]},
 
+  flamingo:{ ops:[
+    ['M52,64 L50,94 M50,94 L58,94 M54,64 C58,74 64,76 62,84',null,'c',.7],
+    ['M30,52 C30,38 50,34 66,40 C74,44 74,56 64,62 C52,68 34,66 30,52 Z','c',null],
+    ['M36,50 C44,46 54,48 62,54',null,'rgba(255,255,255,.35)',.6],
+    ['M64,44 C70,34 66,24 60,20 C54,16 54,8 62,8 C68,8 72,12 70,16',null,'c',1.4],
+    ['M68,12 L78,16 L70,20 Z','k',null],
+    [circ(64,11,1.2),'k',null]
+  ]},
+
   /* ---------------- FOURTH OF JULY ---------------- */
   flag:{ ops:[
     ['M18,14 L18,96',null,'w',.8],
@@ -779,7 +788,7 @@ const SEASONS = {
     lights:{ a:'rgba(200,90,30,.44)', b:'rgba(200,150,40,.36)', v:'#0a0604' },
     line:['#C0392B','#E9782F','#D9A441'],
     space:{ fog:[{h:[18,32],w:2,a:.075},{h:[36,48],w:1.4,a:.06},{h:[6,14],w:1,a:.05}], stars:['#fff2e0','#fff2e0','#FFB070'], hue:30, corona:[255,140,60] },
-    skyline:'hills',
+    skyline:{ type:'nyc', tops:['#E9782F','#D9A441','#C0392B'], park:['#E9782F','#C0392B','#D9A441','#A0522D'] },
     groups:[
       { motion:'fall', n:28, size:[18,42], items:[
         {k:'maple',w:3,c:['p','s','x','#A0522D']},{k:'oak',w:2,c:['p','x','#A0522D']},{k:'leaf',w:2,c:['s','p','x']} ]},
@@ -797,7 +806,7 @@ const SEASONS = {
     lights:{ a:'rgba(40,160,100,.42)', b:'rgba(220,40,55,.44)', v:'#050b10' },
     line:['#E8343F','#F5C451','#2FBF71'],
     space:{ fog:[{h:[196,216],w:3,a:.075},{h:[140,160],w:1,a:.05},{h:[352,360],w:.8,a:.05}], stars:['#ffffff','#cfe6ff','#cfe6ff','#F5C451'], hue:205, corona:[200,230,255] },
-    skyline:'snow',
+    skyline:{ type:'nyc', snow:true, warm:0.85, tops:['#E8343F','#2FBF71','#E8343F'] },
     groups:[
       { motion:'roam', n:12, size:[38,66], items:[
         {k:'snowman',w:2,c:['w']},{k:'santa',w:1.6,c:['w']},{k:'tree',w:2,c:['s']},{k:'bauble',w:2,c:['p','x','s','#3BA4FF']},
@@ -819,13 +828,14 @@ const SEASONS = {
     lights:{ a:'rgba(120,100,220,.40)', b:'rgba(230,180,60,.40)', v:'#04050a' },
     line:['#C9D3E3','#F2C14E','#B98CFF'],
     space:{ fog:[{h:[228,262],w:2,a:.07},{h:[40,50],w:1.2,a:.06},{h:[278,298],w:1,a:.05}], stars:['#ffffff','#ffffff','#FFE29A','#C9D3E3'], hue:225, corona:[255,210,120] },
-    skyline:'city',
+    skyline:{ type:'nyc', tops:['#F2C14E','#C9D3E3','#F2C14E'], crown:'#FFF1C9' },
+    balldrop:true,
     groups:[
       { motion:'roam', n:10, size:[38,64], items:[{k:'glass',w:2,c:['p']},{k:'bottle',w:1.4,c:['s']},{k:'clock',w:1.4,c:['w']},
         {k:'partyhat',w:1.4,c:['p','x','#FF5DA2']},{k:'balloon',w:1.6,c:['p','x','#FF5DA2','#4FC3F7']},{k:'star',w:1.4,c:['p','s']}]}
     ],
     particles:{ kind:'confetti', n:70, colors:['p','w','x','#FF5DA2','#4FC3F7'] },
-    fireworks:['p','w','x','#FF5DA2','#4FC3F7'],
+    fireworks:{ colors:['p','w','x','#FF5DA2','#4FC3F7'], rate:[1.3,3.4], size:1.1 },
     edge:{ type:'lights', colors:['#FFD34D','#FFFFFF','#FFE29A','#C9D3E3'], strands:false }
   },
   valentine:{
@@ -838,7 +848,7 @@ const SEASONS = {
     lights:{ a:'rgba(200,40,90,.44)', b:'rgba(255,120,160,.34)', v:'#0a0407' },
     line:['#C2185B','#FF4F81','#FFB3C8'],
     space:{ fog:[{h:[330,350],w:2,a:.075},{h:[300,318],w:1,a:.05},{h:[0,10],w:1,a:.05}], stars:['#ffffff','#FFB3C8'], hue:340, corona:[255,120,160] },
-    skyline:null,
+    skyline:{ type:'nyc', tops:['#FF4F81','#FFB3C8','#C2185B'], crown:'#FFD1DE' },
     groups:[
       { motion:'rise', n:18, size:[16,40], items:[{k:'heart',w:1,c:['p','s','x','w']}] },
       { motion:'roam', n:6, size:[38,60], items:[{k:'rose',w:1.4,c:['p','s']},{k:'envelope',w:1,c:['w']},{k:'arrowheart',w:1.2,c:['p']}] }
@@ -856,7 +866,7 @@ const SEASONS = {
     lights:{ a:'rgba(80,180,110,.38)', b:'rgba(240,140,180,.36)', v:'#050807' },
     line:['#F6A6C1','#7BD389','#8EC5FF'],
     space:{ fog:[{h:[128,150],w:2,a:.06},{h:[322,340],w:1.2,a:.055},{h:[198,214],w:1,a:.05}], stars:['#ffffff','#FFE38A'], hue:140, corona:[255,190,220] },
-    skyline:'meadow',
+    skyline:{ type:'nyc', tops:['#7BD389','#F6A6C1','#8EC5FF'], park:['#F6A6C1','#FFD1E0','#7BD389','#5CB870','#F6A6C1'] },
     groups:[
       { motion:'fall', n:30, size:[12,22], items:[{k:'petal',w:1,c:['s','#FFD1E0','w']}] },
       { motion:'roam', n:8, size:[34,56], items:[{k:'blossom',w:1.6,c:['s','w','g']},{k:'butterfly',w:1.6,c:['x','s','g']},
@@ -866,21 +876,21 @@ const SEASONS = {
   },
   summer:{
     label:'Summer', dates:'Jun 21 to Aug 31',
-    roles:{ p:'#FFB238', w:'#F4FAFF', s:'#2EC4D6', x:'#FF6B5B', g:'#FFE38A', d:'rgba(4,10,16,.78)', k:'#03070b' },
-    colors:{ bg:'#04090f', panel:'#0a1520', panel2:'#0f1d2b', line:'#1d3447', gold:'#FFB238', 'gold-dim':'#B87A1E', 'gold-deep':'#1e1408',
-      accent:'#2EC4D6', txt:'#F4FAFF', muted:'#8EA6B8', win:'#3ECF8E', loss:'#FF6B5B', teal:'#2EC4D6',
-      au:'#FFB238', 'au-bright':'#FFD58A', 'au-deep':'#B87A1E', ink:'#04090f', marble:'#0a1520',
-      'earth-ocean':'#062236', 'earth-land':'#163246', 'earth-border':'#FFB238', 'earth-marker':'#FF6B5B' },
-    lights:{ a:'rgba(30,170,200,.42)', b:'rgba(255,160,40,.40)', v:'#03070b' },
-    line:['#2EC4D6','#FFB238','#FF6B5B'],
-    space:{ fog:[{h:[184,200],w:2,a:.07},{h:[30,42],w:1.2,a:.06},{h:[200,214],w:1,a:.05}], stars:['#ffffff','#FFE38A'], hue:190, corona:[255,190,90] },
-    skyline:'beach',
+    roles:{ p:'#FF2E88', w:'#FFF4FB', s:'#00E5FF', x:'#FF8A3D', g:'#FFD166', d:'rgba(12,4,20,.80)', k:'#08020f' },
+    colors:{ bg:'#0b0614', panel:'#150b24', panel2:'#1c0f30', line:'#3a1f5c', gold:'#FF2E88', 'gold-dim':'#B01E62', 'gold-deep':'#240a1a',
+      accent:'#00E5FF', txt:'#FFF4FB', muted:'#B49AC8', win:'#2EF2A0', loss:'#FF5470', teal:'#00E5FF',
+      au:'#FF2E88', 'au-bright':'#FF8CC0', 'au-deep':'#B01E62', ink:'#0b0614', marble:'#150b24',
+      'earth-ocean':'#1a0830', 'earth-land':'#2c1248', 'earth-border':'#00E5FF', 'earth-marker':'#FF2E88' },
+    lights:{ a:'rgba(0,200,240,.42)', b:'rgba(255,40,140,.44)', v:'#07030d' },
+    line:['#00E5FF','#FF2E88','#FF8A3D'],
+    space:{ fog:[{h:[318,336],w:2.4,a:.085},{h:[184,196],w:1.6,a:.07},{h:[268,284],w:1,a:.06}], stars:['#ffffff','#FFD1E8','#B8F6FF'], hue:318, corona:[255,60,150] },
+    skyline:{ type:'miami' },
     groups:[
-      { motion:'roam', n:10, size:[38,62], items:[{k:'sun',w:1.4,c:['p']},{k:'palm',w:1.4,c:['s']},{k:'wave',w:1.2,c:['s']},
-        {k:'sunglasses',w:1.2,c:['x','p']},{k:'beachball',w:1.2,c:['w']},{k:'icecream',w:1.2,c:['w']}] }
+      { motion:'roam', n:10, size:[38,62], items:[{k:'sun',w:1.2,c:['x']},{k:'palm',w:1.4,c:['s']},{k:'flamingo',w:1.6,c:['p']},
+        {k:'sunglasses',w:1.2,c:['s','p']},{k:'wave',w:1,c:['s']},{k:'icecream',w:1,c:['w']}] }
     ],
-    particles:{ kind:'fireflies', n:36, colors:['g','#C8FF8A'] },
-    edge:{ type:'bunting', shape:'flag', colors:['#2EC4D6','#FFB238','#FF6B5B','#F4FAFF'] }
+    particles:{ kind:'fireflies', n:36, colors:['p','s','x'] },
+    edge:{ type:'neon', colors:['#FF2E88','#00E5FF'] }
   },
   july4:{
     label:'Fourth of July', dates:'Jul 1 to 5',
@@ -892,16 +902,17 @@ const SEASONS = {
     lights:{ a:'rgba(50,90,220,.46)', b:'rgba(220,40,60,.42)', v:'#04060d' },
     line:['#E63946','#F7F9FF','#4D7CFF'],
     space:{ fog:[{h:[218,236],w:2,a:.075},{h:[352,360],w:1.2,a:.06},{h:[0,6],w:.6,a:.05}], stars:['#ffffff','#ffffff','#ff9aa2','#9ab8ff'], hue:222, corona:[255,120,130] },
-    skyline:'city',
+    skyline:{ type:'nyc', river:true, tops:['#E63946','#F7F9FF','#4D7CFF'] },
     groups:[
       { motion:'roam', n:10, size:[36,62], items:[{k:'star',w:3,c:['p','w','s']},{k:'flag',w:1.5,c:['w']},{k:'rocket',w:1.2,c:['p','s']},{k:'tophat',w:1.2,c:['w']}] }
     ],
     particles:{ kind:'sparkle', n:40, colors:['w','p','s'] },
-    fireworks:['p','w','s','x'],
+    fireworks:{ colors:['p','w','s','x'], rate:[0.6,1.8], size:1.25 },
     edge:{ type:'bunting', shape:'flag', colors:['#E63946','#F7F9FF','#3557D6'] }
   }
 };
-const ORDER = ['halloween','autumn','christmas','newyear','valentine','spring','summer','july4'];
+/* Picker order: January to December. */
+const ORDER = ['newyear','valentine','spring','summer','july4','autumn','halloween','christmas'];
 
 /* Automatic: which season the calendar says it is. */
 function autoId(d){
@@ -918,17 +929,56 @@ function autoId(d){
   return null;
 }
 
-const DEF_CFG = { mode:'off', colors:true, bg:true, decor:true, edge:true, amount:1, vis:1 };
+/* ---------- NEW YEAR BALL DROP, on New York time ----------
+   The countdown runs from Dec 26 to midnight in New York, the last 60
+   seconds count down big while the ball lowers, and at midnight the page
+   celebrates for 15 minutes. Everyone sees it at the same moment because
+   it follows New York's clock, not the visitor's.
+   Test link: add ?balldrop=20 to any site address and the ball drops 20
+   seconds after the page loads (it forces the New Year look for that visit). */
+let CLOCK_OFF = 0;                                   // ms; only the test link moves it
+const TEST_DROP = (function(){
+  try{ const v = new URLSearchParams(location.search).get('balldrop'); if(v == null) return 0;
+       const n = parseFloat(v); return isFinite(n) && n > 0 ? Math.min(n, 3600) : 20; }catch(e){ return 0; }
+})();
+function nyDate(ms){
+  try{
+    const p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', year:'numeric', month:'numeric', day:'numeric' })
+      .formatToParts(new Date(ms)).forEach(x=>{ p[x.type] = x.value; });
+    return { y:+p.year, m:+p.month, d:+p.day };
+  }catch(e){ const d = new Date(ms); return { y:d.getFullYear(), m:d.getMonth()+1, d:d.getDate() }; }
+}
+/* Midnight, Jan 1, in New York. January is always Eastern Standard Time (UTC-5). */
+const nyMidnight = y => Date.UTC(y, 0, 1, 5, 0, 0);
+function dropState(off){
+  const ms = Date.now() + CLOCK_OFF + (off || 0), p = nyDate(ms);
+  const year = p.m === 1 ? p.y : p.y + 1;                // in January this year's drop already happened
+  const left = (nyMidnight(year) - ms)/1000;
+  let phase = 'none';
+  if(left > 0 && p.m === 12 && p.d >= 26) phase = left <= 60 ? 'final' : 'count';
+  else if(left <= 0 && -left < 15*60) phase = 'party';
+  return { year, left, since:-left, phase };
+}
+/* The clock offset that puts midnight `sec` seconds from now. */
+function dropOffset(sec){
+  const p = nyDate(Date.now()), y = p.m === 1 ? p.y : p.y + 1;
+  return nyMidnight(y) - Date.now() - sec*1000;
+}
+if(TEST_DROP) CLOCK_OFF = dropOffset(TEST_DROP);
+
+const DEF_CFG = { mode:'off', colors:true, bg:true, decor:true, edge:true, countdown:true, amount:1, vis:1 };
 function normalize(c){
   c = (c && typeof c === 'object') ? c : {};
   const o = Object.assign({}, DEF_CFG, c);
   o.mode = (o.mode === 'auto' || SEASONS[o.mode]) ? o.mode : 'off';
-  ['colors','bg','decor','edge'].forEach(k=>{ o[k] = o[k] !== false; });
+  ['colors','bg','decor','edge','countdown'].forEach(k=>{ o[k] = o[k] !== false; });
   o.amount = clamp(Number(o.amount) || 1, 0.3, 2);
   o.vis = clamp(Number(o.vis) || 1, 0.3, 1.6);
   return o;
 }
 function resolve(c, date){
+  if(TEST_DROP) return 'newyear';                     // the ?balldrop= test link
   c = normalize(c);
   if(c.mode === 'off') return null;
   if(c.mode === 'auto') return autoId(date);
@@ -1046,10 +1096,278 @@ function pine(ctx, x, y, h, fill, snow){
     if(snow){ ctx.strokeStyle = snow; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - tw*0.3, ty - h*0.12); ctx.lineTo(x, ty - h*0.42); ctx.lineTo(x + tw*0.3, ty - h*0.12); ctx.stroke(); }
   }
 }
+/* ---------- NEW YORK CITY ----------
+   WCA lives in New York, so most seasons stand the city along the bottom of
+   the backdrop: an Empire State style tower, a Chrysler style crown, a
+   tapered downtown tower, rooftop water towers and lit windows. Options
+   (all optional, set per season):
+     tops   colours lighting the tower tops, bottom tier first
+     snow   snow on the roofs and the ground, plus a giant lit tree
+     park   colours of Central Park tree canopies across the front
+     river  water along the bottom with reflections, and Liberty on her island
+     warm   share of windows lit warm rather than cool (0 to 1)          */
+function lightWin(ctx, x, y, w, h, rnd, warm, density){
+  for(let wy = y + 6; wy < y + h - 4; wy += 8){
+    for(let wx = x + 4; wx < x + w - 5; wx += 7){
+      if(rnd() < density){
+        ctx.fillStyle = rnd() < warm ? `rgba(255,${200 + (rnd()*30|0)},${120 + (rnd()*40|0)},${(0.45 + rnd()*0.4).toFixed(2)})`
+                                     : `rgba(${160 + (rnd()*40|0)},${195 + (rnd()*30|0)},255,${(0.35 + rnd()*0.35).toFixed(2)})`;
+        ctx.fillRect(wx, wy, 2.6, 3.6);
+      }
+    }
+  }
+}
+function waterTower(ctx, x, y, s, col){
+  ctx.fillStyle = col;
+  ctx.fillRect(x - 5*s, y - 9*s, 10*s, 8*s);                 // barrel
+  ctx.beginPath(); ctx.moveTo(x - 6*s, y - 9*s); ctx.lineTo(x, y - 14*s); ctx.lineTo(x + 6*s, y - 9*s); ctx.closePath(); ctx.fill();
+  ctx.fillRect(x - 4.5*s, y - 1*s, 1.2*s, 2*s); ctx.fillRect(x + 3.3*s, y - 1*s, 1.2*s, 2*s);
+}
+function tierGlow(ctx, x, y, w, h, c){
+  ctx.save(); ctx.shadowColor = c; ctx.shadowBlur = 14;
+  ctx.fillStyle = rgba(c, .85); ctx.fillRect(x, y, w, h); ctx.restore();
+}
+function esb(ctx, x, base, s, col, tops){
+  const T = [[70,62],[52,70],[38,58],[28,14],[20,10],[13,10]];      // width, height of each setback
+  let y = base;
+  ctx.fillStyle = col;
+  T.forEach(t=>{ ctx.fillRect(x - t[0]*s/2, y - t[1]*s, t[0]*s, t[1]*s + 1); y -= t[1]*s; });
+  ctx.fillRect(x - 3.5*s, y - 22*s, 7*s, 22*s);                 // mast
+  ctx.fillRect(x - 1*s, y - 48*s, 2*s, 26*s);                   // needle
+  if(tops && tops.length){                                       // the coloured lights on top
+    let yy = base - (62+70+58)*s;
+    [[28,14],[20,10],[13,10]].forEach((t,i)=>{ yy -= t[1]*s; tierGlow(ctx, x - t[0]*s/2 + 1, yy + 1, t[0]*s - 2, t[1]*s - 2, tops[i % tops.length]); });
+    tierGlow(ctx, x - 2.5*s, yy - 20*s, 5*s, 18*s, tops[tops.length-1]);
+  }
+  return y;
+}
+function chrysler(ctx, x, base, s, col, lit){
+  ctx.fillStyle = col;
+  ctx.fillRect(x - 24*s, base - 70*s, 48*s, 70*s + 1);
+  ctx.fillRect(x - 17*s, base - 175*s, 34*s, 106*s);
+  let y = base - 175*s;
+  [16, 13, 10, 7, 4.5].forEach((r,i)=>{                             // the stacked sunburst arches
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.moveTo(x - r*s, y + 1); ctx.lineTo(x - r*s, y - 6*s); ctx.arc(x, y - 6*s, r*s, Math.PI, 0); ctx.lineTo(x + r*s, y + 1); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rgba(lit, .65); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y - 6*s, r*s*0.8, Math.PI*1.05, -0.05*Math.PI); ctx.stroke();
+    for(let k=-2;k<=2;k++){ ctx.fillStyle = rgba(lit, .7); ctx.beginPath();
+      const ax = x + k*r*s*0.32, ay = y - 6*s - Math.sqrt(Math.max(0, 1 - (k*0.32)*(k*0.32)))*r*s*0.55;
+      ctx.moveTo(ax - 1.2*s, ay + 2.4*s); ctx.lineTo(ax, ay - 1.2*s); ctx.lineTo(ax + 1.2*s, ay + 2.4*s); ctx.fill(); }
+    y -= (6 + r*0.75)*s;
+  });
+  ctx.fillStyle = col; ctx.fillRect(x - 0.8*s, y - 46*s, 1.6*s, 48*s);
+}
+function oneWTC(ctx, x, base, s, col, lit){
+  ctx.fillStyle = col;
+  ctx.fillRect(x - 22*s, base - 22*s, 44*s, 22*s + 1);
+  ctx.beginPath(); ctx.moveTo(x - 22*s, base - 21*s); ctx.lineTo(x - 9*s, base - 250*s); ctx.lineTo(x + 9*s, base - 250*s); ctx.lineTo(x + 22*s, base - 21*s); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(190,210,255,.18)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, base - 22*s); ctx.lineTo(x - 9*s, base - 250*s); ctx.moveTo(x, base - 22*s); ctx.lineTo(x + 9*s, base - 250*s); ctx.stroke();
+  ctx.fillRect(x - 5*s, base - 256*s, 10*s, 6*s);
+  ctx.fillRect(x - 0.9*s, base - 320*s, 1.8*s, 66*s);
+  ctx.save(); ctx.shadowColor = lit; ctx.shadowBlur = 10; ctx.fillStyle = lit;
+  ctx.beginPath(); ctx.arc(x, base - 320*s, 1.8*s, 0, TAU); ctx.fill(); ctx.restore();
+}
+function liberty(ctx, x, base, s, col, flame){
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.ellipse(x, base, 34*s, 6*s, 0, Math.PI, 0); ctx.fill();          // the island
+  ctx.fillRect(x - 13*s, base - 34*s, 26*s, 34*s);                                      // pedestal
+  ctx.fillRect(x - 9*s, base - 44*s, 18*s, 10*s);
+  ctx.beginPath(); ctx.moveTo(x - 7*s, base - 44*s); ctx.lineTo(x - 5*s, base - 76*s); ctx.lineTo(x - 4*s, base - 88*s);
+  ctx.quadraticCurveTo(x, base - 92*s, x + 4*s, base - 88*s); ctx.lineTo(x + 5*s, base - 76*s); ctx.lineTo(x + 8*s, base - 44*s); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(x, base - 94*s, 3.6*s, 0, TAU); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineCap = 'round';
+  ctx.lineWidth = 1.2*s; for(let i=-3;i<=3;i++){ const a = -Math.PI/2 + i*0.32; ctx.beginPath(); ctx.moveTo(x + Math.cos(a)*3*s, base - 94*s + Math.sin(a)*3*s); ctx.lineTo(x + Math.cos(a)*8*s, base - 94*s + Math.sin(a)*8*s); ctx.stroke(); }
+  ctx.lineWidth = 3*s; ctx.beginPath(); ctx.moveTo(x + 4*s, base - 84*s); ctx.lineTo(x + 7*s, base - 102*s); ctx.lineTo(x + 8*s, base - 114*s); ctx.stroke();
+  ctx.fillRect(x - 10*s, base - 80*s, 5*s, 9*s);                                        // tablet
+  ctx.save(); ctx.shadowColor = flame; ctx.shadowBlur = 16; ctx.fillStyle = flame;
+  ctx.beginPath(); ctx.moveTo(x + 5.5*s, base - 116*s); ctx.quadraticCurveTo(x + 8*s, base - 128*s, x + 9*s, base - 122*s); ctx.quadraticCurveTo(x + 11*s, base - 118*s, x + 10.5*s, base - 116*s); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function bigTree(ctx, x, base, hgt, R, rnd){
+  const tiers = 5, w = hgt*0.5;
+  ctx.fillStyle = '#05130c';
+  for(let i=0;i<tiers;i++){
+    const ty = base - hgt*0.06 - i*hgt*0.17, tw = w*(1 - i*0.17);
+    ctx.beginPath(); ctx.moveTo(x - tw/2, ty); ctx.lineTo(x, ty - hgt*0.30); ctx.lineTo(x + tw/2, ty); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillRect(x - hgt*0.03, base - hgt*0.07, hgt*0.06, hgt*0.07);
+  const cols = ['#FF3B3B','#2FE07A','#FFD34D','#3BA4FF','#FFFFFF','#FF8A2A'];
+  for(let i=0;i<Math.round(hgt*0.9);i++){                            // string lights wrapped around it
+    const t = rnd(), yy = base - hgt*0.08 - t*hgt*0.86, half = (w/2)*(1 - t*0.95)*(0.9 + rnd()*0.12);
+    const xx = x + (rnd()*2 - 1)*half;
+    const c = cols[(rnd()*cols.length)|0];
+    ctx.save(); ctx.shadowColor = c; ctx.shadowBlur = 6; ctx.fillStyle = c;
+    ctx.beginPath(); ctx.arc(xx, yy, 1.3, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  ctx.save(); ctx.shadowColor = '#FFD34D'; ctx.shadowBlur = 18; ctx.fillStyle = '#FFE38A';
+  const sy = base - hgt*0.96, r1 = hgt*0.045, r2 = r1*0.42;
+  ctx.beginPath(); for(let i=0;i<10;i++){ const a = -Math.PI/2 + i*Math.PI/5, r = i%2 ? r2 : r1; ctx.lineTo(x + Math.cos(a)*r, sy + Math.sin(a)*r); } ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function paintNYC(ctx, W, H, R, o, rnd){
+  const h = Math.min(H*0.24, 230), s = Math.max(0.42, h/230), river = !!o.river;
+  const ground = river ? H - h*0.22 : H;
+  const warm = o.warm == null ? 0.72 : o.warm;
+  // far layer: a hazy wall of towers
+  let x = -20;
+  while(x < W + 20){
+    const bw = (18 + rnd()*40)*s*1.4, bh = h*(0.35 + rnd()*0.55);
+    ctx.fillStyle = 'rgba(28,36,62,.55)'; ctx.fillRect(x, ground - bh, bw, bh);
+    lightWin(ctx, x, ground - bh, bw, bh, rnd, warm, 0.08);
+    x += bw + 1;
+  }
+  // near layer: blocks with water towers, leaving room for the landmarks
+  const col = '#070a14';
+  const land = [ [0.12,'wtc'], [0.31,'esb'], [0.69,'chrysler'] ];
+  const near = (xx) => land.some(l => Math.abs(xx - l[0]*W) < 46*s);
+  x = -10;
+  while(x < W + 10){
+    const bw = (26 + rnd()*48)*s*1.3, bh = h*(0.22 + rnd()*0.52);
+    if(!near(x + bw/2)){
+      ctx.fillStyle = col; ctx.fillRect(x, ground - bh, bw, bh + 1);
+      ctx.fillStyle = 'rgba(200,215,255,.10)'; ctx.fillRect(x, ground - bh, bw, 1);
+      ctx.fillStyle = col;
+      if(rnd() < 0.3){ ctx.fillRect(x + bw*0.2, ground - bh - 8*s, bw*0.6, 8*s); }          // a setback
+      lightWin(ctx, x, ground - bh, bw, bh, rnd, warm, 0.26);
+      if(rnd() < 0.45) waterTower(ctx, x + bw*(0.25 + rnd()*0.5), ground - bh, s*1.1, col);
+      if(o.snow){ ctx.fillStyle = 'rgba(240,248,255,.75)'; ctx.fillRect(x, ground - bh - 1.5, bw, 2.2); }
+    }
+    x += bw + 2*s;
+  }
+  // the landmarks, with a soft rim of city light so they read against the sky
+  ctx.save(); ctx.shadowColor = 'rgba(170,195,255,.45)'; ctx.shadowBlur = 7;
+  if(W > 520) oneWTC(ctx, W*0.12, ground, s, col, R.p);
+  esb(ctx, W*0.31, ground, s, col, null);
+  chrysler(ctx, W*0.69, ground, s, col, o.crown || '#FFE7B0');
+  ctx.restore();
+  esb(ctx, W*0.31, ground, s, col, o.tops);
+  lightWin(ctx, W*0.31 - 26*s, ground - 132*s, 52*s, 70*s, rnd, warm, 0.3);
+  lightWin(ctx, W*0.69 - 17*s, ground - 175*s, 34*s, 104*s, rnd, warm, 0.3);
+  if(o.snow){
+    ctx.fillStyle = 'rgba(240,248,255,.7)';
+    [[70,62],[52,70],[38,58]].reduce((y,t)=>{ ctx.fillRect(W*0.31 - t[0]*s/2, y - t[1]*s - 1, t[0]*s, 2); return y - t[1]*s; }, ground);
+  }
+  // the giant lit tree out front at Christmas
+  if(o.snow) bigTree(ctx, W*0.5, H - 6, h*1.05, R, rnd);
+  // Central Park across the front
+  if(o.park){
+    for(let i=0;i<Math.ceil(W/16);i++){
+      const px = i*16 + rnd()*10, r = (10 + rnd()*14)*s*1.2, py = H - 4 + rnd()*6;
+      const c = o.park[(rnd()*o.park.length)|0];
+      ctx.fillStyle = '#04070a'; ctx.beginPath(); ctx.arc(px, py + r*0.1, r*0.95, 0, TAU); ctx.fill();
+      ctx.fillStyle = rgba(c, .62); ctx.beginPath(); ctx.arc(px, py - r*0.15, r, 0, TAU); ctx.fill();
+      ctx.fillStyle = rgba(c, .55);
+      for(let k=0;k<4;k++){ ctx.beginPath(); ctx.arc(px + (rnd()-0.5)*r*1.2, py - r*0.3 + (rnd()-0.5)*r, r*0.18, 0, TAU); ctx.fill(); }
+    }
+  }
+  // snow on the ground
+  if(o.snow){
+    const g = ctx.createLinearGradient(0, H - 26, 0, H);
+    g.addColorStop(0, 'rgba(230,240,252,0)'); g.addColorStop(0.5, 'rgba(230,240,252,.28)'); g.addColorStop(1, 'rgba(230,240,252,.42)');
+    ctx.fillStyle = g; ctx.fillRect(0, H - 26, W, 26);
+  }
+  // the harbour, with Liberty and the city reflected in it
+  if(river){
+    const g = ctx.createLinearGradient(0, ground, 0, H);
+    g.addColorStop(0, '#0a1530'); g.addColorStop(1, '#03060f');
+    ctx.fillStyle = g; ctx.fillRect(0, ground, W, H - ground);
+    ctx.strokeStyle = 'rgba(190,210,255,.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, ground + 0.5); ctx.lineTo(W, ground + 0.5); ctx.stroke();
+    const refl = [R.p, R.w, R.s, 'rgba(255,214,140,1)'];
+    for(let i=0;i<Math.round(W/9);i++){
+      const rx = rnd()*W, ry = ground + 3 + rnd()*(H - ground - 4), l = 6 + rnd()*26;
+      ctx.strokeStyle = rgba(refl[(rnd()*refl.length)|0], (0.10 + rnd()*0.22).toFixed(2)); ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + l, ry); ctx.stroke();
+    }
+    if(W > 420){ ctx.save(); ctx.shadowColor = 'rgba(120,220,200,.5)'; ctx.shadowBlur = 8;
+      liberty(ctx, W*0.05 + 30*s, ground + 6, s*1.35, '#0d2a2a', '#FFB347'); ctx.restore(); }
+  }
+  // a faint city glow along the bottom
+  const gl = ctx.createLinearGradient(0, H - h, 0, H);
+  gl.addColorStop(0, rgba(R.p, 0)); gl.addColorStop(1, rgba(R.p, .07));
+  ctx.fillStyle = gl; ctx.fillRect(0, H - h, W, h);
+}
+
+/* ---------- MIAMI NIGHTS (Summer) ----------
+   Neon pink and cyan, a striped sunset sun sinking into the ocean,
+   art deco buildings with neon trim on both sides, and palms out front. */
+function paintMiami(ctx, W, H, R, rnd){
+  const h = Math.min(H*0.26, 250), s = Math.max(0.45, h/250);
+  const hz = H - h*0.50;                                            // the horizon
+  // sky glow over the sea
+  let g = ctx.createLinearGradient(0, hz - h*1.3, 0, hz);
+  g.addColorStop(0, 'rgba(255,46,136,0)'); g.addColorStop(0.6, 'rgba(255,46,136,.16)'); g.addColorStop(1, 'rgba(255,138,61,.30)');
+  ctx.fillStyle = g; ctx.fillRect(0, hz - h*1.3, W, h*1.3);
+  // the sun, cut into stripes as it sets
+  const sx = W*0.5, sr = h*0.62;
+  const sun = D.createElement('canvas'); sun.width = Math.ceil(sr*2 + 4); sun.height = Math.ceil(sr + 4);
+  const sc = sun.getContext('2d');
+  g = sc.createLinearGradient(0, 0, 0, sr);
+  g.addColorStop(0, '#FFE066'); g.addColorStop(0.5, '#FF8A3D'); g.addColorStop(1, '#FF2E88');
+  sc.fillStyle = g; sc.beginPath(); sc.arc(sr + 2, sr + 2, sr, Math.PI, 0); sc.fill();
+  sc.globalCompositeOperation = 'destination-out';
+  for(let i=0;i<7;i++){ const yy = sr*0.42 + i*sr*0.085, th = 1.5 + i*1.4; sc.fillRect(0, yy, sun.width, th); }
+  ctx.save(); ctx.shadowColor = '#FF2E88'; ctx.shadowBlur = 40;
+  ctx.drawImage(sun, sx - sr - 2, hz - sr - 2); ctx.restore();
+  // the ocean
+  g = ctx.createLinearGradient(0, hz, 0, H);
+  g.addColorStop(0, '#2a0b3e'); g.addColorStop(1, '#07020f');
+  ctx.fillStyle = g; ctx.fillRect(0, hz, W, H - hz);
+  ctx.strokeStyle = 'rgba(0,229,255,.45)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, hz + 0.5); ctx.lineTo(W, hz + 0.5); ctx.stroke();
+  for(let i=0;i<22;i++){                                              // the sun's reflection
+    const yy = hz + 4 + i*((H - hz)*0.6/22), w = sr*1.5*(1 - i/26)*(0.6 + rnd()*0.5);
+    ctx.strokeStyle = i % 2 ? 'rgba(255,46,136,.40)' : 'rgba(255,138,61,.32)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(sx - w/2, yy); ctx.lineTo(sx + w/2, yy); ctx.stroke();
+  }
+  // art deco buildings on both sides with neon trim
+  const neon = ['#FF2E88', '#00E5FF', '#FF8A3D', '#B26BFF'];
+  const deco = (x0, x1) => {
+    let x = x0;
+    while(x < x1){
+      const bw = (30 + rnd()*46)*s*1.3, bh = h*(0.45 + rnd()*0.75), c = neon[(rnd()*neon.length)|0];
+      const top = H - bh;
+      ctx.fillStyle = '#0d0618'; ctx.fillRect(x, top, bw, bh);
+      if(rnd() < 0.6){ ctx.fillRect(x + bw*0.2, top - 10*s, bw*0.6, 10*s); ctx.fillRect(x + bw*0.38, top - 22*s, bw*0.24, 12*s); }
+      lightWin(ctx, x, top, bw, bh, rnd, 0.5, 0.18);
+      ctx.save(); ctx.shadowColor = c; ctx.shadowBlur = 10; ctx.strokeStyle = rgba(c,.9); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(x + 2, top + 0.8); ctx.lineTo(x + bw - 2, top + 0.8); ctx.stroke();
+      if(rnd() < 0.55){ ctx.beginPath(); ctx.moveTo(x + 3, top + bh*0.22); ctx.lineTo(x + bw - 3, top + bh*0.22); ctx.stroke(); }
+      if(rnd() < 0.4){ ctx.beginPath(); ctx.moveTo(x + bw*0.5, top + 6); ctx.lineTo(x + bw*0.5, top + bh*0.6); ctx.stroke(); }
+      ctx.restore();
+      x += bw + 3*s;
+    }
+  };
+  deco(-10, W*0.30); deco(W*0.70, W + 10);
+  // neon road with a perspective grid along the bottom
+  const roadY = H - h*0.14;
+  ctx.fillStyle = '#08030f'; ctx.fillRect(0, roadY, W, H - roadY);
+  ctx.save(); ctx.strokeStyle = 'rgba(255,46,136,.35)'; ctx.lineWidth = 1;
+  for(let i=-14;i<=14;i++){ ctx.beginPath(); ctx.moveTo(sx + i*16, roadY); ctx.lineTo(sx + i*120, H); ctx.stroke(); }
+  for(let k=0;k<5;k++){ const yy = roadY + (H - roadY)*Math.pow(k/5, 1.6); ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+  ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 10; ctx.strokeStyle = 'rgba(0,229,255,.9)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(0, roadY); ctx.lineTo(W, roadY); ctx.stroke(); ctx.restore();
+  // palms
+  const palm = (x, hgt, lean) => {
+    const y = roadY + 2;
+    ctx.strokeStyle = '#05010a'; ctx.lineWidth = 6*s; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + lean*0.3, y - hgt*0.6, x + lean, y - hgt); ctx.stroke();
+    ctx.fillStyle = '#05010a';
+    for(let i=0;i<7;i++){ const a = -Math.PI/2 + (i-3)*0.5, tx = x + lean, ty = y - hgt;
+      ctx.beginPath(); ctx.moveTo(tx, ty);
+      ctx.quadraticCurveTo(tx + Math.cos(a)*hgt*0.35, ty + Math.sin(a)*hgt*0.35 - 14*s, tx + Math.cos(a)*hgt*0.58, ty + Math.sin(a)*hgt*0.3 + 18*s);
+      ctx.quadraticCurveTo(tx + Math.cos(a)*hgt*0.3, ty + Math.sin(a)*hgt*0.2, tx, ty); ctx.fill(); }
+  };
+  palm(W*0.05, h*1.15, 28*s); palm(W*0.11, h*0.85, -20*s); palm(W*0.36, h*0.75, 16*s);
+  palm(W*0.64, h*0.8, -16*s); palm(W*0.90, h*0.95, 24*s); palm(W*0.96, h*1.2, -28*s);
+}
+
 function paintSkyline(ctx, W, H, id){
   const def = SEASONS[id]; if(!def || !def.skyline) return;
   const R = def.roles, rnd = srand(7331), h = Math.min(H*0.24, 230), type = def.skyline;
   ctx.save();
+  if(typeof type === 'object'){
+    if(type.type === 'nyc') paintNYC(ctx, W, H, R, type, rnd);
+    else if(type.type === 'miami') paintMiami(ctx, W, H, R, rnd);
+    ctx.restore(); return;
+  }
   if(type === 'graveyard'){
     const back = hillFn(W, H - h*0.72, h*0.16, 0.0042, 1.2);
     fillHill(ctx, W, H, back, '#120720', rgba(R.s,.40), 1.4);
@@ -1202,7 +1520,8 @@ const pickA = a => a[(Math.random()*a.length)|0];
 function Layer(cv, opt){
   this.cv = cv; this.ctx = cv.getContext('2d'); this.opt = opt || {};
   this.raf = 0; this.last = 0; this.paused = false; this.W = 0; this.H = 0;
-  this.sprites = []; this.parts = []; this.fx = []; this.rare = null; this.nextRare = 0; this.nextFw = 0;
+  this.sprites = []; this.parts = []; this.fx = []; this.rockets = []; this.conf = []; this.flash = [];
+  this.rare = null; this.nextRare = 0; this.nextFw = 0; this.clockOff = 0; this.partied = false;
   const self = this;
   this._tick = t => self.frame(t);
   this._vis = () => { if(D.hidden) self.stop(); else self.start(); };
@@ -1221,12 +1540,12 @@ Layer.prototype.destroy = function(){
   if(this._ro) this._ro.disconnect(); if(this._rs) window.removeEventListener('resize', this._rs);
 };
 Layer.prototype.resize = function(reseed){
-  const r = this.cv.getBoundingClientRect();
+  const r = this.opt.size ? { width:this.opt.size.w, height:this.opt.size.h } : this.cv.getBoundingClientRect();
   const W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height));
   if(W === this.W && H === this.H && this.bake) return;
   const grew = this.W && (Math.abs(W - this.W) > 80 || Math.abs(H - this.H) > 80);
   this.W = W; this.H = H;
-  this.dpr = Math.min(window.devicePixelRatio || 1, LOW ? 1.25 : 1.5);
+  this.dpr = this.opt.size ? 1 : Math.min(window.devicePixelRatio || 1, LOW ? 1.25 : 1.5);
   this.cv.width = Math.round(W*this.dpr); this.cv.height = Math.round(H*this.dpr);
   this.bakeStatic();
   if(reseed && grew) this.seed();
@@ -1265,7 +1584,7 @@ Layer.prototype.area = function(){
   return s * (LOW ? 0.65 : 1) * this.cfg.amount;
 };
 Layer.prototype.seed = function(){
-  const def = this.def; this.sprites = []; this.parts = []; this.fx = []; this.rare = null;
+  const def = this.def; this.sprites = []; this.parts = []; this.fx = []; this.rockets = []; this.conf = []; this.flash = []; this.rare = null;
   if(!def || this.cfg.decor === false) return;      // decorations off: backdrop only
   const A = this.area(), sc = this.opt.scale || 1, now = performance.now()/1000;
   (def.groups||[]).forEach(g=>{
@@ -1291,6 +1610,8 @@ Layer.prototype.spawn = function(g, initial, now){
   const m = g.motion;
   if(m === 'roam' || m === 'fly'){
     s.x = Math.random()*W; s.y = Math.random()*H;
+    const ex = this.opt.exclude;
+    for(let k=0; ex && k<10 && ex.some(r=>s.x > r.x && s.x < r.x + r.w && s.y > r.y && s.y < r.y + r.h); k++){ s.x = Math.random()*W; s.y = Math.random()*H; }
     s.dir = Math.random()*TAU;
     s.v = m === 'fly' ? rand(34,70) : rand(7,20)*(0.6+depth*0.6);
     if(m === 'fly') s.life = rand(8,16);
@@ -1324,6 +1645,8 @@ Layer.prototype.start = function(){
   this.last = 0; this.raf = requestAnimationFrame(this._tick);
 };
 Layer.prototype.stop = function(){ if(this.raf){ cancelAnimationFrame(this.raf); this.raf = 0; } };
+/* Previews: pretend midnight in New York is `sec` seconds away. */
+Layer.prototype.testDrop = function(sec){ this.clockOff = dropOffset(sec) - CLOCK_OFF; this.partied = false; this.conf = []; };
 Layer.prototype.pause = function(on){ this.paused = !!on; if(on){ this.stop(); this.cv.style.opacity = '0'; } else { this.cv.style.opacity = ''; this.start(); } };
 Layer.prototype.frame = function(t){
   this.raf = requestAnimationFrame(this._tick);
@@ -1337,6 +1660,15 @@ Layer.prototype.draw = function(tms){
   const vis = this.cfg.vis, still = REDUCED;
   ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
   ctx.clearRect(0,0,W,H);
+  const st = (def.balldrop || this.id === 'christmas') ? dropState(this.clockOff) : null;
+  const party = st && st.phase === 'party';
+  const live = !!st && (st.phase === 'final' || (party && st.since < 80));   // the drop owns the whole screen
+  let clipped = false;
+  if(this.opt.exclude && this.opt.exclude.length && !live){
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H);
+    this.opt.exclude.forEach(r=>ctx.rect(r.x, r.y, r.w, r.h));
+    ctx.clip('evenodd'); clipped = true;
+  }
   if(this.bake) ctx.drawImage(this.bake, 0, 0, W, H);
 
   // drifting mist along the bottom (Halloween)
@@ -1391,24 +1723,61 @@ Layer.prototype.draw = function(tms){
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
 
-  // fireworks
-  if(def.fireworks && !still){
+  // the New Year ball, and the clock it runs on
+  if(def.balldrop && (!this.opt.towerLiveOnly || live)) this.drawBall(ctx, W, H, t, st);
+  if(st && !party) this.partied = false;
+  if(party && !this.partied && !still){                // midnight: a burst of confetti
+    this.partied = true;
+    const cols = ((def.fireworks && def.fireworks.colors) || ['p','w','x']).map(c=>roleColor(def, c)).concat(['#FFD34D','#FFFFFF']);
+    const n = Math.round((LOW ? 140 : 260) * Math.min(1, this.area()));
+    for(let i=0;i<n;i++) this.conf.push({ x:Math.random()*W, y:-Math.random()*H*0.6, v:rand(60,150), sw:rand(10,40), rt:Math.random()*TAU, rs:rand(2,7), r:rand(3,6), c:pickA(cols), ph:Math.random()*TAU });
+  }
+  if(this.conf.length){
+    for(let i=this.conf.length-1;i>=0;i--){
+      const o = this.conf[i]; o.y += o.v*dt; o.x += Math.sin(t + o.ph)*o.sw*dt; o.rt += o.rs*dt;
+      if(o.y > H + 10){ this.conf.splice(i,1); continue; }
+      ctx.globalAlpha = 0.85*vis; ctx.fillStyle = o.c;
+      ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rt); ctx.scale(1, Math.cos(o.rt*1.7)); ctx.fillRect(-o.r/2, -o.r, o.r, o.r*2); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // fireworks: rockets climb from the skyline and burst
+  let FW = def.fireworks;
+  if(!FW && party) FW = { colors:['p','w','x','#FFD34D'], rate:[1,2.2], size:1.1 };   // midnight on a Christmas page
+  if(Array.isArray(FW)) FW = { colors:FW, rate:[1.4,4.2], size:1 };
+  if(FW && !still){
+    let rate = 1;
+    if(party) rate = st.since < 120 ? 0.16 : 0.5;     // the first two minutes after midnight go big
     if(t > this.nextFw){
-      this.nextFw = t + rand(1.4, 4.2) / Math.max(0.5, this.cfg.amount);
-      const cx = rand(0.1,0.9)*W, cy = rand(0.10,0.50)*H, col = roleColor(def, pickA(def.fireworks)), n = LOW ? 34 : 54;
-      const col2 = Math.random() < 0.4 ? roleColor(def, pickA(def.fireworks)) : col;
-      for(let i=0;i<n;i++){ const a = i/n*TAU + Math.random()*0.1, sp = rand(60,150)*(this.opt.scale||1);
-        this.fx.push({ x:cx, y:cy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:rand(1.3,2.1), age:0, c: i%2 ? col : col2 }); }
+      this.nextFw = t + rand(FW.rate[0], FW.rate[1]) * rate / Math.max(0.5, this.cfg.amount);
+      this.launch(FW, W, H);
+      if(rate < 0.3 && Math.random() < 0.6) this.launch(FW, W, H);
     }
     ctx.globalCompositeOperation = 'lighter';
+    for(let i=this.rockets.length-1;i>=0;i--){
+      const r = this.rockets[i]; r.age += dt;
+      const k = Math.min(1, r.age/r.dur), e = 1 - Math.pow(1 - k, 2.2);
+      const x = r.x + Math.sin(k*3)*r.wob, y = H - (H - r.ty)*e;
+      r.trail.push([x, y]); if(r.trail.length > 9) r.trail.shift();
+      r.trail.forEach((p,j)=>{ ctx.globalAlpha = (j/r.trail.length)*0.7*vis; const d = dot('#FFE7B0', 2 + j*0.25); ctx.drawImage(d, p[0] - d.width/2, p[1] - d.height/2); });
+      if(k >= 1){ this.burst(r, x, y); this.rockets.splice(i,1); }
+    }
+    for(let i=this.flash.length-1;i>=0;i--){
+      const f = this.flash[i]; f.a -= dt*3; if(f.a <= 0){ this.flash.splice(i,1); continue; }
+      const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r);
+      g.addColorStop(0, rgba(f.c, .30*f.a*vis)); g.addColorStop(1, rgba(f.c, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, TAU); ctx.fill();
+    }
     for(let i=this.fx.length-1;i>=0;i--){
       const f = this.fx[i]; f.age += dt;
       if(f.age > f.life){ this.fx.splice(i,1); continue; }
-      f.vx *= Math.pow(0.35, dt); f.vy = f.vy*Math.pow(0.35, dt) + 46*dt;
+      f.vx *= Math.pow(f.drag, dt); f.vy = f.vy*Math.pow(f.drag, dt) + f.g*dt;
       f.x += f.vx*dt; f.y += f.vy*dt;
-      const k = 1 - f.age/f.life; ctx.globalAlpha = k*k*0.9*vis;
-      const s = dot(f.c, 5); ctx.drawImage(s, f.x - 5, f.y - 5);
-      const s2 = dot(f.c, 3); ctx.globalAlpha = k*0.4*vis; ctx.drawImage(s2, f.x - f.vx*0.06 - 3, f.y - f.vy*0.06 - 3);
+      const k = 1 - f.age/f.life, tw = f.tw ? (0.5 + 0.5*Math.sin(t*30 + f.ph)) : 1;
+      ctx.globalAlpha = k*k*0.95*vis*tw;
+      const d = dot(f.c, f.sz); ctx.drawImage(d, f.x - f.sz, f.y - f.sz);
+      ctx.globalAlpha = k*0.35*vis; const d2 = dot(f.c, f.sz*0.6); ctx.drawImage(d2, f.x - f.vx*0.07 - f.sz*0.6, f.y - f.vy*0.07 - f.sz*0.6);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
@@ -1496,6 +1865,84 @@ Layer.prototype.draw = function(tms){
       }
     }
   }
+
+  if(clipped) ctx.restore();
+
+  // previews draw the countdown on the canvas itself (the site uses an overlay)
+  if(this.opt.inline && st && (st.phase === 'final' || (party && st.since < 75))){
+    const fam = "'Anton','Archivo Black',Impact,sans-serif", acc = roleColor(def, 'p');
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.shadowColor = acc; ctx.shadowBlur = 24; ctx.fillStyle = '#fff';
+    if(st.phase === 'final'){
+      const n = Math.ceil(st.left), f = st.left - Math.floor(st.left);
+      ctx.globalAlpha = 0.95; ctx.font = Math.round(H*0.42*(1 + f*0.25)) + 'px ' + fam;
+      if(n <= 10) ctx.fillStyle = acc;
+      ctx.fillText(String(n), W/2, H*0.42);
+    } else {
+      ctx.font = Math.round(H*0.13) + 'px ' + fam; ctx.fillText('HAPPY NEW YEAR', W/2, H*0.34);
+      ctx.fillStyle = acc; ctx.font = Math.round(H*0.2) + 'px ' + fam; ctx.fillText(String(st.year), W/2, H*0.52);
+    }
+    ctx.restore();
+  }
+};
+/* One firework rocket, launched from the skyline. */
+Layer.prototype.launch = function(fw, W, H){
+  const def = this.def, sf = (this.opt.scale || 1) * clamp(W/1400, 0.6, 1.2) * (fw.size || 1);
+  const c = roleColor(def, pickA(fw.colors)), c2 = Math.random() < 0.45 ? roleColor(def, pickA(fw.colors)) : c;
+  const types = ['peony','peony','ring','willow','crackle'];
+  this.rockets.push({ x:rand(0.08,0.92)*W, ty:rand(0.10,0.46)*H, age:0, dur:rand(0.9,1.5), wob:rand(-8,8), c, c2, sf, type:pickA(types), trail:[] });
+};
+Layer.prototype.burst = function(r, x, y){
+  const n = Math.round((LOW ? 40 : 72) * (r.type === 'ring' ? 0.8 : 1)), sf = r.sf;
+  for(let i=0;i<n;i++){
+    const a = i/n*TAU + Math.random()*0.12;
+    let sp, life = rand(1.3, 2.1), drag = 0.35, g = 46, c = i % 2 ? r.c : r.c2, sz = 4.5*sf, tw = false;
+    if(r.type === 'ring'){ sp = 140*sf; }
+    else if(r.type === 'willow'){ sp = rand(40,110)*sf; life = rand(2.4,3.4); drag = 0.6; g = 64; c = '#FFD27A'; sz = 3.6*sf; }
+    else if(r.type === 'crackle'){ sp = rand(70,160)*sf; tw = true; }
+    else { sp = rand(70,175)*sf; }
+    this.fx.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life, age:0, c, drag, g, sz:Math.max(2.5, sz), tw, ph:Math.random()*TAU });
+  }
+  this.flash.push({ x, y, r:140*sf, a:1, c:r.c });
+};
+/* Times Square: a tower, the year in lights, and the ball on its pole. */
+Layer.prototype.drawBall = function(ctx, W, H, t, st){
+  const h = Math.min(H*0.24, 230), s = Math.max(0.42, h/230) * (this.opt.scale ? 0.9 : 1);
+  const x = W*(W < 700 ? 0.84 : 0.86), base = H, bw = 34*s, top = base - 160*s;
+  const def = this.def, acc = roleColor(def, 'p');
+  ctx.save();
+  ctx.fillStyle = '#060912'; ctx.fillRect(x - bw/2, top, bw, base - top);
+  ctx.fillRect(x - bw*0.36, top - 8*s, bw*0.72, 8*s);
+  // billboards down the front, cycling colour
+  for(let i=0;i<4;i++){
+    const hue = (t*25 + i*80) % 360, yy = top + 14*s + i*30*s;
+    ctx.shadowColor = `hsl(${hue},90%,60%)`; ctx.shadowBlur = 10;
+    ctx.fillStyle = `hsla(${hue},90%,60%,.55)`; ctx.fillRect(x - bw/2 + 3*s, yy, bw - 6*s, 20*s);
+  }
+  ctx.shadowBlur = 0;
+  // pole and the year in lights
+  const poleTop = top - 130*s, poleBot = top - 34*s;
+  ctx.fillStyle = '#0b0f1c'; ctx.fillRect(x - 1.6*s, poleTop, 3.2*s, top - poleTop);
+  ctx.font = `${Math.round(22*s)}px 'Anton','Archivo Black',Impact,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = acc; ctx.shadowBlur = 14; ctx.fillStyle = '#FFF4D2';
+  ctx.fillText(String(st ? st.year : new Date().getFullYear() + 1), x, top - 12*s);
+  ctx.shadowBlur = 0;
+  // the ball: top of the pole until the last minute, then down it
+  let prog = 0;
+  if(st){ if(st.phase === 'final') prog = (60 - st.left)/60; else if(st.left <= 0) prog = 1; }
+  prog = clamp(prog, 0, 1);
+  const r = 12*s, by = poleTop + r + (poleBot - poleTop - r*2)*prog;
+  const hue = (t*40) % 360;
+  const halo = ctx.createRadialGradient(x, by, r*0.4, x, by, r*3.2);
+  halo.addColorStop(0, `hsla(${hue},90%,75%,.55)`); halo.addColorStop(1, 'hsla(0,0%,100%,0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, by, r*3.2, 0, TAU); ctx.fill();
+  const body = ctx.createRadialGradient(x - r*0.35, by - r*0.35, r*0.1, x, by, r);
+  body.addColorStop(0, '#ffffff'); body.addColorStop(0.45, `hsl(${hue},85%,72%)`); body.addColorStop(1, `hsl(${(hue+120)%360},80%,45%)`);
+  ctx.fillStyle = body; ctx.beginPath(); ctx.arc(x, by, r, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 0.8;
+  for(let i=1;i<4;i++){ ctx.beginPath(); ctx.ellipse(x, by, r, r*Math.abs(Math.cos(i*0.78)), 0, 0, TAU); ctx.stroke(); }
+  for(let i=0;i<3;i++){ const ph = (t*0.8 + i/3)*Math.PI; ctx.beginPath(); ctx.ellipse(x, by, r*Math.abs(Math.cos(ph)), r, 0, 0, TAU); ctx.stroke(); }
+  ctx.restore();
 };
 
 /* =====================================================================
@@ -1526,6 +1973,45 @@ const CSS = `
 @keyframes wcsSway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
 @media (prefers-reduced-motion: reduce){.wcs-bulb,.wcs-spi,.wcs-flag{animation:none!important}.wcs-spi{height:60px}}
 @media (max-width:700px){.wcs-web{width:90px;height:90px}.wcs-strand{display:none}}
+.wcs-neon{position:absolute;left:0;right:0;top:-1px;height:8px;pointer-events:none}
+.wcs-neon i{position:absolute;left:4%;right:4%;height:2px;border-radius:2px;background:var(--c);
+  box-shadow:0 0 6px var(--c),0 0 16px var(--c),0 0 30px var(--c);animation:wcsFlick 7s linear infinite}
+.wcs-neon i:nth-child(1){top:1px}.wcs-neon i:nth-child(2){top:6px;left:12%;right:12%;animation-delay:-3.1s}
+@keyframes wcsFlick{0%,7%,9%,61%,63%,100%{opacity:1}8%,62%{opacity:.25}}
+#wcs-drop{position:fixed;inset:0;pointer-events:none;z-index:900}
+#wcs-drop .wcs-pill{position:absolute;left:14px;bottom:14px;display:none;align-items:center;gap:10px;padding:7px 8px 7px 14px;border-radius:999px;
+  background:rgba(5,6,12,.80);border:1px solid var(--gold,#F2C14E);box-shadow:0 0 18px -4px var(--gold,#F2C14E);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:auto;color:#fff;font-family:var(--font-cond,'Barlow Condensed',sans-serif)}
+#wcs-drop .wcs-pill .lb{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold,#F2C14E)}
+#wcs-drop .wcs-pill .tm{font-family:var(--font-display,'Anton',Impact,sans-serif);font-size:18px;letter-spacing:1px;font-variant-numeric:tabular-nums}
+#wcs-drop .wcs-pill button{background:none;border:0;color:rgba(255,255,255,.6);font-size:17px;line-height:1;cursor:pointer;padding:0 5px}
+#wcs-drop .wcs-pill button:hover{color:#fff}
+#wcs-drop.pill .wcs-pill{display:flex}
+#wcs-drop .wcs-big{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;
+  background:radial-gradient(60% 45% at 50% 50%,rgba(0,0,0,.5),transparent 75%)}
+#wcs-drop.big .wcs-big{display:flex}
+#wcs-drop .wcs-big .n{font-family:var(--font-display,'Anton',Impact,sans-serif);font-size:clamp(110px,24vw,300px);line-height:1;color:#fff;
+  text-shadow:0 0 30px var(--gold,#F2C14E),0 0 80px var(--gold,#F2C14E),0 6px 30px rgba(0,0,0,.9)}
+#wcs-drop .wcs-big .n.pop{animation:wcsPop .9s ease-out}
+@keyframes wcsPop{0%{transform:scale(1.35);opacity:.15}30%{opacity:1}100%{transform:scale(1);opacity:.94}}
+#wcs-drop .wcs-big.last10 .n{color:var(--gold,#F2C14E);text-shadow:0 0 30px #fff,0 0 90px var(--gold,#F2C14E),0 6px 30px rgba(0,0,0,.9)}
+#wcs-drop .wcs-big .sub{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-size:clamp(14px,2vw,22px);letter-spacing:6px;color:#fff;opacity:.85;text-transform:uppercase;text-shadow:0 2px 10px #000}
+#wcs-drop .wcs-big .hny{display:none;font-family:var(--font-display,'Anton',Impact,sans-serif);font-size:clamp(46px,9vw,140px);line-height:.95;color:#fff;
+  text-shadow:0 0 30px var(--gold,#F2C14E),0 0 90px var(--gold,#F2C14E),0 6px 30px rgba(0,0,0,.9);animation:wcsHny 1.3s cubic-bezier(.2,1.5,.4,1)}
+#wcs-drop .wcs-big .hny span{display:block;font-size:1.3em;color:var(--gold,#F2C14E)}
+#wcs-drop .wcs-big .hny{text-transform:uppercase;letter-spacing:2px}
+#wcs-drop .wcs-big .trk{position:relative;width:4px;height:clamp(80px,14vh,150px);margin-bottom:10px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.55))}
+#wcs-drop .wcs-big .ball{position:absolute;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff 0 12%,#ffe9a8 30%,var(--gold,#F2C14E) 60%,#7a4dff 100%);
+  box-shadow:0 0 18px #fff,0 0 40px var(--gold,#F2C14E),0 0 80px var(--gold,#F2C14E);animation:wcsBall 3s linear infinite}
+@keyframes wcsBall{to{filter:hue-rotate(360deg)}}
+#wcs-drop .wcs-big.party .trk{display:none}
+#wcs-drop .wcs-big.party .n,#wcs-drop .wcs-big.party .sub{display:none}
+#wcs-drop .wcs-big.party .hny{display:block}
+#wcs-drop .wcs-big.fade{opacity:0;transition:opacity 2.5s ease}
+@keyframes wcsHny{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){#wcs-drop .wcs-big .n.pop,#wcs-drop .wcs-big .hny,.wcs-neon i{animation:none!important}}
 `;
 function ensureCss(){
   if(D.getElementById('wca-season-css')) return;
@@ -1650,6 +2136,11 @@ function buildEdge(id, opts){
       if(e.type === 'lights') buildLights(host, W, e.colors);
       else if(e.type === 'bunting') buildBunting(host, W, e.shape, e.colors);
       else if(e.type === 'cobwebs'){ host.appendChild(webSvg('l')); host.appendChild(webSvg('r')); host.appendChild(spiderEl()); }
+      else if(e.type === 'neon'){
+        const n = D.createElement('div'); n.className = 'wcs-neon';
+        e.colors.forEach(c=>{ const i = D.createElement('i'); i.style.setProperty('--c', c); n.appendChild(i); });
+        host.appendChild(n);
+      }
     }
     const e = def.edge || {};
     if(e.type === 'lights' && e.strands && window.innerWidth >= 1100){
@@ -1662,6 +2153,195 @@ function buildEdge(id, opts){
   let tm = 0, lastW = window.innerWidth;
   EDGE.onResize = () => { clearTimeout(tm); tm = setTimeout(()=>{ if(Math.abs(window.innerWidth - lastW) > 30){ lastW = window.innerWidth; make(); } }, 250); };
   window.addEventListener('resize', EDGE.onResize);
+}
+
+/* =====================================================================
+   OVERLAY EDGES  (OBS overlays: around a frame window, along the top of a
+   bar, or down the side of a column). Everything is absolutely positioned
+   in overlay pixels inside `host`.
+   kind 'frame'  : lights wrapped around the window, cobwebs in its top
+                   corners with a spider, bunting in the outer thirds of the
+                   top, or neon tubes around it
+   kind 'bar'    : the same ideas along the top edge, standing up off it
+   kind 'column' : down the left edge
+   ===================================================================== */
+function edgeAround(host, rect, id, kind){
+  const def = SEASONS[id]; if(!def || !host) return null;
+  ensureCss();
+  const e = def.edge || {}, wrap = D.createElement('div');
+  wrap.className = 'wcs-ov'; wrap.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;z-index:6';
+  const X = rect.x, Y = rect.y, W = rect.w, H = rect.h;
+  const bulb = (x, y, deg, c, i) => {
+    const b = D.createElement('i'); b.className = 'wcs-bulb';
+    b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.transform = 'rotate(' + deg + 'deg)';
+    b.style.setProperty('--c', c); b.style.setProperty('--dl', (-(i*0.37)%3).toFixed(2) + 's');
+    wrap.appendChild(b);
+  };
+  const svg = (w, h, x, y) => { const s = svgEl('svg', { width:w, height:h, viewBox:`0 0 ${w} ${h}` }); s.style.cssText = `position:absolute;left:${x}px;top:${y}px;overflow:visible`; wrap.appendChild(s); return s; };
+  const line = def.line;
+  // a thin glow line in the season's colours on every kind
+  const gl = D.createElement('div');
+  if(kind === 'column') gl.style.cssText = `position:absolute;left:${X-2}px;top:${Y}px;width:2px;height:${H}px;background:linear-gradient(180deg,${line[0]},${line[1]},${line[2]});box-shadow:0 0 12px ${line[1]};opacity:.9`;
+  else if(kind === 'bar') gl.style.cssText = `position:absolute;left:${X}px;top:${Y-2}px;width:${W}px;height:2px;background:linear-gradient(90deg,${line[0]},${line[1]},${line[2]});box-shadow:0 0 12px ${line[1]};opacity:.9`;
+  if(kind !== 'frame') wrap.appendChild(gl);
+
+  if(e.type === 'lights'){
+    const cols = e.colors; let n = 0;
+    const run = (x0, y0, x1, y1, deg, sag) => {          // a wire with sagging swags and bulbs hanging off it
+      const len = Math.hypot(x1 - x0, y1 - y0), sw = Math.max(1, Math.round(len/150)), s = svg(1, 1, 0, 0);
+      let d = `M${x0},${y0}`;
+      const nx = -(y1 - y0)/len, ny = (x1 - x0)/len;          // sag direction (perpendicular)
+      for(let i=0;i<sw;i++){
+        const ax = x0 + (x1-x0)*(i+0.5)/sw + nx*sag*2, ay = y0 + (y1-y0)*(i+0.5)/sw + ny*sag*2;
+        d += ` Q${ax.toFixed(1)},${ay.toFixed(1)} ${(x0 + (x1-x0)*(i+1)/sw).toFixed(1)},${(y0 + (y1-y0)*(i+1)/sw).toFixed(1)}`;
+        [0.2,0.4,0.6,0.8].forEach(u=>{
+          const t = (i + u)/sw, k = 4*u*(1-u)*sag;
+          bulb(x0 + (x1-x0)*t + nx*k, y0 + (y1-y0)*t + ny*k, deg, cols[n % cols.length], n); n++;
+        });
+      }
+      s.appendChild(svgEl('path', { d, fill:'none', stroke:'#1f2b25', 'stroke-width':1.6 }));
+    };
+    if(kind === 'frame'){
+      const o = 16;
+      run(X - o, Y - o, X + W + o, Y - o, 0, 9);            // top: bulbs hang down
+      run(X + W + o, Y - o, X + W + o, Y + H + o, -90, 7);   // right: bulbs point out
+      run(X + W + o, Y + H + o, X - o, Y + H + o, 180, 9);   // bottom: bulbs point down
+      run(X - o, Y + H + o, X - o, Y - o, 90, 7);            // left
+    } else if(kind === 'bar') run(X, Y - 6, X + W, Y - 6, 180, -5);
+    else run(X - 6, Y, X - 6, Y + H, 90, 6);
+  }
+  else if(e.type === 'neon'){
+    const tube = (css, c, dl) => { const t = D.createElement('div'); t.style.cssText = css + `;background:${c};border-radius:3px;box-shadow:0 0 6px ${c},0 0 16px ${c},0 0 30px ${c};animation:wcsFlick 7s linear infinite;animation-delay:${dl}s`; wrap.appendChild(t); };
+    if(kind === 'frame'){
+      const o = 18;
+      tube(`position:absolute;left:${X-o}px;top:${Y-o}px;width:${W+o*2}px;height:3px`, e.colors[0], 0);
+      tube(`position:absolute;left:${X-o}px;top:${Y+H+o}px;width:${W+o*2}px;height:3px`, e.colors[1], -2.4);
+      tube(`position:absolute;left:${X-o}px;top:${Y-o}px;width:3px;height:${H+o*2}px`, e.colors[1], -4.1);
+      tube(`position:absolute;left:${X+W+o}px;top:${Y-o}px;width:3px;height:${H+o*2+3}px`, e.colors[0], -1.3);
+    } else if(kind === 'bar'){
+      tube(`position:absolute;left:${X+20}px;top:${Y-9}px;width:${W-40}px;height:3px`, e.colors[0], 0);
+    } else {
+      tube(`position:absolute;left:${X-10}px;top:${Y+20}px;width:3px;height:${H-40}px`, e.colors[1], 0);
+    }
+  }
+  else if(e.type === 'cobwebs'){
+    const web = (x, y, sx, sy, size) => { const w = webSvg('l'); w.setAttribute('class','');
+      w.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${size}px;height:${size}px;opacity:.55;overflow:visible;transform-origin:0 0;transform:scale(${sx},${sy})`; wrap.appendChild(w); };
+    if(kind === 'frame'){
+      web(X, Y, 1, 1, 150); web(X + W, Y, -1, 1, 150);
+      const sp = spiderEl(); sp.style.right = 'auto'; sp.style.left = (X + W*0.78) + 'px'; sp.style.top = Y + 'px'; wrap.appendChild(sp);
+    } else if(kind === 'bar'){ web(X, Y, 1, -1, 70); web(X + W, Y, -1, -1, 70); }
+    else { web(X, Y, 1, 1, 110); }
+  }
+  else if(e.type === 'bunting'){
+    const cols = e.colors, shape = e.shape;
+    const s = svg(1, 1, 0, 0);
+    const flag = (x, y, c, up, i) => {
+      let p;
+      const k = up ? -1 : 1;
+      if(shape === 'heart') p = up ? `M${x},${y-15} C${x-9},${y-9} ${x-9},${y-1} ${x-4.5},${y-1} C${x-2},${y-1} ${x},${y-3} ${x},${y-4} C${x},${y-3} ${x+2},${y-1} ${x+4.5},${y-1} C${x+9},${y-1} ${x+9},${y-9} ${x},${y-15} Z`
+                                 : `M${x},${y+15} C${x-9},${y+9} ${x-9},${y+1} ${x-4.5},${y+1} C${x-2},${y+1} ${x},${y+3} ${x},${y+4} C${x},${y+3} ${x+2},${y+1} ${x+4.5},${y+1} C${x+9},${y+1} ${x+9},${y+9} ${x},${y+15} Z`;
+      else if(shape === 'leaf') p = `M${x},${y} C${x+9},${y+5*k} ${x+8},${y+15*k} ${x},${y+20*k} C${x-8},${y+15*k} ${x-9},${y+5*k} ${x},${y} Z`;
+      else p = `M${x-8},${y} L${x+8},${y} L${x},${y+18*k} Z`;
+      const f = svgEl('path', { d:p, fill:c, opacity:.9, class:'wcs-flag' });
+      f.style.setProperty('--dl', (-(i*0.41)%3.6).toFixed(2) + 's');
+      if(up) f.style.transformOrigin = '50% 100%';
+      s.appendChild(f);
+    };
+    if(kind === 'frame'){
+      // outer thirds of the window's top edge, so a centred title is never covered
+      const yy = Y + 2, seg = (a, b) => {
+        const sw = (b - a), sag = 10;
+        s.appendChild(svgEl('path', { d:`M${a},${yy} Q${(a+b)/2},${yy + sag*2} ${b},${yy}`, fill:'none', stroke:'rgba(255,255,255,.4)', 'stroke-width':1.2 }));
+        const per = Math.max(5, Math.round(sw/30));
+        for(let j=1;j<per;j++){ const u = j/per; flag(a + u*sw, yy + 4*u*(1-u)*sag, cols[j % cols.length], false, j); }
+      };
+      seg(X + Math.max(250, W*0.15), X + W*0.36); seg(X + W*0.64, X + W - 8);      // starts clear of the badge
+    } else if(kind === 'bar'){
+      for(let x = X + 18, j = 0; x < X + W - 10; x += 34, j++) flag(x, Y - 3, cols[j % cols.length], true, j);
+    } else {
+      const yy = Y + 4;
+      s.appendChild(svgEl('path', { d:`M${X},${yy} Q${X + W/2},${yy + 20} ${X + W},${yy}`, fill:'none', stroke:'rgba(255,255,255,.4)', 'stroke-width':1.2 }));
+      for(let j=1;j<10;j++){ const u = j/10; flag(X + u*W, yy + 40*u*(1-u), cols[j % cols.length], false, j); }
+    }
+  }
+  host.appendChild(wrap);
+  return wrap;
+}
+
+/* =====================================================================
+   OVERLAY KIT  (one call per OBS overlay)
+     const kit = WCASeason.overlayKit({
+       host:    the 1920 x 1080 stage element
+       cache:   localStorage key, so the last season survives an OBS restart
+       layer:   { backdrop, exclude:[rects], z, towerLiveOnly }  or null
+       edges:   [{ rect, kind:'frame'|'bar'|'column', host? }]   or []
+       drop:    { pill:'css for the countdown pill' }            or null
+     });
+     kit.set(seasonCfg)   whenever the Show Look sends a season
+   ===================================================================== */
+function overlayKit(o){
+  let layer = null, cv = null, edgeEls = [], raw = null;
+  function clear(){ edgeEls.forEach(e=>{ try{ e.remove(); }catch(_){} }); edgeEls = []; }
+  function set(r, test){
+    raw = r || null;
+    try{ if(o.cache) localStorage.setItem(o.cache, JSON.stringify(raw)); }catch(e){}
+    const cfg = normalize(raw), id = resolve(cfg);
+    ensureCss();
+    // animated layer
+    const want = id && o.layer && (cfg.decor || (o.layer.backdrop && cfg.bg));
+    if(want){
+      if(!cv){
+        cv = D.createElement('canvas'); cv.className = 'wcs-ov-cv';
+        cv.style.cssText = 'position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;z-index:' + (o.layer.z == null ? 5 : o.layer.z);
+        (o.layer.before && o.layer.before.parentNode === o.host) ? o.host.insertBefore(cv, o.layer.before) : o.host.appendChild(cv);
+        layer = new Layer(cv, { size:{ w:1920, h:1080 }, exclude:o.layer.exclude, towerLiveOnly:!!o.layer.towerLiveOnly, noMist:!o.layer.backdrop });
+      }
+      layer.opt.backdrop = !!(o.layer.backdrop && cfg.bg); layer.opt.solid = layer.opt.backdrop;
+      layer.set(id, o.layer.backdrop ? cfg : Object.assign({}, cfg));
+      if(!o.layer.backdrop && !cfg.decor) layer.cfg.decor = false;
+      if(test) layer.testDrop(test);
+    } else if(layer){ layer.destroy(); layer = null; cv.remove(); cv = null; }
+    // edges
+    clear();
+    if(id && cfg.edge) (o.edges || []).forEach(e=>{ const el = edgeAround(e.host || o.host, e.rect, id, e.kind); if(el) edgeEls.push(el); });
+    // the ball drop countdown
+    if(o.drop && (id === 'christmas' || id === 'newyear') && cfg.countdown){ dropOn(o.drop.pill); }
+    else if(o.drop) dropOff();
+    if(o.onChange) try{ o.onChange(id, cfg); }catch(e){}
+    return id;
+  }
+  let start = null;
+  try{ if(o.cache) start = JSON.parse(localStorage.getItem(o.cache) || 'null'); }catch(e){}
+  if(start) set(start);
+  // Automatic follows the calendar here too
+  let testing = false;
+  setInterval(()=>{ if(!testing && raw && normalize(raw).mode === 'auto' && resolve(raw) !== (layer ? layer.id : null)) set(raw); }, 30000);
+  /* Show Look's "Preview the ball drop on stream": New Year look with midnight
+     `sec` seconds away, then back to the real setting afterwards. */
+  let testT = 0;
+  function testDrop(sec){
+    const keep = raw;
+    clearTimeout(testT); testClock(sec); testing = true;
+    set(Object.assign({}, normalize(keep), { mode:'newyear', decor:true, countdown:true }));
+    raw = keep; try{ if(o.cache) localStorage.setItem(o.cache, JSON.stringify(keep)); }catch(e){}
+    testT = setTimeout(()=>{ testing = false; set(keep); }, (sec + 95)*1000);
+  }
+  return { set, current:()=>resolve(raw), cfg:()=>normalize(raw), raw:()=>raw, testDrop };
+}
+/* The season's colours in the Show Look's own field names. */
+function seasonLook(id){
+  const d = SEASONS[id]; if(!d) return null;
+  const c = d.colors, mix = (h, o, p) => { const a = rgbOf(h), b = rgbOf(o); return '#' + a.map((v,i)=>Math.round(v + (b[i]-v)*p).toString(16).padStart(2,'0')).join(''); };
+  return { a:c.gold, hi:c['au-bright'] || mix(c.gold,'#ffffff',.45), deep:mix(c.gold,'#000000',.55), b:c.accent, b2:c.teal,
+    ink:c.bg, panel:c.panel, line:c.line, text:c.txt, muted:c.muted };
+}
+/* Test the ball drop on air: New York midnight `sec` seconds from now, back to the real clock afterwards. */
+let TEST_T = 0;
+function testClock(sec){
+  clearTimeout(TEST_T);
+  CLOCK_OFF = dropOffset(sec);
+  TEST_T = setTimeout(()=>{ CLOCK_OFF = TEST_DROP ? dropOffset(TEST_DROP) : 0; }, (sec + 100)*1000);
 }
 
 /* =====================================================================
@@ -1685,10 +2365,77 @@ function applyPalette(id, alias){
   set('--on-gold', (0.299*g[0] + 0.587*g[1] + 0.114*g[2]) > 150 ? '#14100a' : '#ffffff');
 }
 
+/* ---------- the ball drop countdown overlay (site pages only) ---------- */
+let DROP = { el:null, timer:0, lastN:-1, partyShown:false };
+function dropOff(){
+  if(DROP.timer){ clearInterval(DROP.timer); DROP.timer = 0; }
+  if(DROP.el){ DROP.el.remove(); DROP.el = null; }
+}
+function dropOn(pillCss){
+  if(DROP.el){ if(pillCss) DROP.el.querySelector('.wcs-pill').style.cssText = pillCss; return; }
+  const el = D.createElement('div'); el.id = 'wcs-drop'; el.setAttribute('aria-live','polite');
+  el.innerHTML = '<div class="wcs-pill"><span class="lb">Ball drop in</span><span class="tm"></span>' +
+    '<button type="button" aria-label="Hide the countdown" title="Hide">&times;</button></div>' +
+    '<div class="wcs-big"><div class="trk"><i class="ball"></i></div><div class="n"></div><div class="sub">Ball drop</div><div class="hny">Happy New Year<span></span></div></div>';
+  el.querySelector('button').onclick = () => { try{ sessionStorage.setItem('wcs-drop-hide','1'); }catch(e){} el.classList.remove('pill'); };
+  if(pillCss){ el.querySelector('.wcs-pill').style.cssText = pillCss; el.querySelector('button').style.display = 'none'; }
+  D.body.appendChild(el);
+  DROP.el = el; DROP.lastN = -1; DROP.partyShown = false;
+  const tick = () => {
+    const st = dropState(0), big = el.querySelector('.wcs-big'), nEl = el.querySelector('.n');
+    let hide = false; try{ hide = sessionStorage.getItem('wcs-drop-hide') === '1'; }catch(e){}
+    const two = v => String(v).padStart(2,'0');
+    if(st.phase === 'count' || st.phase === 'final'){
+      const L = Math.max(0, Math.ceil(st.left)), d = Math.floor(L/86400), hh = Math.floor(L%86400/3600), mm = Math.floor(L%3600/60), ss = L%60;
+      el.querySelector('.lb').textContent = 'Ball drop in';
+      el.querySelector('.tm').textContent = (d ? d + 'd ' : '') + two(hh) + ':' + two(mm) + ':' + two(ss);
+      el.classList.toggle('pill', !hide || st.phase === 'final');
+    } else if(st.phase === 'party'){
+      el.querySelector('.lb').textContent = 'Happy New Year';
+      el.querySelector('.tm').textContent = String(st.year) + '!';
+      el.classList.toggle('pill', !hide);
+    } else el.classList.remove('pill');
+
+    // for the last minute and the first 80 seconds of the new year the
+    // decorations (ball, fireworks, confetti) come out in front of the page
+    const cv = D.getElementById('wca-season');
+    if(cv){ const front = st.phase === 'final' || (st.phase === 'party' && st.since < 80);
+      cv.style.zIndex = front ? '899' : (cv.dataset.z || '0'); }
+    const ball = el.querySelector('.ball');
+    if(ball) ball.style.top = (st.phase === 'final' ? clamp((60 - st.left)/60, 0, 1)*100 : 0) + '%';
+    if(st.phase === 'final'){
+      const n = Math.max(1, Math.ceil(st.left));
+      big.classList.remove('party','fade'); el.classList.add('big');
+      big.classList.toggle('last10', n <= 10);
+      if(n !== DROP.lastN){ DROP.lastN = n; nEl.textContent = n; nEl.classList.remove('pop'); void nEl.offsetWidth; nEl.classList.add('pop'); }
+    } else if(st.phase === 'party' && st.since < 80){
+      if(!DROP.partyShown){ DROP.partyShown = true; el.querySelector('.hny span').textContent = st.year; }
+      el.classList.add('big'); big.classList.add('party'); big.classList.toggle('fade', st.since > 72);
+    } else { el.classList.remove('big'); big.classList.remove('party','fade','last10'); }
+  };
+  tick();
+  DROP.timer = setInterval(tick, 200);
+}
+
+/* Automatic follows the calendar while a page sits open, so New Year's Eve
+   turns into New Year's without anyone pressing refresh. */
+let LAST_RAW = null, LAST_OPTS = null;
+const ROLL = [];
+setInterval(()=>{
+  if(!LAST_OPTS || TEST_DROP) return;
+  const cfg = normalize(LAST_RAW);
+  if(cfg.mode !== 'auto') return;
+  const id = resolve(cfg);
+  if(id === CUR.id) return;
+  if(ROLL.length) ROLL.forEach(f=>{ try{ f(id); }catch(e){} });
+  else apply(LAST_RAW, LAST_OPTS);
+}, 30000);
+
 function apply(raw, opts){
   opts = opts || {};
+  LAST_RAW = raw; LAST_OPTS = opts;
   const cfg = normalize(raw), id = resolve(cfg);
-  const sig = JSON.stringify([id, cfg, !!opts.backdrop, opts.decor !== false, opts.header || '', opts.z]);
+  const sig = JSON.stringify([id, cfg, !!opts.backdrop, opts.decor !== false, opts.header || '', opts.z, opts.countdown !== false]);
   if(sig === LAST_SIG) return id;
   if(!D.body){ D.addEventListener('DOMContentLoaded', ()=>apply(raw, opts), { once:true }); return id; }
   LAST_SIG = sig;
@@ -1711,6 +2458,7 @@ function apply(raw, opts){
       else D.body.insertBefore(cv, D.body.firstChild);
     }
     cv.style.zIndex = opts.z == null ? 0 : opts.z;
+    cv.dataset.z = String(opts.z == null ? 0 : opts.z);
     if(!LAYER || LAYER.cv !== cv){ if(LAYER) LAYER.destroy(); LAYER = new Layer(cv, { backdrop:!!opts.backdrop, noMist:false }); }
     LAYER.opt.backdrop = !!opts.backdrop;
     LAYER.set(id, cfg);
@@ -1722,6 +2470,9 @@ function apply(raw, opts){
 
   // header and edge decorations
   if(id && cfg.edge) buildEdge(id, opts); else edgeOff();
+
+  // the ball drop countdown: Christmas into New Year's
+  if((id === 'christmas' || id === 'newyear') && cfg.countdown && opts.countdown !== false) dropOn(); else dropOff();
 
   LISTENERS.forEach(f=>{ try{ f(id, cfg); }catch(e){} });
   return id;
@@ -1778,6 +2529,10 @@ window.WCASeason = {
   current: () => CUR,
   layer(canvas, id, cfg, opt){ const L = new Layer(canvas, opt || {}); L.set(id, cfg); return L; },
   onChange(fn){ if(typeof fn === 'function') LISTENERS.push(fn); },
+  /* Automatic crossed into a new season while the page was open. */
+  onRollover(fn){ if(typeof fn === 'function') ROLL.push(fn); },
+  dropState, testing: () => TEST_DROP,
+  overlayKit, edgeAround, seasonLook, testClock,
   pause(on){ PAUSED = !!on; if(LAYER) LAYER.pause(PAUSED); },
   cacheSave, cacheLoad
 };
@@ -1785,6 +2540,8 @@ window.WCASeason = {
 
 /* First paint: the last season this browser saw, before the theme record loads. */
 try{ WCASeason.boot({ header:'header' }); }catch(e){}
+/* Automatic crossed into a new season (or out of one) while the page was open: reload the theme. */
+try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(); }); }catch(e){}
 </script>
 
 <style>
@@ -2404,6 +3161,11 @@ try{ WCASeason.boot({ header:'header' }); }catch(e){}
   .frec-lbl{font-family:var(--font-cond); font-size:11.5px; letter-spacing:1.8px; text-transform:uppercase; color:var(--gold-dim);}
   .frec-new{font-family:var(--font-cond); font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--teal);}
   .frec .f5mini .f5b{width:15px; height:15px; font-size:9px;}
+  /* Faction division: the team a member represents, and that team's contender points */
+  .frec-team{font-family:var(--font-cond); font-size:12.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted);}
+  .frec-team b{color:var(--gold); font-weight:700; letter-spacing:1px;}
+  .frec-cp{display:inline-flex; align-items:center; gap:8px;}
+  .frec-cp-lbl{font-family:var(--font-cond); font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--muted2);}
   /* team sides list each member on their own line, a step smaller */
   .frec-line .frec-who{font-family:var(--font-cond); font-size:14px; font-weight:600; color:var(--txt-2); margin-right:2px; align-self:center;}
   .frec-line:has(.frec-who) b{font-size:clamp(21px,2.4vw,26px);}
@@ -7640,15 +8402,17 @@ function mpRowFor(members, teamName){
 // every already-saved show gets its portraits without being re-entered.
 let FACTION_ROSTER = {};                 // lowercased faction name -> [member names]
 let FACTION_PARENT = {};                 // lowercased sub-team name -> the stable it belongs to ("The Longshots" -> "GrapStars")
+let FACTION_NAME = {};                   // lowercased faction name -> the name as written ("grapstars" -> "GrapStars")
 async function loadFactionRosters(){
   try{
     let { data, error } = await sb.from('factions').select('name,members_txt,parent_faction');
     if(error) ({ data } = await sb.from('factions').select('name,members_txt'));   // column not added yet
-    FACTION_ROSTER = {}; FACTION_PARENT = {};
+    FACTION_ROSTER = {}; FACTION_PARENT = {}; FACTION_NAME = {};
     (data||[]).forEach(f=>{
       if(f.name && f.parent_faction) FACTION_PARENT[String(f.name).trim().toLowerCase()] = String(f.parent_faction).trim();
       const list = String(f.members_txt||'').split(/[,&]|\band\b/i)
         .map(s=>s.trim()).filter(Boolean);
+      if(f.name) FACTION_NAME[String(f.name).trim().toLowerCase()] = String(f.name).trim();
       if(f.name && list.length) FACTION_ROSTER[String(f.name).trim().toLowerCase()] = list;
     });
   }catch(e){ /* column missing — teams simply keep showing no faces */ }
@@ -10033,7 +10797,8 @@ async function loadRecordsNow(){
         form: parseLast5(r.seed_last5 || (WRESTLER_META[r.name]||{}).last5), champ:!!r.is_champion };
     });
     (fr.data||[]).forEach(r=>{
-      const rec = { w:+r.wins||0, l:+r.losses||0, d:+r.draws||0, nw:+r.no_wins||0, form: parseLast5(r.seed_last5) };
+      const rec = { w:+r.wins||0, l:+r.losses||0, d:+r.draws||0, nw:+r.no_wins||0, form: parseLast5(r.seed_last5),
+        cp: +r.contender_points||0 };
       // a faction match may be saved under either division label
       map[recKey('Faction', r.name)] = rec;
       map[recKey('Factions', r.name)] = rec;
@@ -10055,6 +10820,8 @@ function recNamesFor(matches){
         set.add(String(n).trim());
         const w = (typeof wrestlerByName==='function') ? wrestlerByName(n) : null;
         if(w && w.name) set.add(w.name);
+        // a faction match counts for the team they represent, so fetch that too
+        recFactionsOf(n).forEach(f=>set.add(f));
       });
     });
   });
@@ -10117,6 +10884,12 @@ function recBlock(name){
 function recTeamBlock(team, members){
   if(!REC_CTX || !REC_CTX.division) return '';
   const own = recFor(team);
+  if(recIsFactionDiv()){
+    // the team on the card has its own record: show it (plus contender points)
+    if(!recEmpty(own)) return recFactionBlock(team, own, false);
+    // otherwise find the faction these members actually represent
+    return recFactionSideBlock(members, team);
+  }
   if(!recEmpty(own)) return recBlock(team);
   const lines = (members||[]).map(n=>{
     const r = recFor(n);
@@ -10125,6 +10898,101 @@ function recTeamBlock(team, members){
   if(!lines.length) return recBlock(team);
   const label = (REC_CTX.past ? 'Going in · ' : '') + REC_CTX.division;
   return `<div class="frec"><span class="frec-lbl">${esc(label)}</span>${lines.join('')}</div>`;
+}
+
+/* ===== FACTION DIVISION: the team is what's on the line =====
+   A Faction division match doesn't need the whole stable. One member of each
+   group can face off and they still represent their faction. So in this
+   division every side shows the FACTION's record and contender points, never
+   the person's own. Mens, Womens and Undisputed keep each person's own record. */
+function recIsFactionDiv(){
+  return !!(REC_CTX && /faction/i.test(String(REC_CTX.division||'')));
+}
+// Every faction that lists this person as a member (alias aware), as written.
+function recFactionsOf(name){
+  if(!name) return [];
+  const out = [];
+  for(const key in FACTION_ROSTER){
+    if((FACTION_ROSTER[key]||[]).some(m=>mpSamePerson(m, name))) out.push(FACTION_NAME[key] || key);
+  }
+  return out;
+}
+// Work out which faction(s) a side represents. Best pick first: the faction
+// covering the most of the people on the side, then one that has a record,
+// then an active one, then the more specific sub team over its parent stable.
+function recFactionGroups(members){
+  const list = (members||[]).filter(Boolean);
+  const cand = {};
+  list.forEach((n,i)=>{
+    recFactionsOf(n).forEach(f=>{
+      const k = String(f).toLowerCase();
+      (cand[k] || (cand[k] = { name:f, covers:new Set() })).covers.add(i);
+    });
+  });
+  const has  = c => recEmpty(recFor(c.name)) ? 0 : 1;
+  const act  = c => (typeof isInactiveFaction==='function' && isInactiveFaction(c.name)) ? 0 : 1;
+  const sub  = c => FACTION_PARENT[String(c.name).toLowerCase()] ? 1 : 0;
+  const size = c => (FACTION_ROSTER[String(c.name).toLowerCase()]||[]).length;
+  const ranked = Object.values(cand).sort((a,b)=>
+    (b.covers.size-a.covers.size) || (has(b)-has(a)) || (act(b)-act(a)) ||
+    (sub(b)-sub(a)) || (size(a)-size(b)) || String(a.name).localeCompare(String(b.name)));
+  const left = new Set(list.map((_,i)=>i));
+  const groups = [];
+  for(const c of ranked){
+    const mine = [...c.covers].filter(i=>left.has(i));
+    if(!mine.length) continue;
+    mine.forEach(i=>left.delete(i));
+    groups.push({ team:c.name, rec:recFor(c.name), members:mine.map(i=>list[i]) });
+    if(!left.size) break;
+  }
+  return groups;
+}
+// Is this team the reigning Faction champion? Champions carry no contender points.
+function recIsFactionChamp(team){
+  if(!team) return false;
+  const t = String(team).trim().toLowerCase();
+  for(const k in CHAMP_DIVS_BY_NAME){
+    if((CHAMP_DIVS_BY_NAME[k]||[]).includes('Faction') && (k===t || mpSamePerson(k, team))) return true;
+  }
+  return false;
+}
+// One faction's block: who they represent (when the card doesn't already say
+// it), the record, last 5, and contender points on upcoming shows.
+function recFactionBlock(team, rec, showTeam){
+  const past = REC_CTX.past;
+  const div = REC_CTX.division;
+  const rep = showTeam ? `<span class="frec-team">Representing <b>${esc(team)}</b></span>` : '';
+  if(recEmpty(rec)){
+    return `<div class="frec">${rep}<span class="frec-new">${past?'First '+esc(div)+' match':'No '+esc(div)+' record yet'}</span></div>`;
+  }
+  const label = (past ? 'Going in · ' : '') + div;
+  const form = (rec.form && rec.form.length) ? last5Mini(rec.form.join(',')) : '';
+  // contender points are a right now number, so past shows leave them off
+  const cp = (!past && rec.cp != null && !recIsFactionChamp(team))
+    ? `<span class="frec-cp"><span class="frec-cp-lbl">Contender points</span>${dots(rec.cp)}</span>` : '';
+  return `<div class="frec" title="${escAttr(team)} ${escAttr(div)} division record${past?' before this show':''} (newest result on the left)">
+    ${rep}<span class="frec-lbl">${esc(label)}</span>${recLine(rec)}${form}${cp}</div>`;
+}
+// A Faction division side: show the team these people represent.
+function recFactionSideBlock(members, team){
+  if(!REC_CTX || !REC_CTX.division) return '';
+  const groups = recFactionGroups(members);
+  const withRec = groups.filter(g=>!recEmpty(g.rec));
+  if(groups.length===1 && (!REC_CTX.past || withRec.length)){
+    const same = team && String(team).trim().toLowerCase()===String(groups[0].team).toLowerCase();
+    return recFactionBlock(groups[0].team, groups[0].rec, !same);
+  }
+  if(groups.length>1 && withRec.length){
+    // a side mixing members of different factions: one line per faction
+    const label = (REC_CTX.past ? 'Going in · ' : '') + REC_CTX.division;
+    return `<div class="frec"><span class="frec-lbl">${esc(label)}</span>${withRec.map(g=>recLine(g.rec, g.team)).join('')}</div>`;
+  }
+  // past shows: older history may be filed under each member, so show that before saying nothing
+  if(REC_CTX.past){
+    const lines = (members||[]).map(n=>{ const r = recFor(n); return recEmpty(r) ? '' : recLine(r, n); }).filter(Boolean);
+    if(lines.length) return `<div class="frec"><span class="frec-lbl">${esc('Going in · '+REC_CTX.division)}</span>${lines.join('')}</div>`;
+  }
+  return recBlock(team || (groups[0] && groups[0].team) || '');
 }
 
 function sideCellInner(side, isMain){
@@ -10137,6 +11005,8 @@ function sideCellInner(side, isMain){
     if(members.length) h+=`<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
     return h + recTeamBlock(side.team_name, members);
   }
+  if(members.length && recIsFactionDiv())   // names, then the one faction record they share
+    return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>') + recFactionSideBlock(members, '');
   if(members.length) return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>${recBlock(m)}`).join('<div class="amp">&amp;</div>');
   return `<div class="fname">TBD</div>`;
 }
@@ -12225,6 +13095,10 @@ function archBoutHTML(m, isMain, status, winningSide){
       nameHtml = pics + `<div class="rfname">${esc(s.team_name)}</div>` + factionParentHTML(s.team_name)
         + (members.length?`<div class="arch-sub" style="justify-content:center">${members.map(nameLink).join(' &amp; ')}</div>`:'')
         + recTeamBlock(s.team_name, members);
+    }else if(members.length && recIsFactionDiv()){
+      // Faction division: show the faction they represent, not their own record
+      nameHtml = pics + `<div class="rfname">${members.map(nameLink).join(' &amp; ')}</div>`
+        + recFactionSideBlock(members, '');
     }else if(members.length===1){
       nameHtml = pics + `<div class="rfname">${nameLink(members[0])}</div>` + recBlock(members[0]);
     }else if(members.length){
@@ -16704,7 +17578,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'yt-live-2026-10-21';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'faction-rec-2026-10-21';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
