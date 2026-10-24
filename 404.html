@@ -5975,6 +5975,39 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .dh-cols{display:grid;grid-template-columns:1fr;gap:22px;}
   @media(min-width:820px){ .dh-cols{grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);} }
   .dh-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:var(--panel2);height:100%;}
+  /* Edit your character (My Character tab) */
+  .ce-card{border:1px solid rgba(var(--gold-rgb),.55);border-radius:12px;padding:20px;margin:0 0 22px;
+    background:linear-gradient(180deg,rgba(var(--gold-rgb),.07),rgba(0,0,0,0) 140px),var(--panel2);}
+  .ce-kick{font-family:var(--font-cond);font-size:13px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);}
+  .ce-name{font-family:var(--font-display);font-size:28px;font-weight:400;letter-spacing:1px;margin:2px 0 6px;color:#fff;}
+  .ce-p{font-family:var(--font-body);font-size:14.5px;line-height:1.5;color:var(--txt-2);margin:0 0 6px;}
+  .ce-l{display:block;font-family:var(--font-cond);font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
+  .ce-opt{text-transform:none;letter-spacing:0;color:var(--muted2);}
+  .ce-in{width:100%;box-sizing:border-box;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;color:var(--txt);
+    font-family:var(--font-body);font-size:15px;padding:10px 12px;}
+  .ce-in:focus{outline:none;border-color:var(--gold);}
+  textarea.ce-in{resize:vertical;line-height:1.5;}
+  select.ce-in{max-width:360px;}
+  .ce-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .ce-soc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+  .ce-soc span{display:block;font-family:var(--font-body);font-size:13px;color:var(--txt-2);margin-bottom:4px;}
+  .ce-acts{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px;}
+  .ce-msg{font-family:var(--font-body);font-size:14px;}
+  .ce-msg.ok{color:#5DCAA5;} .ce-msg.bad{color:#ff8a96;}
+  .ce-hist{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:9px 0;border-top:1px solid var(--line);
+    font-family:var(--font-body);font-size:14px;color:var(--txt-2);}
+  .ce-hist em{font-style:normal;color:var(--muted);margin-left:6px;}
+  .ce-st{font-family:var(--font-cond);font-size:12.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold);font-weight:600;}
+  .ce-st.approved{color:#5DCAA5;} .ce-st.rejected{color:#ff8a96;}
+  .ce-note{flex-basis:100%;font-size:13px;color:var(--muted);}
+  .ce-card{scroll-margin-top:210px;}          /* lands below the sticky header when opened from Account */
+  @media(max-width:760px){ .ce-card{scroll-margin-top:84px;} }
+  @media(max-width:640px){ .ce-row{grid-template-columns:1fr;} .ce-card{padding:16px;} }
+  /* the Account page card for owners: hard to miss */
+  .acc-char-cta{border-color:rgba(var(--gold-rgb),.6) !important;background:linear-gradient(180deg,rgba(var(--gold-rgb),.09),rgba(0,0,0,0) 120px),var(--panel2);}
+  .acc-char-cta .acc-card-title i{color:var(--gold);margin-right:4px;}
+  .acc-char-names{font-family:var(--font-display);font-size:22px;letter-spacing:.8px;color:#fff;margin:4px 0 8px;}
+  .acc-char-btn{font-size:15px;padding:12px 20px;}
 
   /* character card */
   .dh-char{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;}
@@ -7625,6 +7658,8 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
       <!-- MY CHARACTER — the fuller version -->
       <section class="dh-panel" id="dpanel-character" role="tabpanel">
         <div id="dh-char-full"><div class="loading">Loading…</div></div>
+        <!-- Edit your character: bio, nickname, socials... (same fields and approval as edit-wrestler.html) -->
+        <div id="dh-char-edit"></div>
         <div id="dh-char-history"></div>
       </section>
 
@@ -10667,11 +10702,17 @@ async function renderAccountPage(firstTime, hostId){
   try{
     const { data: ownedRows } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', CURRENT_USER.id);
     if(ownedRows && ownedRows.length){
+      let names = [];
+      try{
+        const { data: ws } = await sb.from('wrestlers').select('name').in('id', ownedRows.map(r=>r.wrestler_id)).order('name');
+        names = (ws||[]).map(w=>w.name).filter(Boolean);
+      }catch(e){}
       ownerBlock = `
-        <div class="acc-card">
-          <div class="acc-card-title">Your Character${ownedRows.length>1?'s':''}</div>
-          <div class="acc-hint" style="margin-bottom:10px">Update your bio, socials, and moveset — changes go to WCA staff for approval before they go live.</div>
-          <a href="edit-wrestler.html" class="acc-link-btn" style="display:inline-block;text-decoration:none">Edit Wrestler Data</a>
+        <div class="acc-card acc-char-cta">
+          <div class="acc-card-title"><i class="ti ti-user-star"></i> Your Character${ownedRows.length>1?'s':''}</div>
+          ${names.length ? `<div class="acc-char-names">${names.map(n=>esc(n)).join(', ')}</div>` : ''}
+          <div class="acc-hint" style="margin-bottom:14px">Update your bio, nickname, hometown, theme song, moves and socials. Changes go to WCA for approval before they go live.</div>
+          <button class="hbtn primary acc-char-btn" onclick="dhOpenCharEdit()"><i class="ti ti-pencil"></i> <span class="hbtn-label">Edit your character</span></button>
         </div>`;
     }
   }catch(e){}
@@ -16591,8 +16632,12 @@ async function frShowReviewsHTML(ev){
    Promotion Portal: a member registers their own promotion (approved by WCA
    once), then posts to the Feed AS that promotion using the same post types
    the admin has. Press Pass: a member sets up a made up outlet + reporter
-   name and writes press coverage of any promotion. Every post from either
-   waits for approval. Fake likes / replies / reposts and reply threads are
+   name and writes press coverage of any promotion. (Oct 2026) Posts from an
+   approved promotion go straight to the Feed, and so do Press Pass posts from
+   anyone who runs an approved promotion. Other Press Pass posts wait for
+   approval. Edits to a live post stay live. The server decides all of this
+   (SUPABASE_UPDATE_creator_posts_free.sql); cpFree() only picks the wording.
+   Fake likes / replies / reposts and reply threads are
    admin only, so these forms don't have them (the server strips them too).
    SQL: SUPABASE_SETUP_creator_portals.sql */
 const CP_KINDS = {
@@ -16721,6 +16766,7 @@ let CP_PHOTOS = [];
 let CP_MINE = [];              // my pending + rejected creator posts
 let CP_PENDING = null;         // {mode, opts} to open once the Feed is showing
 let CP_BUSY = false;
+let CP_TRUSTED = false;        // runs an approved promotion (any linked sign in): posts go straight to the Feed
 let CP_FORM_LOGO = '';         // logo url staged in the promotion / outlet form
 
 function cpFid(key){ return 'cpf_' + key.replace(/\./g,'_'); }
@@ -16753,6 +16799,10 @@ async function cpLoadMyOrgs(){
   ]);
   CP_PROMOS = (pR && !pR.error && pR.data) ? pR.data : [];
   CP_OUTLETS = (oR && !oR.error && oR.data) ? oR.data : [];
+  CP_TRUSTED = CP_PROMOS.some(p=>p.status==='approved');
+  if(!CP_TRUSTED){
+    try{ const t = await sb.rpc('wca_creator_trusted', { p_uid: uid }); if(!t.error && t.data === true) CP_TRUSTED = true; }catch(e){}
+  }
   return !(pR && pR.error);
 }
 
@@ -16843,7 +16893,7 @@ function cpRenderPromoForm(id){
       <div class="fr-pickval" style="color:var(--gold)">${p ? 'Edit your promotion' : 'Register your promotion'}</div>
       <button class="spc-mini" onclick="frClose()">✕ Close</button>
     </div>
-    ${p ? '' : `<div class="cp-intro">Run your own wrestling promotion? Register it here and once WCA approves it, you can post to the Feed as your promotion: news, press conferences, promos, signings and more, right alongside WCA.</div>`}
+    ${p ? '' : `<div class="cp-intro">Run your own wrestling promotion? Register it here and once WCA approves it, you can post to the Feed as your promotion whenever you like: news, press conferences, promos, signings and more, right alongside WCA. Your posts go live right away.</div>`}
     <label style="margin-top:0">Promotion name</label>
     <input id="cpo_name" maxlength="60" placeholder="Your promotion's name" value="${escAttr(p?p.name:'')}">
     ${cpLogoFieldHTML()}
@@ -16988,7 +17038,7 @@ function cpRenderOutletForm(id){
       <div class="fr-pickval" style="color:var(--gold)">${o ? 'Edit your outlet' : 'Get your Press Pass'}</div>
       <button class="spc-mini" onclick="frClose()">✕ Close</button>
     </div>
-    ${o ? '' : `<div class="cp-intro">Make up a news outlet and a reporter, then cover anyone you like: WCA, your own promotion, or anybody else's. Every story goes to WCA for approval before it hits the Feed.</div>`}
+    ${o ? '' : `<div class="cp-intro">Make up a news outlet and a reporter, then cover anyone you like: WCA, your own promotion, or anybody else's. ${CP_TRUSTED ? 'Since you run an approved promotion, your stories go straight to the Feed.' : 'Your stories go to WCA for approval before they hit the Feed. Once you run an approved promotion, they go live right away.'}</div>`}
     <div class="spc-row">
       <div><label style="margin-top:0">Outlet name</label>
         <div class="cp-aiwrap"><input id="cpx_name" maxlength="60" placeholder="The Turnbuckle Times" value="${escAttr(o?o.name:'')}"></div></div>
@@ -17049,7 +17099,7 @@ function cpRenderComposer(){
       </span>
     </div>
     <div class="spc-kindtabs">${kindTabs}</div>
-    ${editing ? `<div class="spc-note" style="margin:0 0 10px;color:var(--gold)">Editing your ${esc(CP_KIND_LABEL[CP_KIND]||CP_KIND)} post. Saving sends it back to WCA for approval${CP_EDITING.submission_status==='approved'?', and it comes off the Feed until it is approved again':''}.</div>` : ''}
+    ${editing ? `<div class="spc-note" style="margin:0 0 10px;color:var(--gold)">Editing your ${esc(CP_KIND_LABEL[CP_KIND]||CP_KIND)} post. ${cpEditNote()}</div>` : ''}
     <div class="spc-grid">
       <div>
         <div class="spc-row">
@@ -17071,13 +17121,13 @@ function cpRenderComposer(){
         </div>
         <div class="spc-note">Paste a YouTube or Twitch link anywhere in your text and it plays right in the post.</div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px">
-          <button class="spc-post-btn" id="cp_submit" onclick="cpSubmit()">${editing ? 'Save changes' : 'Send for approval'}</button>
+          <button class="spc-post-btn" id="cp_submit" onclick="cpSubmit()">${editing ? 'Save changes' : (cpFree() ? 'Post to the Feed' : 'Send for approval')}</button>
           <button class="spc-ghost-btn" onclick="cpPreview()">Preview</button>
           ${editing ? `<button class="spc-mini" onclick="cpOpen('${CP_MODE}')">Cancel edit</button>
                        <button class="spc-mini fr-danger" onclick="cpDeletePost()">Delete post</button>` : ''}
         </div>
         <div class="msg" id="cpMsg" style="margin-top:10px"></div>
-        <div class="spc-note">Everything you post goes to WCA for approval before it appears in the Feed.</div>
+        <div class="spc-note">${cpFree() ? 'Your posts go straight to the Feed. You can edit or delete them any time with the Edit button on the post.' : 'Your posts go to WCA for approval before they appear in the Feed. Once you run an approved promotion, they go live right away.'}</div>
       </div>
       <div class="spc-preview-pane" id="cpPreview">
         <div class="spc-pv-label">Preview</div>
@@ -17243,6 +17293,15 @@ function cpPreview(){
   html = slPlacePhotos(html, ph.length ? slPhotoCarouselHTML(ph, 'cppv') : '');
   pane.innerHTML = `<div class="spc-pv-label">Preview, exactly how it shows in the Feed</div>` + html;
 }
+// Wording only: does this post skip approval? (the server makes the real call)
+function cpFree(){ return CP_MODE === 'promotion' || CP_TRUSTED; }
+// What saving an edit does, matching submit_creator_post
+function cpEditNote(){
+  const st = (CP_EDITING && CP_EDITING.submission_status) || 'pending';
+  if(st === 'rejected') return 'Saving sends it back to WCA to look at again.';
+  if(cpFree() || st === 'approved') return 'Your changes show in the Feed as soon as you save.';
+  return 'It is still waiting for WCA. Saving updates what WCA sees.';
+}
 async function cpSubmit(){
   if(CP_BUSY) return;
   const g = cpGather();
@@ -17259,12 +17318,20 @@ async function cpSubmit(){
   }catch(e){ res = { error:e }; }
   CP_BUSY = false; if(btn) btn.disabled = false;
   if(res.error){ cpMsg(cpErrText(res.error), false); return; }
+  const wasEdit = !!CP_EDITING;
   const wasLive = CP_EDITING && CP_EDITING.submission_status === 'approved';
+  // ask the server where the post ended up (live, or waiting for WCA)
+  let live = cpFree();
+  try{
+    const { data:row } = await sb.from('storylines').select('is_published').eq('id', Number(res.data)).maybeSingle();
+    if(row) live = row.is_published === true;
+  }catch(e){}
   CP_EDITING = null; CP_PHOTOS = [];
   frClose();
-  wcaToast('Sent to WCA', 'Your post shows up in the Feed once it is approved.');
+  if(live) wcaToast(wasEdit ? 'Post updated' : 'Posted!', wasEdit ? 'Your changes are live in the Feed.' : 'Your post is live in the Feed.');
+  else wcaToast('Sent to WCA', 'Your post shows up in the Feed once it is approved.');
   cpLoadMine();
-  if(wasLive) loadStorylines();
+  if(live || wasLive) loadStorylines();
 }
 async function cpDeletePost(){
   if(!CP_EDITING || !confirm('Delete this post for good?')) return;
@@ -20029,6 +20096,8 @@ async function renderDhCharCard(){
       <h3 class="dh-char-name">${E(w.name)}</h3>
       <div class="dh-char-meta">${E(s.division)} Division · ${E(standing)}</div>
       ${streak ? `<div class="dh-char-meta" style="margin-top:8px">Last 5 matches</div>${streak}` : ''}
+      <button class="hbtn primary" style="margin-top:14px" onclick="dhOpenCharEdit()">
+        <i class="ti ti-pencil"></i> <span class="hbtn-label">Edit character</span></button>
     </div>
   </div>
   ${rcCardHTML('dh-rc')}
@@ -20140,6 +20209,138 @@ async function renderDhCharFull(){
   }
 }
 
+/* ---- Edit your character (Oct 2026) ----
+   The same fields and approval flow as edit-wrestler.html, right inside the
+   My Character tab: pick a character (dropdown when you own more than one),
+   change any field, Send for approval. Saved through submit_bio_edit, so the
+   admin's Superstar Portal queue is unchanged. Acts as the View As user when
+   the admin is testing. */
+const CE_SOCIALS = [['twitch','Twitch'],['twitter','Twitter / X'],['instagram','Instagram'],
+  ['youtube','YouTube'],['tiktok','TikTok'],['bluesky','Bluesky'],['discord','Discord']];
+let CE_LIST = [], CE_CUR = null;
+function ceSocials(x){ if(!x) return {}; if(typeof x === 'string'){ try{ return JSON.parse(x) || {}; }catch(e){ return {}; } } return x; }
+function ceMsg(t, ok){ const m = $d('ce-msg'); if(m){ m.textContent = t || ''; m.className = 'ce-msg ' + (ok ? 'ok' : 'bad'); } }
+async function ceRender(){
+  const host = $d('dh-char-edit');
+  if(!host) return;
+  const uid = (typeof spActingUserId === 'function') ? spActingUserId() : (CURRENT_USER && CURRENT_USER.id);
+  if(!uid){ host.innerHTML = ''; return; }
+  try{
+    const { data: owns } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', uid);
+    const ids = (owns||[]).map(o=>o.wrestler_id).filter(Boolean);
+    if(!ids.length){ host.innerHTML = ''; return; }
+    const { data: ws } = await sb.from('wrestlers').select('*').in('id', ids).order('name');
+    CE_LIST = ws || [];
+  }catch(e){ CE_LIST = []; }
+  if(!CE_LIST.length){ host.innerHTML = ''; return; }
+  const keep = CE_CUR && CE_LIST.find(w=>String(w.id) === String(CE_CUR.id));
+  CE_CUR = keep || CE_LIST.find(w=>DH_CHAR && String(w.id) === String(DH_CHAR.id)) || CE_LIST[0];
+  ceDraw();
+}
+function ceDraw(){
+  const host = $d('dh-char-edit'), w = CE_CUR;
+  if(!host || !w) return;
+  const soc = ceSocials(w.socials);
+  const v = (x)=> (typeof escAttr === 'function' ? escAttr(x == null ? '' : String(x)) : E(x));
+  const pick = CE_LIST.length > 1
+    ? `<label class="ce-l" for="ce-pick">Character</label>
+       <select id="ce-pick" class="ce-in" onchange="ceSwitch(this.value)">${CE_LIST.map(x=>
+         `<option value="${Number(x.id)}"${String(x.id)===String(w.id)?' selected':''}>${E(x.name)}</option>`).join('')}</select>`
+    : '';
+  host.innerHTML = `<div class="ce-card" id="ce-card">
+    <div class="ce-head">
+      <div><div class="ce-kick"><i class="ti ti-pencil"></i> Edit your character</div>
+        <h3 class="ce-name">${E(w.name)}</h3></div>
+    </div>
+    <p class="ce-p">Update your bio, nickname, hometown, theme song, moves and socials. Changes go to WCA for approval, then show on your profile.</p>
+    ${pick}
+    <label class="ce-l" for="ce_bio">Bio</label>
+    <textarea id="ce_bio" class="ce-in" rows="6" maxlength="2000">${E(w.bio||'')}</textarea>
+    <div class="ce-row">
+      <div><label class="ce-l" for="ce_nickname">Nickname</label><input id="ce_nickname" class="ce-in" value="${v(w.nickname)}"></div>
+      <div><label class="ce-l" for="ce_from_loc">Hometown</label><input id="ce_from_loc" class="ce-in" value="${v(w.from_loc)}"></div>
+    </div>
+    <div class="ce-row">
+      <div><label class="ce-l" for="ce_theme_song">Theme song</label><input id="ce_theme_song" class="ce-in" value="${v(w.theme_song)}" placeholder="Song title"></div>
+      <div><label class="ce-l" for="ce_theme_url">Theme song link <span class="ce-opt">(optional)</span></label><input id="ce_theme_url" class="ce-in" type="url" value="${v(w.theme_url)}" placeholder="https://"></div>
+    </div>
+    <div class="ce-row">
+      <div><label class="ce-l" for="ce_finishers">Finishers <span class="ce-opt">(one per line)</span></label>
+        <textarea id="ce_finishers" class="ce-in" rows="3">${E((w.finishers||[]).join('\n'))}</textarea></div>
+      <div><label class="ce-l" for="ce_signatures">Signatures <span class="ce-opt">(one per line)</span></label>
+        <textarea id="ce_signatures" class="ce-in" rows="3">${E((w.signatures||[]).join('\n'))}</textarea></div>
+    </div>
+    <label class="ce-l">Socials</label>
+    <div class="ce-soc">${CE_SOCIALS.map(([k,l])=>`<div><span>${E(l)}</span><input id="ce_soc_${k}" class="ce-in" type="url" value="${v(soc[k])}" placeholder="https://"></div>`).join('')}</div>
+    <div class="ce-acts">
+      <button class="hbtn primary" id="ce-send" onclick="ceSubmit()"><i class="ti ti-send"></i> <span class="hbtn-label">Send for approval</span></button>
+      <span class="ce-msg" id="ce-msg"></span>
+    </div>
+    <div id="ce-history"></div>
+  </div>`;
+  ceHistory();
+}
+function ceSwitch(id){
+  CE_CUR = CE_LIST.find(x=>String(x.id) === String(id)) || CE_CUR;
+  // the stats above follow the character you picked
+  DH_CHAR = CE_CUR; DH_CHAR_DONE = true;
+  renderDhCharFull();
+  ceDraw();
+}
+async function ceSubmit(){
+  const w = CE_CUR; if(!w) return;
+  const val = id => (($d(id)||{}).value || '').trim();
+  const lines = id => (($d(id)||{}).value || '').split('\n').map(x=>x.trim()).filter(Boolean);
+  const nv = {};
+  [['bio','ce_bio'],['nickname','ce_nickname'],['from_loc','ce_from_loc'],['theme_song','ce_theme_song'],['theme_url','ce_theme_url']]
+    .forEach(([k,id])=>{ const x = val(id); if(x !== (w[k]||'')) nv[k] = x || null; });
+  const fin = lines('ce_finishers'), sig = lines('ce_signatures');
+  if(JSON.stringify(fin) !== JSON.stringify(w.finishers||[])) nv.finishers = fin;
+  if(JSON.stringify(sig) !== JSON.stringify(w.signatures||[])) nv.signatures = sig;
+  const soc = {}; CE_SOCIALS.forEach(([k])=>{ const x = val('ce_soc_'+k); if(x) soc[k] = x; });
+  if(JSON.stringify(soc) !== JSON.stringify(ceSocials(w.socials))) nv.socials = soc;
+  if(!Object.keys(nv).length){ ceMsg('Nothing changed yet.', false); return; }
+  const btn = $d('ce-send'); if(btn) btn.disabled = true;
+  const asUser = (typeof IS_ADMIN !== 'undefined' && IS_ADMIN && typeof VIEW_AS_ID !== 'undefined' && VIEW_AS_ID) ? VIEW_AS_ID : null;
+  const { error } = await sb.rpc('submit_bio_edit', { p_wrestler_id: w.id, p_new_values: nv, p_as_user: asUser });
+  if(btn) btn.disabled = false;
+  if(error){ ceMsg('Could not send it: ' + error.message, false); return; }
+  ceMsg('Sent! WCA will review your changes soon.', true);
+  if(typeof wcaToast === 'function') wcaToast('Sent for approval', 'Your changes to ' + w.name + ' go live once WCA approves them.');
+  ceHistory();
+}
+async function ceHistory(){
+  const box = $d('ce-history'), w = CE_CUR;
+  if(!box || !w) return;
+  const uid = (typeof spActingUserId === 'function') ? spActingUserId() : (CURRENT_USER && CURRENT_USER.id);
+  const { data, error } = await sb.from('wrestler_edit_requests')
+    .select('id,status,new_values,review_note,submitted_at')
+    .eq('wrestler_id', w.id).eq('submitted_by', uid).order('submitted_at', { ascending:false }).limit(10);
+  if(error || !data || !data.length){ box.innerHTML = ''; return; }
+  const NAMES = { bio:'Bio', nickname:'Nickname', from_loc:'Hometown', theme_song:'Theme song', theme_url:'Theme song link',
+    finishers:'Finishers', signatures:'Signatures', socials:'Socials' };
+  box.innerHTML = `<div class="ce-l" style="margin-top:22px">Your recent changes</div>` + data.map(r=>{
+    const st = r.status === 'approved' ? 'Approved' : r.status === 'rejected' ? 'Not approved' : 'Waiting for approval';
+    const f = Object.keys(r.new_values||{}).map(k=>NAMES[k]||k).join(', ') || 'No fields';
+    return `<div class="ce-hist"><span>${E(f)} <em>${E(r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '')}</em></span>
+      <b class="ce-st ${E(r.status||'pending')}">${E(st)}</b>
+      ${r.review_note ? `<div class="ce-note">WCA's note: ${E(r.review_note)}</div>` : ''}</div>`;
+  }).join('');
+}
+// From the Account page or the Overview card: straight to the editor.
+window.dhOpenCharEdit = function(){
+  DH_TAB = 'character';
+  const pg = $d('page-dash');
+  if(pg && pg.classList.contains('active')) dhShow('character');
+  else if(typeof goPage === 'function') goPage('dash');
+  let n = 0;
+  const go = setInterval(()=>{
+    const c = $d('ce-card');
+    if(c || ++n > 40){ clearInterval(go); if(c) c.scrollIntoView({ behavior:'smooth', block:'start' }); }
+  }, 150);
+};
+window.ceSwitch = ceSwitch; window.ceSubmit = ceSubmit;
+
 /* ---- tabs ---- */
 function dhShow(tab){
   DH_TAB = tab;
@@ -20149,7 +20350,7 @@ function dhShow(tab){
     const p = $d('dpanel-'+t);
     if(p) p.classList.toggle('on', t === tab);
   });
-  if(tab === 'character') renderDhCharFull();
+  if(tab === 'character'){ renderDhCharFull(); ceRender(); }
   if(tab === 'betting'){ renderDashYou(); renderDashBets(); }
   if(tab === 'settings' && typeof renderAccountPage === 'function'){
     renderAccountPage(false, 'dh-settings-body');
