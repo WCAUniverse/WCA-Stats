@@ -7178,6 +7178,8 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     <div class="brand">
       <img class="logo-img" src="brand/wca-logo-sm.png" alt="WCA, World Championship Alliance" width="62" height="58">
     </div>
+    <!-- notifications bell: shown once the notifications table exists (NOTIFICATIONS block near the end) -->
+    <button class="notif-btn" id="notifBtn" type="button" onclick="wcaNotifToggle()" aria-label="Notifications" title="Notifications" hidden><i class="ti ti-bell"></i><span class="notif-dot" id="notifDot" hidden></span><span class="notif-count" id="notifCount" hidden></span></button>
     <button class="nav-toggle" id="navToggle" aria-label="Menu" onclick="toggleNav()"><i class="ti ti-menu-2"></i></button>
     <div class="head-right" id="headRight">
       <nav>
@@ -8827,6 +8829,7 @@ async function refreshUser(){
       </div>`;
     MY_PROFILE = null;
     IS_ADMIN = false;
+    try{ if(typeof wcaNotifAuth === 'function') wcaNotifAuth(); }catch(e){}   // notifications: this device is signed out now
     return;
   }
   // claim any idle points, then load profile
@@ -8838,6 +8841,7 @@ async function refreshUser(){
   try{ const { data:adm } = await sb.rpc('is_admin'); IS_ADMIN = adm===true; }
   catch(e){ IS_ADMIN = false; }
   renderUserChip();
+  try{ if(typeof wcaNotifAuth === 'function') wcaNotifAuth(); }catch(e){}     // notifications: who this device belongs to
   // The Apply page draws as soon as it opens, which can be before this sign in
   // has loaded. Redraw it now so a signed in visitor sees the form, not the
   // "Sign in to apply" box.
@@ -18127,6 +18131,437 @@ if(!isConfigured){
   }
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAppModal(); });
 </script>
+<!-- ===== NOTIFICATIONS (Oct 2026) =====
+     The bell at the top of every page, plus phone notifications.
+       Bell:   reads public.notifications (RLS shows everyone the public ones,
+               members their own, admins the "Waiting for you" ones) and goes
+               live through Supabase Realtime.
+       Phone:  "Turn on notifications" signs this device up through app-sw.js
+               (Web Push). The push-send edge function delivers.
+       Admin:  signed in as an admin, the panel also lists what is waiting in
+               the Superstar Portal, Creator Portals and Applications, and this
+               device gets "Waiting for you" alerts.
+     Needs: SUPABASE_SETUP_notifications.sql, the push-send edge function,
+     the new app-sw.js and icons/badge-96.png.
+     No table yet: the bell stays hidden and nothing else changes. -->
+<style>
+  .notif-btn{position:relative; order:0; flex:0 0 auto; background:transparent; border:1px solid var(--line);
+    color:var(--gold); width:40px; height:40px; border-radius:8px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; font-size:21px; line-height:1; transition:border-color .15s, transform .15s;}
+  .notif-btn:hover{border-color:var(--gold); transform:translateY(-1px);}
+  .notif-btn[hidden]{display:none !important;}
+  .notif-dot{position:absolute; top:6px; right:7px; width:9px; height:9px; border-radius:50%;
+    background:#ff5a6e; box-shadow:0 0 0 2px #0d0d0f;}
+  .notif-count{position:absolute; top:-6px; right:-6px; min-width:19px; height:19px; padding:0 5px; border-radius:10px;
+    background:#ff5a6e; color:#fff; font:700 11px/19px var(--font-body); text-align:center; box-shadow:0 0 0 2px #0d0d0f;}
+  .notif-dot[hidden],.notif-count[hidden]{display:none;}
+  @media(min-width:761px){ .notif-btn{order:5; margin-left:4px;} }
+
+  .np-veil{position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.35); display:none;}
+  .np-veil.open{display:block;}
+  .np{position:fixed; z-index:9001; top:72px; right:16px; width:min(410px, calc(100vw - 32px));
+    max-height:min(78vh, calc(100dvh - 96px)); overflow-y:auto; overscroll-behavior:contain;
+    background:rgba(9,11,19,.97); border:1px solid rgba(var(--gold-rgb),.45); border-radius:12px;
+    box-shadow:0 18px 50px rgba(0,0,0,.6); display:none; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);}
+  .np.open{display:block;}
+  @media(max-width:760px){ .np{top:64px; right:12px; left:12px; width:auto; max-height:calc(100dvh - 80px);} }
+  .np-head{position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:10px; padding:14px 16px 12px;
+    background:rgba(9,11,19,.98); border-bottom:1px solid var(--line);}
+  .np-head b{font-family:var(--font-display); font-size:20px; letter-spacing:1.2px; color:var(--txt); font-weight:400; flex:1;}
+  .np-x{background:transparent; border:0; color:var(--muted); font-size:20px; cursor:pointer; padding:4px;}
+  .np-x:hover{color:var(--txt);}
+  .np-sec{padding:14px 16px; border-bottom:1px solid var(--line);}
+  .np-sec:last-child{border-bottom:0;}
+  .np-eyebrow{font-family:var(--font-cond); font-size:12px; letter-spacing:2.4px; text-transform:uppercase; color:var(--gold); margin-bottom:8px;}
+  .np-p{font-family:var(--font-body); font-size:14px; line-height:1.5; color:var(--txt-2); margin:0 0 10px;}
+  .np-p b{color:#fff;}
+  .np-btn{display:inline-flex; align-items:center; gap:7px; padding:9px 14px; border-radius:8px; cursor:pointer;
+    background:var(--gold); color:var(--on-gold); border:1px solid var(--gold); font-family:var(--font-cond);
+    font-size:14px; font-weight:700; letter-spacing:1px; text-transform:uppercase;}
+  .np-btn:disabled{opacity:.6; cursor:wait;}
+  .np-btn.ghost{background:transparent; color:var(--gold); border-color:rgba(var(--gold-rgb),.45);}
+  .np-btns{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .np-msg{font-family:var(--font-body); font-size:13px; color:var(--muted); margin-top:8px; min-height:1px;}
+  .np-msg.bad{color:#ff8a96;}
+  .np-sw{display:flex; align-items:center; gap:10px; padding:7px 0; cursor:pointer; font-family:var(--font-body);
+    font-size:14px; color:var(--txt-2);}
+  .np-sw i{font-size:18px; color:var(--gold); width:20px; text-align:center;}
+  .np-sw span{flex:1;}
+  .np-sw input{appearance:none; -webkit-appearance:none; width:38px; height:22px; border-radius:11px; margin:0;
+    background:#2a2a2e; position:relative; cursor:pointer; transition:background .15s; flex:0 0 auto;}
+  .np-sw input::after{content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%;
+    background:#8a8a86; transition:transform .15s, background .15s;}
+  .np-sw input:checked{background:rgba(var(--gold-rgb),.55);}
+  .np-sw input:checked::after{transform:translateX(16px); background:var(--gold);}
+  .np-wait{display:flex; align-items:center; gap:10px; padding:8px 0; font-family:var(--font-body); font-size:14px; color:var(--txt-2);
+    border-top:1px solid rgba(255,255,255,.05);}
+  .np-wait:first-of-type{border-top:0;}
+  .np-wait span{flex:1;}
+  .np-wait em{font-style:normal; font-family:var(--font-display); font-size:18px; color:var(--gold); min-width:24px; text-align:right;}
+  .np-item{display:flex; gap:12px; padding:12px 16px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.05);
+    text-decoration:none; color:inherit; position:relative;}
+  .np-item:hover{background:rgba(var(--gold-rgb),.06);}
+  .np-item .ic{flex:0 0 34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(var(--gold-rgb),.1); color:var(--gold); font-size:17px;}
+  .np-item.c-live .ic{background:rgba(255,90,110,.14); color:#ff7586;}
+  .np-item.c-admin .ic{background:rgba(93,202,165,.14); color:#5DCAA5;}
+  .np-item .t{font-family:var(--font-body); font-weight:700; font-size:14.5px; color:#fff; line-height:1.3;}
+  .np-item .b{font-family:var(--font-body); font-size:13.5px; color:var(--txt-2); line-height:1.45; margin-top:2px;}
+  .np-item .w{font-family:var(--font-cond); font-size:12px; letter-spacing:1px; color:var(--muted); margin-top:4px; text-transform:uppercase;}
+  .np-item.new::after{content:''; position:absolute; top:18px; right:14px; width:8px; height:8px; border-radius:50%; background:#ff5a6e;}
+  .np-empty{padding:22px 16px; text-align:center; font-family:var(--font-body); font-size:14px; color:var(--muted);}
+</style>
+
+<div class="np-veil" id="np-veil" onclick="wcaNotifClose()"></div>
+<div class="np" id="np" role="dialog" aria-modal="true" aria-label="Notifications">
+  <div class="np-head"><b>Notifications</b><button class="np-x" onclick="wcaNotifClose()" aria-label="Close"><i class="ti ti-x"></i></button></div>
+  <div class="np-sec" id="np-admin" hidden></div>
+  <div class="np-sec" id="np-device"></div>
+  <div id="np-list"><div class="np-empty">Loading…</div></div>
+</div>
+
+<script>
+/* ---------- what each kind is called (same keys as the SQL categories) ---------- */
+const NP_CATS = [
+  { key:'feed',  icon:'ti-news',           label:'New posts in the Feed' },
+  { key:'shows', icon:'ti-calendar-event', label:'New shows in Upcoming Events' },
+  { key:'bets',  icon:'ti-cash',           label:'Betting opens and showtime reminders' },
+  { key:'live',  icon:'ti-broadcast',      label:'Shows going live' },
+  { key:'mine',  icon:'ti-user-check',     label:'Updates on your posts and applications', signedIn:true },
+  { key:'admin', icon:'ti-inbox',          label:'Waiting for you (admin)', admin:true },
+  { key:'news',  icon:'ti-speakerphone',   label:'Announcements from WCA' },
+];
+const NP_ICON = Object.fromEntries(NP_CATS.map(c=>[c.key, c.icon]));
+const NP_WAIT = [
+  ['portal_posts',    'Superstar Portal posts'],
+  ['bio_edits',       'Superstar Portal bio edits'],
+  ['promotion_posts', 'Promotion Portal posts'],
+  ['press_posts',     'Press Pass posts'],
+  ['promotions',      'New promotions'],
+  ['applications',    'Applications'],
+];
+
+let NP_ROWS = [];          // newest first
+let NP_READY = false;      // the notifications table exists
+let NP_KEY = null;         // the site's public push key (from push-send)
+let NP_SUB = null;         // this device's PushSubscription, if any
+let NP_PREFS = {};         // this device's switches; missing key = on
+let NP_WAITING = null;     // admin: counts by queue
+let NP_AUTH_SIG = null;
+let NP_CHANNEL = null;
+
+function npLS(k, v){
+  try{ if(v === undefined) return localStorage.getItem(k); if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+  catch(e){ return null; }
+}
+function npSignedIn(){ return typeof CURRENT_USER !== 'undefined' && !!CURRENT_USER; }
+function npAdmin(){ return typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true; }
+function npPushSupported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && WCA_PATHS; }
+function npIOS(){ const ua = navigator.userAgent || ''; return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); }
+function npStandalone(){ return typeof wcaIsApp === 'function' ? wcaIsApp() : false; }
+function npB64(s){
+  const p = s.replace(/-/g,'+').replace(/_/g,'/') + '==='.slice((s.length + 3) % 4);
+  const bin = atob(p); const out = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function npAgo(iso){
+  const t = new Date(iso).getTime(); if(isNaN(t)) return '';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if(s < 60) return 'Just now';
+  if(s < 3600) return Math.floor(s/60) + 'm ago';
+  if(s < 86400) return Math.floor(s/3600) + 'h ago';
+  if(s < 7*86400) return Math.floor(s/86400) + 'd ago';
+  return new Date(t).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
+/* ---------- the bell ---------- */
+function npSeen(){ return npLS('wca-notif-seen') || ''; }
+function npPaintBell(){
+  const btn = document.getElementById('notifBtn');
+  if(!btn) return;
+  btn.hidden = !NP_READY;
+  const dot = document.getElementById('notifDot'), cnt = document.getElementById('notifCount');
+  const waiting = npAdmin() && NP_WAITING ? Object.values(NP_WAITING).reduce((a,b)=>a+(Number(b)||0), 0) : 0;
+  const unseen = NP_ROWS.some(r => r.created_at > npSeen());
+  if(cnt){ cnt.hidden = !waiting; cnt.textContent = waiting > 99 ? '99+' : String(waiting); }
+  if(dot) dot.hidden = !!waiting || !unseen;
+  btn.setAttribute('aria-label', waiting ? waiting + ' things waiting for you' : (unseen ? 'Notifications, new' : 'Notifications'));
+}
+
+async function npLoad(){
+  if(typeof sb === 'undefined' || !sb) return;
+  try{
+    const { data, error } = await sb.from('notifications')
+      .select('id,audience,category,title,body,url,created_at')
+      .order('created_at', { ascending:false }).limit(40);
+    if(error) throw error;
+    NP_ROWS = data || [];
+    NP_READY = true;
+    // first visit: start from now, so nobody lands on a pile of old alerts
+    if(!npSeen()) npLS('wca-notif-seen', NP_ROWS[0] ? NP_ROWS[0].created_at : new Date().toISOString());
+  }catch(e){
+    NP_READY = false;
+  }
+  npPaintBell();
+  if(npOpenNow()) npRenderList();
+}
+async function npLoadWaiting(){
+  if(!npAdmin()){ NP_WAITING = null; npPaintBell(); return; }
+  try{
+    const { data, error } = await sb.rpc('wca_pending_counts');
+    NP_WAITING = error ? null : (data || {});
+  }catch(e){ NP_WAITING = null; }
+  npPaintBell();
+  if(npOpenNow()) npRenderAdmin();
+}
+
+/* ---------- the panel ---------- */
+function npOpenNow(){ const p = document.getElementById('np'); return !!(p && p.classList.contains('open')); }
+function wcaNotifOpen(){
+  const hr = document.getElementById('headRight'); if(hr) hr.classList.remove('open');
+  document.getElementById('np').classList.add('open');
+  document.getElementById('np-veil').classList.add('open');
+  npRenderDevice(); npRenderAdmin(); npRenderList();
+  npLoad(); npLoadWaiting();
+  if(npPushSupported() && !NP_KEY) npGetKey().then(()=>{ if(npOpenNow()) npRenderDevice(); });
+  // opening the panel marks everything as seen (the dots stay on this visit)
+  if(NP_ROWS[0]) setTimeout(()=>{ npLS('wca-notif-seen', NP_ROWS[0].created_at); npPaintBell(); }, 600);
+}
+function wcaNotifClose(){
+  document.getElementById('np').classList.remove('open');
+  document.getElementById('np-veil').classList.remove('open');
+  npRenderList.seenAt = null;
+}
+function wcaNotifToggle(){ npOpenNow() ? wcaNotifClose() : wcaNotifOpen(); }
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && npOpenNow()) wcaNotifClose(); });
+
+function npRenderList(){
+  const box = document.getElementById('np-list');
+  if(!box) return;
+  if(!NP_ROWS.length){ box.innerHTML = '<div class="np-empty">No notifications yet. New posts, shows and live alerts land here.</div>'; return; }
+  if(!npRenderList.seenAt) npRenderList.seenAt = npSeen();   // what counted as new when the panel opened
+  const seen = npRenderList.seenAt;
+  box.innerHTML = '<div class="np-sec" style="padding-bottom:4px;border-bottom:0"><div class="np-eyebrow" style="margin:0">Recent</div></div>' +
+    NP_ROWS.map(r=>`<a class="np-item c-${escAttr(r.category||'news')}${r.created_at > seen ? ' new' : ''}" href="${escAttr(r.url || '/')}" onclick="return wcaNotifGo(this.getAttribute('href'))">
+      <div class="ic"><i class="ti ${NP_ICON[r.category] || 'ti-bell'}"></i></div>
+      <div style="min-width:0;flex:1"><div class="t">${esc(r.title)}</div>${r.body ? `<div class="b">${esc(r.body)}</div>` : ''}<div class="w">${esc(npAgo(r.created_at))}</div></div>
+    </a>`).join('');
+}
+
+function npRenderAdmin(){
+  const box = document.getElementById('np-admin');
+  if(!box) return;
+  if(!npAdmin()){ box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  const w = NP_WAITING || {};
+  const rows = NP_WAIT.filter(([k])=>Number(w[k]) > 0);
+  box.innerHTML = `<div class="np-eyebrow">Waiting for you</div>` +
+    (NP_WAITING === null ? '<p class="np-p" style="margin:0">Checking…</p>'
+      : rows.length ? rows.map(([k,l])=>`<div class="np-wait"><span>${esc(l)}</span><em>${Number(w[k])}</em></div>`).join('') +
+          '<p class="np-p" style="margin:10px 0 0;font-size:13px;color:var(--muted)">Approve them in your admin: <b>Superstar Portal</b>, <b>Creator Portals</b> and <b>Applications</b> tabs.</p>'
+        : '<p class="np-p" style="margin:0">Nothing is waiting for you right now.</p>');
+}
+
+function npRenderDevice(msg, bad){
+  const box = document.getElementById('np-device');
+  if(!box) return;
+  const m = `<div class="np-msg${bad ? ' bad' : ''}" id="np-msg">${msg ? esc(msg) : ''}</div>`;
+  let h = '<div class="np-eyebrow">This device</div>';
+  if(!npPushSupported()){
+    if(npIOS() && !npStandalone()){
+      h += `<p class="np-p">On iPhone and iPad, add WCA to your Home Screen first, then open it from there and turn notifications on.</p>
+        <div class="np-btns"><button class="np-btn ghost" onclick="wcaNotifClose();wcaInstall()"><i class="ti ti-download"></i> Get the App</button></div>`;
+    } else {
+      h += '<p class="np-p" style="margin:0">This browser can\'t show phone style notifications. New alerts still show up in this list.</p>';
+    }
+    box.innerHTML = h; return;
+  }
+  const perm = Notification.permission;
+  if(perm === 'denied'){
+    h += '<p class="np-p" style="margin:0">Notifications are blocked for WCA on this device. Allow them in your browser or phone settings for wcauniverse.com, then come back here.</p>';
+    box.innerHTML = h; return;
+  }
+  if(!NP_SUB){
+    h += `<p class="np-p">Get a heads up when the Feed has a new post, a show is announced, betting opens or a show goes live.${npAdmin() ? ' As the admin, you also hear when something is <b>waiting for you</b>.' : ''}</p>
+      <div class="np-btns"><button class="np-btn" id="np-on" onclick="wcaPushOn()"><i class="ti ti-bell-ringing"></i> Turn on notifications</button></div>${m}`;
+    box.innerHTML = h; return;
+  }
+  const cats = NP_CATS.filter(c => (!c.admin || npAdmin()) && (!c.signedIn || npSignedIn()));
+  h += '<p class="np-p" style="margin-bottom:4px">Notifications are <b>on</b> for this device. Choose what you hear about:</p>' +
+    cats.map(c=>`<label class="np-sw"><i class="ti ${c.icon}"></i><span>${esc(c.label)}</span>
+      <input type="checkbox" ${NP_PREFS[c.key] === false ? '' : 'checked'} onchange="wcaPushPref('${c.key}', this.checked)"></label>`).join('') +
+    `<div class="np-btns"><button class="np-btn ghost" onclick="wcaPushTest(this)"><i class="ti ti-send"></i> Send a test</button>
+      <button class="np-btn ghost" onclick="wcaPushOff(this)"><i class="ti ti-bell-off"></i> Turn off</button></div>${m}`;
+  box.innerHTML = h;
+}
+function npSay(msg, bad){ const el = document.getElementById('np-msg'); if(el){ el.textContent = msg || ''; el.classList.toggle('bad', !!bad); } }
+
+/* ---------- phone notifications ---------- */
+async function npGetKey(){
+  if(NP_KEY) return NP_KEY;
+  try{
+    const { data, error } = await sb.functions.invoke('push-send', { body:{ action:'key' } });
+    if(!error && data && data.publicKey) NP_KEY = data.publicKey;
+  }catch(e){}
+  return NP_KEY;
+}
+function npSW(){
+  return Promise.race([
+    navigator.serviceWorker.getRegistration('/').then(r => r || navigator.serviceWorker.register('/app-sw.js', { scope:'/' })).then(()=>navigator.serviceWorker.ready),
+    new Promise((_, no)=>setTimeout(()=>no(new Error('The app worker did not start. Reload the page and try again.')), 10000)),
+  ]);
+}
+async function npSave(prefs){
+  const j = NP_SUB.toJSON();
+  const { data, error } = await sb.rpc('wca_push_save', {
+    p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
+    p_prefs: prefs === undefined ? null : prefs, p_ua: (navigator.userAgent || '').slice(0, 300) });
+  if(error) throw error;
+  NP_PREFS = (data && data.prefs) || {};
+  npLS('wca-push-prefs', JSON.stringify(NP_PREFS));
+  return data;
+}
+async function wcaPushOn(){
+  const btn = document.getElementById('np-on');
+  if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Turning on…'; }
+  try{
+    // ask first, straight from the tap (iPhone needs that)
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){ npRenderDevice(perm === 'denied' ? null : 'Notifications were not allowed.', true); return; }
+    const reg = await npSW();
+    const key = await npGetKey();
+    if(!key) throw new Error('Notifications aren\'t switched on for the site yet. Please try again later.');
+    let sub = await reg.pushManager.getSubscription();
+    if(sub && sub.options && sub.options.applicationServerKey){
+      // signed up with an older key: start fresh
+      const had = btoa(String.fromCharCode(...new Uint8Array(sub.options.applicationServerKey))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      if(had !== key){ try{ await sub.unsubscribe(); }catch(e){} sub = null; }
+    }
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: npB64(key) });
+    NP_SUB = sub;
+    await npSave(NP_PREFS && Object.keys(NP_PREFS).length ? NP_PREFS : {});
+    npLS('wca-push-on', '1');
+    npRenderDevice('All set! You\'ll get WCA notifications on this device.');
+  }catch(e){
+    NP_SUB = null;
+    npRenderDevice((e && e.message) || 'Could not turn notifications on.', true);
+  }
+}
+async function wcaPushOff(btn){
+  if(btn) btn.disabled = true;
+  try{
+    if(NP_SUB){
+      const ep = NP_SUB.endpoint;
+      try{ await NP_SUB.unsubscribe(); }catch(e){}
+      try{ await sb.rpc('wca_push_remove', { p_endpoint: ep }); }catch(e){}
+    }
+  }finally{
+    NP_SUB = null; npLS('wca-push-on', null);
+    npRenderDevice('Notifications are off for this device.');
+  }
+}
+async function wcaPushPref(key, on){
+  const next = Object.assign({}, NP_PREFS);
+  if(on) delete next[key]; else next[key] = false;
+  try{ await npSave(next); npSay('Saved.'); }
+  catch(e){ npSay('Could not save that. Please try again.', true); npRenderDevice(); }
+}
+async function wcaPushTest(btn){
+  if(!NP_SUB) return;
+  if(btn) btn.disabled = true;
+  npSay('Sending…');
+  try{
+    const { data, error } = await sb.functions.invoke('push-send', { body:{ action:'test', endpoint: NP_SUB.endpoint } });
+    if(error) throw error;
+    if(data && data.ok) npSay('Sent! It should pop up in a few seconds.');
+    else npSay((data && data.error) || 'The test did not go through. Try turning notifications off and on again.', true);
+  }catch(e){ npSay('The test did not go through. Please try again later.', true); }
+  finally{ if(btn) btn.disabled = false; }
+}
+// find this device's sign up (if any) without asking anything
+async function npFindSub(){
+  if(!npPushSupported()) return null;
+  try{
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    NP_SUB = reg ? await reg.pushManager.getSubscription() : null;
+    // the browser dropped it but this device had alerts on: sign up again quietly
+    if(!NP_SUB && reg && npLS('wca-push-on') === '1' && Notification.permission === 'granted'){
+      const key = await npGetKey();
+      if(key) NP_SUB = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: npB64(key) });
+    }
+  }catch(e){ NP_SUB = null; }
+  try{ NP_PREFS = JSON.parse(npLS('wca-push-prefs') || '{}') || {}; }catch(e){ NP_PREFS = {}; }
+  return NP_SUB;
+}
+
+/* ---------- sign in / out: refresh who this device belongs to ---------- */
+async function wcaNotifAuth(){
+  const sig = (npSignedIn() ? CURRENT_USER.id : '-') + '|' + (npAdmin() ? 'a' : 'u');
+  if(sig === NP_AUTH_SIG) return;
+  NP_AUTH_SIG = sig;
+  npLoad(); npLoadWaiting(); npLive();
+  if(NP_SUB){ try{ await npSave(); }catch(e){} }
+  if(npOpenNow()){ npRenderDevice(); npRenderAdmin(); }
+}
+
+/* ---------- live: new rows arrive without a reload ---------- */
+function npLive(){
+  if(typeof sb === 'undefined' || !sb || !sb.channel) return;
+  try{ if(NP_CHANNEL) sb.removeChannel(NP_CHANNEL); }catch(e){}
+  NP_CHANNEL = sb.channel('wca-notifications')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'notifications' }, ({ new:r })=>{
+      if(!r || NP_ROWS.some(x=>x.id === r.id)) return;
+      NP_READY = true;
+      NP_ROWS.unshift(r); NP_ROWS = NP_ROWS.slice(0, 40);
+      npPaintBell();
+      if(npOpenNow()) npRenderList();
+      if(r.category === 'admin') npLoadWaiting();
+      // this device already shows it as a phone notification: no second pop up
+      const phoneShows = NP_SUB && Notification.permission === 'granted' && NP_PREFS[r.category] !== false;
+      if(!phoneShows && document.visibilityState === 'visible' && typeof wcaToast === 'function') wcaToast(r.title, r.body || '');
+    })
+    .subscribe();
+}
+
+/* ---------- tapping a notification ---------- */
+function wcaNotifGo(href){
+  let u; try{ u = new URL(href || '/', location.origin); }catch(e){ return true; }
+  if(u.origin !== location.origin){ window.open(u.href, '_blank', 'noopener'); return false; }
+  wcaNotifClose();
+  const admin = /(?:^|[?&])alerts=admin(?:&|$)/.test(u.search);
+  if(WCA_PATHS){
+    try{ history.pushState(null, '', u.pathname + u.search); }catch(e){ location.href = u.href; return false; }
+    if(typeof restorePageFromHash === 'function') restorePageFromHash();
+    window.scrollTo({ top:0, behavior:'smooth' });
+  } else { location.href = u.href; return false; }
+  if(admin) setTimeout(wcaNotifOpen, 250);
+  return false;
+}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', e=>{
+    const d = e.data || {};
+    if(d.type === 'wca-open') wcaNotifGo(d.url);
+    else if(d.type === 'wca-push'){ npLoad(); if(d.category === 'admin') npLoadWaiting(); }
+    else if(d.type === 'wca-resubscribe'){ NP_SUB = null; npFindSub().then(()=>{ if(NP_SUB) npSave().catch(()=>{}); }); }
+  });
+}
+
+/* ---------- start ---------- */
+(async function npBoot(){
+  if(typeof sb === 'undefined' || !sb) return;
+  await npFindSub();
+  await npLoad();
+  // the sign in check may have finished before this script ran
+  wcaNotifAuth();
+  // opened from a "Waiting for you" alert
+  if(/(?:^|[?&])alerts=admin(?:&|$)/.test(location.search) && NP_READY) setTimeout(wcaNotifOpen, 400);
+  // keep the "x minutes ago" and admin counts fresh on long visits
+  setInterval(()=>{ if(npOpenNow()) npRenderList(); }, 60000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible'){ npLoad(); npLoadWaiting(); } });
+})();
+</script>
+<!-- ===== END NOTIFICATIONS ===== -->
 <!-- ===== SPONSORS & PARTNERS (public page) =====
      Reads sponsor_sections + sponsors from Supabase and renders one
      grid of clickable logo tiles per section. Rows marked active=false
