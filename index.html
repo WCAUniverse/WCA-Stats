@@ -5975,6 +5975,27 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .dh-cols{display:grid;grid-template-columns:1fr;gap:22px;}
   @media(min-width:820px){ .dh-cols{grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);} }
   .dh-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:var(--panel2);height:100%;}
+  /* Likes and dislikes on member posts */
+  .wca-counts{margin-top:4px;}
+  .wca-counts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .wca-count{display:flex;flex-direction:column;gap:6px;}
+  .wca-count > span{font-family:var(--font-body);font-size:13.5px;color:var(--txt-2);}
+  .wca-count > span i{color:var(--gold);}
+  .wca-count input{width:100%;box-sizing:border-box;}
+  .wca-count .spc-mini{align-self:flex-start;}
+  @media(max-width:520px){ .wca-counts-row{grid-template-columns:1fr;} }
+  /* Who reacted */
+  .wr-box{max-width:560px;}
+  .wr-p{font-family:var(--font-body);font-size:14.5px;line-height:1.5;color:var(--txt-2);margin:8px 0 14px;}
+  .wr-p b{color:#fff;}
+  .wr-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-height:55vh;overflow-y:auto;}
+  .wr-h{font-family:var(--font-cond);font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+  .wr-h b{color:#fff;margin-left:4px;}
+  .wr-person{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-family:var(--font-body);font-size:14.5px;color:var(--txt);}
+  .wr-person img,.wr-init{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:0 0 30px;}
+  .wr-init{display:flex;align-items:center;justify-content:center;background:rgba(var(--gold-rgb),.15);color:var(--gold);font-size:12px;font-weight:700;}
+  .wr-none{font-family:var(--font-body);font-size:14px;color:var(--muted);padding:6px 0;}
+  @media(max-width:520px){ .wr-cols{grid-template-columns:1fr;} }
   /* Edit your character (My Character tab) */
   .ce-card{border:1px solid rgba(var(--gold-rgb),.55);border-radius:12px;padding:20px;margin:0 0 22px;
     background:linear-gradient(180deg,rgba(var(--gold-rgb),.07),rgba(0,0,0,0) 140px),var(--panel2);}
@@ -15868,6 +15889,11 @@ function slEngageBar(p){
         <i class="ti ti-pencil"></i> Edit
       </span>`
     : '';
+  const whoBtn = isMyOwnerPost
+    ? `<span class="sl-sharebtn" onclick="slWhoReacted(${p.id})" title="See which members really liked or disliked this">
+        <i class="ti ti-users"></i> Who reacted
+      </span>`
+    : '';
   return `<div class="sl-engage">
       <span class="sl-react${likeCls}" data-react="like" data-id="${p.id}" onclick="slVote(${p.id},1)">
         <i class="ti ti-thumb-up"></i><span class="sl-cnt">${slLikeTotal(p).toLocaleString()}</span>
@@ -15882,6 +15908,7 @@ function slEngageBar(p){
         <i class="ti ti-share-3"></i> Share
       </span>
       ${editBtn}
+      ${whoBtn}
     </div>
     <div class="sl-comments${SL_OPEN[p.id]?' open':''}" id="sl-comments-${p.id}"></div>`;
 }
@@ -17081,6 +17108,86 @@ async function cpDeleteOutlet(id){
   cpOpen('press', {manage:true});
 }
 
+/* ----- Likes and dislikes a member sets on their own post (Oct 2026) -----
+   Shared by the Superstar Portal and the Promotion Portal / Press Pass forms.
+   These are the starting numbers on the Feed's thumbs up / thumbs down; real
+   reactions add on top. Saved with set_post_counts right after the post saves
+   (SUPABASE_UPDATE_member_counts.sql). */
+function wcaRandLikes(){
+  const r = Math.random();
+  const [lo, hi] = r < 0.7 ? [20, 600] : r < 0.95 ? [600, 5000] : [5000, 25000];
+  return Math.round(lo + Math.pow(Math.random(), 1.6) * (hi - lo));
+}
+function wcaRandDislikes(likes){
+  const base = Number(likes) > 0 ? Number(likes) : wcaRandLikes();
+  return Math.max(0, Math.round(base * (0.01 + Math.random() * 0.24)));
+}
+function wcaCountsHTML(px, likes, dislikes){
+  const v = n => (n === null || n === undefined || n === '') ? '' : Number(n) || 0;
+  return `<div class="wca-counts">
+    <label style="margin-top:0">Likes and dislikes <span style="text-transform:none">(the numbers your post starts with)</span></label>
+    <div class="wca-counts-row">
+      <div class="wca-count"><span><i class="ti ti-thumb-up"></i> Likes</span>
+        <input id="${px}_likes" type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="0" value="${v(likes)}">
+        <button type="button" class="spc-mini" onclick="wcaRollLikes('${px}')">🎲 Random likes</button></div>
+      <div class="wca-count"><span><i class="ti ti-thumb-down"></i> Dislikes</span>
+        <input id="${px}_dislikes" type="number" min="0" max="1000000" step="1" inputmode="numeric" placeholder="0" value="${v(dislikes)}">
+        <button type="button" class="spc-mini" onclick="wcaRollDislikes('${px}')">🎲 Random dislikes</button></div>
+    </div>
+    <div class="spc-note">Real likes and dislikes from other members add on top. On your post in the Feed, tap <b>Who reacted</b> to see exactly who they are.</div>
+  </div>`;
+}
+function wcaRollLikes(px){ const el = document.getElementById(px+'_likes'); if(el) el.value = wcaRandLikes(); }
+function wcaRollDislikes(px){
+  const el = document.getElementById(px+'_dislikes'), l = document.getElementById(px+'_likes');
+  if(el) el.value = wcaRandDislikes(l ? l.value : 0);
+}
+function wcaReadCounts(px){
+  const n = id => { const el = document.getElementById(id); const x = Math.round(Number(el && el.value)); return isFinite(x) && x > 0 ? Math.min(x, 1000000) : 0; };
+  return { likes: n(px+'_likes'), dislikes: n(px+'_dislikes') };
+}
+async function wcaSaveCounts(postId, counts, asUser){
+  if(!postId || !counts) return null;
+  try{
+    const { error } = await sb.rpc('set_post_counts', { p_id: Number(postId), p_likes: counts.likes, p_dislikes: counts.dislikes, p_as_user: asUser || null });
+    return error || null;
+  }catch(e){ return e; }
+}
+
+/* ----- Who reacted: the member who wrote a post sees the real accounts behind
+   the likes and dislikes (post_reactors). ----- */
+async function slWhoReacted(id){
+  const p = (SL_ALL || []).find(x=>String(x.id) === String(id)) || {};
+  let ov = document.getElementById('wr-modal');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.className = 'modal-overlay'; ov.id = 'wr-modal';
+    ov.onclick = e=>{ if(e.target === ov) ov.classList.remove('open'); };
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `<div class="modal-box wr-box" role="dialog" aria-modal="true" aria-label="Who reacted">
+    <button class="modal-close" onclick="document.getElementById('wr-modal').classList.remove('open')" aria-label="Close"><i class="ti ti-x"></i></button>
+    <div class="hm-eyebrow">Your post</div><h2 class="hm-h2" style="font-size:24px">Who reacted</h2>
+    <div id="wr-body"><p class="wr-p">Loading…</p></div></div>`;
+  ov.classList.add('open');
+  const body = document.getElementById('wr-body');
+  let rows = [], err = null;
+  try{ const r = await sb.rpc('post_reactors', { p_id: Number(id) }); rows = r.data || []; err = r.error; }catch(e){ err = e; }
+  if(err){ body.innerHTML = `<p class="wr-p">${esc(/does not exist|PGRST202|could not find/i.test(String(err.message||err)) ? 'This is not switched on yet. Please try again later.' : (err.message || 'Could not load this.'))}</p>`; return; }
+  const likes = rows.filter(r=>r.value === 1), dis = rows.filter(r=>r.value === -1);
+  const sl = Number(p.seed_likes) || 0, sd = Number(p.seed_dislikes) || 0;
+  const person = r => {
+    const init = esc(String(r.name || '?').slice(0, 2).toUpperCase());
+    const av = r.avatar ? `<img src="${escAttr(r.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'wr-init',textContent:'${init}'}))">` : `<span class="wr-init">${init}</span>`;
+    return `<div class="wr-person">${av}<span>${esc(r.name || 'Member')}</span></div>`;
+  };
+  const col = (icon, label, list) => `<div class="wr-col"><div class="wr-h"><i class="ti ${icon}"></i> ${label} <b>${list.length}</b></div>
+    ${list.length ? list.map(person).join('') : '<div class="wr-none">Nobody yet</div>'}</div>`;
+  body.innerHTML = `<p class="wr-p">Your post shows <b>${(sl + likes.length).toLocaleString()}</b> likes and <b>${(sd + dis.length).toLocaleString()}</b> dislikes.
+      ${sl || sd ? `You set it to start at ${sl.toLocaleString()} likes and ${sd.toLocaleString()} dislikes. Everyone below is a real member.` : 'Everyone below is a real member.'}</p>
+    <div class="wr-cols">${col('ti-thumb-up', 'Liked it', likes)}${col('ti-thumb-down', 'Disliked it', dis)}</div>`;
+}
+
 /* ----- the post composer ----- */
 function cpRenderComposer(){
   const host = cpHost();
@@ -17120,6 +17227,7 @@ function cpRenderComposer(){
           <div class="spc-photos" id="cpPhotoThumbs"></div>
         </div>
         <div class="spc-note">Paste a YouTube or Twitch link anywhere in your text and it plays right in the post.</div>
+        ${wcaCountsHTML('cp', editing ? CP_EDITING.seed_likes : '', editing ? CP_EDITING.seed_dislikes : '')}
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px">
           <button class="spc-post-btn" id="cp_submit" onclick="cpSubmit()">${editing ? 'Save changes' : (cpFree() ? 'Post to the Feed' : 'Send for approval')}</button>
           <button class="spc-ghost-btn" onclick="cpPreview()">Preview</button>
@@ -17285,7 +17393,8 @@ function cpPreview(){
   if(!pane) return;
   const g = cpGather();
   if(g.error){ cpMsg(g.error, false); return; }
-  const fake = { id:0, kind:CP_KIND, title:g.title, body:g.body, pinned:false,
+  const cpc = wcaReadCounts('cp');
+  const fake = { id:0, kind:CP_KIND, title:g.title, body:g.body, pinned:false, seed_likes:cpc.likes, seed_dislikes:cpc.dislikes,
     story_date:(document.getElementById('cp_date')||{}).value || new Date().toISOString().slice(0,10),
     payload:Object.assign({}, g.payload, { source: cpSourceBlock() }) };
   let html = slAddSourceStrip(slRenderPostInner(fake), fake);
@@ -17308,6 +17417,7 @@ async function cpSubmit(){
   if(g.error){ cpMsg(g.error, false); return; }
   CP_BUSY = true;
   const btn = document.getElementById('cp_submit'); if(btn) btn.disabled = true;
+  const counts = wcaReadCounts('cp');
   let res;
   try{
     res = await sb.rpc('submit_creator_post', {
@@ -17318,6 +17428,8 @@ async function cpSubmit(){
   }catch(e){ res = { error:e }; }
   CP_BUSY = false; if(btn) btn.disabled = false;
   if(res.error){ cpMsg(cpErrText(res.error), false); return; }
+  const cErr = await wcaSaveCounts(CP_EDITING ? CP_EDITING.id : res.data, counts);
+  if(cErr) console.warn('[counts]', cErr);
   const wasEdit = !!CP_EDITING;
   const wasLive = CP_EDITING && CP_EDITING.submission_status === 'approved';
   // ask the server where the post ended up (live, or waiting for WCA)
@@ -17369,7 +17481,7 @@ async function cpLoadMine(){
   if(!frSignedIn()){ CP_MINE = []; cpRenderMine(); return; }
   try{
     const { data, error } = await sb.from('storylines')
-      .select('id,kind,title,body,payload,story_date,submission_status,review_note,promotion_id,outlet_id,created_at')
+      .select('id,kind,title,body,payload,story_date,submission_status,review_note,promotion_id,outlet_id,created_at,seed_likes,seed_dislikes')
       .eq('submitted_by', CURRENT_USER.id).in('submission_status', ['pending','rejected'])
       .order('created_at', {ascending:false});
     CP_MINE = (!error && data) ? data.filter(r=>slSrc(r)) : [];
@@ -17399,7 +17511,7 @@ function cpEditMine(id){
 // The Edit button on one of your live posts in the Feed.
 async function cpEditFromFeed(id){
   const { data, error } = await sb.from('storylines')
-    .select('id,kind,title,body,payload,story_date,submission_status,promotion_id,outlet_id')
+    .select('id,kind,title,body,payload,story_date,submission_status,promotion_id,outlet_id,seed_likes,seed_dislikes')
     .eq('id', id).eq('submitted_by', CURRENT_USER.id).maybeSingle();
   if(error || !data){ wcaToast('Could not open that post', 'Please try again.', true); return; }
   cpOpen(data.promotion_id != null ? 'promotion' : 'press', { edit:data });
@@ -17733,6 +17845,9 @@ function spExpand(){
             <input type="file" id="spc_photo_file" accept="image/*" onchange="spPhotoPicked(this)">
             <div class="spc-photos" id="spcPhotoThumbs"></div>
           </div>
+          <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:12px">
+            ${wcaCountsHTML('spc', editing ? SP_EDITING.seed_likes : '', editing ? SP_EDITING.seed_dislikes : '')}
+          </div>
           <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:18px">
             <button class="spc-post-btn" onclick="spSubmitPost()">${editing?'Save changes':'Post'}</button>
             <button class="spc-ghost-btn" onclick="spPreview()">Preview post</button>
@@ -17987,7 +18102,7 @@ function spPreview(){
   const fake = {
     id: 0, kind: g.kind, title: g.title, body: g.body, payload: g.payload,
     story_date: (document.getElementById('spc_date')||{}).value || new Date().toISOString().slice(0,10),
-    pinned: false, is_published: true, seed_likes: 0, seed_dislikes: 0
+    pinned: false, is_published: true, seed_likes: wcaReadCounts('spc').likes, seed_dislikes: wcaReadCounts('spc').dislikes
   };
   let html = slRenderPostInner(fake);
   const ph = slPhotosOf(fake);
@@ -18000,23 +18115,26 @@ async function spSubmitPost(){
   const g = spGather();
   if(g.error){ spMsg(g.error, false); return; }
   const asUser = (IS_ADMIN && VIEW_AS_ID) ? VIEW_AS_ID : null;
+  const counts = wcaReadCounts('spc');
   if(SP_EDITING){
     const { error } = await sb.rpc('submit_storyline_edit', {
       p_storyline_id: SP_EDITING.id, p_title: g.title||null, p_body: g.body, p_payload: g.payload,
       p_as_user: asUser
     });
     if(error){ spMsg('Failed: '+error.message, false); return; }
+    { const cErr = await wcaSaveCounts(SP_EDITING.id, counts, asUser); if(cErr) console.warn('[counts]', cErr); }
     SP_EDITING = null;
     SP_PHOTOS = [];
     spRenderCollapsed();
     spLoadMySubmissions();
   } else {
     const storyDate = (document.getElementById('spc_date')||{}).value || null;
-    const { error } = await sb.rpc('submit_storyline', {
+    const { data: newId, error } = await sb.rpc('submit_storyline', {
       p_wrestler_id: parseInt(g.wrestler_id,10), p_kind: g.kind, p_title: g.title||null,
       p_body: g.body, p_payload: g.payload, p_story_date: storyDate, p_as_user: asUser
     });
     if(error){ spMsg('Failed: '+error.message, false); return; }
+    { const cErr = await wcaSaveCounts(newId, counts, asUser); if(cErr) console.warn('[counts]', cErr); }
     SP_PHOTOS = [];
     spRenderCollapsed();
     spLoadMySubmissions();
