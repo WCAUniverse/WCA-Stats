@@ -4512,8 +4512,6 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
       max-width:920px; margin-left:auto; margin-right:auto; width:100%;
     }
     /* Slightly larger, more readable type on the wider PC feed. */
-    #page-storylines .sl-social .sl-text,
-    #page-storylines .sl-article .sl-body,
     #page-storylines .sl-snafu-fact,
     #page-storylines .sl-comment .sl-cbody{ font-size:16px; line-height:1.6; }
     #page-storylines .sl-snafu-fact{ font-size:15px; }
@@ -4590,6 +4588,8 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .spc-tag.approved{color:var(--win); border-color:var(--win); background:rgba(62,207,142,.08);}
   .spc-tag.rejected{color:var(--loss); border-color:var(--loss); background:rgba(226,75,74,.08);}
   .spc-note{font-size:12px; color:var(--muted); margin-top:6px;}
+  .hl-help{font-size:12.5px; color:var(--muted); margin-top:5px;}
+  .hl-help.good{color:var(--win);} .hl-help.warn{color:var(--gold);}
   .spc-mysubs-title{font-family:var(--font-display); font-size:14px; letter-spacing:1px; text-transform:uppercase;
     color:var(--muted); margin:6px 0 12px;}
 
@@ -4816,7 +4816,6 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .sl-pressqa .sl-pq-answer{font-family:var(--font-body); font-size:16px; line-height:1.6;
     color:var(--txt-2); margin-bottom:4px;}
   .sl-pressqa .sl-pq-speaker{font-weight:700;}
-  .pq-c0{color:#6db8ff} .pq-c1{color:#7fe0a0} .pq-c2{color:#c9a6ff} .pq-c3{color:#ff9d9d} .pq-c4{color:#f4b183}
 
   /* ---- SIGNING — contract letterhead (reuses HR frame look) ---- */
   .sl-signing,.sl-injury{background:var(--gold-deep); border:1px solid var(--gold);
@@ -5072,6 +5071,278 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     .sl-review{padding:18px 16px;}
     .sl-rv-score{margin-left:0; width:100%;}
   }
+
+  /* ===================== FEED REDESIGN (Oct 2026) =====================
+     Bigger, segmented, easier to follow. Same rules in admin.html (scoped to
+     .fk-scope) so the composer preview matches the Feed. Change both. */
+  .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury){ padding:26px 30px; }
+  .slpost.sl-article:not(.sl-hr){ padding:26px 30px; }
+  .slpost .sl-pin ~ .sl-kicker{ padding-right:96px; }
+
+  /* type chip + the small line beside it */
+  .sl-kicker{display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; margin:0 0 12px;}
+  .sl-chip{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-cond); font-weight:700;
+    font-size:14px; letter-spacing:2px; text-transform:uppercase; line-height:1.1;
+    color:var(--on-gold,#120c04); background:var(--gold); padding:5px 11px; border-radius:5px;}
+  .sl-chip i{font-size:15px;}
+  .sl-kick{font-family:var(--font-cond); font-weight:600; font-size:15px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--txt-2,#d7d4cc);}
+
+  /* headline, subheadline, byline */
+  .sl-article .sl-headline, .sl-interview .sl-iv-headline, .sl-pressqa .sl-pq-headline,
+  .sl-rankings .sl-rk-headline{font-size:clamp(32px,5.4vw,56px); line-height:.98; margin:0;}
+  .sl-dek{font-family:var(--font-body); font-weight:500; font-size:clamp(17px,2.1vw,20px); line-height:1.45;
+    color:var(--txt-2,#d7d4cc); margin:12px 0 0; max-width:62ch;}
+  .sl-byline-row{display:flex; align-items:center; gap:12px; margin-top:16px;}
+  .sl-by-mid{flex:1; min-width:0;}
+  .sl-by-who{font-family:var(--font-cond); font-weight:700; font-size:19px; color:var(--txt); line-height:1.15;}
+  .sl-by-meta{font-family:var(--font-body); font-size:14.5px; color:var(--muted); margin-top:2px;}
+  .sl-by-right{margin-left:auto; flex:0 0 auto;}
+  .sl-letter{width:46px; height:46px; border-radius:50%; flex:0 0 auto; display:inline-flex; align-items:center;
+    justify-content:center; font-family:var(--font-cond); font-weight:700; font-size:19px; color:var(--gold);
+    background:var(--panel2); border:2px solid var(--gold);}
+  .sl-letter.sm{width:40px; height:40px; font-size:16px;}
+  .sl-by-av{width:46px; height:46px; border-radius:50%; object-fit:contain; flex:0 0 auto;
+    background:rgba(255,255,255,.04); border:1px solid var(--line);}
+
+  /* reading text */
+  .sl-prose{max-width:68ch;}
+  .sl-prose .sl-para{font-family:var(--font-body); font-size:18px; line-height:1.72; color:var(--txt-2,#d7d4cc);
+    margin:0 0 16px; overflow-wrap:anywhere;}
+  .sl-prose .sl-para:last-child{margin-bottom:0;}
+  .sl-prose .sl-lede{font-size:20px; line-height:1.6; color:var(--txt);}
+  .slpost .sl-prose h4{font-family:var(--font-cond); font-weight:700; font-size:23px; letter-spacing:.5px;
+    text-transform:uppercase; color:#fff; margin:26px 0 10px;}
+  .slpost .sl-prose blockquote, .slpost blockquote.sl-pull{margin:22px 0; padding:4px 0 4px 20px;
+    border-left:4px solid var(--gold); font-family:var(--font-display); font-style:normal; font-weight:400;
+    font-size:clamp(22px,3vw,30px); line-height:1.15; text-transform:uppercase; letter-spacing:.3px;
+    color:#fff; max-width:56ch;}
+  .sl-pull-q::before{content:'\201C';} .sl-pull-q::after{content:'\201D';}
+  .sl-pull cite{display:block; margin-top:10px; font-style:normal; font-family:var(--font-cond); font-weight:600;
+    font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold);}
+  .sl-article .sl-prose, .sl-article .sl-foldwrap{margin-top:22px;}
+  .sl-foldwrap .sl-prose{margin-top:0;}
+  .sl-article .sl-photo-carousel, .sl-interview .sl-photo-carousel, .sl-pressqa .sl-photo-carousel,
+  .sl-rankings .sl-photo-carousel{margin:20px 0 4px;}
+
+  /* "Keep reading" and "Show questions 4 to 7" */
+  .sl-fold{max-height:560px; overflow:hidden;
+    -webkit-mask-image:linear-gradient(#000 68%,transparent); mask-image:linear-gradient(#000 68%,transparent);}
+  .sl-fold.open{max-height:none; -webkit-mask-image:none; mask-image:none;}
+  .sl-fold-bar{display:flex; justify-content:center; margin-top:16px;}
+  .sl-morebtn{font-family:var(--font-cond); font-weight:700; font-size:16px; letter-spacing:1.5px;
+    text-transform:uppercase; padding:10px 22px; border-radius:24px; border:1px solid var(--gold-dim);
+    background:transparent; color:var(--gold); cursor:pointer;}
+  .sl-morebtn:hover{background:rgba(var(--gold-rgb),.1);}
+  .sl-morebtn:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+  /* someone speaking: picture, big name, then what they said */
+  .sl-turn{display:flex; gap:14px; align-items:flex-start; min-width:0;}
+  .sl-turn-body{flex:1; min-width:0;}
+  .sl-spk{display:flex; align-items:baseline; gap:4px 10px; flex-wrap:wrap; line-height:1.15;}
+  .sl-spk-name{font-family:var(--font-cond); font-weight:700; font-size:23px; letter-spacing:.3px; color:var(--spk,#6db8ff);}
+  .sl-spk-name.sl-asker{color:var(--txt);}
+  .sl-role{font-family:var(--font-cond); font-weight:600; font-size:14.5px; letter-spacing:1.6px;
+    text-transform:uppercase; color:var(--muted);}
+  .sl-outlet{font-family:var(--font-cond); font-weight:700; font-size:14.5px; letter-spacing:1.6px;
+    text-transform:uppercase; color:var(--gold);}
+  .sl-said{font-family:var(--font-body); font-size:18px; line-height:1.68; color:var(--txt-2,#d7d4cc);
+    margin-top:6px; max-width:68ch; overflow-wrap:anywhere;}
+  .pq-c0{--spk:#6db8ff;} .pq-c1{--spk:#7fe0a0;} .pq-c2{--spk:#c9a6ff;} .pq-c3{--spk:#ff9d9d;} .pq-c4{--spk:#f4b183;}
+  .sl-pq-av, .sl-iv-av, .sl-rk-av{width:48px; height:48px; border-radius:50%; object-fit:cover;
+    object-position:50% 12%; flex:0 0 auto; border:2px solid var(--spk,var(--line)); background:var(--panel2);}
+  .sl-pq-av-init, .sl-iv-av-init, .sl-rk-av-init{width:48px; height:48px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--panel2);
+    border:2px solid var(--spk,var(--line)); color:var(--muted);}
+  .sl-pq-mini{width:28px; height:28px; border-radius:50%; object-fit:cover; object-position:50% 12%;
+    flex:0 0 auto; background:var(--panel2); border:1px solid var(--line);}
+  .sl-pq-mini-init{width:28px; height:28px; border-radius:50%; flex:0 0 auto; display:inline-flex;
+    align-items:center; justify-content:center; overflow:hidden; background:var(--panel2);
+    border:1px solid var(--line); color:var(--muted);}
+
+  /* ---- PRESS CONFERENCE ---- */
+  .sl-pq-box{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:1px; margin:20px 0 0;
+    background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .sl-pq-box > div{background:rgba(5,6,11,.82); padding:11px 15px; min-width:0;}
+  .sl-pq-box dt{font-family:var(--font-cond); font-weight:700; font-size:13px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--gold);}
+  .sl-pq-box dd{margin:3px 0 0; font-family:var(--font-body); font-size:17px; font-weight:600; color:var(--txt);
+    line-height:1.35; display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; overflow-wrap:anywhere;}
+  .sl-pq-pp{display:inline-flex; align-items:center; gap:7px;}
+  .sl-pq-read{display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-family:var(--font-cond);
+    font-weight:600; font-size:15.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted);}
+  .sl-pq-read span{display:inline-flex; align-items:center; gap:6px;}
+  .sl-pq-read i{font-size:17px;}
+  .sl-pq-flow{display:flex; flex-direction:column; gap:18px; margin-top:22px;}
+  .sl-more .sl-pq-flow{margin-top:18px;}
+  .sl-pressqa .sl-fold-bar{margin-top:20px;}
+  /* Podium style */
+  .sl-pq-mod{display:flex; gap:14px; align-items:flex-start; padding:14px 18px; border-radius:10px;
+    background:rgba(255,255,255,.035); border:1px dashed var(--line); color:#bdb9c9;}
+  .sl-pq-mic{width:40px; height:40px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center;
+    justify-content:center; border:1px solid var(--line); font-size:19px;}
+  .sl-pq-modlbl{font-family:var(--font-cond); font-weight:700; font-size:15px; letter-spacing:2.5px; text-transform:uppercase;}
+  .sl-pq-modtxt{margin-top:3px; font-family:var(--font-body); font-size:17px; line-height:1.6; font-style:italic; max-width:68ch;}
+  .sl-pq-opening{padding:18px; border:1px solid var(--line); border-left:4px solid var(--spk,#6db8ff);
+    border-radius:14px; background:rgba(0,0,0,.35);}
+  .sl-pq-q{border:1px solid var(--line); border-radius:14px; overflow:hidden; background:rgba(0,0,0,.35);}
+  .sl-pq-qhead{padding:9px 18px; background:var(--panel2); border-bottom:1px solid var(--line);
+    font-family:var(--font-cond); font-weight:700; font-size:15px; letter-spacing:2.5px;
+    text-transform:uppercase; color:var(--muted);}
+  .sl-pq-qhead b{color:var(--gold);}
+  .sl-pq-ask{padding:18px 18px 16px; background:rgba(var(--gold-rgb),.09);}
+  .sl-pq-ask .sl-said{color:var(--txt);}
+  .sl-pq-ans{padding:16px 18px 20px; box-shadow:inset 4px 0 0 var(--spk,#6db8ff);}
+  .sl-pq-ask + .sl-pq-ans{border-top:1px solid var(--line);}
+  /* Back and forth style */
+  .sl-pq-sys{align-self:center; max-width:92%; text-align:center; font-family:var(--font-body); font-style:italic;
+    color:#bdb9c9; font-size:16.5px; line-height:1.55; padding:10px 18px;
+    border-top:1px dashed var(--line); border-bottom:1px dashed var(--line);}
+  .sl-pq-sys b{display:block; font-style:normal; font-family:var(--font-cond); font-weight:700;
+    letter-spacing:2.5px; text-transform:uppercase; font-size:14px; margin-bottom:2px;}
+  .sl-bub{max-width:88%; min-width:0;}
+  .sl-bub.left{align-self:flex-start;}
+  .sl-bub.right{align-self:flex-end;}
+  .sl-bub .sl-turn-body{border:1px solid var(--line); border-radius:14px; padding:13px 17px;}
+  .sl-bub.left .sl-turn-body{background:rgba(var(--gold-rgb),.09); border-top-left-radius:4px;}
+  .sl-bub.left .sl-said{color:var(--txt);}
+  .sl-bub.right .sl-turn{flex-direction:row-reverse;}
+  .sl-bub.right .sl-turn-body{border-top-right-radius:4px; background:rgba(109,184,255,.08);
+    background:color-mix(in srgb, var(--spk,#6db8ff) 9%, transparent);
+    border-color:color-mix(in srgb, var(--spk,#6db8ff) 34%, transparent);}
+  .sl-bub .sl-said{margin-top:5px;}
+
+  /* ---- INTERVIEW ---- */
+  .sl-interview .sl-iv-intro{margin-top:18px;}
+  .sl-iv-body{display:flex; flex-direction:column; gap:24px; margin-top:24px;}
+  .sl-iv-ex{display:flex; flex-direction:column; gap:14px;}
+  .sl-iv-ask .sl-said{color:var(--txt);}
+  .sl-iv-ans{--spk:#6db8ff;}
+  .sl-iv-body .sl-more:not([hidden]){display:flex; flex-direction:column; gap:24px;}
+
+  /* ---- SOCIAL ---- */
+  .sl-social .sl-head{gap:14px; margin-bottom:12px;}
+  .sl-social .sl-av, .sl-social .sl-av-init{width:64px; height:64px;}
+  .sl-social .sl-name{font-size:25px; font-weight:700;}
+  .sl-social .sl-name .sl-verify{font-size:20px;}
+  .sl-social .sl-handle{font-size:16px; margin-top:2px;}
+  .sl-social .sl-text{font-size:20px; line-height:1.5;}
+  .sl-social .sl-foot{gap:28px; margin-top:16px; padding-top:13px;}
+  .sl-social .sl-stat{font-family:var(--font-cond); font-weight:600; font-size:17px;}
+  .sl-social .sl-stat i{font-size:20px;}
+  .sl-reply{gap:14px; padding-top:16px;}
+  .sl-reply::before{left:23px;}
+  .sl-reply .sl-av, .sl-reply .sl-av-init{width:48px; height:48px;}
+  .sl-reply .sl-rbody{padding:12px 16px;}
+  .sl-reply .sl-name{font-size:20px;}
+  .sl-reply .sl-text{font-size:18px; margin-top:3px;}
+
+  /* ---- HR NOTICE, SIGNING, INJURY ---- */
+  .sl-hr .sl-letterhead, .sl-signing .sl-letterhead, .sl-injury .sl-letterhead{padding:20px 28px; gap:16px;}
+  .sl-hr .sl-seal, .sl-signing .sl-seal, .sl-injury .sl-seal{width:56px; height:56px; font-size:26px;}
+  .sl-hr .sl-dept, .sl-signing .sl-dept, .sl-injury .sl-dept{font-size:21px;}
+  .sl-hr .sl-deptsub, .sl-signing .sl-deptsub, .sl-injury .sl-deptsub{font-size:15px; margin-top:3px;}
+  .sl-hr .sl-memo, .sl-signing .sl-memo, .sl-injury .sl-memo{padding:24px 28px 26px;}
+  .sl-docf{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px 22px;
+    margin:0; padding-bottom:16px; border-bottom:1px solid var(--line);}
+  .sl-docf div{min-width:0;}
+  .sl-docf dt{font-family:var(--font-cond); font-weight:700; font-size:13px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--muted);}
+  .sl-docf dd{margin:2px 0 0; font-family:var(--font-body); font-size:18px; font-weight:600; color:var(--txt);
+    overflow-wrap:anywhere;}
+  .sl-hr .sl-subject, .sl-signing .sl-subject, .sl-injury .sl-subject{font-size:clamp(28px,4.4vw,42px);
+    line-height:1.02; text-transform:uppercase; margin:20px 0 14px; text-wrap:balance; color:#fff;}
+  .sl-hr .sl-body, .sl-signing .sl-body, .sl-injury .sl-body{font-size:inherit; white-space:normal;}
+  .sl-hr .sl-sign, .sl-signing .sl-sign, .sl-injury .sl-sign{font-family:var(--font-cond); font-weight:600;
+    font-size:18px; letter-spacing:1px; color:var(--gold); margin-top:20px;}
+  .sl-inj-status{font-size:17px; padding:7px 14px; border-width:2px; border-style:solid;}
+
+  /* ---- PROMO ---- */
+  .sl-pr-wrap.sl-pr-hasfig{display:grid; grid-template-columns:190px minmax(0,1fr); gap:26px;
+    align-items:center; text-align:left;}
+  .sl-pr-figure{aspect-ratio:3/5; border-radius:12px; overflow:hidden; border:1px solid var(--line);
+    background:rgba(0,0,0,.35);}
+  .sl-pr-figure img{display:block; width:100%; height:100%; object-fit:contain; object-position:50% 100%;}
+  .sl-pr-main{min-width:0;}
+  .sl-promo .sl-pr-setting{font-family:var(--font-cond); font-weight:700; font-size:15px; letter-spacing:2.5px;
+    color:var(--gold); margin-bottom:12px;}
+  .sl-promo .sl-pr-quote{font-size:clamp(22px,3.4vw,30px); line-height:1.3;}
+  .sl-pr-plate{margin-top:18px; display:inline-flex; flex-direction:column; align-items:flex-start;
+    padding:8px 16px; border-left:4px solid var(--gold); background:rgba(var(--gold-rgb),.1); text-align:left;}
+  .sl-pr-plate b{font-family:var(--font-cond); font-weight:700; font-size:24px; line-height:1.1; color:var(--txt);}
+  .sl-pr-plate > span{font-family:var(--font-cond); font-weight:600; font-size:14px; letter-spacing:2px;
+    text-transform:uppercase; color:var(--muted);}
+
+  /* ---- POWER RANKINGS ---- */
+  .sl-rankings .sl-rk-intro{margin-top:16px;}
+  .sl-rankings .sl-rk-date{margin-top:12px;}
+  .sl-rankings .sl-rk-list{margin-top:20px; border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  .sl-rankings .sl-rk-row{display:grid; grid-template-columns:50px 52px minmax(0,1fr) auto; gap:14px;
+    align-items:center; padding:14px 18px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.3);}
+  .sl-rankings .sl-rk-row:last-child{border-bottom:none;}
+  .sl-rankings .sl-rk-row:first-child{background:rgba(var(--gold-rgb),.1);}
+  .sl-rankings .sl-rk-num{font-family:var(--font-display); font-size:38px; line-height:1; color:var(--muted);
+    text-align:center; width:auto;}
+  .sl-rankings .sl-rk-row:first-child .sl-rk-num{color:var(--gold);}
+  .sl-rankings .sl-rk-name{font-family:var(--font-cond); font-weight:700; font-size:24px; line-height:1.1; color:#fff;}
+  .sl-rankings .sl-rk-note{font-family:var(--font-body); font-size:16px; line-height:1.45; color:var(--txt-2,#d7d4cc); margin-top:3px;}
+  .sl-rankings .sl-rk-move{font-family:var(--font-cond); font-weight:700; font-size:15.5px; letter-spacing:1px;
+    padding:4px 11px; border-radius:20px; white-space:nowrap; width:auto; text-align:center;}
+  .sl-rankings .sl-rk-up{background:rgba(62,207,142,.12);}
+  .sl-rankings .sl-rk-down{background:rgba(226,75,74,.12);}
+  .sl-rankings .sl-rk-new{background:rgba(var(--gold-rgb),.12);}
+  .sl-rankings .sl-rk-same{background:rgba(255,255,255,.05);}
+
+  /* ---- SPOTLIGHT ---- */
+  .sl-spotlight .sl-sp-body{gap:26px;}
+  .sl-spotlight .sl-sp-photo{width:200px; height:auto; aspect-ratio:3/4;}
+  .sl-spotlight .sl-sp-eyebrow{flex-wrap:wrap; gap:8px 12px; margin-bottom:10px; font-size:13px;}
+  .sl-spotlight .sl-sp-eyebrow .sl-date{margin-left:0; font-size:13px;}
+  .sl-spotlight .sl-sp-subject{font-size:clamp(36px,5.4vw,60px); line-height:.98; text-transform:uppercase;}
+  .sl-spotlight .sl-sp-role{display:inline-block; margin-top:10px; font-family:var(--font-cond); font-weight:700;
+    font-size:16px; letter-spacing:2px; color:var(--gold); border:none; padding:0;}
+  .sl-spotlight .sl-sp-title{font-size:clamp(20px,2.8vw,26px); margin:12px 0 0;}
+  .sl-spotlight .sl-sp-text{white-space:normal; margin-top:14px;}
+
+  /* ---- FAN REVIEW ---- */
+  .sl-rv-av, .sl-rv-av-init{width:60px; height:60px;}
+  .sl-rv-name{font-family:var(--font-cond); font-size:24px;}
+  .sl-rv-sub{font-size:16px;}
+  .sl-rv-score{padding:10px 16px; border-radius:12px; background:rgba(var(--gold-rgb),.1); border:1px solid var(--gold-dim);}
+  .sl-rv-score b{font-size:36px;}
+  .sl-review .sl-prose{margin-top:12px;}
+  .sl-rv-mlabel{font-family:var(--font-cond); font-weight:700; font-size:21px;}
+  .sl-rv-mnote{font-size:17px;}
+
+  /* ---- TIMELINE, MYSTERY ---- */
+  .sl-timeline .sl-tl-date{font-size:15px;}
+  .sl-timeline .sl-tl-title{font-size:clamp(24px,3.4vw,32px); line-height:1.05;}
+  .sl-timeline .sl-body{font-size:18px; line-height:1.65;}
+  .sl-mystery .sl-my-text{font-size:clamp(22px,3.4vw,30px);}
+  .sl-mystery .sl-my-sign{font-size:17px;}
+
+  @media(max-width:600px){
+    .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury), .slpost.sl-article:not(.sl-hr){padding:20px 16px;}
+    .slpost .sl-pin ~ .sl-kicker{padding-right:0; padding-top:30px;}
+    .sl-hr .sl-letterhead, .sl-signing .sl-letterhead, .sl-injury .sl-letterhead{padding:16px; flex-wrap:wrap;}
+    .sl-hr .sl-memo, .sl-signing .sl-memo, .sl-injury .sl-memo{padding:18px 16px 20px;}
+    .sl-inj-status{margin-left:0;}
+    .sl-prose .sl-para, .sl-said{font-size:17px;}
+    .sl-prose .sl-lede{font-size:18.5px;}
+    .sl-spk-name{font-size:21px;}
+    .sl-social .sl-av, .sl-social .sl-head .sl-av-init{width:56px; height:56px;}
+    .sl-social .sl-text{font-size:18.5px;}
+    .sl-bub{max-width:100%;}
+    .sl-bub .sl-pq-av, .sl-bub .sl-pq-av-init, .sl-bub .sl-letter{display:none;}
+    .sl-pq-q .sl-pq-av, .sl-pq-q .sl-pq-av-init, .sl-pq-q .sl-letter{width:40px; height:40px;}
+    .sl-pr-wrap.sl-pr-hasfig{grid-template-columns:100px minmax(0,1fr); gap:16px;}
+    .sl-rankings .sl-rk-row{grid-template-columns:34px minmax(0,1fr) auto; gap:10px; padding:12px 14px;}
+    .sl-rankings .sl-rk-row .sl-rk-av, .sl-rankings .sl-rk-row .sl-rk-av-init{display:none;}
+    .sl-rankings .sl-rk-num{font-size:28px;}
+    .sl-rankings .sl-rk-name{font-size:20px;}
+    .sl-spotlight .sl-sp-photo{width:150px;}
+  }
+  /* ===================== end FEED REDESIGN ===================== */
 
   /* ---- FAN REVIEW composer ---- */
   .fr-bar{display:flex; align-items:center; gap:12px; background:var(--panel);
@@ -8323,6 +8594,10 @@ function escAttr(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[
 // Anything else (scripts, links-as-html, etc.) stays as harmless text.
 function slFmt(s){
   let t = esc(s);
+  // Writing shortcuts: a line starting with "## " is a section heading and a
+  // line starting with "> " is a pull quote (same as the H and quote buttons).
+  t = t.replace(/^[ \t]*##[ \t]+(.+?)[ \t]*$/gm, '<h4>$1</h4>')
+       .replace(/^[ \t]*&gt;[ \t]?(.+?)[ \t]*$/gm, '<blockquote>$1</blockquote>');
   // Safe whitelist — inline + block tags, NEVER any attributes (no inline styles,
   // no colors) so nothing can break the layout or inject. Old posts contain none
   // of the new tags, so they render exactly as before; only posts authored with
@@ -14342,10 +14617,22 @@ const SL_KIND_META = {
   snafu:    { label: 'Snafu Facts', icon: 'ti-bulb' }
 };
 
-// Format the custom story_date (a plain date) — distinct from posted-at.
+/* ===================== FEED POST RENDERERS (feed redesign, Oct 2026) =====================
+   The SAME block lives in index.html (the Feed, the portal previews) and in
+   admin.html (inside FEEDKIT, for the composer preview), so what you preview is
+   exactly what goes live. If you change one, change the other.
+   Post shape: { id, kind, title, body, payload, story_date, pinned }
+   New optional payload keys (all post types that use them):
+     dek    the subheadline under the headline
+     label  the chip above the headline on articles (Report, Breaking, Rumor ...)
+     pull   the pull quote on interviews
+     style  press conferences: 'chat' (Back and forth, the default) or 'podium'
+     rows[].spots  how many places a ranked name moved                         */
+
+// Format the custom story_date (a plain date), distinct from posted-at.
 function slDate(d){
   if(!d) return '';
-  const dt = new Date(d + 'T00:00:00');
+  const dt = new Date(String(d).slice(0,10) + 'T00:00:00');
   if(isNaN(dt)) return d;
   return dt.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
 }
@@ -14354,11 +14641,10 @@ function slInit(name){
   return String(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
 }
 // An avatar <img>/<div> for a roster member, reusing their existing photo.
-// Prefers avatar_url (the round thumb), falls back to image_url, then initials.
+// Prefers avatar_url (the round thumb), falls back to image_url, then a silhouette.
 function slAvatar(name, cls){
-  const w = wrestlerByName(name);
+  const w = (typeof wrestlerByName === 'function') ? wrestlerByName(name) : null;
   const src = w ? (w.avatar_url || w.image_url) : null;
-  const init = slInit(name);
   const c = cls || 'sl-av';
   const ic = c + '-init';
   const ph = `<div class="${ic}">${wcaPlaceholder(w || {name:name}, {mode:'icon'})}</div>`;
@@ -14369,9 +14655,9 @@ function slAvatar(name, cls){
   return ph;
 }
 // The feed always prints the poster's name beside the avatar, so the
-// placeholder stays a plain silhouette — no name, no initials.
+// placeholder stays a plain silhouette, no name, no initials.
 function slNoPhoto(img, name, ic){
-  const w = wrestlerByName(name) || { name:name };
+  const w = ((typeof wrestlerByName === 'function') ? wrestlerByName(name) : null) || { name:name };
   if(img) img.outerHTML = `<div class="${ic}">${wcaPlaceholder(w,{mode:'icon'})}</div>`;
 }
 // A handle: use payload.handle, else derive from the name.
@@ -14421,12 +14707,85 @@ function slSrcAvatar(p, name, cls){
   return `<div class="${c}-init">${wcaPlaceholder({name:name||''}, {mode:'icon'})}</div>`;
 }
 
+// ---- shared pieces of the redesigned posts ----
+function slPin(p){ return p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : ''; }
+// Word count across any number of texts, tags stripped.
+function slWords(){
+  let n = 0;
+  for(const t of arguments){
+    if(t == null) continue;
+    const s = Array.isArray(t) ? t.join(' ') : String(t);
+    n += (s.replace(/<[^>]+>/g,' ').match(/\S+/g) || []).length;
+  }
+  return n;
+}
+function slMins(words){ return Math.max(1, Math.round(words / 220)); }
+// The type chip and the small line beside it, above every news style headline.
+function slKicker(chip, icon, extra){
+  return `<div class="sl-kicker"><span class="sl-chip">${icon?`<i class="ti ${icon}"></i>`:''}${esc(chip)}</span>${extra?`<span class="sl-kick">${esc(extra)}</span>`:''}</div>`;
+}
+function slDek(pl){ return (pl && pl.dek) ? `<p class="sl-dek">${esc(pl.dek)}</p>` : ''; }
+// A round letter badge, used for reporters, interviewers and bylines.
+function slLetter(name, cls){
+  const s = String(name||'').replace(/^by\s+/i,'').replace(/^the\s+/i,'').trim();
+  return `<span class="${cls||'sl-letter'}" aria-hidden="true">${esc((s[0]||'?').toUpperCase())}</span>`;
+}
+function slByline(av, who, meta, right){
+  return `<div class="sl-byline-row">${av||''}<div class="sl-by-mid"><div class="sl-by-who">${who}</div>${meta?`<div class="sl-by-meta">${meta}</div>`:''}</div>${right||''}</div>`;
+}
+// Split a body on blank lines into paragraphs. The first plain paragraph can be
+// the larger opening line (lede). "## " and "> " lines are handled by slFmt.
+function slParas(body, lede){
+  const chunks = String(body||'').split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
+  let ledeDone = !lede;
+  return chunks.map(ch=>{
+    const html = slFmt(ch);
+    const block = /^<(h4|blockquote|ul|ol)>/i.test(html);
+    let cls = 'sl-para';
+    if(!block && !ledeDone){ cls += ' sl-lede'; ledeDone = true; }
+    return block ? html : `<div class="${cls}">${html}</div>`;
+  }).join('');
+}
+// Long articles fold after a few paragraphs, with "Keep reading".
+function slFoldHTML(inner, words){
+  if(words < 320) return `<div class="sl-prose">${inner}</div>`;
+  const left = Math.max(1, slMins(words) - 1);
+  return `<div class="sl-foldwrap"><div class="sl-prose sl-fold">${inner}</div>
+    <div class="sl-fold-bar"><button type="button" class="sl-morebtn" data-more="Keep reading, ${left} min left" data-less="Show less" onclick="event.stopPropagation();slFoldToggle(this)">Keep reading, ${left} min left</button></div></div>`;
+}
+// Extra questions or exchanges hidden behind a button.
+function slMoreHTML(inner, label){
+  return `<div class="sl-foldwrap"><div class="sl-more" hidden>${inner}</div>
+    <div class="sl-fold-bar"><button type="button" class="sl-morebtn" data-more="${escAttr(label)}" data-less="Show less" onclick="event.stopPropagation();slFoldToggle(this)">${esc(label)}</button></div></div>`;
+}
+function slFoldToggle(btn){
+  const wrap = btn && btn.closest('.sl-foldwrap');
+  if(!wrap) return;
+  const fold = wrap.querySelector('.sl-fold');
+  const more = wrap.querySelector('.sl-more');
+  let open;
+  if(fold){ open = fold.classList.toggle('open'); }
+  else if(more){ open = more.hidden; more.hidden = !open; }
+  btn.textContent = open ? btn.dataset.less : btn.dataset.more;
+  btn.setAttribute('aria-expanded', String(!!open));
+  if(!open){ const post = wrap.closest('.slpost'); if(post && post.getBoundingClientRect().top < 0) post.scrollIntoView({block:'start'}); }
+}
+// Where attached photos go inside a post. Renderers mark the spot with
+// <!--slph-->; without a mark they sit just above the footer.
+function slPlacePhotos(html, ph){
+  if(!ph) return html.replace('<!--slph-->','');
+  if(html.indexOf('<!--slph-->') !== -1) return html.replace('<!--slph-->', ph);
+  let at = html.indexOf('<div class="sl-foot"');
+  if(at === -1) at = html.indexOf('<div class="sl-engage"');
+  if(at !== -1) return html.slice(0, at) + ph + html.slice(at);
+  return html.replace(/<\/article>\s*$/, ph + '</article>');
+}
+
 // ---- per-type renderers ----
 function slRenderSocial(p){
   const src = slSrc(p);
   const author = (p.payload && p.payload.author) || slOrg(p);
   const stats = p.payload || {};
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
   const fake = !src || stats.likes || stats.replies || stats.reposts;
   const main = `
     <div class="sl-head">
@@ -14443,7 +14802,6 @@ function slRenderSocial(p){
       <span class="sl-stat"><i class="ti ti-message-circle"></i> ${esc(stats.replies||'0')}</span>
       <span class="sl-stat"><i class="ti ti-repeat"></i> ${esc(stats.reposts||'0')}</span>
     </div>` : ''}`;
-  // threaded replies, chained
   let thread = '';
   const replies = (p.payload && Array.isArray(p.payload.thread)) ? p.payload.thread : [];
   if(replies.length){
@@ -14456,31 +14814,39 @@ function slRenderSocial(p){
         </div>
       </div>`).join('') + `</div>`;
   }
-  return `<article class="slpost sl-social">${pin}${main}${thread}${slEngageBar(p)}</article>`;
+  return `<article class="slpost sl-social">${slPin(p)}${main}${thread}${slEngageBar(p)}</article>`;
 }
 function slRenderArticle(p){
-  const pub = (p.payload && p.payload.publication) || (slSrc(p) ? slOrg(p) : 'WCA NEWSWIRE');
-  const byline = (p.payload && p.payload.byline) || '';
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-article">${pin}
-    <div class="sl-eyebrow">
-      <span class="sl-pub">${esc(pub)}</span>
-      <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span>
-    </div>
+  const pl = p.payload || {};
+  const src = slSrc(p);
+  const pub = pl.publication || (src ? slOrg(p) : 'WCA NEWSWIRE');
+  const byline = pl.byline || '';
+  const words = slWords(p.title, pl.dek, p.body);
+  const meta = `${esc(slDate(p.story_date))}${p.body?` · ${slMins(words)} min read`:''}`;
+  const av = (src && src.logo) ? slSrcAvatar(p, src.name, 'sl-by-av') : slLetter(byline || pub, 'sl-letter');
+  const by = slByline(av, esc(byline || pub), meta);
+  return `<article class="slpost sl-article">${slPin(p)}
+    ${slKicker(pl.label || 'News', '', pub)}
     <h2 class="sl-headline">${esc(p.title)}</h2>
-    ${byline?`<div class="sl-byline">${esc(byline)}</div>`:''}
-    ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
+    ${slDek(pl)}
+    ${by}
+    <!--slph-->
+    ${p.body ? slFoldHTML(slParas(p.body, true), words) : ''}
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
+}
+// Labelled fields for the official document posts (HR notice, signing, injury).
+function slDocFields(list){
+  const items = list.filter(x=>x && x[1]);
+  if(!items.length) return '';
+  return `<dl class="sl-docf">${items.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
 }
 function slRenderNotice(p){
   const pl = p.payload || {};
   const org = slOrg(p);
   const from = pl.from || (org + ' Talent Relations');
-  const ref = pl.ref || '';
   const sign = pl.sign || 'Office of the Commissioner';
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-hr">${pin}
+  return `<article class="slpost sl-hr">${slPin(p)}
     <div class="sl-letterhead">
       <div class="sl-seal"><i class="ti ti-shield-check"></i></div>
       <div>
@@ -14489,21 +14855,16 @@ function slRenderNotice(p){
       </div>
     </div>
     <div class="sl-memo">
-      <div class="sl-memo-meta">
-        <span>FROM: <b>${esc(from)}</b></span>
-        <span>DATE: <b>${esc(slDate(p.story_date))}</b></span>
-        ${ref?`<span>REF: <b>${esc(ref)}</b></span>`:''}
-      </div>
+      ${slDocFields([['From', from], ['Date', slDate(p.story_date)], ['Reference', pl.ref]])}
       <div class="sl-subject">${esc(p.title)}</div>
-      <div class="sl-body">${slFmt(p.body)}</div>
+      ${p.body?`<div class="sl-body sl-prose">${slParas(p.body)}</div>`:''}
       ${slMedia(p.body)}
-      <div class="sl-sign">— ${esc(sign)}</div>
+      <div class="sl-sign">${esc(sign)}</div>
     </div>
   ${slEngageBar(p)}</article>`;
 }
 function slRenderTimeline(p){
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-timeline">${pin}
+  return `<article class="slpost sl-timeline">${slPin(p)}
     <div class="sl-tl-in">
       <span class="sl-node"></span>
       <div class="sl-tl-date">${esc(slDate(p.story_date))}</div>
@@ -14519,20 +14880,20 @@ function slRenderSpotlight(p){
   const eyebrow = (pl.label || 'SPOTLIGHT').toUpperCase();
   const role = pl.role || '';
   const img = pl.image_url || '';
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
   const subjEsc = esc(subject);
   const subjHtml = (pl.is_wrestler && subject && !slSrc(p))
     ? `<span class="xlink" role="link" tabindex="0" onclick="event.stopPropagation();goWrestler('${escAttr(subject)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(subject)}');}">${subjEsc}</span>`
     : subjEsc;
-  return `<article class="slpost sl-spotlight">${pin}
-    <div class="sl-sp-eyebrow"><i class="ti ti-star-filled"></i> ${esc(eyebrow)}
-      <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
+  return `<article class="slpost sl-spotlight">${slPin(p)}
     <div class="sl-sp-body">
       ${img?`<div class="sl-sp-photo"><img src="${esc(img)}" alt="${subjEsc}" onerror="this.parentNode.style.display='none'"></div>`:''}
       <div class="sl-sp-main">
-        ${subject?`<div class="sl-sp-subject">${subjHtml}${role?`<span class="sl-sp-role">${esc(role)}</span>`:''}</div>`:''}
+        <div class="sl-sp-eyebrow"><span class="sl-chip"><i class="ti ti-star-filled"></i>${esc(eyebrow)}</span>
+          <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
+        ${subject?`<div class="sl-sp-subject">${subjHtml}</div>`:''}
+        ${role?`<div class="sl-sp-role">${esc(role)}</div>`:''}
         ${p.title && p.title!==subject ? `<h2 class="sl-sp-title">${esc(p.title)}</h2>`:''}
-        ${p.body?`<div class="sl-sp-text">${slFmt(p.body)}</div>`:''}
+        ${p.body?`<div class="sl-sp-text sl-prose">${slParas(p.body)}</div>`:''}
       </div>
     </div>
     ${slMedia(p.body)}
@@ -14541,47 +14902,70 @@ function slRenderSpotlight(p){
 function slRenderPromo(p){
   const pl = p.payload || {};
   const author = pl.author || p.title || (slSrc(p) ? slOrg(p) : 'WCA Superstar');
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-promo">${pin}
-    ${pl.setting?`<div class="sl-pr-setting">${esc(pl.setting)}</div>`:''}
-    <div class="sl-pr-quote"><span class="sl-pr-q">&ldquo;</span>${slFmt(p.body)}<span class="sl-pr-q">&rdquo;</span></div>
-    <div class="sl-pr-speaker">&mdash; ${esc(author)}</div>
+  const w = (!slSrc(p) && typeof wrestlerByName === 'function') ? wrestlerByName(author) : null;
+  const photo = w ? (w.image_url || w.avatar_url) : '';
+  const sub = (w && w.nickname) ? String(w.nickname) : '';
+  return `<article class="slpost sl-promo">${slPin(p)}
+    <div class="sl-pr-wrap${photo?' sl-pr-hasfig':''}">
+      ${photo?`<div class="sl-pr-figure"><img src="${esc(photo)}" alt="${esc(author)}" loading="lazy" onerror="var w=this.closest('.sl-pr-wrap');if(w)w.classList.remove('sl-pr-hasfig');this.parentNode.remove()"></div>`:''}
+      <div class="sl-pr-main">
+        ${pl.setting?`<div class="sl-pr-setting">${esc(pl.setting)}</div>`:''}
+        <div class="sl-pr-quote"><span class="sl-pr-q">&ldquo;</span>${slFmt(p.body)}<span class="sl-pr-q">&rdquo;</span></div>
+        <div class="sl-pr-plate"><b>${slName(p, author)}</b>${sub?`<span>${esc(sub)}</span>`:''}</div>
+      </div>
+    </div>
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderInterview(p){
   const pl = p.payload || {};
-  const qa = (Array.isArray(pl.qa)?pl.qa:[]).map(x=>{
-    const qn = x.qName || pl.interviewer || 'Q';
-    // new multi-answer shape, falling back to legacy single a/aName
+  const src = slSrc(p);
+  const list = Array.isArray(pl.qa) ? pl.qa : [];
+  const subject = pl.subject || '';
+  const interviewer = pl.interviewer || '';
+  const turns = list.map(x=>{
+    const qn = x.qName || interviewer || 'Interviewer';
     const answers = (Array.isArray(x.answers) && x.answers.length)
       ? x.answers
       : [{ name: x.aName||'', text: x.a||'' }];
-    const aLines = answers.map(ans=>{
-      const an = ans.name || pl.subject || 'A';
-      const og = (!ans.name && pl.origin) ? ` <span class="sl-iv-origin">(${esc(pl.origin)})</span>` : '';
-      return `<div class="sl-iv-a"><span class="sl-iv-dash">A &mdash;</span><div><span class="sl-iv-who">${esc(an)}${og}:</span> ${slFmt(ans.text)}</div></div>`;
+    const aLines = answers.filter(a=>a && (a.text||a.name)).map(ans=>{
+      const an = ans.name || subject || 'Guest';
+      const og = (!ans.name && pl.origin) ? `<span class="sl-role">${esc(pl.origin)}</span>` : '';
+      return `<div class="sl-turn sl-iv-ans">${slSrcAvatar(p, an, 'sl-iv-av')}<div class="sl-turn-body">
+        <div class="sl-spk"><span class="sl-spk-name">${slName(p, an)}</span>${og}</div>
+        <div class="sl-said">${slFmt(ans.text)}</div></div></div>`;
     }).join('');
-    return `<div class="sl-iv-qa">
-      <div class="sl-iv-q"><span class="sl-iv-dash">Q &mdash;</span><div><span class="sl-iv-who sl-iv-qwho">${esc(qn)}:</span> ${slFmt(x.q)}</div></div>
+    return `<div class="sl-iv-ex">
+      ${x.q?`<div class="sl-turn sl-iv-ask">${slLetter(qn,'sl-letter sm')}<div class="sl-turn-body">
+        <div class="sl-spk"><span class="sl-spk-name sl-asker">${esc(qn)}</span><span class="sl-role">Asks</span></div>
+        <div class="sl-said">${slFmt(x.q)}</div></div></div>`:''}
       ${aLines}
     </div>`;
-  }).join('');
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-interview">${pin}
-    <div class="sl-eyebrow"><span class="sl-pub">${esc(pl.publication||(slSrc(p)?slOrg(p):'WCA NEWSWIRE')+' · SIT-DOWN')}</span>
-      <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
+  });
+  const shown = turns.slice(0, 4).join('');
+  const rest = turns.length > 4 ? slMoreHTML(turns.slice(4).join(''), `Show the full interview, ${turns.length - 4} more`) : '';
+  const allText = [p.body, ...list.flatMap(x=>[x.q, ...(Array.isArray(x.answers)?x.answers.map(a=>a.text):[x.a])])];
+  const words = slWords(p.title, pl.dek, ...allText);
+  const pub = pl.publication || (src ? slOrg(p) : 'WCA NEWSWIRE');
+  const right = subject ? `<span class="sl-by-right">${slSrcAvatar(p, subject, 'sl-iv-av')}</span>` : '';
+  const by = slByline(slLetter(interviewer || pub, 'sl-letter'),
+    interviewer ? `Interview by ${esc(interviewer)}` : esc(pub),
+    `${esc(slDate(p.story_date))} · ${slMins(words)} min read`, right);
+  return `<article class="slpost sl-interview">${slPin(p)}
+    ${slKicker(pl.label || 'Interview', 'ti-microphone', pub)}
     <h2 class="sl-iv-headline">${esc(p.title)}</h2>
-    ${p.body?`<div class="sl-iv-intro">${slFmt(p.body)}</div>`:''}
-    <div class="sl-iv-body">${qa}</div>
-    ${slMedia([p.body, ...(Array.isArray(pl.qa)?pl.qa:[]).flatMap(x=>[x.q, ...(Array.isArray(x.answers)?x.answers.map(a=>a.text):[x.a])])].filter(Boolean).join(' '))}
+    ${slDek(pl)}
+    ${by}
+    <!--slph-->
+    ${pl.pull?`<blockquote class="sl-pull"><span class="sl-pull-q">${esc(pl.pull)}</span>${subject?`<cite>${esc(subject)}</cite>`:''}</blockquote>`:''}
+    ${p.body?`<div class="sl-iv-intro sl-prose">${slParas(p.body)}</div>`:''}
+    <div class="sl-iv-body">${shown}${rest}</div>
+    ${slMedia(allText.filter(Boolean).join(' '))}
   ${slEngageBar(p)}</article>`;
 }
-// Assigns a rotating color class to each unique speaker (by name, in order of
-// first appearance across opening statements then Q&A) so a multi-participant
-// press conference reads clearly. Reporters always use the gold/press color
-// instead of this rotation, keeping "who's asking" visually distinct from
-// "who's answering."
+// Gives each answering speaker their own colour, in order of first appearance
+// across opening statements then questions. Reporters always use the theme
+// colour, so "who is asking" never looks like "who is answering".
 function pqSpeakerColorMap(pl){
   const map = {}; let n = 0;
   const consider = name => { const k=(name||'').trim(); if(k && !(k in map)){ map[k] = 'pq-c'+(n%5); n++; } };
@@ -14589,65 +14973,94 @@ function pqSpeakerColorMap(pl){
   (pl.qa||[]).forEach(x=>consider(x.speaker));
   return map;
 }
+/* PRESS CONFERENCE. Two styles, picked per post in payload.style:
+   'chat'   = Back and forth (the default): reporters on the left, the podium on the right
+   'podium' = Podium: each question is its own numbered box, answer underneath */
 function slRenderPressQA(p){
   const pl = p.payload || {};
+  const podium = pl.style === 'podium';
   const colorMap = pqSpeakerColorMap(pl);
-  const firstParticipant = (pl.participants||'').split(',')[0].trim();
-  const speakerSpan = name => {
-    const n = (name||'').trim() || firstParticipant || 'Speaker';
-    const cls = colorMap[n] || 'pq-c0';
-    return `<span class="sl-pq-speaker ${cls}">${esc(n)}:</span>`;
+  const parts = String(pl.participants||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const spkName = name => (name||'').trim() || parts[0] || 'Speaker';
+  const spkCls = n => colorMap[n] || 'pq-c0';
+  const opens = (Array.isArray(pl.openStatements)?pl.openStatements:[]).filter(o=>o.speaker||o.text);
+  const qas = (Array.isArray(pl.qa)?pl.qa:[]).filter(x=>x.question||x.answer);
+  const total = qas.length;
+  const words = slWords(p.title, pl.dek, pl.modOpen, pl.modTrans, pl.modClose,
+    opens.map(o=>o.text), qas.map(x=>[x.question, x.answer].join(' ')));
+
+  const meta = [];
+  if(pl.event) meta.push(['Event', esc(pl.event)]);
+  if(pl.team) meta.push(['Hosted by', esc(pl.team)]);
+  meta.push(['Date', esc(slDate(p.story_date))]);
+  if(parts.length) meta.push([parts.length > 1 ? 'At the podium' : 'At the podium',
+    parts.map(n=>`<span class="sl-pq-pp">${slSrcAvatar(p, n, 'sl-pq-mini')}${esc(n)}</span>`).join('')]);
+  const metaHtml = `<dl class="sl-pq-box">${meta.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+    <div class="sl-pq-read">${total?`<span><i class="ti ti-message-circle-question"></i>${total} question${total===1?'':'s'}</span>`:''}<span><i class="ti ti-clock"></i>${slMins(words)} min read</span></div>`;
+
+  const mod = text => !text ? '' : podium
+    ? `<div class="sl-pq-mod"><span class="sl-pq-mic"><i class="ti ti-microphone-2"></i></span><div><div class="sl-pq-modlbl">Moderator</div><div class="sl-pq-modtxt">${slFmt(text)}</div></div></div>`
+    : `<div class="sl-pq-sys"><b>Moderator</b>${slFmt(text)}</div>`;
+  const speakerTurn = (name, text, role) => {
+    const n = spkName(name);
+    return `<div class="sl-turn">${slSrcAvatar(p, n, 'sl-pq-av')}<div class="sl-turn-body">
+      <div class="sl-spk"><span class="sl-spk-name ${spkCls(n)}">${slName(p, n)}</span>${role?`<span class="sl-role">${role}</span>`:''}</div>
+      <div class="sl-said">${slFmt(text)}</div></div></div>`;
   };
-  const metaParts = [];
-  if(pl.event) metaParts.push(`<b>Event:</b> ${esc(pl.event)}`);
-  if(pl.team) metaParts.push(`<b>Team:</b> ${esc(pl.team)}`);
-  metaParts.push(`<b>Date:</b> ${esc(slDate(p.story_date))}`);
-  if(pl.participants) metaParts.push(`<b>Participants:</b> ${esc(pl.participants)}`);
+  const reporterTurn = x => `<div class="sl-turn">${slLetter(x.reporter||'Reporter','sl-letter')}<div class="sl-turn-body">
+      <div class="sl-spk"><span class="sl-spk-name sl-asker">${esc(x.reporter||'Reporter')}</span>${x.outlet?`<span class="sl-outlet">${esc(x.outlet)}</span>`:''}</div>
+      <div class="sl-said">${slFmt(x.question)}</div></div></div>`;
 
-  const openHtml = (Array.isArray(pl.openStatements)?pl.openStatements:[]).filter(o=>o.speaker||o.text).map(o=>
-    `<div class="sl-pq-open">${speakerSpan(o.speaker)} ${slFmt(o.text)}</div>`
-  ).join('');
-
-  const qaHtml = (Array.isArray(pl.qa)?pl.qa:[]).filter(x=>x.question||x.answer).map((x,i)=>{
-    const outlet = x.outlet ? `<span class="sl-pq-outlet">, ${esc(x.outlet)}</span>` : '';
-    return `<div class="sl-pq-reporter">Reporter ${i+1}: ${esc(x.reporter||'Reporter')}${outlet}.</div>
-      <div class="sl-pq-question">${slFmt(x.question)}</div>
-      <div class="sl-pq-answer">${speakerSpan(x.speaker)} ${slFmt(x.answer)}</div>`;
-  }).join('');
-
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-pressqa">${pin}
+  let opensHtml, qHtml;
+  if(podium){
+    opensHtml = opens.map(o=>`<div class="sl-pq-opening ${spkCls(spkName(o.speaker))}">${speakerTurn(o.speaker, o.text, 'Opening statement')}</div>`).join('');
+    qHtml = qas.map((x,i)=>`<div class="sl-pq-q">
+      <div class="sl-pq-qhead">Question <b>${i+1}</b> of ${total}</div>
+      ${x.question?`<div class="sl-pq-ask">${reporterTurn(x)}</div>`:''}
+      ${x.answer?`<div class="sl-pq-ans ${spkCls(spkName(x.speaker))}">${speakerTurn(x.speaker, x.answer)}</div>`:''}
+    </div>`);
+  } else {
+    opensHtml = opens.map(o=>`<div class="sl-bub right ${spkCls(spkName(o.speaker))}">${speakerTurn(o.speaker, o.text, 'Opening statement')}</div>`).join('');
+    qHtml = qas.map(x=>`${x.question?`<div class="sl-bub left">${reporterTurn(x)}</div>`:''}
+      ${x.answer?`<div class="sl-bub right ${spkCls(spkName(x.speaker))}">${speakerTurn(x.speaker, x.answer)}</div>`:''}`);
+  }
+  const SHOW = 3;
+  const firstQs = qHtml.slice(0, SHOW).join('');
+  const restInner = qHtml.slice(SHOW).join('') + mod(pl.modClose);
+  const rest = total > SHOW
+    ? slMoreHTML(`<div class="sl-pq-flow">${restInner}</div>`, `Show questions ${SHOW+1} to ${total}`)
+    : mod(pl.modClose);
+  return `<article class="slpost sl-pressqa ${podium?'sl-pq-podium':'sl-pq-chat'}">${slPin(p)}
+    ${slKicker('Press conference', 'ti-microphone-2', slOrg(p))}
     <h2 class="sl-pq-headline">${esc(p.title)}</h2>
-    <div class="sl-pq-meta">${metaParts.join(' &nbsp;·&nbsp; ')}</div>
-    ${pl.modOpen?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modOpen)}</div>`:''}
-    ${openHtml}
-    ${pl.modTrans?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modTrans)}</div>`:''}
-    ${qaHtml}
-    ${pl.modClose?`<div class="sl-pq-mod"><b>Moderator:</b> ${slFmt(pl.modClose)}</div>`:''}
+    ${slDek(pl)}
+    ${metaHtml}
+    <!--slph-->
+    <div class="sl-pq-flow">
+      ${mod(pl.modOpen)}
+      ${opensHtml}
+      ${mod(pl.modTrans)}
+      ${firstQs}
+    </div>
+    ${rest}
     ${slMedia([pl.modOpen, pl.modTrans, pl.modClose,
-      ...(Array.isArray(pl.openStatements)?pl.openStatements:[]).map(o=>o.text),
-      ...(Array.isArray(pl.qa)?pl.qa:[]).flatMap(x=>[x.question,x.answer])
+      ...opens.map(o=>o.text), ...qas.flatMap(x=>[x.question,x.answer])
     ].filter(Boolean).join(' '))}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderSigning(p){
   const pl = p.payload || {};
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-signing">${pin}
+  return `<article class="slpost sl-signing">${slPin(p)}
     <div class="sl-letterhead">
       <div class="sl-seal"><i class="ti ti-writing-sign"></i></div>
       <div><div class="sl-dept">${esc(slOrg(p))} Talent Relations</div>
       <div class="sl-deptsub">Contract Announcement</div></div>
     </div>
     <div class="sl-memo">
-      <div class="sl-memo-meta">
-        <span>DATE: <b>${esc(slDate(p.story_date))}</b></span>
-        ${pl.term?`<span>TERM: <b>${esc(pl.term)}</b></span>`:''}
-        ${pl.ref?`<span>REF: <b>${esc(pl.ref)}</b></span>`:''}
-      </div>
+      ${slDocFields([['Signee', pl.author], ['Date', slDate(p.story_date)], ['Term', pl.term], ['Reference', pl.ref]])}
       <div class="sl-subject">${esc(p.title)}</div>
-      ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
-      <div class="sl-sign">&mdash; ${esc(pl.sign||(slOrg(p)+' Talent Relations'))}</div>
+      ${p.body?`<div class="sl-body sl-prose">${slParas(p.body)}</div>`:''}
+      <div class="sl-sign">${esc(pl.sign||(slOrg(p)+' Talent Relations'))}</div>
     </div>
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
@@ -14655,65 +15068,63 @@ function slRenderSigning(p){
 function slRenderInjury(p){
   const pl = p.payload || {};
   const status = pl.status || 'OUT';
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-injury">${pin}
+  const statusTxt = status.replace(/-/g,' ');
+  return `<article class="slpost sl-injury">${slPin(p)}
     <div class="sl-letterhead">
       <div class="sl-seal"><i class="ti ti-medical-cross"></i></div>
       <div><div class="sl-dept">${esc(slOrg(p))} Medical Staff</div>
-      <div class="sl-deptsub">Injury &amp; Status Report</div></div>
-      <span class="sl-inj-status sl-inj-${esc(status.replace(/[^A-Z]/gi,''))}">${esc(status)}</span>
+      <div class="sl-deptsub">Injury and status report</div></div>
+      <span class="sl-inj-status sl-inj-${esc(status.replace(/[^A-Z]/gi,''))}">${esc(statusTxt)}</span>
     </div>
     <div class="sl-memo">
-      <div class="sl-memo-meta">
-        ${pl.author?`<span>RE: <b>${esc(pl.author)}</b></span>`:''}
-        <span>DATE: <b>${esc(slDate(p.story_date))}</b></span>
-        ${pl.eta?`<span>TIMETABLE: <b>${esc(pl.eta)}</b></span>`:''}
-      </div>
+      ${slDocFields([['Regarding', pl.author], ['Date', slDate(p.story_date)], ['Timetable', pl.eta]])}
       <div class="sl-subject">${esc(p.title)}</div>
-      ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
-      <div class="sl-sign">&mdash; ${esc(pl.from||(slOrg(p)+' Medical Staff'))}</div>
+      ${p.body?`<div class="sl-body sl-prose">${slParas(p.body)}</div>`:''}
+      <div class="sl-sign">${esc(pl.from||(slOrg(p)+' Medical Staff'))}</div>
     </div>
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderRankings(p){
   const pl = p.payload || {};
-  const arrows = {up:'▲',down:'▼',same:'—',new:'★'};
   const rows = (Array.isArray(pl.rows)?pl.rows:[]).map((r,i)=>{
     const mv = r.move==='up'?'up':r.move==='down'?'down':r.move==='new'?'new':'same';
+    const n = parseInt(r.spots,10);
+    const pill = mv==='up' ? ('▲ ' + (n>0?n:'Up')) : mv==='down' ? ('▼ ' + (n>0?n:'Down')) : mv==='new' ? 'New' : 'Same';
     return `<div class="sl-rk-row">
       <div class="sl-rk-num">${i+1}</div>
-      <div class="sl-rk-mid"><div class="sl-rk-name">${esc(r.name||'')}</div>
+      ${slSrcAvatar(p, r.name||'', 'sl-rk-av')}
+      <div class="sl-rk-mid"><div class="sl-rk-name">${slName(p, r.name||'')}</div>
         ${r.note?`<div class="sl-rk-note">${slFmt(r.note)}</div>`:''}</div>
-      <div class="sl-rk-move sl-rk-${mv}">${arrows[mv]||'—'}</div>
+      <div class="sl-rk-move sl-rk-${mv}">${esc(pill)}</div>
     </div>`;
   }).join('');
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-rankings">${pin}
-    <div class="sl-eyebrow"><span class="sl-pub">${esc(pl.publication||(slSrc(p)?slOrg(p):'WCA NEWSWIRE')+' · RANKINGS')}</span>
-      <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
+  const pub = pl.publication || (slSrc(p) ? slOrg(p) : 'WCA NEWSWIRE');
+  return `<article class="slpost sl-rankings">${slPin(p)}
+    ${slKicker('Rankings', 'ti-list-numbers', pub)}
     <h2 class="sl-rk-headline">${esc(p.title)}</h2>
-    ${pl.byline?`<div class="sl-byline">${esc(pl.byline)}</div>`:''}
-    ${p.body?`<div class="sl-rk-intro">${slFmt(p.body)}</div>`:''}
+    ${slDek(pl)}
+    ${pl.byline ? slByline('', esc(pl.byline), esc(slDate(p.story_date))) : `<div class="sl-by-meta sl-rk-date">${esc(slDate(p.story_date))}</div>`}
+    <!--slph-->
+    ${p.body?`<div class="sl-rk-intro sl-prose">${slParas(p.body)}</div>`:''}
     <div class="sl-rk-list">${rows}</div>
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
 function slRenderMystery(p){
   const pl = p.payload || {};
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-mystery">${pin}
+  return `<article class="slpost sl-mystery">${slPin(p)}
     <div class="sl-my-text">${slFmt(p.body)}</div>
     ${pl.sign?`<div class="sl-my-sign">${esc(pl.sign)}</div>`:''}
     ${slMedia(p.body)}
   ${slEngageBar(p)}</article>`;
 }
-// ---- FAN REVIEW — a member reviewing a finished show as themselves ----
+// ---- FAN REVIEW: a member reviewing a finished show as themselves ----
 // payload: { reviewer_name, reviewer_avatar, event_name, overall (1-5),
 //            matches:[{slot,label,stars,note}] }   (written by submit_fan_review)
 function frStarLine(n){
   n = Math.max(0, Math.min(5, Math.round(Number(n)||0)));
-  return `<span class="fr-starline" aria-label="${n} out of 5 stars">${'\u2605'.repeat(n)}<span class="off">${'\u2605'.repeat(5-n)}</span></span>`;
+  return `<span class="fr-starline" aria-label="${n} out of 5 stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></span>`;
 }
 function frAvatarHTML(name, url){
   const init = String(slInit(name||'?')).replace(/[^A-Za-z0-9]/g,'') || '?';
@@ -14737,8 +15148,7 @@ function slRenderReview(p, opts){
         ${x.note?`<div class="sl-rv-mnote">${slFmt(x.note)}</div>`:''}
       </div>`).join('')}
     </div>` : '';
-  const pin = p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : '';
-  return `<article class="slpost sl-review">${pin}
+  return `<article class="slpost sl-review">${slPin(p)}
     <div class="sl-rv-head">
       ${frAvatarHTML(name, pl.reviewer_avatar)}
       <div class="sl-rv-who">
@@ -14748,11 +15158,12 @@ function slRenderReview(p, opts){
       ${overall?`<div class="sl-rv-score">${frStarLine(overall)}<b>${overall}</b><span class="sl-rv-of">/ 5</span></div>`:''}
     </div>
     ${p.title?`<h2 class="sl-headline">${esc(p.title)}</h2>`:''}
-    ${p.body?`<div class="sl-body">${slFmt(p.body)}</div>`:''}
+    ${p.body?`<div class="sl-body sl-prose">${slParas(p.body)}</div>`:''}
     ${slMedia(p.body)}
     ${matches}
   ${opts.noEngage ? '' : slEngageBar(p)}</article>`;
 }
+/* ===================== end FEED POST RENDERERS ===================== */
 
 // ---------------------------------------------------------------------------
 // MEDIA EMBEDS — turn any media LINK in a post body into a live embed.
@@ -15232,12 +15643,7 @@ function slRenderPost(p){
   // the same feed page each get independent, working arrows.
   const _photos = slPhotosOf(p);
   const _ph = _photos.length ? slPhotoCarouselHTML(_photos, 'p'+p.id) : '';
-  if(_ph){
-    let at = html.indexOf('<div class="sl-foot"');
-    if(at === -1) at = html.indexOf('<div class="sl-engage"');
-    if(at !== -1) html = html.slice(0, at) + _ph + html.slice(at);
-    else html = html.replace('</article>', _ph + '</article>');
-  }
+  html = slPlacePhotos(html, _ph);
   html = slAddSourceStrip(html, p);
   html = html.replace('<article class="slpost',
     `<article id="slpost-${p.id}" data-postid="${p.id}" class="slpost`);
@@ -16199,7 +16605,9 @@ const CP_KIND_LABEL = { article:'Article', social:'Social', press_qa:'Press Q&A'
 // {ORG} = the promotion or outlet name, {REPORTER} = the Press Pass reporter name
 const CP_FORMS = {
   article: [
-    ['title','Headline','text','A headline that grabs people',{req:1,max:200}],
+    ['title','Headline','text','A headline that grabs people',{req:1,max:200,hl:1}],
+    ['pl.dek','Subheadline','text','One line under the headline that makes people want to read on',{max:240}],
+    ['pl.label','Label','select','',{options:['','Report','Breaking','Exclusive','Rumor','Opinion','Recap'],labels:{'':'News'}}],
     ['pl.publication','Publication','text','{ORG}'],
     ['pl.byline','Byline','text','By {REPORTER}',{pressFill:'By {REPORTER}'}],
     ['body','Article','area','Write the story here.',{req:1,rows:9,fmt:1,ai:1}]
@@ -16237,19 +16645,23 @@ const CP_FORMS = {
     ['body','Report','area','',{rows:5,fmt:1,ai:1}]
   ],
   interview: [
-    ['title','Headline','text','',{req:1}],
+    ['title','Headline','text','',{req:1,hl:1}],
+    ['pl.dek','Subheadline','text','One line under the headline that makes people want to read on',{max:240}],
     ['pl.publication','Publication','text','{ORG}'],
     ['pl.interviewer','Interviewer','text','{REPORTER}',{pressFill:'{REPORTER}'}],
     ['pl.subject','Who is answering','text','Their name',{req:1}],
     ['pl.origin','Their title or where they are from','text',''],
     ['body','Intro','area','A short setup paragraph above the questions',{rows:3,fmt:1,ai:1}],
+    ['pl.pull','Pull quote','text','The best line from the answers, shown big at the top',{max:240}],
     ['rep.qa','Questions and answers','rep','',{add:'+ Add a question',need:['q','a'],
       fields:[['q','Question','area'],['a','Answer','area']]}]
   ],
   press_qa: [
-    ['title','Headline','text','',{req:1}],
+    ['pl.style','Style','select','',{options:['chat','podium'],labels:{chat:'Back and forth (reporters on the left, the podium on the right)',podium:'Podium (each question in its own numbered box)'}}],
+    ['title','Headline','text','',{req:1,hl:1}],
+    ['pl.dek','Subheadline','text','One line under the headline that makes people want to read on',{max:240}],
     ['pl.event','Event','text',''],
-    ['pl.team','Team','text',''],
+    ['pl.team','Team (shows as Hosted by)','text',''],
     ['pl.participants','Participants','text','Names, separated by commas'],
     ['pl.modOpen','Moderator opening','area','',{rows:2}],
     ['rep.openStatements','Opening statements','rep','',{add:'+ Add a statement',need:['text'],
@@ -16260,12 +16672,13 @@ const CP_FORMS = {
     ['pl.modClose','Moderator closing','area','',{rows:2}]
   ],
   rankings: [
-    ['title','Headline','text','Power Rankings',{req:1}],
+    ['title','Headline','text','Power Rankings',{req:1,hl:1}],
+    ['pl.dek','Subheadline','text','One line under the headline',{max:240}],
     ['pl.publication','Publication','text','{ORG}'],
     ['pl.byline','Byline','text','By {REPORTER}',{pressFill:'By {REPORTER}'}],
     ['body','Intro','area','',{rows:3,fmt:1,ai:1}],
     ['rep.rows','Rankings, number one first','rep','',{add:'+ Add a name',need:['name'],
-      fields:[['name','Name','text'],['note','Note','text'],['move','Movement','select',['same','up','down','new']]]}]
+      fields:[['name','Name','text'],['note','Note','text'],['move','Movement','select',['same','up','down','new']],['spots','Spots moved','text','2']]}]
   ],
   spotlight: [
     ['pl.subject','Who or what is in the spotlight','text','',{req:1}],
@@ -16285,6 +16698,17 @@ const CP_FORMS = {
   ]
 };
 const CP_MOVE_LABEL = { same:'No change', up:'Moved up', down:'Moved down', new:'New entry' };
+/* Headline helper under headline boxes. Plain short headlines get clicked more,
+   so it counts the words and nudges toward 12 or fewer with a name up front. */
+function wcaHeadlineHelp(el){
+  if(!el) return;
+  const box = document.querySelector(`.hl-help[data-for="${el.id}"]`);
+  if(!box) return;
+  const n = (String(el.value||'').match(/\S+/g) || []).length;
+  if(!n){ box.textContent = 'Tip: keep it short and lead with the name people know.'; box.className = 'hl-help'; return; }
+  box.className = 'hl-help' + (n > 14 ? ' warn' : n <= 12 ? ' good' : '');
+  box.textContent = n + ' word' + (n===1?'':'s') + '. ' + (n > 14 ? 'Long headline. Try trimming to 12 words or fewer.' : n <= 12 ? 'Good length. Lead with the name people know.' : 'Almost there. 12 words or fewer reads best.');
+}
 const CP_LINKS = [['website','Website'],['youtube','YouTube'],['twitch','Twitch'],['x','X'],['tiktok','TikTok'],['instagram','Instagram'],['discord','Discord']];
 
 let CP_MODE = 'promotion';     // 'promotion' | 'press'
@@ -16699,13 +17123,15 @@ function cpFieldsHTML(){
         <button type="button" class="spc-mini" onclick="cpAddRep('${k}')">${esc(o.add)}</button>`;
     }
     if(type === 'select'){
-      return `<label>${esc(label)}</label><select id="${id}">${o.options.map(v=>`<option value="${escAttr(v)}">${esc(v)}</option>`).join('')}</select>`;
+      return `<label>${esc(label)}</label><select id="${id}">${o.options.map(v=>`<option value="${escAttr(v)}">${esc((o.labels && o.labels[v]!=null) ? o.labels[v] : v)}</option>`).join('')}</select>`;
     }
     const fill = (CP_MODE==='press' && o.pressFill) ? cpPh(o.pressFill) : '';
     if(type === 'area'){
       return `<label>${esc(label)}${opt}</label>${o.fmt ? fmtToolbarHTML(id) : ''}
         <textarea id="${id}" rows="${o.rows||3}" maxlength="${o.max||12000}" placeholder="${escAttr(cpPh(ph))}"${o.ai?' data-ai="write"':''}>${esc(fill)}</textarea>`;
     }
+    if(o.hl) return `<label>${esc(label)}${opt}</label><input id="${id}" maxlength="${o.max||200}" placeholder="${escAttr(cpPh(ph))}" value="${escAttr(fill)}" oninput="wcaHeadlineHelp(this)">
+        <div class="hl-help" data-for="${id}"></div>`;
     return `<label>${esc(label)}${opt}</label><input id="${id}" maxlength="${o.max||200}" placeholder="${escAttr(cpPh(ph))}" value="${escAttr(fill)}">`;
   }).join('');
 }
@@ -16793,6 +17219,7 @@ function cpFill(r){
     if(!el) continue;
     const v = key==='title' ? r.title : key==='body' ? r.body : pl[key.slice(3)];
     if(v != null && v !== '') el.value = v;
+    if(key==='title') wcaHeadlineHelp(el);
   }
 }
 // What the server will stamp on as payload.source, so the preview matches.
@@ -16813,11 +17240,7 @@ function cpPreview(){
     payload:Object.assign({}, g.payload, { source: cpSourceBlock() }) };
   let html = slAddSourceStrip(slRenderPostInner(fake), fake);
   const ph = slPhotosOf(fake);
-  if(ph.length){
-    const car = slPhotoCarouselHTML(ph, 'cppv');
-    let at = html.indexOf('<div class="sl-foot"'); if(at === -1) at = html.indexOf('<div class="sl-engage"');
-    html = at !== -1 ? html.slice(0, at) + car + html.slice(at) : html.replace('</article>', car + '</article>');
-  }
+  html = slPlacePhotos(html, ph.length ? slPhotoCarouselHTML(ph, 'cppv') : '');
   pane.innerHTML = `<div class="spc-pv-label">Preview, exactly how it shows in the Feed</div>` + html;
 }
 async function cpSubmit(){
@@ -17328,7 +17751,10 @@ function spRenderKindFields(){
   } else if(SP_KIND==='interview'){
     host.innerHTML = `
       <label>Headline / topic</label>
-      <input id="spc_iv_title" placeholder="Stella Speaks: 'I'm Not Done Yet'">
+      <input id="spc_iv_title" placeholder="Stella Speaks: 'I'm Not Done Yet'" oninput="wcaHeadlineHelp(this)">
+      <div class="hl-help" data-for="spc_iv_title"></div>
+      <label>Subheadline <span style="text-transform:none">(optional, one line under the headline that makes people want to read on)</span></label>
+      <input id="spc_iv_dek" maxlength="240" placeholder="One night after her title defense, the champion talks about what comes next.">
       <div class="spc-row">
         <div><label>Publication <span style="text-transform:none">(eyebrow label)</span></label><input id="spc_iv_pub" placeholder="WCA NEWSWIRE · SIT-DOWN"></div>
         <div><label>Interviewer</label><input id="spc_iv_interviewer" placeholder="Dana Cross, WCA Newsdesk"></div>
@@ -17340,6 +17766,8 @@ function spRenderKindFields(){
       <label>Intro <span style="text-transform:none">(optional setup paragraph above the Q&amp;A)</span></label>
       ${fmtToolbarHTML('spc_iv_intro')}
       <textarea id="spc_iv_intro" style="min-height:60px" placeholder="We sat down with the champion days after her title defense…"></textarea>
+      <label>Pull quote <span style="text-transform:none">(optional, the best line from the answers, shown big at the top)</span></label>
+      <input id="spc_iv_pull" maxlength="240" placeholder="I'm not done yet.">
       <label>Q&amp;A exchanges</label>
       <div class="spc-note" style="margin-bottom:6px">Each block is one question + one answer. Names default to the Interviewer / Subject above; override per line if needed.</div>
       <div id="spc_iv_qa"></div>
@@ -17475,6 +17903,8 @@ function spGather(){
     const iv=(document.getElementById('spc_iv_interviewer').value||'').trim(); if(iv) payload.interviewer=iv;
     const sub=(document.getElementById('spc_iv_subject').value||'').trim(); payload.subject = sub || w.name;
     const og=(document.getElementById('spc_iv_origin').value||'').trim(); if(og) payload.origin=og;
+    const dk=(document.getElementById('spc_iv_dek').value||'').trim(); if(dk) payload.dek=dk;
+    const pq=(document.getElementById('spc_iv_pull').value||'').trim(); if(pq) payload.pull=pq;
     body = (document.getElementById('spc_iv_intro').value||'').trim();
   }
   if(SP_PHOTOS.length) payload.photos = SP_PHOTOS.map(p=>({ url:p.url, ratio:p.ratio||'auto' }));
@@ -17494,13 +17924,7 @@ function spPreview(){
   };
   let html = slRenderPostInner(fake);
   const ph = slPhotosOf(fake);
-  if(ph.length){
-    const car = slPhotoCarouselHTML(ph, 'spcpv');
-    let at = html.indexOf('<div class="sl-foot"');
-    if(at === -1) at = html.indexOf('<div class="sl-engage"');
-    if(at !== -1) html = html.slice(0, at) + car + html.slice(at);
-    else html = html.replace('</article>', car + '</article>');
-  }
+  html = slPlacePhotos(html, ph.length ? slPhotoCarouselHTML(ph, 'spcpv') : '');
   pane.innerHTML = `<div class="spc-pv-label">Preview — exactly how it renders in the feed</div>` + html;
 }
 
@@ -17551,7 +17975,10 @@ function spFillFromEditing(){
     if(pl.interviewer) document.getElementById('spc_iv_interviewer').value = pl.interviewer;
     if(pl.subject) document.getElementById('spc_iv_subject').value = pl.subject;
     if(pl.origin) document.getElementById('spc_iv_origin').value = pl.origin;
+    if(pl.dek) document.getElementById('spc_iv_dek').value = pl.dek;
+    if(pl.pull) document.getElementById('spc_iv_pull').value = pl.pull;
     document.getElementById('spc_iv_intro').value = r.body || '';
+    wcaHeadlineHelp(document.getElementById('spc_iv_title'));
     const qaWrap = document.getElementById('spc_iv_qa');
     if(qaWrap) qaWrap.innerHTML = '';
     (Array.isArray(pl.qa)?pl.qa:[]).forEach(x=> spAddQARow(x.q, x.a, x.qName, x.aName));
@@ -19808,7 +20235,7 @@ let TL_ENTER = null;   // 'fwd' | 'back' — fly in from that edge on the next d
 const TL_REDUCED = (window.matchMedia &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
 
-window.WCA_BUILD = 'creator-links-2026-10-22';   // check with: console.log(WCA_BUILD)
+window.WCA_BUILD = 'feed-redesign-2026-10-23';   // check with: console.log(WCA_BUILD)
 let TL_DIAG = '';   // what the database actually returned, shown on screen
 
 /* One command that answers "what does the database actually give this page?"
