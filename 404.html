@@ -21,7 +21,7 @@
 var WCA_PATHS = /^https?:$/.test(location.protocol);
 var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
                  'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate',
-                 'promotions','promotion','my-promotion','mypromo'];
+                 'promotions','promotion','my-promotion','mypromo','relationships'];
 var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };                       // tab id -> address
 var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };   // address -> tab id
 (function(){
@@ -6625,17 +6625,14 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .slv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
   html.slv-open{overflow:hidden}
   /* ===== Stories and relationships (Oct 2026). Same block in index.html and admin.html ===== */
-  html.stx-lock{overflow:hidden;}
-  .stx-modal{position:fixed; inset:0; z-index:9000; display:none; align-items:flex-start; justify-content:center; padding:4vh 16px; overflow-y:auto;
-    background:rgba(4,4,8,.82); backdrop-filter:blur(4px);}
-  .stx-modal.on{display:flex;}
   .stx-panel{position:relative; width:min(1180px,100%); background:#0d0e14; border:1px solid rgba(233,185,73,.28); border-radius:16px; padding:26px 26px 30px;
-    box-shadow:0 30px 80px rgba(0,0,0,.6); color:#f2f2f0; font-family:'Barlow', system-ui, sans-serif;}
-  .stx-x{position:absolute; top:12px; right:14px; width:40px; height:40px; border-radius:10px; border:1px solid #2a2a2e; background:#15161d; color:#f2f2f0; font-size:24px; line-height:1; cursor:pointer;}
-  .stx-x:hover{border-color:#e9b949;}
+    box-shadow:0 20px 60px rgba(0,0,0,.4); color:#f2f2f0; font-family:'Barlow', system-ui, sans-serif;}
+  .stx-pagewrap{max-width:1240px; margin:0 auto;}
+  .stx-crumbs{font-size:14px; color:#8a8a86; margin:4px 0 12px;} .stx-crumbs a{color:#a9a6a0; text-decoration:none;} .stx-crumbs a:hover{color:#e9b949;}
+  .stx-crumbs span:last-child{color:#d7d4cc;}
   .stx-k{font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:13px; color:#e9b949;}
   .stx-title,.stx-ftitle{margin:2px 0 10px; font-family:'Anton', Impact, sans-serif; font-weight:400; letter-spacing:.5px; text-transform:uppercase; font-size:clamp(28px,4vw,44px); line-height:1.05; color:#fff;}
-  .stx-head{margin-bottom:12px; padding-right:44px;}
+  .stx-head{margin-bottom:12px;}
   .stx-views{display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid #23232b; margin-top:6px;}
   .stx-views::-webkit-scrollbar{display:none;}
   .stx-view{flex:0 0 auto; width:auto; white-space:nowrap; padding:10px 16px; border:0; border-bottom:3px solid transparent; margin-bottom:-1px; background:none; color:#8a8a86; cursor:pointer;
@@ -8620,6 +8617,11 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     <div id="pmdir-body"></div>
   </div>
   <div class="page" id="page-promotion"><div id="pmpage-body"></div></div>
+  <!-- RELATIONSHIPS: the web, the whole roster and faction pages (WCA and promotions) -->
+  <div class="page" id="page-relationships"><div class="stx-pagewrap">
+    <div class="stx-crumbs" id="stx-crumbs"></div>
+    <div class="stx-panel"><div id="stx-mbody"></div></div>
+  </div></div>
   <div class="page" id="page-mypromo"><div id="mp-body"></div></div>
 
   <!-- ===== MY ACCOUNT (full page; reached by clicking the user chip) ===== -->
@@ -20584,7 +20586,7 @@ function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
   // Pages reached without a nav button: account and the personal dashboard
   // (both from the user chip) and home (the logo).
-  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo') return false;
+  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo' && pg!=='relationships') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   if(typeof wcaNavIcon==='function') wcaNavIcon();
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
@@ -20592,6 +20594,8 @@ function activatePage(pg){
   if(btn) btn.classList.add('active');
   // Past Events is part of Events now: keep Events lit on both
   if(pg==='archive'){ const evb=document.querySelector('nav [data-page="events"]'); if(evb) evb.classList.add('active'); }
+  // Relationships belongs to the Roster (or to Promotions, for a promotion's roster)
+  if(pg==='relationships'){ const rb=document.querySelector('nav [data-page="'+(/(^|&)promo=\d/.test(wcaRoute().qs)?'promotions':'roster')+'"]'); if(rb) rb.classList.add('active'); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
@@ -20612,6 +20616,7 @@ function activatePage(pg){
   if(pg==='promotions' && typeof pmDirOpen==='function') pmDirOpen();
   if(pg==='home') setTimeout(()=>{ try{ document.querySelectorAll('#dash-sponsors .dspo-marquee').forEach(dspoMarquee); }catch(e){} }, 60);
   if(pg==='promotion' && typeof pmPageOpen==='function') pmPageOpen();
+  if(pg==='relationships' && typeof stxPageOpen==='function') stxPageOpen();
   if(pg==='mypromo' && typeof mpOpen==='function') mpOpen();
   // Roster star map: only run its render loop while the tab is actually open,
   // and drop out of fullscreen when navigating away.
@@ -20634,7 +20639,7 @@ function activatePage(pg){
 function restorePageFromHash(){
   let { pg, qs } = wcaRoute();
   const known = pg && (document.querySelector('nav [data-page="'+pg+'"]') ||
-                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo');
+                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo' || pg==='relationships');
   if(!known) pg = '';                     // unknown address: treat it like the front door
   if(pg==='donate'){
     activatePage('home');                 // the Home script opens the donate options
@@ -27176,31 +27181,70 @@ function stxBindChapters(root, chs){
   root.querySelectorAll('.stx-chap').forEach(b => b.addEventListener('click', () => {
     const box = b.closest('.stx-chapbox'); if(!box) return;
     box.innerHTML = stxChapterView(chs, Number(b.dataset.ch)); stxBindChapters(box, chs);
+    if(STX.view && box.closest('#stx-mbody')){ STX.view.ch = Number(b.dataset.ch); stxSyncAddress(); }
   }));
 }
 
-/* ---------- the viewer (a big overlay) ---------- */
-function stxModalEl(){
-  let m = document.getElementById('stx-modal');
-  if(!m){
-    m = document.createElement('div');
-    m.id = 'stx-modal'; m.className = 'stx-modal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Relationships');
-    m.innerHTML = `<div class="stx-panel"><button type="button" class="stx-x" aria-label="Close" onclick="stxClose()">&times;</button><div id="stx-mbody"></div></div>`;
-    m.addEventListener('click', e => { if(e.target === m) stxClose(); });
-    document.addEventListener('keydown', e => { if(e.key === 'Escape' && m.classList.contains('on')) stxClose(); });
-    document.body.appendChild(m);
-  }
-  return m;
+/* ---------- the Relationships page (/relationships) ----------
+   Its own page, so the address can be shared and Back works:
+     /relationships?who=p1&sel=p5          WCA, Ivan's web with Ace Spade picked
+     /relationships?view=world             WCA, the whole roster
+     /relationships?view=faction&who=f10   WCA, one faction's page
+     /relationships?promo=3&who=p101       the same for a promotion
+   p = a character, f = a faction. In admin it opens the site in a new tab. */
+const STX_SITE = 'https://wcauniverse.com';
+function stxKeyQ(k){ if(!k) return ''; const i = String(k).indexOf(':'); return (k.slice(0, i) === 'faction' ? 'f' : 'p') + k.slice(i + 1); }
+function stxQKey(q){ q = String(q || ''); if(!q) return null; return (q[0] === 'f' ? 'faction:' : 'person:') + q.slice(1); }
+function stxQs(v){
+  const out = [];
+  if(v.scope != null && v.scope !== 'wca') out.push('promo=' + Number(v.scope));
+  if(v.mode && v.mode !== 'web') out.push('view=' + v.mode);
+  if(v.key && v.mode !== 'world') out.push('who=' + encodeURIComponent(stxKeyQ(v.key)));
+  if(v.sel && v.mode === 'web') out.push('sel=' + encodeURIComponent(stxKeyQ(v.sel)));
+  if(v.ch) out.push('ch=' + Number(v.ch));
+  return out.join('&');
 }
-function stxClose(){ const m = document.getElementById('stx-modal'); if(m) m.classList.remove('on'); document.documentElement.classList.remove('stx-lock'); STX.view = null; }
+function stxViewFromQs(qs){
+  const p = new URLSearchParams(qs || '');
+  const promo = p.get('promo');
+  const mode = ['world','faction'].includes(p.get('view')) ? p.get('view') : 'web';
+  return { scope: promo && /^\d+$/.test(promo) ? Number(promo) : null, mode, key: stxQKey(p.get('who')), sel: stxQKey(p.get('sel')), ch: Number(p.get('ch')) || 0 };
+}
+function stxOnSite(){ return typeof activatePage === 'function' && !!document.getElementById('page-relationships'); }
 // view: { scope, mode:'web'|'world'|'faction', key, sel, ch }
 async function stxOpen(view){
-  const m = stxModalEl();
-  m.classList.add('on'); document.documentElement.classList.add('stx-lock');
-  STX.view = Object.assign({ mode:'web', sel:null, ch:0 }, view);
-  const body = document.getElementById('stx-mbody');
+  const v = Object.assign({ mode:'web', sel:null, ch:0 }, view);
+  if(v.scope === 'wca') v.scope = null;
+  if(!stxOnSite()){ window.open(STX_SITE + '/relationships' + (stxQs(v) ? '?' + stxQs(v) : ''), '_blank', 'noopener'); return; }
+  try{ if(typeof closeProfile === 'function') closeProfile(); }catch(e){}
+  wcaSetAddress('relationships', stxQs(v), true);
+  activatePage('relationships');
+  window.scrollTo(0, 0);
+}
+// activatePage('relationships') lands here: draw whatever the address asks for
+async function stxPageOpen(){
+  STX.view = stxViewFromQs(wcaRoute().qs);
+  const body = document.getElementById('stx-mbody'); if(!body) return;
   body.innerHTML = '<div class="stx-loading">Loading…</div>';
+  stxCrumbs();
   try{ await stxRender(); }catch(e){ body.innerHTML = `<div class="stx-empty">${stxE(stxErr(e))}</div>`; }
+}
+async function stxCrumbs(){
+  const el = document.getElementById('stx-crumbs'); if(!el) return;
+  const v = STX.view || {};
+  if(v.scope == null){ el.innerHTML = `<a href="/roster" onclick="goPage('roster');return false;">Roster</a> <span aria-hidden="true">›</span> <span>Relationships</span>`; return; }
+  let name = 'Promotion';
+  try{ const { data } = await sb.from('promotions').select('name').eq('id', v.scope).maybeSingle(); if(data && data.name) name = data.name; }catch(e){}
+  el.innerHTML = `<a href="/promotions" onclick="goPage('promotions');return false;">Promotions</a> <span aria-hidden="true">›</span>
+    <a href="/promotion?id=${Number(v.scope)}" onclick="pmGo(${Number(v.scope)});return false;">${stxE(name)}</a> <span aria-hidden="true">›</span> <span>Relationships</span>`;
+}
+// keep the address in step with what's on screen (no new Back step for every click)
+function stxSyncAddress(){
+  if(!stxOnSite() || !STX.view) return;
+  const pa = document.getElementById('page-relationships');
+  if(!pa || !pa.classList.contains('active')) return;
+  const qs = stxQs(STX.view);
+  if(qs !== (wcaRoute().qs || '')) wcaSetAddress('relationships', qs);
 }
 function stxOpenWeb(scope, key){ return stxOpen({ scope, mode:'web', key }); }
 function stxOpenWorld(scope){ return stxOpen({ scope, mode:'world' }); }
@@ -27278,6 +27322,7 @@ async function stxRender(){
   body.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { v.mode = b.dataset.go; v.sel = null; v.ch = 0; if(v.mode === 'faction') v.key = null; if(v.mode === 'web' && v.key && !String(v.key).startsWith('person:')) v.key = null; stxRender(); }));
   body.querySelectorAll('[data-web]').forEach(b => b.addEventListener('click', () => { v.mode = 'web'; v.key = b.dataset.web; v.sel = null; stxRender(); }));
   body.querySelectorAll('[data-fac]').forEach(b => b.addEventListener('click', () => { v.mode = 'faction'; v.key = b.dataset.fac; v.ch = 0; stxRender(); }));
+  stxSyncAddress();
   body.querySelectorAll('.stx-node').forEach(g => {
     const go = () => { const k = g.dataset.k;
       if(v.mode === 'world'){ v.mode = 'web'; v.key = k; v.sel = null; }
@@ -27610,6 +27655,9 @@ async function stxEdRemoveFaction(id){
   await stxEditor(STXE.host, STXE.scope, STXE.opts);
 }
 /* ===================== end STORIES AND RELATIONSHIPS ===================== */
+// This script loads after the page has already opened the address it was
+// given, so a link straight to /relationships is drawn from here.
+try{ if(stxOnSite() && wcaRoute().pg === 'relationships' && document.getElementById('page-relationships').classList.contains('active')) stxPageOpen(); }catch(e){}
 
 </script>
 </body>
