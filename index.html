@@ -6982,35 +6982,45 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   @media(min-width:761px){
     header .head-inner{display:grid; grid-template-columns:44px minmax(0,1fr) auto minmax(0,1fr) 44px;
       grid-template-areas:"x fp brand acts bell" "nav nav nav nav nav";
-      align-items:center; column-gap:14px; row-gap:0; max-width:1360px; margin:0 auto; padding:12px 22px 0;}
+      align-items:center; column-gap:14px; row-gap:0; max-width:none; width:100%; box-sizing:border-box; margin:0;
+      padding:12px clamp(20px,3vw,72px) 0;}
     header .brand{grid-area:brand; justify-self:center;}
-    header .brand .logo-img{height:62px;}
+    header .brand .logo-img{height:clamp(58px, 2.2vw + 30px, 86px);}
     header .nav-toggle{display:none !important;}
     header .notif-btn{grid-area:bell; justify-self:end; margin:0;}
     header .head-right{display:contents;}
     header .head-right > nav{grid-area:nav; display:flex; flex-wrap:nowrap; justify-content:flex-start; gap:2px;
       overflow-x:auto; overflow-y:hidden; scrollbar-width:none; min-width:0; padding:4px 0 6px; scroll-behavior:smooth;}
     header .head-right > nav::-webkit-scrollbar{display:none;}
-    /* auto margins center the row, and still let it scroll from the very first item when it overflows */
-    header .head-right > nav > :first-child{margin-left:auto;}
-    header .head-right > nav > :last-child{margin-right:auto;}
-    header nav > a, header nav .navdrop-trigger{flex:0 0 auto; white-space:nowrap; font-size:16px; letter-spacing:1.5px; padding:12px 16px 11px;}
-    header nav > a::after, header nav .navdrop-trigger::after{left:16px; right:16px;}
+    /* two empty spacers center the row, and still let it scroll from the very
+       first item when it overflows. (Spacers, not margins on the first and last
+       link: the last link can be a hidden one, which threw the centering off.) */
+    header .head-right > nav::before, header .head-right > nav::after{content:''; flex:1 0 0; min-width:0;}
+    header nav > a, header nav .navdrop-trigger{flex:0 0 auto; white-space:nowrap; font-size:clamp(16px, 0.36vw + 11px, 21px); letter-spacing:1.5px;
+      padding:12px clamp(14px, 0.9vw + 2px, 26px) 11px;}
+    header nav > a::after, header nav .navdrop-trigger::after{left:clamp(14px, 0.9vw + 2px, 26px); right:clamp(14px, 0.9vw + 2px, 26px);}
     header nav .navdrop{flex:0 0 auto;}
     /* a dropdown can't hang below a row that scrolls, so it opens fixed under its button (wcaToggleDrop places it) */
     header nav .navdrop-menu{position:fixed; top:auto; left:auto;}
     header #nav-firepro{grid-area:fp; justify-self:start; font-size:10px !important; padding:8px 14px !important; letter-spacing:1.2px !important; line-height:1.2; border-width:1px !important;}
     header .head-actions{grid-area:acts; justify-self:end; display:flex; align-items:center; gap:10px; flex-wrap:nowrap; min-width:0;}
-    header .head-actions .donate-btn{font-size:14px; padding:10px 16px;}
+    header .head-actions .donate-btn{font-size:clamp(14px, 0.25vw + 10px, 17px); padding:clamp(10px, 0.2vw + 6px, 12px) clamp(16px, 0.5vw + 8px, 22px);}
+  }
+  /* big screens (1920 and up): a little larger all round so the bar fills its width */
+  @media(min-width:1700px){
+    header #nav-firepro{font-size:11.5px !important; padding:10px 16px !important;}
+    header .notif-btn{transform:scale(1.1);}
   }
   /* a narrower computer: the side buttons get smaller before anything wraps */
   @media(min-width:761px) and (max-width:1180px){
-    header .head-inner{grid-template-columns:0 minmax(0,1fr) auto minmax(0,1fr) 40px; column-gap:10px;}
+    header .head-inner{grid-template-columns:40px minmax(0,1fr) auto minmax(0,1fr) 40px; column-gap:10px;}
     /* Donate and Get the App become icon buttons (they keep their tooltip) */
     header .head-actions .donate-btn{font-size:0; gap:0; padding:9px 11px;}
     header .head-actions .donate-btn i{font-size:18px;}
     header #nav-firepro{font-size:9px !important; padding:7px 10px !important;}
     header .brand .logo-img{height:52px;}
+    header nav > a, header nav .navdrop-trigger{font-size:14.5px; letter-spacing:1.2px; padding-left:11px; padding-right:11px;}
+    header nav > a::after, header nav .navdrop-trigger::after{left:11px; right:11px;}
     header .user-chip{flex-wrap:nowrap;}
     header .user-chip .ucol{min-width:0;}
   }
