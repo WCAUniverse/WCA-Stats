@@ -6678,6 +6678,7 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
 #pmpage-body .pm-pcard-m .pm-pcard-ph{aspect-ratio:auto; height:230px;}
 #pmpage-body .pm-pcard-m .pm-pcard-body{padding:16px 18px 6px;}
 #pmpage-body .pm-pcard-m .pm-pcard-kind{font-size:13px;}
+#pmpage-body .pm-pcard-by{display:block; margin-top:4px; font-size:14px; color:var(--muted);}
 #pmpage-body .pm-pcard-m .pm-pcard-title{font-size:25px; line-height:1.15; margin:6px 0 10px;}
 #pmpage-body .pm-pcard-m .pm-pcard-text{font-size:16.5px; line-height:1.65; color:var(--txt-2); white-space:pre-line;
   display:-webkit-box; -webkit-line-clamp:9; -webkit-box-orient:vertical; overflow:hidden;}
@@ -19223,8 +19224,9 @@ function mpNewPost(){ mpComposer(null); pmEl('mp-composer') && pmEl('mp-composer
 async function mpLoadPosts(){
   const box = pmEl('mp-cards'); if(!box || !CURRENT_USER) return;
   const outs = (CP_OUTLETS || []).map(o => Number(o.id));
-  const ors = [`promotion_id.eq.${Number(PM.curId)}`];
-  if(outs.length) ors.push(`outlet_id.in.(${outs.join(',')})`);
+  // everything they posted for this promotion, plus everything they posted
+  // without one (Press Pass and the rest), the same rule as their public page
+  const ors = [`promotion_id.eq.${Number(PM.curId)}`, 'promotion_id.is.null'];
   let rows = [];
   try{
     const { data, error } = await sb.from('storylines')
@@ -19264,7 +19266,7 @@ function mpDrawPosts(){
     const likes = (Number(r.seed_likes) || 0) + rc.l, dis = (Number(r.seed_dislikes) || 0) + rc.d;
     const on = CP_EDITING && String(CP_EDITING.id) === String(r.id);
     return `<article class="pm-pcard${on ? ' on' : ''}">
-      <div class="pm-pcard-top" style="--pc:${col}"><span>${esc(src.name || '')}${src.type === 'press' ? ', Press Pass' : ''}</span><b class="pm-pill ${st[1]}">${st[0]}</b></div>
+      <div class="pm-pcard-top" style="--pc:${col}"><span>${esc(src.name || 'Posted by you')}${src.type === 'press' ? ', Press Pass' : ''}</span><b class="pm-pill ${st[1]}">${st[0]}</b></div>
       ${ph.length ? `<div class="pm-pcard-ph"><img src="${escAttr(slShowUrl(ph[0].url))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">${ph.length > 1 ? `<span>${ph.length} photos</span>` : ''}</div>` : ''}
       <div class="pm-pcard-body">
         <div class="pm-pcard-kind">${esc(CP_KIND_LABEL[r.kind] || r.kind)} · ${esc(r.story_date ? fmtDate(r.story_date) : '')}</div>
@@ -19274,7 +19276,7 @@ function mpDrawPosts(){
       </div>
       <div class="pm-pcard-foot">
         <span class="pm-pcard-n"><i class="ti ti-thumb-up"></i> ${likes.toLocaleString()} <i class="ti ti-thumb-down"></i> ${dis.toLocaleString()}</span>
-        <button type="button" class="pm-btn-gold" onclick="mpEditPost(${Number(r.id)})"><i class="ti ti-pencil"></i> Edit</button>
+        ${(r.promotion_id != null || r.outlet_id != null) ? `<button type="button" class="pm-btn-gold" onclick="mpEditPost(${Number(r.id)})"><i class="ti ti-pencil"></i> Edit</button>` : ''}
         <button type="button" class="spc-mini" onclick="slWhoReacted(${Number(r.id)}, PM.posts.find(x=>x.id===${Number(r.id)}))">Who reacted</button>
         ${r.is_published ? `<button type="button" class="spc-mini" onclick="mpOpenInFeed(${Number(r.id)})">In the Feed</button>` : ''}
       </div>
@@ -19800,14 +19802,25 @@ async function pmPageOpen(){
   const tab = (qs.match(/(?:^|&)tab=(roster|posts|factions)/) || [])[1] || 'posts';
   if(!id){ activatePage('promotions'); wcaSetAddress('promotions', ''); return; }
   host.innerHTML = `<div class="loading">Loading…</div>`;
-  const [pr, cr, rr, sr] = await Promise.all([
+  const [pr, cr, rr] = await Promise.all([
     sb.from('promotions').select('*').eq('id', id).maybeSingle(),
     sb.from('promotion_roster_categories').select('*').eq('promotion_id', id).order('sort').order('id'),
-    sb.from('promotion_roster').select('*').eq('promotion_id', id).order('sort').order('id'),
-    sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes')
-      .eq('promotion_id', id).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(60)
+    sb.from('promotion_roster').select('*').eq('promotion_id', id).order('sort').order('id')
   ]);
   const p = pr && pr.data;
+  // Every live post the owner made shows here: posted as the promotion, from
+  // their Press Pass, or anything else they wrote without a source. A post
+  // made for a different promotion of theirs stays on that one.
+  let sr = null;
+  if(p){
+    const ors = [`promotion_id.eq.${Number(id)}`];
+    if(p.owner_id) ors.push(`and(promotion_id.is.null,submitted_by.eq.${p.owner_id})`);
+    sr = await sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes,promotion_id,outlet_id,submitted_by')
+      .or(ors.join(',')).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(120);
+    if(sr && sr.error)   // fall back to the promotion's own posts rather than showing none
+      sr = await sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes,promotion_id,outlet_id')
+        .eq('promotion_id', id).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(120);
+  }
   if(!p){ host.innerHTML = `<div class="pm-card pm-empty">That promotion isn't here. <button class="spc-mini" onclick="goPage('promotions')">See every promotion</button></div>`; return; }
   PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:null };
   const col = pmColor(p.color);
@@ -19869,6 +19882,7 @@ function pmPubTab(t, quiet){
       return `<button type="button" class="pm-pcard pm-pcard-link pm-pcard-m" onclick="mpOpenInFeed(${Number(r.id)})">
         ${ph.length ? `<span class="pm-pcard-ph"><img src="${escAttr(ph[0].url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">${ph.length > 1 ? `<span>${ph.length} photos</span>` : ''}</span>` : ''}
         <span class="pm-pcard-body"><span class="pm-pcard-kind">${esc(CP_KIND_LABEL[r.kind] || r.kind)} · ${esc(r.story_date ? fmtDate(r.story_date) : '')}</span>
+          ${(() => { const sc = slSrc(r); if(r.promotion_id != null) return ''; const by = sc && sc.type === 'press' ? sc.name + ', Press Pass' : sc ? sc.name : ''; return by ? `<span class="pm-pcard-by">Posted as ${esc(by)}</span>` : ''; })()}
           <span class="pm-pcard-title">${esc(head)}</span>${text ? `<span class="pm-pcard-text">${esc(text)}${full.length > 600 ? '…' : ''}</span>` : ''}</span>
         <span class="pm-pcard-foot">${likes ? `<span class="pm-pcard-n"><i class="ti ti-thumb-up"></i> ${likes.toLocaleString()}</span>` : '<span class="pm-pcard-n"></span>'}<span class="pm-pcard-go">Open in the Feed <i class="ti ti-arrow-right"></i></span></span>
       </button>`; }).join('')}</div>` : `<div class="pm-empty">No posts yet.</div>`);
