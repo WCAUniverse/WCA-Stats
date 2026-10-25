@@ -6628,8 +6628,12 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .stx-panel{position:relative; width:min(1180px,100%); background:#0d0e14; border:1px solid rgba(233,185,73,.28); border-radius:16px; padding:26px 26px 30px;
     box-shadow:0 20px 60px rgba(0,0,0,.4); color:#f2f2f0; font-family:'Barlow', system-ui, sans-serif;}
   .stx-pagewrap{max-width:1240px; margin:0 auto;}
-  .stx-crumbs{font-size:14px; color:#8a8a86; margin:4px 0 12px;} .stx-crumbs a{color:#a9a6a0; text-decoration:none;} .stx-crumbs a:hover{color:#e9b949;}
-  .stx-crumbs span:last-child{color:#d7d4cc;}
+  .stx-crumbs{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:6px 0 14px; position:relative; z-index:2;}
+  .stx-back{display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; border:1px solid rgba(233,185,73,.5); background:rgba(10,10,14,.9);
+    color:#e9b949; cursor:pointer; font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; font-size:15px;}
+  .stx-back:hover{background:#e9b949; color:#1a1407;}
+  .stx-crumbs .stx-viewbar{margin:0 0 0 auto;}
+  @media (max-width:640px){ .stx-crumbs .stx-viewbar{margin:0; width:100%;} }
   .stx-k{font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:13px; color:#e9b949;}
   .stx-title,.stx-ftitle{margin:2px 0 10px; font-family:'Anton', Impact, sans-serif; font-weight:400; letter-spacing:.5px; text-transform:uppercase; font-size:clamp(28px,4vw,44px); line-height:1.05; color:#fff;}
   .stx-head{margin-bottom:12px;}
@@ -27229,14 +27233,29 @@ async function stxPageOpen(){
   stxCrumbs();
   try{ await stxRender(); }catch(e){ body.innerHTML = `<div class="stx-empty">${stxE(stxErr(e))}</div>`; }
 }
+// the bar above the page: a Back button on the left, and for WCA the same
+// Star map, List and Relationships buttons the Roster page has
 async function stxCrumbs(){
   const el = document.getElementById('stx-crumbs'); if(!el) return;
   const v = STX.view || {};
-  if(v.scope == null){ el.innerHTML = `<a href="/roster" onclick="goPage('roster');return false;">Roster</a> <span aria-hidden="true">›</span> <span>Relationships</span>`; return; }
-  let name = 'Promotion';
+  if(v.scope == null){
+    el.innerHTML = `<button type="button" class="stx-back" onclick="stxBackToRoster()"><i class="ti ti-arrow-left"></i> Back to the Roster</button>
+      <div class="sm-viewbar stx-viewbar">
+        <button class="sm-vbtn" type="button" onclick="stxBackToRoster('map')"><i class="ti ti-stars"></i> Star map</button>
+        <button class="sm-vbtn" type="button" onclick="stxBackToRoster('list')"><i class="ti ti-layout-list"></i> List</button>
+        <button class="sm-vbtn active" type="button" aria-current="page"><i class="ti ti-affiliate"></i> Relationships</button>
+      </div>`;
+    return;
+  }
+  let name = 'the promotion';
   try{ const { data } = await sb.from('promotions').select('name').eq('id', v.scope).maybeSingle(); if(data && data.name) name = data.name; }catch(e){}
-  el.innerHTML = `<a href="/promotions" onclick="goPage('promotions');return false;">Promotions</a> <span aria-hidden="true">›</span>
-    <a href="/promotion?id=${Number(v.scope)}" onclick="pmGo(${Number(v.scope)});return false;">${stxE(name)}</a> <span aria-hidden="true">›</span> <span>Relationships</span>`;
+  el.innerHTML = `<button type="button" class="stx-back" onclick="pmGo(${Number(v.scope)},'roster')"><i class="ti ti-arrow-left"></i> Back to ${stxE(name)}</button>`;
+}
+// back to the Roster page, in the view asked for (or the one they used last)
+function stxBackToRoster(view){
+  goPage('roster');
+  if(view && typeof window.smSetView === 'function'){ try{ window.smSetView(view); }catch(e){} }
+  window.scrollTo(0, 0);
 }
 // keep the address in step with what's on screen (no new Back step for every click)
 function stxSyncAddress(){
