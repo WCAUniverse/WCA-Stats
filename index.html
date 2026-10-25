@@ -20,9 +20,10 @@
    ==================================================================== */
 var WCA_PATHS = /^https?:$/.test(location.protocol);
 var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
-                 'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate'];
-var WCA_SEG_FOR  = { storylines:'feed' };                      // tab id -> address
-var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash' };    // address -> tab id
+                 'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate',
+                 'promotions','promotion','my-promotion','mypromo'];
+var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };                       // tab id -> address
+var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };   // address -> tab id
 (function(){
   if(!WCA_PATHS) return;
   var h = location.hash || '';
@@ -6627,6 +6628,231 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .sl-linkbox textarea{flex:1 1 220px;min-width:0;min-height:46px;resize:vertical;font:inherit}
   .sl-photo-src{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
   .sl-photo-src .sl-or{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  /* ===== PROMOTION PAGES: directory, public page, My Promotion (Oct 2026) ===== */
+  .pm-card{border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:20px;}
+  /* form fields on the promotion pages look like the rest of the site */
+  #page-mypromo input:not([type=color]):not([type=range]):not([type=checkbox]):not([type=file]), #page-mypromo select, #page-mypromo textarea,
+  #page-promotions input, #page-promotion input{
+    background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:9px 11px; border-radius:8px; font-size:14px; font-family:var(--font-body); box-sizing:border-box;}
+  #page-mypromo input:focus, #page-mypromo select:focus, #page-mypromo textarea:focus, #page-promotions input:focus, #page-promotion input:focus{outline:none; border-color:var(--gold);}
+  #page-mypromo textarea{resize:vertical;}
+  #page-mypromo .msg{margin-top:10px; font-size:13.5px; display:none;}
+  #page-mypromo .msg.show{display:block;} #page-mypromo .msg.ok{color:var(--win);} #page-mypromo .msg.err{color:var(--loss);}
+  .pm-empty{color:var(--muted); font-size:15px; line-height:1.6; padding:18px; text-align:center;}
+  .pm-card.pm-empty{display:flex; flex-direction:column; align-items:center; gap:12px;}
+  .pm-empty .ti{font-size:22px; color:var(--gold);}
+  .pm-h2{font-family:var(--font-display); font-weight:400; font-size:26px; text-transform:uppercase; letter-spacing:.5px; margin:0;}
+  .pm-h3{font-family:var(--font-cond); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:14px; color:var(--gold); margin:0 0 6px;}
+  .pm-kick{font-family:var(--font-cond); font-weight:600; letter-spacing:2.4px; text-transform:uppercase; font-size:13px; color:var(--muted);}
+  .pm-title{margin:2px 0 6px; font-family:var(--font-display); font-weight:400; font-size:38px; line-height:1.05; letter-spacing:.5px; text-transform:uppercase; color:#fff; overflow-wrap:anywhere;}
+  .pm-p{margin:4px 0 12px; font-size:14px; line-height:1.55; color:var(--txt-2);}
+  .pm-small{font-size:13px;}
+  .pm-dim{color:var(--muted);}
+  .pm-opt{text-transform:none; letter-spacing:0; font-weight:500; color:var(--muted);}
+  .pm-lbl{font-family:var(--font-cond); font-weight:600; letter-spacing:1.4px; text-transform:uppercase; font-size:12.5px; color:var(--muted); margin:14px 0 6px;}
+  .pm-note{margin-top:8px; font-size:13.5px; color:#ff8a96; border-left:2px solid #ff8a96; padding-left:8px;}
+  .pm-acts{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:16px;}
+  .pm-pill{display:inline-block; border:1px solid currentColor; border-radius:20px; padding:1px 9px; font-weight:700; font-size:12px; font-family:var(--font-body);}
+  .pm-pill.ok{color:#5dcaa5} .pm-pill.wait{color:var(--gold)} .pm-pill.bad{color:#ff8a96}
+  .pm-logo-init{display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-display); color:var(--pc); background:#0b0b0d; border:2px solid var(--pc);}
+  /* chips */
+  .pm-chips{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .pm-chip{padding:6px 12px; border-radius:20px; border:1px solid var(--line); background:transparent; color:var(--txt-2); font-weight:700; font-size:13px; cursor:pointer; font-family:var(--font-body);}
+  .pm-chip span{opacity:.65; font-weight:600;}
+  .pm-chip:hover{border-color:var(--gold-dim);}
+  .pm-chip.on{background:var(--gold); border-color:var(--gold); color:var(--on-gold);}
+  .pm-chip-c.on{background:var(--pc); border-color:var(--pc); color:#0b0b0d;}
+  .pm-chip-sm{padding:4px 10px; font-size:12.5px; font-weight:600;}
+  .pm-gchips{margin:16px 0 10px;}
+  /* the three section tabs */
+  .pm-tabs{display:flex; gap:8px; flex-wrap:wrap; margin:20px 0 18px; border-bottom:1px solid var(--line); padding-bottom:12px;}
+  .pm-tab{padding:11px 20px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--txt-2); font-family:var(--font-cond); font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:15px; cursor:pointer;}
+  .pm-tab span{opacity:.65;}
+  .pm-tab.on{background:var(--gold); border-color:var(--gold); color:var(--on-gold);}
+  /* banner on My Promotion */
+  .pm-banner{display:flex; gap:20px; align-items:center; flex-wrap:wrap; border:1px solid color-mix(in srgb, var(--pc) 45%, transparent); border-radius:14px; background:var(--panel); padding:22px; margin-top:8px;}
+  .pm-banner-logo{width:86px; height:86px; flex:0 0 86px; border-radius:14px; object-fit:cover; font-size:32px;}
+  .pm-banner-mid{flex:1 1 320px; min-width:0;}
+  .pm-meta{display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:14px; color:var(--txt-2);}
+  .pm-banner-acts{display:flex; flex-direction:column; gap:8px; align-items:flex-end;}
+  .pm-pick{max-width:240px;}
+  /* Posts: who you post as */
+  .pm-postas{margin-bottom:12px;}
+  .pm-postas .pm-lbl{margin-top:0;}
+  .pm-asrow{display:flex; gap:8px; flex-wrap:wrap;}
+  .pm-as{display:flex; gap:10px; align-items:center; padding:8px 14px 8px 8px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); text-align:left; cursor:pointer; font-family:var(--font-body);}
+  .pm-as img,.pm-as .pm-as-init{width:36px; height:36px; border-radius:8px; object-fit:cover;}
+  .pm-as-init{display:flex; align-items:center; justify-content:center; border:2px solid var(--pc); color:var(--pc); background:#0b0b0d; font-family:var(--font-display); font-size:14px; flex:0 0 36px;}
+  img.pm-as-init{object-fit:cover; border-width:1px;}
+  .pm-as b{display:block; font-size:14.5px;} .pm-as small{display:block; font-size:12.5px; color:var(--muted);}
+  .pm-as.on{border-color:var(--gold); background:rgba(var(--gold-rgb),.12);}
+  .pm-as-add{border-style:dashed; color:var(--gold);} .pm-as-add .ti{font-size:22px; padding:0 6px;}
+  /* the composer, with a big live preview */
+  .mp-composer .spc-row > div:has(#cp_src){display:none;}
+  .mp-composer .spc-grid{align-items:start;}
+  .mp-composer .spc-preview-pane{position:sticky; top:84px; max-height:calc(100vh - 100px); overflow:auto;}
+  .mp-composer .spc-pv-label{color:#5dcaa5;}
+  .mp-composer .spc-pv-label::before{content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:#5dcaa5; margin-right:8px; vertical-align:1px;}
+  /* Every post */
+  .pm-every{margin-top:26px;}
+  .pm-every-head{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;}
+  .pm-every-head .pm-h2{flex:1 1 200px;}
+  .pm-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px;}
+  .pm-pcard{border:1px solid var(--line); border-radius:12px; background:var(--panel); overflow:hidden; display:flex; flex-direction:column; text-align:left; color:var(--txt); font-family:var(--font-body); padding:0;}
+  .pm-pcard.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold);}
+  .pm-pcard-link{cursor:pointer;} .pm-pcard-link:hover{border-color:var(--gold-dim);}
+  .pm-pcard-top{display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line); background:rgba(0,0,0,.25);}
+  .pm-pcard-top span{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font-cond); font-weight:700; letter-spacing:1.4px; text-transform:uppercase; font-size:12px; color:var(--pc);}
+  .pm-pcard-ph{position:relative; display:block; aspect-ratio:16/9; background:#000;}
+  .pm-pcard-ph img{width:100%; height:100%; object-fit:cover; display:block;}
+  .pm-pcard-ph span{position:absolute; top:6px; right:6px; background:rgba(0,0,0,.62); color:#fff; font-size:12px; font-weight:600; padding:3px 8px; border-radius:10px;}
+  .pm-pcard-body{display:block; padding:12px 14px; flex:1;}
+  .pm-pcard-kind{display:block; font-family:var(--font-cond); font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:11.5px; color:var(--gold);}
+  .pm-pcard-title{display:block; font-family:var(--font-display); font-size:19px; line-height:1.12; text-transform:uppercase; margin:4px 0 6px; overflow-wrap:anywhere;}
+  .pm-pcard-text{display:block; font-size:13.5px; line-height:1.5; color:var(--muted);}
+  .pm-pcard-foot{display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:10px 14px; border-top:1px solid var(--line);}
+  .pm-pcard-n{flex:1 1 auto; font-size:13px; color:var(--txt-2);}
+  .pm-btn-gold{padding:7px 12px; border-radius:6px; border:1px solid rgba(var(--gold-rgb),.55); background:transparent; color:var(--gold); font-weight:700; font-size:13px; cursor:pointer;}
+  .pm-btn-gold:hover{background:rgba(var(--gold-rgb),.12);}
+  /* forms */
+  .pm-card label, .pm-subcard label{display:block; font-family:var(--font-cond); font-weight:600; letter-spacing:1.4px; text-transform:uppercase; font-size:12.5px; color:var(--muted); margin:12px 0 5px;}
+  .pm-card input:not([type=color]):not([type=range]):not([type=checkbox]), .pm-card select, .pm-card textarea{width:100%; box-sizing:border-box;}
+  .pm-g2{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 14px;}
+  .pm-g3{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 14px;}
+  .pm-fold{border-top:1px solid var(--line); margin-top:14px; padding-top:2px;}
+  .pm-fold summary{cursor:pointer; font-family:var(--font-cond); font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:13.5px; color:var(--txt-2); padding:10px 0 4px;}
+  .pm-form-head{display:flex; gap:10px; align-items:center;} .pm-form-head .pm-h3{flex:1; margin:0;}
+  /* color picker */
+  .pm-colors{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .pm-sw{width:28px; height:28px; border-radius:50%; border:2px solid transparent; padding:0; cursor:pointer; box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);}
+  .pm-sw.on{border-color:#fff; box-shadow:0 0 0 2px rgba(0,0,0,.6);}
+  .pm-same{padding:5px 11px; border-radius:20px; border:1px solid var(--line); background:transparent; color:var(--txt-2); font-size:12.5px; font-weight:600; cursor:pointer;}
+  .pm-same.on{border-color:#fff; color:#fff;}
+  .pm-anycolor{display:inline-flex; gap:6px; align-items:center; margin-left:4px; padding-left:10px; border-left:1px solid var(--line);}
+  .pm-anycolor input[type=color]{width:40px; height:32px; padding:0; border:1px solid var(--line); border-radius:6px; background:transparent; cursor:pointer;}
+  .pm-card .pm-anycolor .pm-hex{width:100px !important; padding:6px 9px; font-size:13.5px;}
+  /* attributes: slider and number */
+  .pm-attrs{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 22px; margin-top:8px;}
+  .pm-attr{display:flex; gap:10px; align-items:center; padding:4px 0;}
+  .pm-attr > span{width:168px; flex:0 0 168px; font-size:13.5px; color:var(--txt);}
+  .pm-attr input[type=range]{flex:1 1 auto; width:auto !important; min-width:0; accent-color:var(--gold); padding:0; border:0; background:transparent;}
+  .pm-attr input[type=number]{width:64px !important; flex:0 0 64px; padding:5px 6px !important; text-align:center;}
+  .pm-attr.unset > span{color:var(--muted);} .pm-attr.unset input[type=range]{opacity:.35;}
+  /* roster manager */
+  .pm-roster{display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;}
+  .pm-cats{flex:1 1 320px; min-width:0;}
+  .pm-roster-main{flex:999 1 560px; min-width:0;}
+  .pm-form{border-color:rgba(var(--gold-rgb),.35);}
+  .pm-cat{border:1px solid var(--line); border-left:4px solid var(--pc); border-radius:10px; padding:10px 12px; margin-bottom:8px;}
+  .pm-cat-top{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
+  .pm-cat-top b{flex:1 1 130px; font-size:15px; color:var(--pc); min-width:0; overflow-wrap:break-word;}
+  .pm-cat-top span{font-size:12.5px; color:var(--muted);}
+  .pm-cat-about{font-size:13px; line-height:1.45; color:var(--muted); margin-top:4px; white-space:pre-wrap;}
+  .pm-catform{border-top:1px solid var(--line); margin-top:12px;}
+  .pm-group{margin-bottom:16px;}
+  .pm-group-h{font-family:var(--font-display); font-size:20px; text-transform:uppercase; letter-spacing:.5px; color:var(--pc); border-bottom:2px solid var(--pc); padding-bottom:5px; margin-bottom:6px;}
+  .pm-group-h small{font-family:var(--font-body); font-size:13px; color:var(--muted); letter-spacing:0; margin-left:6px;}
+  .pm-group-about{margin:6px 0 8px; font-size:14px; line-height:1.5; color:var(--muted); white-space:pre-wrap;}
+  .pm-prow{display:flex; gap:10px; align-items:center; padding:7px 6px; border-bottom:1px solid rgba(255,255,255,.05); border-radius:8px;}
+  .pm-prow.on{background:rgba(var(--gold-rgb),.08);}
+  .pm-pinit{width:36px; height:36px; flex:0 0 36px; border-radius:50%; border:2px solid var(--pc); color:var(--pc); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:13px;}
+  .pm-pname{flex:1; min-width:0;} .pm-pname b{font-size:15px;} .pm-pname small{font-size:13px; color:var(--muted);}
+  .pm-prow-btn{width:100%; text-align:left; background:transparent; border:1px solid transparent; color:var(--txt); cursor:pointer; font-family:var(--font-body); margin-bottom:4px;}
+  .pm-prow-btn .pm-pname small{display:block;}
+  .pm-prow-btn:hover{background:rgba(255,255,255,.04);}
+  .pm-prow-btn.on{background:color-mix(in srgb, var(--pc) 14%, transparent); border-color:color-mix(in srgb, var(--pc) 60%, transparent);}
+  .pm-ptitle{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:12px; color:var(--gold); border:1px solid rgba(var(--gold-rgb),.5); border-radius:12px; padding:2px 8px;}
+  .pm-align{width:9px; height:9px; border-radius:50%; flex:0 0 9px; background:#b9a5ff;}
+  .pm-align.face{background:#5dcaa5} .pm-align.heel{background:#ff8a96}
+  .pm-hist{margin-top:18px;}
+  .pm-hrow{display:flex; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.05); font-size:14px;}
+  .pm-hrow span{flex:1; min-width:0;} .pm-hrow em{color:var(--muted); font-style:normal; font-size:12.5px; margin-left:4px;}
+  /* Edit Promotion */
+  .pm-editwrap{display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;}
+  .pm-editmain{flex:999 1 560px; min-width:0;}
+  .pm-editside{flex:1 1 300px; min-width:0; position:sticky; top:84px;}
+  .pm-logoline{display:flex; gap:8px; align-items:center;} .pm-logoline input{flex:1;}
+  .pm-upbtn{cursor:pointer; margin:0 !important; text-transform:none !important; letter-spacing:0 !important; font-size:13px !important; color:var(--txt-2) !important;}
+  .pm-outlets{border-top:1px solid var(--line); margin-top:18px; padding-top:14px;}
+  .pm-outlet{display:flex; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.05);}
+  .pm-outlet span{flex:1; min-width:0;} .pm-outlet b{display:block;} .pm-outlet small{color:var(--muted); font-size:13px;}
+  .pm-outlet-logo{width:44px; height:44px; border-radius:10px; object-fit:cover; font-size:16px;}
+  .pm-addout{margin-top:12px;}
+  .pm-subcard{margin-top:12px; background:rgba(0,0,0,.2);}
+  .pm-lookcard{border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden; margin-bottom:14px;}
+  .pm-look-bar{height:8px;}
+  .pm-look-top{display:flex; gap:14px; align-items:center; padding:16px;}
+  .pm-look-logo{width:58px; height:58px; border-radius:12px; object-fit:cover; font-size:22px; flex:0 0 58px;}
+  .pm-look-name{font-family:var(--font-display); font-size:22px; text-transform:uppercase; overflow-wrap:anywhere;}
+  .pm-look-about{margin:0; padding:0 16px 16px; font-size:14px; line-height:1.55; color:var(--txt-2); white-space:pre-wrap;}
+  /* directory */
+  .pm-dirtools{margin:0 0 16px;} .pm-dirtools input{width:100%; max-width:420px;}
+  .pm-dirgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;}
+  .pm-dircard{display:flex; flex-direction:column; text-align:left; border:1px solid var(--line); border-radius:14px; background:var(--panel); overflow:hidden; padding:0; color:var(--txt); cursor:pointer; font-family:var(--font-body);}
+  .pm-dircard:hover{border-color:color-mix(in srgb, var(--pc) 70%, transparent);}
+  .pm-dircard-bar{display:block; height:6px; background:var(--pc);}
+  .pm-dircard-top{display:flex; gap:12px; align-items:center; padding:16px 16px 10px;}
+  .pm-dircard-logo{width:56px; height:56px; flex:0 0 56px; border-radius:12px; object-fit:cover; font-size:21px;}
+  .pm-dircard-top b{display:block; font-family:var(--font-display); font-weight:400; font-size:21px; text-transform:uppercase; line-height:1.1; overflow-wrap:anywhere;}
+  .pm-dircard-top small{display:block; font-size:13px; color:var(--muted); margin-top:3px;}
+  .pm-dircard-about{display:block; padding:0 16px 16px; font-size:14px; line-height:1.5; color:var(--txt-2);}
+  /* public promotion page */
+  .pm-crumbs{font-size:14px; color:var(--muted); margin:6px 0 14px;} .pm-crumbs a{color:var(--muted);} .pm-crumbs span:last-child{color:var(--txt-2);}
+  .pm-hero{border:1px solid color-mix(in srgb, var(--pc) 40%, transparent); border-radius:14px; background:var(--panel); overflow:hidden;}
+  .pm-hero-bar{height:8px; background:var(--pc);}
+  .pm-hero-in{padding:24px; display:flex; gap:22px; flex-wrap:wrap; align-items:center;}
+  .pm-hero-logo{width:116px; height:116px; flex:0 0 116px; border-radius:16px; object-fit:cover; font-size:44px;}
+  .pm-hero-mid{flex:1 1 380px; min-width:0;}
+  .pm-hero-about{margin:0 0 12px; font-size:16px; line-height:1.6; color:var(--txt-2); max-width:680px; white-space:pre-wrap;}
+  .pm-hero-links{display:flex; gap:8px; flex-wrap:wrap;}
+  .pm-hero-links a{border:1px solid var(--line); border-radius:8px; padding:7px 12px; color:var(--txt-2); text-decoration:none; font-size:14px;}
+  .pm-hero-links a:hover{border-color:var(--pc); color:#fff;}
+  .pm-hero-acts{display:flex; flex-direction:column; gap:8px; align-items:flex-end;}
+  .pm-pubroster{display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start;}
+  .pm-sel{flex:1 1 380px; min-width:0; position:sticky; top:84px;}
+  .pm-pubmain{flex:999 1 520px; min-width:0;}
+  .pm-search{width:100%; box-sizing:border-box; margin:0 0 16px;}
+  .pm-selcard{border:1px solid color-mix(in srgb, var(--pc) 45%, transparent); border-radius:14px; background:var(--panel); overflow:hidden;}
+  .pm-selhead{padding:24px 22px 18px; background:color-mix(in srgb, var(--pc) 10%, transparent); border-bottom:1px solid color-mix(in srgb, var(--pc) 40%, transparent); display:flex; gap:18px; align-items:center;}
+  .pm-selinit{width:86px; height:86px; flex:0 0 86px; border-radius:50%; border:3px solid var(--pc); color:var(--pc); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:34px; background:#0b0b0d;}
+  .pm-selcat{font-family:var(--font-cond); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:12.5px; color:var(--pc);}
+  .pm-selname{margin:2px 0; font-family:var(--font-display); font-weight:400; font-size:32px; line-height:1.05; text-transform:uppercase; overflow-wrap:anywhere;}
+  .pm-selnick{font-size:15px; color:var(--txt-2); font-style:italic;}
+  .pm-selbody{padding:16px 22px 22px;}
+  .pm-tags{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;}
+  .pm-tag{border:1px solid currentColor; border-radius:20px; padding:3px 11px; font-weight:700; font-size:12.5px; color:#b9a5ff;}
+  .pm-tag.face{color:#5dcaa5} .pm-tag.heel{color:#ff8a96} .pm-tag.gold{color:var(--gold)}
+  .pm-facts{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 16px; margin:12px 0;}
+  .pm-fact span{display:block; font-family:var(--font-cond); font-weight:600; letter-spacing:1.4px; text-transform:uppercase; font-size:12px; color:var(--muted);}
+  .pm-fact b{display:block; font-weight:500; font-size:15px; color:var(--txt); overflow-wrap:anywhere;}
+  .pm-bio{margin:0 0 12px; font-size:15.5px; line-height:1.65; color:var(--txt-2); white-space:pre-wrap;}
+  .pm-bars{margin-top:4px;}
+  .pm-bar{display:flex; gap:10px; align-items:center; margin-bottom:6px; font-size:13.5px;}
+  .pm-bar span{width:170px; flex:0 0 170px; color:var(--txt-2);}
+  .pm-bar i{flex:1; height:7px; border-radius:4px; background:rgba(255,255,255,.08); overflow:hidden;}
+  .pm-bar em{display:block; height:100%; background:var(--pc);}
+  .pm-bar b{width:28px; text-align:right;}
+  .pm-cc{margin-top:14px; padding:10px 12px; border:1px dashed color-mix(in srgb, var(--pc) 55%, transparent); border-radius:10px; font-size:14px; color:var(--txt-2);}
+  .pm-cc b{color:#fff;}
+  /* WCA's own profiles: the 2K25 attribute bars */
+  .pf-game-attrs{margin-top:6px;}
+  .pf-game-attrs .pm-lbl{margin-top:10px;}
+  @media (max-width:820px){
+    .pm-g3{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .pm-attrs{grid-template-columns:1fr;}
+    .pm-sel,.pm-editside,.mp-composer .spc-preview-pane{position:static; max-height:none;}
+    .pm-banner-acts,.pm-hero-acts{align-items:flex-start;}
+    .pm-title{font-size:30px;}
+  }
+  @media (max-width:520px){
+    .pm-g2,.pm-g3,.pm-facts{grid-template-columns:1fr;}
+    .pm-attr > span,.pm-bar span{width:118px; flex-basis:118px; font-size:12.5px;}
+    .pm-banner,.pm-hero-in,.pm-card{padding:16px;}
+    .pm-hero-logo{width:84px; height:84px; flex-basis:84px; font-size:32px;}
+    .pm-prow:not(.pm-prow-btn){flex-wrap:wrap;}
+    .pm-prow:not(.pm-prow-btn) .pm-pname{flex:1 1 calc(100% - 50px);}
+    .pm-prow:not(.pm-prow-btn) .spc-mini:first-of-type{margin-left:46px;}
+  }
 </style>
 
 <!-- ===== HOME PAGE styles ===== -->
@@ -7553,6 +7779,7 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
         <a href="/apply" data-page="apply">Apply</a>
         <a href="/sponsors" data-page="sponsors">Sponsors</a>
         <a href="/showdown" data-page="showdown">Showdown</a>
+        <a href="/promotions" data-page="promotions">Promotions</a>
         <a href="/firepro/" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
       </nav>
       <div class="socials">
@@ -8033,6 +8260,15 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
       promotions, creators and channels we're happy to point you toward.</p>
     <div id="sponsors-content"><div class="loading">Loading&hellip;</div></div>
   </div>
+
+  <!-- ===== PROMOTIONS (Oct 2026): the directory, one promotion, and My Promotion ===== -->
+  <div class="page" id="page-promotions">
+    <div class="section-title">Promotions</div>
+    <p class="sl-intro">Wrestling promotions from across the WCA Universe. Pick one to see its posts and its roster.</p>
+    <div id="pmdir-body"></div>
+  </div>
+  <div class="page" id="page-promotion"><div id="pmpage-body"></div></div>
+  <div class="page" id="page-mypromo"><div id="mp-body"></div></div>
 
   <!-- ===== MY ACCOUNT (full page; reached by clicking the user chip) ===== -->
   <div class="page" id="page-account">
@@ -9209,6 +9445,9 @@ async function refreshUser(){
   // "Sign in to apply" box.
   const apPg = document.getElementById('page-apply');
   if(apPg && apPg.classList.contains('active') && typeof loadApply === 'function') loadApply();
+  // same for My Promotion, which needs to know who is signed in
+  const mpPg = document.getElementById('page-mypromo');
+  if(mpPg && mpPg.classList.contains('active') && typeof mpOpen === 'function') mpOpen();
   // First-time sign-in: if they've never set their own display name, open the
   // account page so they pick a username. It pre-fills with the name their
   // login provider gave (Discord/Google/Twitch), which they can keep or change.
@@ -9246,6 +9485,7 @@ function renderUserChip(){
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
       <div class="navdrop-menu umenu" role="menu">
         <a href="/dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
+        <a href="/my-promotion" role="menuitem" onclick="goPage('mypromo');return false;"><i class="ti ti-flag-3"></i> My Promotion</a>
         <a href="/account" role="menuitem" onclick="openAccount();return false;"><i class="ti ti-user-cog"></i> Account</a>
       </div>
     </div>`;
@@ -9884,13 +10124,18 @@ function rosterFocusName(name){
 const ROSTER_COLS_BASE = 'name,gender,is_active,status,image_url,avatar_url,bio,nickname,height,weight,from_loc,theme_song,theme_url,signatures,finishers,debut_date,last_match,last5,performer,socials,aliases';
 const ROSTER_COLS_DRAFT = ROSTER_COLS_BASE + ',is_draft,created_from';
 let ROSTER_HAS_DRAFT = true;
+let ROSTER_HAS_GAME = true;      // wrestlers.game: WWE 2K25 details (SUPABASE_SETUP_promotion_rosters.sql)
 
 async function loadRoster(){
   await loadInactiveSets();
   const grid=document.getElementById('roster-grid');
   let {data,error}=await sb.from('wrestlers')
-    .select(ROSTER_HAS_DRAFT ? ROSTER_COLS_DRAFT : ROSTER_COLS_BASE)
+    .select((ROSTER_HAS_DRAFT ? ROSTER_COLS_DRAFT : ROSTER_COLS_BASE) + (ROSTER_HAS_GAME ? ',game' : ''))
     .order('name');
+  if(error && ROSTER_HAS_GAME){
+    ROSTER_HAS_GAME = false;
+    ({data,error} = await sb.from('wrestlers').select(ROSTER_HAS_DRAFT ? ROSTER_COLS_DRAFT : ROSTER_COLS_BASE).order('name'));
+  }
   if(error && ROSTER_HAS_DRAFT){
     ROSTER_HAS_DRAFT = false;
     ({data,error} = await sb.from('wrestlers').select(ROSTER_COLS_BASE).order('name'));
@@ -10265,13 +10510,15 @@ function csSelect(name){
     theme ? `<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">${theme}</span></div>` : '',
     fieldRow('Signatures', w.signatures),
     fieldRow('Finishers', w.finishers),
+    (typeof wcaGameRows==='function' ? wcaGameRows(w) : ''),
   ].join('');
   document.getElementById('cs-info').innerHTML=`
     <div class="cs-sharerow"><button class="cs-share" type="button" id="cs-share-btn"
       data-name="${escAttr(w.name)}"><i class="ti ti-share-3"></i> Share</button></div>
     ${(w.performer||socialIcons(w.socials))?`<div class="cs-performer">${w.performer?`<span class="perf">${esc(w.performer)}</span>`:''}${socialIcons(w.socials)}</div>`:''}
     ${w.bio?`<div class="cs-bio">${esc(w.bio)}</div>`:''}
-    <div class="pf-fields">${rightBody||'<div class="pf-empty">No details added yet.</div>'}</div>`;
+    <div class="pf-fields">${rightBody||'<div class="pf-empty">No details added yet.</div>'}</div>
+    ${typeof wcaGameAttrs==='function' ? `<div class="pf-game-attrs">${wcaGameAttrs(w)}</div>` : ''}`;
   const csShare = document.getElementById('cs-share-btn');
   if(csShare) csShare.addEventListener('click', ()=>
     wcaShare('wrestler', csShare.dataset.name, 'Share this competitor', esc(csShare.dataset.name)));
@@ -10664,6 +10911,7 @@ function openProfile(w){
     theme ? `<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">${theme}</span></div>` : '',
     fieldRow('Signatures', w.signatures),
     fieldRow('Finishers', w.finishers),
+    (typeof wcaGameRows==='function' ? wcaGameRows(w) : ''),
     fieldRow('Debut', fmtDate(w.debut_date)),
     fieldRow('Last Match', fmtDate(w.last_match)),
   ].join('');
@@ -10681,6 +10929,7 @@ function openProfile(w){
     </div>
     ${bio}
     <div class="pf-fields">${body||'<div class="pf-empty">No details added yet.</div>'}</div>
+    ${typeof wcaGameAttrs==='function' ? `<div class="pf-game-attrs">${wcaGameAttrs(w)}</div>` : ''}
     <div id="pf-history"></div>`;
   document.getElementById('profile-modal').classList.add('open');
   renderWrestlerHistory(w.name, 'pf-history');
@@ -16692,11 +16941,9 @@ function frRenderBar(){
   }
   el.innerHTML = `<div class="fr-bar">
     <i class="ti ti-broadcast fr-bar-ico"></i>
-    <span class="fr-bar-txt"><b>Join the WCA Universe.</b> Review a show, post as your own promotion, or report the news.</span>
+    <span class="fr-bar-txt"><b>Join the WCA Universe.</b> Review a show. Run your own promotion? Post as it from <a href="/my-promotion" onclick="goPage('mypromo');return false;">My Promotion</a>.</span>
     <div class="fr-bar-btns">
       <button class="spc-post-btn" onclick="frOpen()"><i class="ti ti-star"></i> Write a review</button>
-      <button class="spc-ghost-btn" onclick="cpOpen('promotion')"><i class="ti ti-flag-3"></i> Promotion Portal</button>
-      <button class="spc-ghost-btn" onclick="cpOpen('press')"><i class="ti ti-id-badge-2"></i> Press Pass</button>
     </div></div>
     <div id="cpMySubs"></div>`;
   if(typeof cpRenderMine === 'function') cpRenderMine();
@@ -16931,6 +17178,11 @@ async function frDelete(){
   loadStorylines();
 }
 function frClose(){
+  if(typeof CP_HOST_ID !== 'undefined' && CP_HOST_ID === 'mp-composer'){
+    FR_OPEN = false; CP_EDITING = null; CP_PHOTOS = [];
+    if(typeof mpAfterPost === 'function') mpAfterPost();
+    return;
+  }
   FR_OPEN = false;
   if(typeof CP_EDITING !== 'undefined'){ CP_EDITING = null; CP_PHOTOS = []; }
   frRenderBar();
@@ -17125,7 +17377,8 @@ function cpErrText(error){
   if(/could not find the function|does not exist|PGRST202|relation .* does not exist/i.test(t)) return 'This is not switched on yet. Please try again later.';
   return t || 'Something went wrong. Please try again.';
 }
-function cpHost(){ return document.getElementById('fr-composer'); }
+var CP_HOST_ID = 'fr-composer';  // 'mp-composer' while My Promotion is showing the composer
+function cpHost(){ return document.getElementById(CP_HOST_ID); }
 
 async function cpLoadMyOrgs(){
   const uid = CURRENT_USER.id;
@@ -17149,7 +17402,7 @@ async function cpOpen(mode, opts){
   const host = cpHost();
   if(!host) return;
   const page = document.getElementById('page-storylines');
-  if(page && !page.classList.contains('active')){
+  if(CP_HOST_ID === 'fr-composer' && page && !page.classList.contains('active')){
     CP_PENDING = { mode, opts };
     goPage('storylines');
     return;
@@ -17465,8 +17718,8 @@ async function wcaSaveCounts(postId, counts, asUser){
 
 /* ----- Who reacted: the member who wrote a post sees the real accounts behind
    the likes and dislikes (post_reactors). ----- */
-async function slWhoReacted(id){
-  const p = (SL_ALL || []).find(x=>String(x.id) === String(id)) || {};
+async function slWhoReacted(id, row){
+  const p = row || (SL_ALL || []).find(x=>String(x.id) === String(id)) || {};
   let ov = document.getElementById('wr-modal');
   if(!ov){
     ov = document.createElement('div');
@@ -17506,12 +17759,13 @@ function cpRenderComposer(){
   const kindTabs = CP_KINDS[CP_MODE].map(k=>
     `<button class="${CP_KIND===k?'active':''}" onclick="cpSetKind('${k}')">${esc(CP_KIND_LABEL[k])}</button>`).join('');
   const orgSel = orgs.map(o=>`<option value="${Number(o.id)}"${String(o.id)===String(CP_SRC_ID)?' selected':''}>${esc(o.name)}</option>`).join('');
+  const inMp = CP_HOST_ID === 'mp-composer';
   host.innerHTML = `<div class="spc-editor cp-editor">
     <div class="spc-tagbar">
-      <div class="fr-pickval" style="color:var(--gold)"><i class="ti ${isPress?'ti-id-badge-2':'ti-flag-3'}"></i> ${isPress ? 'Press Pass' : 'Promotion Portal'}</div>
+      <div class="fr-pickval" style="color:var(--gold)"><i class="ti ${isPress?'ti-id-badge-2':'ti-flag-3'}"></i> ${inMp ? (editing ? 'Edit your post' : 'Write a post') : (isPress ? 'Press Pass' : 'Promotion Portal')}</div>
       <span style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="spc-mini" onclick="cpOpen('${CP_MODE}',{manage:true})">${isPress ? 'Manage outlets' : 'Manage promotions'}</button>
-        <button class="spc-mini" onclick="frClose()">✕ Close</button>
+        ${inMp ? (editing ? `<button class="spc-mini" onclick="mpNewPost()">Start a new post</button>` : '') : `<button class="spc-mini" onclick="cpOpen('${CP_MODE}',{manage:true})">${isPress ? 'Manage outlets' : 'Manage promotions'}</button>
+        <button class="spc-mini" onclick="frClose()">✕ Close</button>`}
       </span>
     </div>
     <div class="spc-kindtabs">${kindTabs}</div>
@@ -17539,8 +17793,8 @@ function cpRenderComposer(){
         ${wcaCountsHTML('cp', editing ? CP_EDITING.seed_likes : '', editing ? CP_EDITING.seed_dislikes : '')}
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px">
           <button class="spc-post-btn" id="cp_submit" onclick="cpSubmit()">${editing ? 'Save changes' : (cpFree() ? 'Post to the Feed' : 'Send for approval')}</button>
-          <button class="spc-ghost-btn" onclick="cpPreview()">Preview</button>
-          ${editing ? `<button class="spc-mini" onclick="cpOpen('${CP_MODE}')">Cancel edit</button>
+          ${inMp ? '' : `<button class="spc-ghost-btn" onclick="cpPreview()">Preview</button>`}
+          ${editing ? `<button class="spc-mini" onclick="${inMp ? 'mpNewPost()' : `cpOpen('${CP_MODE}')`}">Cancel edit</button>
                        <button class="spc-mini fr-danger" onclick="cpDeletePost()">Delete post</button>` : ''}
         </div>
         <div class="msg" id="cpMsg" style="margin-top:10px"></div>
@@ -17548,7 +17802,7 @@ function cpRenderComposer(){
       </div>
       <div class="spc-preview-pane" id="cpPreview">
         <div class="spc-pv-label">Preview</div>
-        <div class="spc-pv-empty">Hit "Preview" to see exactly how your post will look in the Feed.</div>
+        <div class="spc-pv-empty">${inMp ? 'Your post shows here as you write it.' : 'Hit "Preview" to see exactly how your post will look in the Feed.'}</div>
       </div>
     </div>
   </div>`;
@@ -17558,7 +17812,7 @@ function cpRenderComposer(){
   if(CP_EDITING) cpFill(CP_EDITING);
   cpRenderPhotos();
   if(typeof aiDecorate === 'function') aiDecorate(host);
-  host.scrollIntoView({behavior:'smooth', block:'start'});
+  if(!inMp) host.scrollIntoView({behavior:'smooth', block:'start'});
 }
 function cpSetKind(k){
   if(CP_EDITING && CP_EDITING.kind !== k && !confirm('Switch this post to a different type? What you wrote in the type specific fields will be cleared.')) return;
@@ -17697,11 +17951,14 @@ function cpSourceBlock(){
     ? { type:'press', id:o.id, name:o.name, logo:o.logo_url||null, color:o.color||null, reporter:o.reporter }
     : { type:'promotion', id:o.id, name:o.name, logo:o.logo_url||null, color:o.color||null };
 }
-function cpPreview(){
+function cpPreview(silent){
   const pane = document.getElementById('cpPreview');
   if(!pane) return;
-  const g = cpGather();
-  if(g.error){ cpMsg(g.error, false); return; }
+  let g = cpGather();
+  if(g.error){
+    if(!silent){ cpMsg(g.error, false); return; }
+    g = cpCollect();                  // live preview: show what's there so far
+  }
   const cpc = wcaReadCounts('cp');
   const fake = { id:0, kind:CP_KIND, title:g.title, body:g.body, pinned:false, seed_likes:cpc.likes, seed_dislikes:cpc.dislikes,
     story_date:(document.getElementById('cp_date')||{}).value || new Date().toISOString().slice(0,10),
@@ -17710,7 +17967,7 @@ function cpPreview(){
   let html = slAddSourceStrip(slRenderPostInner(prep.post), fake);
   const ph = prep.photos;
   html = slPlacePhotos(html, ph.length ? slPhotoCarouselHTML(ph, 'cppv') : '');
-  pane.innerHTML = `<div class="spc-pv-label">Preview, exactly how it shows in the Feed</div>` + html;
+  pane.innerHTML = `<div class="spc-pv-label">${CP_HOST_ID === 'mp-composer' ? 'Live preview, exactly how it shows in the Feed' : 'Preview, exactly how it shows in the Feed'}</div>` + html;
 }
 // Wording only: does this post skip approval? (the server makes the real call)
 function cpFree(){ return CP_MODE === 'promotion' || CP_TRUSTED; }
@@ -17782,6 +18039,7 @@ function cpRenderPhotos(){
   if(!box) return;
   box.innerHTML = CP_PHOTOS.map((p,i)=>`<div class="spc-photo-thumb"><img src="${escAttr(slShowUrl(p.url))}" alt="photo ${i+1}" referrerpolicy="no-referrer">
     <button onclick="CP_PHOTOS.splice(${i},1);cpRenderPhotos()" title="Remove">✕</button></div>`).join('');
+  if(CP_HOST_ID === 'mp-composer' && typeof mpLivePreview === 'function') mpLivePreview();
 }
 
 /* ----- my posts that aren't live: waiting, or sent back ----- */
@@ -17814,7 +18072,7 @@ function cpRenderMine(){
 function cpEditMine(id){
   const r = CP_MINE.find(x=>String(x.id)===String(id));
   if(!r) return;
-  cpOpen(r.promotion_id != null ? 'promotion' : 'press', { edit:r });
+  mpEditFromFeed(r);
 }
 // The Edit button on one of your live posts in the Feed.
 async function cpEditFromFeed(id){
@@ -17822,11 +18080,13 @@ async function cpEditFromFeed(id){
     .select('id,kind,title,body,payload,story_date,submission_status,promotion_id,outlet_id,seed_likes,seed_dislikes')
     .eq('id', id).eq('submitted_by', CURRENT_USER.id).maybeSingle();
   if(error || !data){ wcaToast('Could not open that post', 'Please try again.', true); return; }
-  cpOpen(data.promotion_id != null ? 'promotion' : 'press', { edit:data });
+  mpEditFromFeed(data);
 }
 
 /* ----- a promotion's page: their card + only their posts in the Feed ----- */
-async function cpShowPromotion(id){
+// The promotion's name on a post opens its promotion page now.
+async function cpShowPromotion(id){ pmGo(id); }
+async function cpShowPromotionInFeed(id){
   const page = document.getElementById('page-storylines');
   if(page && !page.classList.contains('active')) goPage('storylines');
   const card = document.getElementById('cp-promo-card');
@@ -17852,6 +18112,987 @@ async function cpShowPromotion(id){
   if(!SL_ALL.length) await loadStorylines(); else renderStorylines();
   card.scrollIntoView({behavior:'smooth', block:'start'});
 }
+
+/* ===================== PROMOTION PAGES (Oct 2026) =====================
+   /promotions        every approved promotion (the directory)
+   /promotion?id=N    one promotion for everyone: its posts and its roster
+   /my-promotion      the owner's page (account menu > My Promotion), in three
+                      sections:
+       Posts           post as the promotion or one of its Press Pass outlets,
+                       with a live preview, and every post they have made
+       Roster          categories and people, colors, every WWE 2K25 detail,
+                       and undo for edits and removals
+       Edit Promotion  name, logo, color, about, links, Press Pass outlets,
+                       and a backup download
+   The composer is the Promotion Portal's own (cpRenderComposer), drawn into
+   #mp-composer instead of the Feed, so every post type works the same.
+   Tables: SUPABASE_SETUP_promotion_rosters.sql. Photos and logos upload to
+   WCA media through media-upload (folder "promotions"). */
+const PM_ATTRS = ['Arm Power','Leg Power','Grapple Offense','Running Offense','Aerial Offense','Aerial Defense',
+  'Aerial Range','Power Submission Offense','Technical Submission Offense','Aerial Reversal','Strike Reversal',
+  'Grapple Reversal','Pin Escape','Strength','Stamina','Agility','Movement Speed','Recovery','Special','Finisher'];
+const PM_SWATCHES = [['#e2574c','Red'],['#f28c38','Orange'],['#e9b949','Gold'],['#5dcaa5','Teal'],
+  ['#4fa3f7','Blue'],['#8f7cff','Purple'],['#ff6fb5','Pink'],['#c9c6be','Silver']];
+const PM_WCLASS = ['Cruiserweight','Light Heavyweight','Heavyweight','Super Heavyweight'];
+const PM_STYLE  = ['Giant','High Flyer','Powerhouse','Striker','Technician'];
+const PM_GENDER = [['Male','Male'],['Female','Female'],['Team','Team or group']];
+// the WWE 2K25 details: [key, label, section, placeholder, select options]
+const PM_DETAILS = [
+  ['home','Billed from','profile',''], ['height','Height','profile',`6'2"`], ['weight','Weight','profile','231 lbs'],
+  ['wclass','Weight class','profile','',PM_WCLASS], ['style','Wrestler class','profile','',PM_STYLE],
+  ['ovr','Overall rating','profile','0 to 100'], ['manager','Manager','profile',''], ['team','Team or stable','profile',''],
+  ['rivals','Rivals','profile',''], ['cc_tag','Community Creations tag','profile','Their upload tag in 2K25'],
+  ['finisher','Finishers','moves','Separate with commas'], ['sigs','Signatures','moves','Separate with commas'],
+  ['comeback','Comeback','moves',''], ['taunts','Taunts','moves',''], ['music','Entrance music','moves',''],
+  ['catchphrase','Catchphrase','moves',''],
+  ['abilities','Superstar abilities','abilities','Separate with commas'], ['paybacks','Paybacks','abilities','Separate with commas']
+];
+const PM_HEX = /^#[0-9a-f]{6}$/i;
+let PM = { tab:'posts', curId:null, as:null, cats:[], roster:[], hist:[], rosterFor:null, rosterMissing:false,
+           posts:[], reacts:{}, filter:'all', gfilter:'all', editId:null, catEditId:null, pendingEdit:null, busy:false,
+           pub:null };
+
+function pmEl(id){ return document.getElementById(id); }
+function pmInit(name){ return String(name || '').split(/\s+/).map(w => (w.match(/[\p{L}\p{N}]/u) || [''])[0]).join('').slice(0, 2).toUpperCase() || '?'; }
+function pmColor(c, fb){ return PM_HEX.test(String(c || '')) ? String(c).toLowerCase() : (fb || '#e9b949'); }
+function pmMissing(err){ return /does not exist|PGRST20[0-9]|could not find|relation/i.test(String((err && err.message) || err || '')); }
+function pmAgo(ts){
+  const s = Math.max(0, (Date.now() - new Date(ts).getTime()) / 1000);
+  if(s < 60) return 'just now';
+  if(s < 3600) return Math.round(s / 60) + ' min ago';
+  if(s < 86400) return Math.round(s / 3600) + ' hr ago';
+  return new Date(ts).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+}
+function pmLogo(p, cls){
+  const col = pmColor(p && p.color);
+  return (p && p.logo_url)
+    ? `<img class="${cls}" src="${escAttr(p.logo_url)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} pm-logo-init',textContent:'${escAttr(pmInit(p.name))}'}))" style="--pc:${col}">`
+    : `<span class="${cls} pm-logo-init" style="--pc:${col}">${esc(pmInit(p && p.name))}</span>`;
+}
+// Go to a promotion's public page.
+function pmGo(id, tab){
+  wcaSetAddress('promotion', 'id=' + Number(id) + (tab ? '&tab=' + tab : ''), true);
+  activatePage('promotion');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* ---- a color picker: eight swatches, any color, or a typed code ---- */
+function pmColorWidget(key, value, sameLabel){
+  const v = PM_HEX.test(value || '') ? value.toLowerCase() : '';
+  return `<div class="pm-colors" data-key="${key}">
+    ${sameLabel ? `<button type="button" class="pm-same${v ? '' : ' on'}" onclick="pmSetColor('${key}','')">${esc(sameLabel)}</button>` : ''}
+    ${PM_SWATCHES.map(([hex, label]) => `<button type="button" class="pm-sw${v === hex ? ' on' : ''}" data-hex="${hex}" title="${label}" aria-label="${label}" style="background:${hex}" onclick="pmSetColor('${key}','${hex}')"></button>`).join('')}
+    <span class="pm-anycolor">
+      <input type="color" id="${key}_pick" value="${v || '#e9b949'}" aria-label="Pick any color" title="Pick any color" oninput="pmSetColor('${key}',this.value,'pick')">
+      <input type="text" id="${key}_hex" class="pm-hex" value="${v}" maxlength="7" placeholder="#e2574c" aria-label="Color code" oninput="pmHexTyped('${key}',this.value)">
+    </span>
+    <input type="hidden" id="${key}" value="${v}">
+  </div>`;
+}
+function pmSetColor(key, hex, from){
+  hex = hex ? String(hex).toLowerCase() : '';
+  const box = document.querySelector(`.pm-colors[data-key="${key}"]`);
+  const hid = pmEl(key); if(hid) hid.value = hex;
+  if(from !== 'pick' && hex){ const p = pmEl(key + '_pick'); if(p) p.value = hex; }
+  if(from !== 'hex'){ const h = pmEl(key + '_hex'); if(h) h.value = hex; }
+  if(box){
+    box.querySelectorAll('.pm-sw').forEach(b => b.classList.toggle('on', b.dataset.hex === hex));
+    const same = box.querySelector('.pm-same'); if(same) same.classList.toggle('on', !hex);
+  }
+  if(hid) hid.dispatchEvent(new Event('input', { bubbles:true }));
+}
+function pmHexTyped(key, v){
+  let x = String(v || '').trim(); if(x && x[0] !== '#') x = '#' + x;
+  if(PM_HEX.test(x)) pmSetColor(key, x, 'hex');
+}
+
+/* =========================== MY PROMOTION =========================== */
+function mpCur(){ return (CP_PROMOS || []).find(p => String(p.id) === String(PM.curId)) || null; }
+function mpApproved(){ const p = mpCur(); return !!(p && p.status === 'approved'); }
+
+async function mpOpen(){
+  const host = pmEl('mp-body');
+  if(!host) return;
+  if(!frSignedIn()){
+    host.innerHTML = `<div class="pm-card pm-empty"><h2 class="pm-h2">My Promotion</h2>
+      <p>Run your own wrestling promotion? Sign in to register it, post as it, and build its roster.</p>
+      <button class="spc-post-btn" onclick="frSignIn(event)">Sign in</button></div>`;
+    return;
+  }
+  host.innerHTML = `<div class="loading">Loading…</div>`;
+  const ok = await cpLoadMyOrgs();
+  if(!ok){ host.innerHTML = `<div class="pm-card pm-empty">My Promotion is not switched on yet. Please check back soon!</div>`; return; }
+  if(PM.pendingEdit && PM.pendingEdit.promotion_id != null) PM.curId = PM.pendingEdit.promotion_id;
+  if(!CP_PROMOS.length){ mpRegister(); return; }
+  if(!mpCur()) PM.curId = (CP_PROMOS.find(p => p.status === 'approved') || CP_PROMOS[0]).id;
+  if(PM.pendingEdit) PM.tab = 'posts';
+  mpRender();
+}
+function mpRegister(){
+  const host = pmEl('mp-body');
+  host.innerHTML = `<div class="pm-card">
+    <div class="pm-kick">My Promotion</div>
+    <h2 class="pm-h2">Register your promotion</h2>
+    <p class="pm-p">Run your own wrestling promotion? Register it here. Once WCA approves it, you can post to the Feed as your promotion, get a Press Pass for your own newsroom, and build your roster with every WWE 2K25 detail.</p>
+    <div id="mp-edit-form"></div>
+  </div>`;
+  mpPromoForm(null, pmEl('mp-edit-form'));
+}
+function mpRender(){
+  const host = pmEl('mp-body'), p = mpCur();
+  if(!host || !p) return;
+  const col = pmColor(p.color);
+  const st = p.status === 'approved' ? ['Approved','ok'] : p.status === 'rejected' ? ['Not approved','bad'] : ['Waiting for approval','wait'];
+  const outlets = (CP_OUTLETS || []).map(o => o.name).join(', ');
+  const pick = CP_PROMOS.length > 1 ? `<select class="pm-pick" aria-label="Pick a promotion" onchange="mpSwitch(this.value)">${CP_PROMOS.map(x =>
+    `<option value="${Number(x.id)}"${String(x.id) === String(p.id) ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : '';
+  host.innerHTML = `
+    <section class="pm-banner" style="--pc:${col}">
+      ${pmLogo(p, 'pm-banner-logo')}
+      <div class="pm-banner-mid">
+        <div class="pm-kick">My Promotion</div>
+        <h1 class="pm-title">${esc(p.name)}</h1>
+        <div class="pm-meta">
+          <span class="pm-pill ${st[1]}">${st[0]}</span>
+          <span id="mp-count-posts"></span><span id="mp-count-roster"></span>
+          ${outlets ? `<span>Press Pass: ${esc(outlets)}</span>` : ''}
+        </div>
+        ${p.status === 'rejected' && p.review_note ? `<div class="pm-note">WCA's note: ${esc(p.review_note)}</div>` : ''}
+      </div>
+      <div class="pm-banner-acts">
+        ${pick}
+        ${p.status === 'approved' ? `<button class="spc-ghost-btn" onclick="pmGo(${Number(p.id)})"><i class="ti ti-external-link"></i> See your public page</button>` : ''}
+        ${CP_PROMOS.length < 3 ? `<button class="spc-mini" onclick="mpRegister()">Register another promotion</button>` : ''}
+      </div>
+    </section>
+    <div class="pm-tabs" role="tablist" aria-label="My Promotion">
+      ${[['posts','Posts'],['roster','Roster'],['edit','Edit Promotion']].map(([k, l]) =>
+        `<button type="button" role="tab" aria-selected="${PM.tab === k}" class="pm-tab${PM.tab === k ? ' on' : ''}" onclick="mpTab('${k}')">${l}</button>`).join('')}
+    </div>
+    <div id="mp-tab"></div>`;
+  mpTab(PM.tab);
+}
+function mpSwitch(id){ PM.curId = id; PM.as = null; PM.rosterFor = null; PM.filter = 'all'; PM.editId = null; mpRender(); }
+function mpTab(k){
+  PM.tab = k;
+  document.querySelectorAll('.pm-tabs .pm-tab').forEach(b => { const on = b.getAttribute('onclick') === `mpTab('${k}')`; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  const box = pmEl('mp-tab'); if(!box) return;
+  if(k !== 'posts'){ CP_HOST_ID = 'fr-composer'; FR_OPEN = false; }
+  if(k === 'edit') return mpEditTab(box);
+  if(!mpApproved()){
+    box.innerHTML = `<div class="pm-card pm-empty"><i class="ti ti-hourglass"></i> ${k === 'posts' ? 'Posting' : 'Your roster'} opens once WCA approves your promotion. You can still change everything under Edit Promotion.</div>`;
+    return;
+  }
+  if(k === 'posts') return mpPostsTab(box);
+  if(k === 'roster') return mpRosterTab(box);
+}
+
+/* ---------------------------- Posts ---------------------------- */
+function mpPostsTab(box){
+  box.innerHTML = `<div class="pm-postas" id="mp-postas"></div>
+    <div id="mp-composer" class="mp-composer"></div>
+    <section class="pm-every"><div class="pm-every-head"><h2 class="pm-h2">Every post</h2><div class="pm-chips" id="mp-filters"></div></div>
+      <div class="pm-cards" id="mp-cards"><div class="loading">Loading…</div></div></section>`;
+  const edit = PM.pendingEdit; PM.pendingEdit = null;
+  mpComposer(edit || null);
+  mpLoadPosts();
+}
+function mpSources(){
+  const p = mpCur();
+  const list = p ? [{ mode:'promotion', id:p.id, name:p.name, sub:'Promotion', color:pmColor(p.color), logo:p.logo_url }] : [];
+  (CP_OUTLETS || []).forEach(o => list.push({ mode:'press', id:o.id, name:o.name, sub:'Press Pass · ' + (o.reporter || ''), color:pmColor(o.color), logo:o.logo_url }));
+  return list;
+}
+function mpDrawPostAs(){
+  const box = pmEl('mp-postas'); if(!box) return;
+  box.innerHTML = `<div class="pm-lbl">Post as</div><div class="pm-asrow">${mpSources().map(s => {
+    const on = CP_MODE === s.mode && String(CP_SRC_ID) === String(s.id);
+    return `<button type="button" class="pm-as${on ? ' on' : ''}" onclick="mpPostAs('${s.mode}',${Number(s.id)})">
+      ${pmLogo({ name:s.name, color:s.color, logo_url:s.logo }, 'pm-as-init')}
+      <span><b>${esc(s.name)}</b><small>${esc(s.sub)}</small></span></button>`;
+  }).join('')}
+  ${(CP_OUTLETS || []).length ? '' : `<button type="button" class="pm-as pm-as-add" onclick="mpTab('edit');setTimeout(()=>mpOutletForm(null),50)"><i class="ti ti-id-badge-2"></i><span><b>Get a Press Pass</b><small>Your own newsroom</small></span></button>`}</div>`;
+}
+function mpPostAs(mode, id){
+  const g = cpCollect();
+  PM.as = { mode, id };
+  CP_MODE = mode; CP_SRC_ID = id;
+  if(!CP_KINDS[mode].includes(CP_KIND)) CP_KIND = CP_KINDS[mode][0];
+  cpRenderComposer();
+  cpFill({ kind:CP_KIND, title:g.title, body:g.body, payload:g.payload });
+  mpDrawPostAs();
+  mpLivePreview(true);
+}
+function mpComposer(edit){
+  CP_HOST_ID = 'mp-composer';
+  FR_OPEN = true;
+  if(edit){
+    CP_EDITING = edit;
+    CP_MODE = edit.promotion_id != null ? 'promotion' : 'press';
+    CP_SRC_ID = edit.promotion_id != null ? edit.promotion_id : edit.outlet_id;
+    CP_KIND = edit.kind;
+    CP_PHOTOS = ((edit.payload || {}).photos || []).map(p => ({ url:p.url, ratio:p.ratio || 'auto' }));
+  } else {
+    CP_EDITING = null; CP_PHOTOS = [];
+    const s = PM.as && mpSources().find(x => x.mode === PM.as.mode && String(x.id) === String(PM.as.id));
+    CP_MODE = s ? s.mode : 'promotion'; CP_SRC_ID = s ? s.id : PM.curId;
+  }
+  if(!CP_KINDS[CP_MODE].includes(CP_KIND)) CP_KIND = CP_KINDS[CP_MODE][0];
+  cpRenderComposer();
+  mpDrawPostAs();
+  const host = pmEl('mp-composer');
+  if(host && !host.dataset.live){
+    host.dataset.live = '1';
+    ['input','change','click'].forEach(ev => host.addEventListener(ev, () => mpLivePreview()));
+  }
+  mpLivePreview(true);
+}
+let MP_PV_T = null;
+function mpLivePreview(now){
+  if(CP_HOST_ID !== 'mp-composer') return;
+  clearTimeout(MP_PV_T);
+  MP_PV_T = setTimeout(() => { try{ cpPreview(true); }catch(e){} }, now ? 0 : 250);
+}
+// after Post or Save: a fresh composer and the updated list
+function mpAfterPost(){
+  const pg = pmEl('page-mypromo');
+  if(!pg || !pg.classList.contains('active') || !pmEl('mp-composer')){ CP_HOST_ID = 'fr-composer'; frRenderBar(); return; }
+  mpComposer(null);
+  mpLoadPosts();
+}
+function mpNewPost(){ mpComposer(null); pmEl('mp-composer') && pmEl('mp-composer').scrollIntoView({ behavior:'smooth', block:'start' }); }
+async function mpLoadPosts(){
+  const box = pmEl('mp-cards'); if(!box || !CURRENT_USER) return;
+  const outs = (CP_OUTLETS || []).map(o => Number(o.id));
+  const ors = [`promotion_id.eq.${Number(PM.curId)}`];
+  if(outs.length) ors.push(`outlet_id.in.(${outs.join(',')})`);
+  let rows = [];
+  try{
+    const { data, error } = await sb.from('storylines')
+      .select('id,kind,title,body,payload,story_date,submission_status,review_note,promotion_id,outlet_id,created_at,seed_likes,seed_dislikes,is_published,submitted_by')
+      .eq('submitted_by', CURRENT_USER.id).or(ors.join(',')).order('created_at', { ascending:false }).limit(300);
+    if(error) throw error;
+    rows = data || [];
+  }catch(e){ box.innerHTML = `<div class="pm-empty">Could not load your posts. Please try again.</div>`; return; }
+  PM.posts = rows; PM.reacts = {};
+  if(rows.length){
+    try{
+      const { data } = await sb.from('storyline_reactions').select('storyline_id,value').in('storyline_id', rows.map(r => r.id));
+      (data || []).forEach(r => { const t = PM.reacts[r.storyline_id] || (PM.reacts[r.storyline_id] = { l:0, d:0 }); if(r.value === 1) t.l++; else if(r.value === -1) t.d++; });
+    }catch(e){}
+  }
+  const c = pmEl('mp-count-posts'); if(c) c.textContent = rows.length + (rows.length === 1 ? ' post' : ' posts');
+  mpDrawPosts();
+}
+function mpDrawPosts(){
+  const box = pmEl('mp-cards'), fb = pmEl('mp-filters'); if(!box) return;
+  const p = mpCur();
+  const test = (k, r) => k === 'all' || (k === 'promo' && r.promotion_id != null) || (k === 'press' && r.outlet_id != null) || (k === 'review' && r.submission_status !== 'approved');
+  const filters = [['all','All'],['promo', p ? p.name : 'Promotion']].concat((CP_OUTLETS || []).length ? [['press','Press Pass']] : []).concat([['review','Waiting or sent back']]);
+  if(fb) fb.innerHTML = filters.map(([k, l]) => `<button type="button" class="pm-chip${PM.filter === k ? ' on' : ''}" onclick="PM.filter='${k}';mpDrawPosts()">${esc(l)} <span>${PM.posts.filter(r => test(k, r)).length}</span></button>`).join('');
+  const list = PM.posts.filter(r => test(PM.filter, r));
+  if(!list.length){ box.innerHTML = `<div class="pm-empty">${PM.posts.length ? 'Nothing here.' : 'No posts yet. Write your first one above!'}</div>`; return; }
+  box.innerHTML = list.map(r => {
+    const src = slSrc(r) || {};
+    const col = pmColor(src.color, src.type === 'press' ? '#e9b949' : pmColor(p && p.color));
+    const st = r.submission_status === 'approved' ? ['Live','ok'] : r.submission_status === 'rejected' ? ['Sent back','bad'] : ['Waiting','wait'];
+    const prep = slPreparePhotos(r, slPhotosOf(r));
+    const ph = prep.photos;
+    const pl = r.payload || {};
+    const head = r.title || pl.author || pl.subject || CP_KIND_LABEL[r.kind] || 'Post';
+    const text = String(prep.post.body || pl.intro || '').replace(/<[^>]+>/g, ' ').replace(/[*_~#>`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    const rc = PM.reacts[r.id] || { l:0, d:0 };
+    const likes = (Number(r.seed_likes) || 0) + rc.l, dis = (Number(r.seed_dislikes) || 0) + rc.d;
+    const on = CP_EDITING && String(CP_EDITING.id) === String(r.id);
+    return `<article class="pm-pcard${on ? ' on' : ''}">
+      <div class="pm-pcard-top" style="--pc:${col}"><span>${esc(src.name || '')}${src.type === 'press' ? ', Press Pass' : ''}</span><b class="pm-pill ${st[1]}">${st[0]}</b></div>
+      ${ph.length ? `<div class="pm-pcard-ph"><img src="${escAttr(slShowUrl(ph[0].url))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">${ph.length > 1 ? `<span>${ph.length} photos</span>` : ''}</div>` : ''}
+      <div class="pm-pcard-body">
+        <div class="pm-pcard-kind">${esc(CP_KIND_LABEL[r.kind] || r.kind)} · ${esc(r.story_date ? fmtDate(r.story_date) : '')}</div>
+        <div class="pm-pcard-title">${esc(head)}</div>
+        ${text ? `<div class="pm-pcard-text">${esc(text)}${text.length >= 160 ? '…' : ''}</div>` : ''}
+        ${r.submission_status === 'rejected' && r.review_note ? `<div class="pm-note">WCA's note: ${esc(r.review_note)}</div>` : ''}
+      </div>
+      <div class="pm-pcard-foot">
+        <span class="pm-pcard-n"><i class="ti ti-thumb-up"></i> ${likes.toLocaleString()} <i class="ti ti-thumb-down"></i> ${dis.toLocaleString()}</span>
+        <button type="button" class="pm-btn-gold" onclick="mpEditPost(${Number(r.id)})"><i class="ti ti-pencil"></i> Edit</button>
+        <button type="button" class="spc-mini" onclick="slWhoReacted(${Number(r.id)}, PM.posts.find(x=>x.id===${Number(r.id)}))">Who reacted</button>
+        ${r.is_published ? `<button type="button" class="spc-mini" onclick="mpOpenInFeed(${Number(r.id)})">In the Feed</button>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+}
+function mpEditPost(id){
+  const r = PM.posts.find(x => String(x.id) === String(id));
+  if(!r) return;
+  mpComposer(r);
+  mpDrawPosts();
+  const h = pmEl('mp-composer'); if(h) h.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function mpOpenInFeed(id){
+  wcaSetAddress('storylines', 'post=' + Number(id), true);
+  restorePageFromHash();
+  window.scrollTo({ top:0 });
+}
+// The Edit button on one of your posts in the Feed opens it here.
+function mpEditFromFeed(row){
+  PM.pendingEdit = row;
+  PM.tab = 'posts';
+  if(row && row.promotion_id != null) PM.curId = row.promotion_id;
+  goPage('mypromo');
+}
+
+/* ---------------------------- Roster ---------------------------- */
+async function mpRosterLoad(force){
+  const id = PM.curId;
+  if(!force && String(PM.rosterFor) === String(id)) return;
+  const [c, r] = await Promise.all([
+    sb.from('promotion_roster_categories').select('*').eq('promotion_id', id).order('sort').order('id'),
+    sb.from('promotion_roster').select('*').eq('promotion_id', id).order('sort').order('id')
+  ]);
+  PM.rosterMissing = !!((c.error && pmMissing(c.error)) || (r.error && pmMissing(r.error)));
+  PM.cats = (c && c.data) || []; PM.roster = (r && r.data) || [];
+  PM.rosterFor = id;
+  const n = pmEl('mp-count-roster'); if(n) n.textContent = PM.roster.length + ' on the roster';
+}
+async function mpHistLoad(){
+  try{
+    const { data } = await sb.from('promotion_roster_history').select('id,roster_id,action,snapshot,changed_at')
+      .eq('promotion_id', PM.curId).order('changed_at', { ascending:false }).limit(25);
+    PM.hist = data || [];
+  }catch(e){ PM.hist = []; }
+}
+async function mpRosterTab(box){
+  box.innerHTML = `<div class="loading">Loading your roster…</div>`;
+  await Promise.all([mpRosterLoad(true), mpHistLoad()]);
+  if(PM.rosterMissing){ box.innerHTML = `<div class="pm-card pm-empty">Rosters are not switched on yet. Please check back soon!</div>`; return; }
+  box.innerHTML = `<div class="pm-roster">
+    <section class="pm-card pm-cats">
+      <div class="pm-h3">Categories</div>
+      <p class="pm-p">Your divisions, in the order they show. Each one gets a color and a short explanation of how it works.</p>
+      <div id="mp-catlist"></div>
+      <div class="pm-catform" id="mp-catform"></div>
+    </section>
+    <section class="pm-roster-main">
+      <div class="pm-card pm-form" id="mp-pform"></div>
+      <div class="pm-chips pm-gchips" id="mp-gchips"></div>
+      <div id="mp-plist"></div>
+      <p class="pm-p pm-small">No photos and no win or loss record. Everything here is plain text, which means WCA's comment writer can read it, so comments on your posts can mention your people by name.</p>
+      <div class="pm-card pm-hist" id="mp-hist"></div>
+    </section>
+  </div>`;
+  mpDrawCats(); mpCatForm(PM.catEditId); mpPersonForm(PM.editId); mpDrawPeople(); mpDrawHist();
+}
+function mpCatOf(id){ return PM.cats.find(c => String(c.id) === String(id)) || null; }
+function mpPersonColor(p){ return pmColor(p.color, pmColor((mpCatOf(p.category_id) || {}).color, '#c9c6be')); }
+function mpDrawCats(){
+  const box = pmEl('mp-catlist'); if(!box) return;
+  box.innerHTML = PM.cats.length ? PM.cats.map((c, i) => {
+    const col = pmColor(c.color, '#c9c6be'), n = PM.roster.filter(p => String(p.category_id) === String(c.id)).length;
+    return `<div class="pm-cat" style="--pc:${col}">
+      <div class="pm-cat-top"><b>${esc(c.name)}</b><span>${n} on roster</span>
+        <button type="button" class="spc-mini" aria-label="Move up" onclick="mpMoveCat(${i},-1)"${i === 0 ? ' disabled' : ''}>▲</button>
+        <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMoveCat(${i},1)"${i === PM.cats.length - 1 ? ' disabled' : ''}>▼</button>
+        <button type="button" class="spc-mini" onclick="mpCatForm(${Number(c.id)})">Edit</button></div>
+      <div class="pm-cat-about">${c.about ? esc(c.about) : '<span class="pm-dim">No description yet.</span>'}</div>
+    </div>`;
+  }).join('') : `<div class="pm-empty pm-small">No categories yet. Add your first one below, like Men's Division or Tag Teams.</div>`;
+}
+function mpCatForm(id){
+  PM.catEditId = id || null;
+  const c = id ? mpCatOf(id) : null;
+  const box = pmEl('mp-catform'); if(!box) return;
+  box.innerHTML = `<label for="mpc_name">${c ? 'Edit category' : 'New category'}</label>
+    <input id="mpc_name" maxlength="60" value="${escAttr(c ? c.name : '')}" placeholder="For example Cruiserweights or Coastal Cup">
+    <label for="mpc_about">How it works</label>
+    <textarea id="mpc_about" rows="3" maxlength="1500" placeholder="Weight limit, tournament rules, what the winner gets">${esc(c && c.about || '')}</textarea>
+    <label>Color</label>${pmColorWidget('mpc_color', c ? c.color : '#f28c38')}
+    <div class="pm-acts">
+      <button type="button" class="spc-ghost-btn" onclick="mpSaveCat()">${c ? 'Save category' : 'Add category'}</button>
+      ${c ? `<button type="button" class="spc-mini" onclick="mpCatForm(null)">Cancel</button>
+             <button type="button" class="spc-mini fr-danger" onclick="mpDeleteCat(${Number(c.id)})">Delete category</button>` : ''}
+    </div>
+    <div class="msg" id="mpc_msg"></div>`;
+}
+function mpMsg(id, text, ok){ const m = pmEl(id); if(!m) return; m.className = 'msg show ' + (ok ? 'ok' : 'err'); m.style.display = 'block'; m.textContent = text; }
+async function mpSaveCat(){
+  const name = (pmEl('mpc_name').value || '').trim();
+  if(!name){ mpMsg('mpc_msg', 'Give the category a name first.', false); return; }
+  const row = { name, about:(pmEl('mpc_about').value || '').trim() || null, color:pmEl('mpc_color').value || null };
+  const q = PM.catEditId
+    ? sb.from('promotion_roster_categories').update(row).eq('id', PM.catEditId)
+    : sb.from('promotion_roster_categories').insert(Object.assign({ promotion_id:Number(PM.curId), sort:(PM.cats.length + 1) * 10 }, row));
+  const { error } = await q;
+  if(error){ mpMsg('mpc_msg', cpErrText(error), false); return; }
+  const was = PM.catEditId;
+  await mpRosterLoad(true);
+  mpDrawCats(); mpCatForm(null); mpDrawPeople(); mpPersonForm(PM.editId, true);
+  mpMsg('mpc_msg', was ? name + ' saved.' : name + ' added. Pick it under Category for anyone.', true);
+}
+async function mpDeleteCat(id){
+  const c = mpCatOf(id); if(!c) return;
+  const n = PM.roster.filter(p => String(p.category_id) === String(id)).length;
+  if(!confirm(`Delete the ${c.name} category?` + (n ? ` The ${n} ${n === 1 ? 'person' : 'people'} in it stay on your roster under "No category".` : ''))) return;
+  const { error } = await sb.from('promotion_roster_categories').delete().eq('id', id);
+  if(error){ mpMsg('mpc_msg', cpErrText(error), false); return; }
+  await Promise.all([mpRosterLoad(true), mpHistLoad()]);
+  mpDrawCats(); mpCatForm(null); mpDrawPeople(); mpPersonForm(PM.editId, true); mpDrawHist();
+}
+async function mpMoveCat(i, d){
+  const a = PM.cats.slice(), j = i + d;
+  if(j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]];
+  await mpResort('promotion_roster_categories', a);
+  PM.cats = a; mpDrawCats(); mpDrawPeople(); mpPersonForm(PM.editId, true);
+}
+// saves a new order: 10, 20, 30… (only rows that moved are written)
+async function mpResort(table, list){
+  const writes = [];
+  list.forEach((x, k) => { const want = (k + 1) * 10; if(x.sort !== want){ x.sort = want; writes.push(sb.from(table).update({ sort:want }).eq('id', x.id)); } });
+  const res = await Promise.all(writes);
+  const bad = res.find(r => r && r.error);
+  if(bad) wcaToast('Could not save the new order', cpErrText(bad.error), true);
+}
+
+function mpPersonForm(id, keep){
+  const box = pmEl('mp-pform'); if(!box) return;
+  let p = id ? PM.roster.find(x => String(x.id) === String(id)) : null;
+  if(keep && box.querySelector('#mpf_name')){
+    // only the category list changed: keep what is typed
+    const sel = pmEl('mpf_cat'); if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = mpCatOptions(cur);
+    return;
+  }
+  PM.editId = p ? p.id : null;
+  p = p || { category_id:(PM.cats[0] || {}).id || null, gender:'Male', alignment:'Face', details:{} };
+  const d = p.details || {};
+  const field = ([k, label, , ph, opts]) => opts
+    ? `<div><label for="mpd_${k}">${esc(label)}</label><select id="mpd_${k}"><option value="">Not set</option>${opts.map(o => `<option${d[k] === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`
+    : `<div><label for="mpd_${k}">${esc(label)}</label><input id="mpd_${k}"${k === 'ovr' ? ' type="number" min="0" max="100"' : ' maxlength="600"'} value="${escAttr(d[k] || '')}" placeholder="${escAttr(ph || '')}"></div>`;
+  const sec = s => PM_DETAILS.filter(x => x[2] === s).map(field).join('');
+  const attrs = (d.attrs) || {};
+  box.innerHTML = `
+    <div class="pm-form-head"><div class="pm-h3">${p.id ? 'Edit ' + esc(p.name) : 'Add a wrestler or team'}</div>
+      ${p.id ? `<button type="button" class="spc-mini" onclick="mpPersonForm(null)">Cancel</button>` : ''}</div>
+    <div class="pm-small pm-dim">Only the name is required. The fields match WWE 2K25's Create a Superstar, so you can copy them straight from the game.</div>
+    <div class="pm-g2">
+      <div><label for="mpf_name">Name</label><input id="mpf_name" maxlength="80" value="${escAttr(p.name || '')}" placeholder="Their ring name"></div>
+      <div><label for="mpf_nick">Nickname</label><input id="mpf_nick" maxlength="80" value="${escAttr(p.nickname || '')}" placeholder="Optional"></div>
+      <div><label for="mpf_cat">Category</label><select id="mpf_cat">${mpCatOptions(p.category_id)}</select></div>
+      <div><label for="mpf_gender">Gender</label><select id="mpf_gender">${PM_GENDER.map(([v, l]) => `<option value="${v}"${p.gender === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div><label for="mpf_align">Alignment</label><select id="mpf_align">${['Face','Heel','Tweener'].map(v => `<option${p.alignment === v ? ' selected' : ''}>${v}</option>`).join('')}<option value=""${p.alignment ? '' : ' selected'}>None</option></select></div>
+      <div><label for="mpf_title">Title they hold</label><input id="mpf_title" maxlength="100" value="${escAttr(p.title || '')}" placeholder="Optional"></div>
+    </div>
+    <label>Their color</label>${pmColorWidget('mpf_color', p.color || '', 'Same as category')}
+    <details class="pm-fold" open><summary>Profile</summary>
+      <div class="pm-g3">${sec('profile')}</div>
+      <label for="mpf_bio">Bio <span class="pm-opt">(not in the game: this is their story on the website)</span></label>
+      <textarea id="mpf_bio" rows="4" maxlength="5000" placeholder="Who they are, rivalries, what they want next">${esc(p.bio || '')}</textarea>
+    </details>
+    <details class="pm-fold"><summary>Moveset and entrance</summary><div class="pm-g2">${sec('moves')}</div></details>
+    <details class="pm-fold"><summary>Abilities and Paybacks</summary><div class="pm-g2">${sec('abilities')}</div></details>
+    <details class="pm-fold"><summary>Attributes <span class="pm-opt">(the 20 numbers from 2K25's Attributes tab, all optional)</span></summary>
+      <div class="pm-small pm-dim">Drag the slider or type the number. Leave one blank to skip it.</div>
+      <div class="pm-attrs">${PM_ATTRS.map((a, i) => { const v = attrs[a]; const has = v !== undefined && v !== null && v !== '';
+        return `<div class="pm-attr${has ? '' : ' unset'}" id="mpa_row_${i}"><span>${esc(a)}</span>
+          <input type="range" min="0" max="100" step="1" value="${has ? Number(v) : 50}" aria-label="${escAttr(a)} slider" oninput="pmAttr('mpa',${i},this.value,'r')">
+          <input type="number" min="0" max="100" id="mpa_${i}" value="${has ? Number(v) : ''}" aria-label="${escAttr(a)}" oninput="pmAttr('mpa',${i},this.value,'n')"></div>`; }).join('')}</div>
+    </details>
+    <details class="pm-fold"><summary>Anything else</summary>
+      <textarea id="mpd_more" rows="2" maxlength="3000" placeholder="One per line, like Debut: Iron Coast 1">${esc(d.more || '')}</textarea></details>
+    <div class="pm-acts">
+      <button type="button" class="spc-post-btn" onclick="mpSavePerson()">${p.id ? 'Save changes' : 'Add to roster'}</button>
+      ${p.id ? `<button type="button" class="spc-mini fr-danger" onclick="mpRemovePerson(${Number(p.id)})">Remove from roster</button>` : ''}
+    </div>
+    <div class="msg" id="mpf_msg"></div>`;
+}
+function mpCatOptions(sel){
+  return PM.cats.map(c => `<option value="${Number(c.id)}"${String(c.id) === String(sel) ? ' selected' : ''}>${esc(c.name)}</option>`).join('')
+    + `<option value=""${sel == null || sel === '' ? ' selected' : ''}>No category</option>`;
+}
+// keeps a slider and its number box together. prefix: 'mpa' here, 'wga' in admin
+function pmAttr(prefix, i, v, from){
+  const row = pmEl(prefix + '_row_' + i), num = pmEl(prefix + '_' + i);
+  const range = row && row.querySelector('input[type=range]');
+  if(from === 'r'){ if(num) num.value = v; }
+  else {
+    const t = String(v).trim();
+    if(t === ''){ if(row) row.classList.add('unset'); return; }
+    const n = Math.max(0, Math.min(100, Math.round(Number(t) || 0)));
+    if(String(n) !== t && num) num.value = n;
+    if(range) range.value = n;
+  }
+  if(row) row.classList.remove('unset');
+}
+function pmReadAttrs(prefix){
+  const out = {};
+  PM_ATTRS.forEach((a, i) => { const el = pmEl(prefix + '_' + i); const t = el ? String(el.value).trim() : ''; if(t !== '') out[a] = Math.max(0, Math.min(100, Math.round(Number(t) || 0))); });
+  return out;
+}
+function pmReadDetails(keys){
+  const d = {};
+  keys.forEach(k => { const el = pmEl('mpd_' + k); const v = el ? String(el.value).trim() : ''; if(v) d[k] = v; });
+  return d;
+}
+async function mpSavePerson(){
+  if(PM.busy) return;
+  const name = (pmEl('mpf_name').value || '').trim();
+  if(!name){ mpMsg('mpf_msg', 'A name is the only thing you have to fill in.', false); return; }
+  const details = pmReadDetails(PM_DETAILS.map(x => x[0]).concat(['more']));
+  const attrs = pmReadAttrs('mpa'); if(Object.keys(attrs).length) details.attrs = attrs;
+  const catV = pmEl('mpf_cat').value;
+  const row = { name, nickname:(pmEl('mpf_nick').value || '').trim() || null,
+    category_id: catV ? Number(catV) : null, gender: pmEl('mpf_gender').value || 'Male',
+    alignment: pmEl('mpf_align').value || null, title:(pmEl('mpf_title').value || '').trim() || null,
+    color: pmEl('mpf_color').value || null, bio:(pmEl('mpf_bio').value || '').trim() || null, details };
+  PM.busy = true;
+  let res;
+  if(PM.editId) res = await sb.from('promotion_roster').update(row).eq('id', PM.editId).select('id');
+  else {
+    const same = PM.roster.filter(p => String(p.category_id) === String(row.category_id));
+    res = await sb.from('promotion_roster').insert(Object.assign({ promotion_id:Number(PM.curId), sort:(Math.max(0, ...same.map(p => p.sort || 0)) + 10) }, row)).select('id');
+  }
+  PM.busy = false;
+  if(res.error){ mpMsg('mpf_msg', cpErrText(res.error), false); return; }
+  const wasEdit = !!PM.editId;
+  await Promise.all([mpRosterLoad(true), mpHistLoad()]);
+  mpPersonForm(null); mpDrawCats(); mpDrawPeople(); mpDrawHist();
+  mpMsg('mpf_msg', wasEdit ? 'Saved. It is live on your roster.' : name + ' is on your roster now.', true);
+}
+async function mpRemovePerson(id){
+  const p = PM.roster.find(x => String(x.id) === String(id)); if(!p) return;
+  if(!confirm(`Remove ${p.name} from your roster? You can bring them back from Recent changes.`)) return;
+  const { error } = await sb.from('promotion_roster').delete().eq('id', id);
+  if(error){ wcaToast('Could not remove them', cpErrText(error), true); return; }
+  if(String(PM.editId) === String(id)) PM.editId = null;
+  await Promise.all([mpRosterLoad(true), mpHistLoad()]);
+  mpPersonForm(PM.editId); mpDrawCats(); mpDrawPeople(); mpDrawHist();
+  wcaToast(p.name + ' removed', 'Changed your mind? Use Bring back under Recent changes.');
+}
+async function mpMovePerson(id, d){
+  const p = PM.roster.find(x => String(x.id) === String(id)); if(!p) return;
+  const list = PM.roster.filter(x => String(x.category_id) === String(p.category_id));
+  const i = list.indexOf(p), j = i + d;
+  if(j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  await mpResort('promotion_roster', list);
+  PM.roster.sort((a, b) => (a.sort || 0) - (b.sort || 0) || a.id - b.id);
+  mpDrawPeople();
+}
+function mpGroups(roster, cats){
+  const groups = cats.map(c => ({ cat:c, people:roster.filter(p => String(p.category_id) === String(c.id)) }));
+  const loose = roster.filter(p => !p.category_id || !cats.some(c => String(c.id) === String(p.category_id)));
+  if(loose.length) groups.push({ cat:{ id:'', name:'No category', color:'#8a8a86' }, people:loose });
+  return groups;
+}
+function mpDrawPeople(){
+  const box = pmEl('mp-plist'), gb = pmEl('mp-gchips'); if(!box) return;
+  const g = PM.gfilter;
+  if(gb) gb.innerHTML = `<span class="pm-dim pm-small">Show</span>` + [['all','Everyone'],['Male','Male'],['Female','Female'],['Team','Teams']].map(([k, l]) =>
+    `<button type="button" class="pm-chip${g === k ? ' on' : ''}" onclick="PM.gfilter='${k}';mpDrawPeople()">${l} <span>${k === 'all' ? PM.roster.length : PM.roster.filter(p => p.gender === k).length}</span></button>`).join('');
+  const groups = mpGroups(PM.roster.filter(p => g === 'all' || p.gender === g), PM.cats).filter(x => x.people.length);
+  if(!groups.length){ box.innerHTML = `<div class="pm-empty pm-small">${PM.roster.length ? 'Nobody matches.' : 'Nobody on your roster yet. Add your first wrestler or team above.'}</div>`; return; }
+  box.innerHTML = groups.map(({ cat, people }) => {
+    const col = pmColor(cat.color, '#c9c6be');
+    return `<div class="pm-group"><div class="pm-group-h" style="--pc:${col}">${esc(cat.name)}</div>
+      ${people.map((p, k) => { const pc = mpPersonColor(p), d = p.details || {};
+        const sub = [p.nickname, p.title, d.style].filter(Boolean).join(' · ');
+        return `<div class="pm-prow${String(PM.editId) === String(p.id) ? ' on' : ''}">
+          <span class="pm-pinit" style="--pc:${pc}">${esc(pmInit(p.name))}</span>
+          <span class="pm-pname"><b>${esc(p.name)}</b>${sub ? ` <small>${esc(sub)}</small>` : ''}</span>
+          <button type="button" class="spc-mini" aria-label="Move up" onclick="mpMovePerson(${Number(p.id)},-1)"${k === 0 ? ' disabled' : ''}>▲</button>
+          <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMovePerson(${Number(p.id)},1)"${k === people.length - 1 ? ' disabled' : ''}>▼</button>
+          <button type="button" class="spc-mini" onclick="mpPersonForm(${Number(p.id)});pmEl('mp-pform').scrollIntoView({behavior:'smooth',block:'start'});mpDrawPeople()">Edit</button>
+          <button type="button" class="spc-mini fr-danger" onclick="mpRemovePerson(${Number(p.id)})">Remove</button>
+        </div>`; }).join('')}
+    </div>`;
+  }).join('');
+}
+function mpDrawHist(){
+  const box = pmEl('mp-hist'); if(!box) return;
+  if(!PM.hist.length){ box.innerHTML = `<div class="pm-h3">Recent changes</div><div class="pm-small pm-dim">Every edit and removal shows here, so you can undo a mistake.</div>`; return; }
+  box.innerHTML = `<div class="pm-h3">Recent changes</div>
+    <div class="pm-small pm-dim">Undo puts back the version from before that change.</div>
+    ${PM.hist.map(h => { const s = h.snapshot || {}, gone = !PM.roster.some(p => String(p.id) === String(h.roster_id));
+      return `<div class="pm-hrow"><span><b>${h.action === 'remove' ? 'Removed' : 'Edited'}</b> ${esc(s.name || 'Someone')} <em>${esc(pmAgo(h.changed_at))}</em></span>
+        <button type="button" class="spc-mini" onclick="mpRestore(${Number(h.id)})">${h.action === 'remove' && gone ? 'Bring back' : 'Undo'}</button></div>`; }).join('')}`;
+}
+async function mpRestore(hid){
+  const h = PM.hist.find(x => String(x.id) === String(hid)); if(!h) return;
+  const { error } = await sb.rpc('restore_roster_version', { p_history_id:Number(hid) });
+  if(error){ wcaToast('Could not undo that', cpErrText(error), true); return; }
+  await Promise.all([mpRosterLoad(true), mpHistLoad()]);
+  mpPersonForm(PM.editId); mpDrawCats(); mpDrawPeople(); mpDrawHist();
+  wcaToast('Done', ((h.snapshot || {}).name || 'They') + ' is back the way they were.');
+}
+
+/* ------------------------- Edit Promotion ------------------------- */
+async function mpEditTab(box){
+  const p = mpCur();
+  box.innerHTML = `<div class="pm-editwrap">
+    <section class="pm-card pm-editmain">
+      <div class="pm-h3">Your promotion</div>
+      <div id="mp-edit-form"></div>
+      <div class="pm-outlets">
+        <div class="pm-h3">Press Pass outlets</div>
+        <p class="pm-p">Your newsroom. Pick an outlet under Post as in Posts to write as the press.</p>
+        <div id="mp-outlets"></div>
+        <div id="mp-outlet-form"></div>
+      </div>
+    </section>
+    <aside class="pm-editside">
+      <div class="pm-h3">How it looks</div>
+      <div class="pm-lookcard" id="mp-look"></div>
+      <div class="pm-card pm-backup">
+        <div class="pm-h3">Keep a copy</div>
+        <p class="pm-p">Download your promotion, roster and posts as a file any time.</p>
+        <button type="button" class="spc-ghost-btn" onclick="mpBackup()"><i class="ti ti-download"></i> Download a backup</button>
+      </div>
+    </aside>
+  </div>`;
+  mpPromoForm(p ? p.id : null, pmEl('mp-edit-form'));
+  mpDrawOutlets();
+}
+function mpPromoForm(id, host){
+  const p = id != null ? CP_PROMOS.find(x => String(x.id) === String(id)) : null;
+  const links = (p && p.links) || {};
+  host.innerHTML = `
+    <label for="mpe_name">Promotion name</label>
+    <input id="mpe_name" maxlength="60" value="${escAttr(p ? p.name : '')}" placeholder="Your promotion's name" oninput="mpLook()">
+    ${p && p.status === 'approved' ? `<div class="pm-small pm-dim">A new name goes to WCA for a quick check first.</div>` : ''}
+    <label for="mpe_logo">Logo</label>
+    <div class="pm-logoline">
+      <input id="mpe_logo" value="${escAttr(p && p.logo_url || '')}" placeholder="Paste a link to your logo (https://…)" oninput="mpLook()">
+      ${p && p.status === 'approved' ? `<label class="spc-mini pm-upbtn">Upload<input type="file" accept="image/*" onchange="mpUploadLogo(this,'mpe_logo')" hidden></label>` : ''}
+    </div>
+    <label>Main color</label>${pmColorWidget('mpe_color', p ? p.color : '#5dcaa5')}
+    <label for="mpe_about">About</label>
+    <textarea id="mpe_about" rows="4" maxlength="800" placeholder="What is your promotion about? Where can people watch?" oninput="mpLook()">${esc(p && p.about || '')}</textarea>
+    <label>Links</label>
+    <div class="cp-links">${CP_LINKS.map(([k, l]) => `<div><span>${l}</span><input id="mpe_l_${k}" placeholder="https://" value="${escAttr(links[k] || '')}"></div>`).join('')}</div>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpSavePromo(${p ? Number(p.id) : 'null'})">${p ? 'Save changes' : 'Send for approval'}</button></div>
+    <div class="msg" id="mpe_msg"></div>
+    ${p ? '' : `<div class="pm-small pm-dim">WCA approves every new promotion before it can post.</div>`}`;
+  const hid = pmEl('mpe_color'); if(hid) hid.addEventListener('input', mpLook);
+  mpLook();
+}
+function mpLook(){
+  const box = pmEl('mp-look'); if(!box) return;
+  const name = (pmEl('mpe_name') || {}).value || 'Your promotion';
+  const col = pmColor((pmEl('mpe_color') || {}).value, '#5dcaa5');
+  const logo = ((pmEl('mpe_logo') || {}).value || '').trim();
+  const about = (pmEl('mpe_about') || {}).value || '';
+  box.innerHTML = `<div class="pm-look-bar" style="background:${col}"></div>
+    <div class="pm-look-top">${pmLogo({ name, color:col, logo_url:/^https:\/\//i.test(logo) ? logo : '' }, 'pm-look-logo')}
+      <div><div class="pm-look-name">${esc(name)}</div><div class="pm-small pm-dim">Promotion in the WCA Universe</div></div></div>
+    ${about ? `<p class="pm-look-about">${esc(about)}</p>` : ''}`;
+}
+async function mpUploadLogo(input, target){
+  const f = input.files && input.files[0]; input.value = '';
+  if(!f) return;
+  const msg = target === 'mpe_logo' ? 'mpe_msg' : 'mpo_msg';
+  mpMsg(msg, 'Uploading…', true);
+  try{
+    const [up] = await wcaMediaUpload([f], 'promotions');
+    const el = pmEl(target); if(el){ el.value = up.url; el.dispatchEvent(new Event('input', { bubbles:true })); }
+    mpMsg(msg, 'Uploaded ✓ Press Save to keep it.', true);
+    if(target === 'mpe_logo') mpLook();
+  }catch(e){ mpMsg(msg, 'Upload failed: ' + e.message, false); }
+}
+async function mpSavePromo(id){
+  if(PM.busy) return;
+  const name = (pmEl('mpe_name').value || '').trim();
+  if(name.length < 2){ mpMsg('mpe_msg', 'Give your promotion a name.', false); return; }
+  const links = {};
+  for(const [k] of CP_LINKS){
+    const v = (pmEl('mpe_l_' + k).value || '').trim();
+    if(!v) continue;
+    if(!/^https:\/\/\S+$/i.test(v)){ mpMsg('mpe_msg', 'Links need to start with https://', false); return; }
+    links[k] = v;
+  }
+  const logo = (pmEl('mpe_logo').value || '').trim();
+  if(logo && !/^https:\/\/\S+$/i.test(logo)){ mpMsg('mpe_msg', 'The logo link needs to start with https://', false); return; }
+  PM.busy = true;
+  const { data, error } = await sb.rpc('save_promotion', { p_id:id, p_name:name, p_logo:logo || null,
+    p_color:pmEl('mpe_color').value || null, p_about:pmEl('mpe_about').value, p_links:links });
+  PM.busy = false;
+  if(error){ mpMsg('mpe_msg', cpErrText(error), false); return; }
+  wcaToast(id ? 'Promotion saved' : 'Promotion sent for approval', id ? name + ' is updated.' : 'WCA will review ' + name + ' soon!');
+  await cpLoadMyOrgs();
+  PM.curId = id || data || PM.curId;
+  if(!id) PM.tab = 'edit';
+  mpRender();
+}
+function mpDrawOutlets(){
+  const box = pmEl('mp-outlets'); if(!box) return;
+  const ok = mpApproved();
+  box.innerHTML = (CP_OUTLETS || []).map(o => `<div class="pm-outlet">
+      ${pmLogo({ name:o.name, color:o.color, logo_url:o.logo_url }, 'pm-outlet-logo')}
+      <span><b>${esc(o.name)}</b><small>Reporter: ${esc(o.reporter || '')}</small></span>
+      ${ok ? `<button type="button" class="spc-mini" onclick="mpOutletForm(${Number(o.id)})">Edit outlet</button>` : ''}
+    </div>`).join('')
+    + (ok ? ((CP_OUTLETS || []).length < 5 ? `<button type="button" class="spc-ghost-btn pm-addout" onclick="mpOutletForm(null)">+ ${(CP_OUTLETS || []).length ? 'Add another outlet' : 'Get your Press Pass'}</button>` : '')
+          : `<div class="pm-small pm-dim">Press Pass opens once WCA approves your promotion.</div>`);
+}
+function mpOutletForm(id){
+  const box = pmEl('mp-outlet-form'); if(!box) return;
+  const o = id != null ? (CP_OUTLETS || []).find(x => String(x.id) === String(id)) : null;
+  box.innerHTML = `<div class="pm-card pm-subcard">
+    <div class="pm-h3">${o ? 'Edit ' + esc(o.name) : 'New Press Pass outlet'}</div>
+    <div class="pm-g2">
+      <div><label for="mpo_name">Outlet name</label><input id="mpo_name" maxlength="60" value="${escAttr(o ? o.name : '')}" placeholder="The Turnbuckle Times"></div>
+      <div><label for="mpo_rep">Reporter name</label><input id="mpo_rep" maxlength="60" value="${escAttr(o ? o.reporter : '')}" placeholder="Dana Cross"></div>
+    </div>
+    <label for="mpo_logo">Logo</label>
+    <div class="pm-logoline"><input id="mpo_logo" value="${escAttr(o && o.logo_url || '')}" placeholder="https://">
+      <label class="spc-mini pm-upbtn">Upload<input type="file" accept="image/*" onchange="mpUploadLogo(this,'mpo_logo')" hidden></label></div>
+    <label>Color</label>${pmColorWidget('mpo_color', o ? o.color : '#e9b949')}
+    <div class="pm-acts">
+      <button type="button" class="spc-post-btn" onclick="mpSaveOutlet(${o ? Number(o.id) : 'null'})">${o ? 'Save outlet' : 'Get my Press Pass'}</button>
+      <button type="button" class="spc-mini" onclick="pmEl('mp-outlet-form').innerHTML=''">Cancel</button>
+      ${o ? `<button type="button" class="spc-mini fr-danger" onclick="mpDeleteOutlet(${Number(o.id)})">Delete outlet</button>` : ''}
+    </div>
+    <div class="msg" id="mpo_msg"></div></div>`;
+  box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+async function mpSaveOutlet(id){
+  const name = (pmEl('mpo_name').value || '').trim(), rep = (pmEl('mpo_rep').value || '').trim(), logo = (pmEl('mpo_logo').value || '').trim();
+  if(name.length < 2){ mpMsg('mpo_msg', 'Give your outlet a name.', false); return; }
+  if(rep.length < 2){ mpMsg('mpo_msg', 'Give your reporter a name.', false); return; }
+  if(logo && !/^https:\/\/\S+$/i.test(logo)){ mpMsg('mpo_msg', 'The logo link needs to start with https://', false); return; }
+  const { error } = await sb.rpc('save_press_outlet', { p_id:id, p_name:name, p_reporter:rep, p_logo:logo || null, p_color:pmEl('mpo_color').value || null });
+  if(error){ mpMsg('mpo_msg', cpErrText(error), false); return; }
+  wcaToast('Press Pass saved', name + ' is ready. Pick it under Post as to write.');
+  await cpLoadMyOrgs();
+  mpRender();
+}
+async function mpDeleteOutlet(id){
+  if(!confirm('Delete this outlet?')) return;
+  const { error } = await sb.rpc('delete_press_outlet', { p_id:id });
+  if(error){ mpMsg('mpo_msg', cpErrText(error), false); return; }
+  await cpLoadMyOrgs();
+  mpRender();
+}
+async function mpBackup(){
+  const p = mpCur(); if(!p) return;
+  try{
+    await Promise.all([mpRosterLoad(true), PM.posts.length ? null : (async () => {
+      const outs = (CP_OUTLETS || []).map(o => Number(o.id));
+      const ors = [`promotion_id.eq.${Number(p.id)}`]; if(outs.length) ors.push(`outlet_id.in.(${outs.join(',')})`);
+      const { data } = await sb.from('storylines').select('id,kind,title,body,payload,story_date,submission_status,promotion_id,outlet_id,created_at,seed_likes,seed_dislikes')
+        .eq('submitted_by', CURRENT_USER.id).or(ors.join(',')).order('created_at', { ascending:false }).limit(1000);
+      PM.posts = data || [];
+    })()]);
+  }catch(e){}
+  const clean = x => { const o = Object.assign({}, x); delete o.submitted_by; return o; };
+  const file = { saved_at:new Date().toISOString(), site:'WCAUniverse.com', promotion:p, press_outlets:CP_OUTLETS || [],
+    roster_categories:PM.cats, roster:PM.roster, posts:PM.posts.map(clean) };
+  const blob = new Blob([JSON.stringify(file, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (p.name || 'promotion').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ======================= PROMOTIONS DIRECTORY ======================= */
+async function pmDirOpen(){
+  const host = pmEl('pmdir-body'); if(!host) return;
+  host.innerHTML = `<div class="loading">Loading…</div>`;
+  let list = [], counts = {};
+  try{
+    const { data, error } = await sb.from('promotions').select('id,name,logo_url,color,about,links').eq('status', 'approved').order('name');
+    if(error) throw error;
+    list = data || [];
+  }catch(e){ host.innerHTML = `<div class="pm-empty">Could not load promotions right now.</div>`; return; }
+  try{
+    const { data } = await sb.from('promotion_roster').select('promotion_id');
+    (data || []).forEach(r => { counts[r.promotion_id] = (counts[r.promotion_id] || 0) + 1; });
+  }catch(e){}
+  PM.dir = { list, counts, q:'' };
+  host.innerHTML = `<div class="pm-dirtools"><input id="pmdir-q" placeholder="Search promotions" aria-label="Search promotions" oninput="PM.dir.q=this.value;pmDirDraw()"></div>
+    <div class="pm-dirgrid" id="pmdir-grid"></div>`;
+  pmDirDraw();
+}
+function pmDirDraw(){
+  const box = pmEl('pmdir-grid'); if(!box || !PM.dir) return;
+  const q = (PM.dir.q || '').trim().toLowerCase();
+  const list = PM.dir.list.filter(p => !q || p.name.toLowerCase().includes(q) || String(p.about || '').toLowerCase().includes(q));
+  if(!list.length){ box.innerHTML = `<div class="pm-empty">${PM.dir.list.length ? 'No promotion matches that.' : 'No promotions yet. Run your own? Open My Promotion in your account menu to register it.'}</div>`; return; }
+  box.innerHTML = list.map(p => { const n = PM.dir.counts[p.id] || 0;
+    return `<button type="button" class="pm-dircard" style="--pc:${pmColor(p.color)}" onclick="pmGo(${Number(p.id)})">
+      <span class="pm-dircard-bar"></span>
+      <span class="pm-dircard-top">${pmLogo(p, 'pm-dircard-logo')}<span><b>${esc(p.name)}</b><small>${n ? n + ' on the roster' : 'Promotion'}</small></span></span>
+      ${p.about ? `<span class="pm-dircard-about">${esc(String(p.about).slice(0, 180))}${String(p.about).length > 180 ? '…' : ''}</span>` : ''}
+    </button>`; }).join('');
+}
+
+/* ======================= ONE PROMOTION, PUBLIC ======================= */
+async function pmPageOpen(){
+  const host = pmEl('pmpage-body'); if(!host) return;
+  const qs = wcaRoute().qs || '';
+  const id = Number((qs.match(/(?:^|&)id=(\d+)/) || [])[1]);
+  const tab = (qs.match(/(?:^|&)tab=(roster|posts)/) || [])[1] || 'posts';
+  if(!id){ activatePage('promotions'); wcaSetAddress('promotions', ''); return; }
+  host.innerHTML = `<div class="loading">Loading…</div>`;
+  const [pr, cr, rr, sr] = await Promise.all([
+    sb.from('promotions').select('*').eq('id', id).maybeSingle(),
+    sb.from('promotion_roster_categories').select('*').eq('promotion_id', id).order('sort').order('id'),
+    sb.from('promotion_roster').select('*').eq('promotion_id', id).order('sort').order('id'),
+    sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes')
+      .eq('promotion_id', id).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(60)
+  ]);
+  const p = pr && pr.data;
+  if(!p){ host.innerHTML = `<div class="pm-card pm-empty">That promotion isn't here. <button class="spc-mini" onclick="goPage('promotions')">See every promotion</button></div>`; return; }
+  PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:null };
+  const col = pmColor(p.color);
+  const links = p.links || {};
+  const icons = { website:'ti-world', youtube:'ti-brand-youtube', twitch:'ti-brand-twitch', x:'ti-brand-x', tiktok:'ti-brand-tiktok', instagram:'ti-brand-instagram', discord:'ti-brand-discord' };
+  const mine = CURRENT_USER && p.owner_id === CURRENT_USER.id;
+  host.innerHTML = `
+    <div class="pm-crumbs"><a href="/promotions" onclick="goPage('promotions');return false;">Promotions</a> <span aria-hidden="true">›</span> <span>${esc(p.name)}</span></div>
+    <section class="pm-hero" style="--pc:${col}">
+      <div class="pm-hero-bar"></div>
+      <div class="pm-hero-in">
+        ${pmLogo(p, 'pm-hero-logo')}
+        <div class="pm-hero-mid">
+          <div class="pm-kick">Promotion in the WCA Universe</div>
+          <h1 class="pm-title">${esc(p.name)}</h1>
+          ${p.about ? `<p class="pm-hero-about">${esc(p.about)}</p>` : ''}
+          <div class="pm-hero-links">${CP_LINKS.filter(([k]) => links[k]).map(([k, l]) => `<a href="${escAttr(links[k])}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ${icons[k]}"></i> ${esc(l)}</a>`).join('')}</div>
+        </div>
+        <div class="pm-hero-acts">
+          <button type="button" class="spc-ghost-btn" onclick="pmShare(${Number(p.id)})"><i class="ti ti-share-3"></i> Share</button>
+          ${mine ? `<button type="button" class="spc-mini" onclick="PM.curId=${Number(p.id)};goPage('mypromo')">Edit in My Promotion</button>` : ''}
+        </div>
+      </div>
+    </section>
+    <div class="pm-tabs" role="tablist" aria-label="${escAttr(p.name)}">
+      <button type="button" role="tab" class="pm-tab" data-t="posts" onclick="pmPubTab('posts')">Posts <span>${PM.pub.posts.length}</span></button>
+      <button type="button" role="tab" class="pm-tab" data-t="roster" onclick="pmPubTab('roster')">Roster <span>${PM.pub.roster.length}</span></button>
+    </div>
+    <div id="pmpub-tab"></div>`;
+  pmPubTab(tab, true);
+}
+function pmShare(id){
+  const url = (WCA_PATHS ? location.origin : wcaShareBase()) + wcaHref('promotion', 'id=' + Number(id));
+  const name = PM.pub && PM.pub.p ? PM.pub.p.name : 'this promotion';
+  const done = copied => { try{ wcaShowSharePopup(url, copied, 'Share ' + name, ''); }catch(e){ window.prompt('Copy this link:', url); } };
+  if(navigator.share && matchMedia('(max-width:820px)').matches){ navigator.share({ title:name, url }).catch(() => {}); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
+  else done(false);
+}
+function pmPubTab(t, quiet){
+  const P = PM.pub; if(!P) return;
+  P.tab = t;
+  document.querySelectorAll('#pmpage-body .pm-tab').forEach(b => { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); });
+  if(!quiet) wcaSetAddress('promotion', 'id=' + Number(P.p.id) + (t === 'roster' ? '&tab=roster' : ''), false);
+  const box = pmEl('pmpub-tab'); if(!box) return;
+  if(t === 'posts'){
+    box.innerHTML = P.posts.length ? `<div class="pm-cards">${P.posts.map(r => {
+      const prep = slPreparePhotos(r, slPhotosOf(r)), ph = prep.photos, pl = r.payload || {};
+      const head = r.title || pl.author || pl.subject || CP_KIND_LABEL[r.kind] || 'Post';
+      const text = String(prep.post.body || pl.intro || '').replace(/<[^>]+>/g, ' ').replace(/[*_~#>`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 170);
+      return `<button type="button" class="pm-pcard pm-pcard-link" onclick="mpOpenInFeed(${Number(r.id)})">
+        ${ph.length ? `<span class="pm-pcard-ph"><img src="${escAttr(ph[0].url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">${ph.length > 1 ? `<span>${ph.length} photos</span>` : ''}</span>` : ''}
+        <span class="pm-pcard-body"><span class="pm-pcard-kind">${esc(CP_KIND_LABEL[r.kind] || r.kind)} · ${esc(r.story_date ? fmtDate(r.story_date) : '')}</span>
+          <span class="pm-pcard-title">${esc(head)}</span>${text ? `<span class="pm-pcard-text">${esc(text)}${text.length >= 170 ? '…' : ''}</span>` : ''}</span>
+      </button>`; }).join('')}</div>` : `<div class="pm-empty">No posts yet.</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="pm-pubroster">
+    <aside class="pm-sel" id="pmpub-sel"></aside>
+    <section class="pm-pubmain">
+      <div class="pm-chips" id="pmpub-cats"></div>
+      <div class="pm-chips pm-gchips" id="pmpub-g"></div>
+      <input class="pm-search" id="pmpub-q" placeholder="Search by name" aria-label="Search the roster" oninput="PM.pub.q=this.value;pmPubList()">
+      <div id="pmpub-list"></div>
+    </section></div>`;
+  if(!P.roster.length){ box.innerHTML = `<div class="pm-empty">This roster is still being built. Check back soon!</div>`; return; }
+  if(!P.sel || !P.roster.some(x => String(x.id) === String(P.sel))) P.sel = P.roster[0].id;
+  pmPubList(); pmPubSel();
+}
+function pmPubColor(p){ const P = PM.pub; const c = P.cats.find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); }
+function pmPubList(){
+  const P = PM.pub; if(!P) return;
+  const cb = pmEl('pmpub-cats'), gb = pmEl('pmpub-g'), box = pmEl('pmpub-list');
+  if(cb) cb.innerHTML = [{ id:'all', name:'Everyone', color:'#e9b949' }].concat(P.cats).map(c => {
+    const n = c.id === 'all' ? P.roster.length : P.roster.filter(p => String(p.category_id) === String(c.id)).length;
+    return `<button type="button" class="pm-chip pm-chip-c${String(P.cat) === String(c.id) ? ' on' : ''}" style="--pc:${pmColor(c.color, '#c9c6be')}" onclick="PM.pub.cat='${c.id}';pmPubList()">${esc(c.name)} <span>${n}</span></button>`; }).join('');
+  if(gb) gb.innerHTML = [['all','All'],['Male','Male'],['Female','Female'],['Team','Teams']].map(([k, l]) =>
+    `<button type="button" class="pm-chip pm-chip-sm${P.g === k ? ' on' : ''}" onclick="PM.pub.g='${k}';pmPubList()">${l} <span>${k === 'all' ? P.roster.length : P.roster.filter(p => p.gender === k).length}</span></button>`).join('');
+  const q = (P.q || '').trim().toLowerCase();
+  const people = P.roster.filter(p => (P.g === 'all' || p.gender === P.g) && (!q || p.name.toLowerCase().includes(q) || String(p.nickname || '').toLowerCase().includes(q)));
+  const groups = mpGroups(people, P.cats).filter(g => P.cat === 'all' || String(g.cat.id) === String(P.cat)).filter(g => g.people.length);
+  if(!box) return;
+  box.innerHTML = groups.length ? groups.map(({ cat, people }) => `<div class="pm-group">
+      <div class="pm-group-h" style="--pc:${pmColor(cat.color, '#c9c6be')}">${esc(cat.name)} <small>${people.length}</small></div>
+      ${cat.about ? `<p class="pm-group-about">${esc(cat.about)}</p>` : ''}
+      ${people.map(p => { const pc = pmPubColor(p), d = p.details || {};
+        const sub = [p.nickname, d.style, d.home].filter(Boolean).join(' · ');
+        return `<button type="button" class="pm-prow pm-prow-btn${String(P.sel) === String(p.id) ? ' on' : ''}" style="--pc:${pc}" onclick="PM.pub.sel=${Number(p.id)};pmPubList();pmPubSel(true)">
+          <span class="pm-pinit">${esc(pmInit(p.name))}</span>
+          <span class="pm-pname"><b>${esc(p.name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>
+          ${p.title ? `<span class="pm-ptitle">${esc(p.title)}</span>` : ''}
+          ${p.alignment ? `<span class="pm-align ${p.alignment.toLowerCase()}" title="${escAttr(p.alignment)}"></span>` : ''}
+        </button>`; }).join('')}
+    </div>`).join('') : `<div class="pm-empty pm-small">Nobody matches that search.</div>`;
+}
+function pmPubSel(scroll){
+  const P = PM.pub; const box = pmEl('pmpub-sel'); if(!P || !box) return;
+  const p = P.roster.find(x => String(x.id) === String(P.sel)); if(!p){ box.innerHTML = ''; return; }
+  box.innerHTML = pmPersonCard(p, pmPubColor(p), (P.cats.find(c => String(c.id) === String(p.category_id)) || {}).name || '');
+  if(scroll && matchMedia('(max-width:820px)').matches) box.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+// The big card for one person (public roster). WCA wrestlers use wcaGameRows instead.
+function pmPersonCard(p, col, catName){
+  const d = p.details || {};
+  const gender = p.gender === 'Team' ? '' : p.gender;
+  const facts = [['Gender', gender], ['Overall', d.ovr], ['Wrestler class', d.style], ['Weight class', d.wclass], ['Billed from', d.home],
+    ['Height', d.height], ['Weight', d.weight], ['Manager', d.manager], ['Team or stable', d.team], ['Rivals', d.rivals],
+    ['Entrance music', d.music], ['Catchphrase', d.catchphrase]].filter(x => x[1]);
+  const moves = [['Finishers', d.finisher], ['Signatures', d.sigs], ['Comeback', d.comeback], ['Taunts', d.taunts],
+    ['Superstar abilities', d.abilities], ['Paybacks', d.paybacks]].filter(x => x[1]);
+  const fact = ([k, v]) => `<div class="pm-fact"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
+  return `<div class="pm-selcard" style="--pc:${col}">
+    <div class="pm-selhead">
+      <span class="pm-selinit">${esc(pmInit(p.name))}</span>
+      <div><div class="pm-selcat">${esc(catName)}</div><h2 class="pm-selname">${esc(p.name)}</h2>${p.nickname ? `<div class="pm-selnick">${esc(p.nickname)}</div>` : ''}</div>
+    </div>
+    <div class="pm-selbody">
+      <div class="pm-tags">${p.alignment ? `<span class="pm-tag ${p.alignment.toLowerCase()}">${esc(p.alignment)}</span>` : ''}${p.title ? `<span class="pm-tag gold">${esc(p.title)}</span>` : ''}</div>
+      ${facts.length ? `<div class="pm-facts">${facts.map(fact).join('')}</div>` : ''}
+      ${p.bio ? `<div class="pm-lbl">Bio</div><p class="pm-bio">${esc(p.bio)}</p>` : ''}
+      ${moves.length ? `<div class="pm-facts">${moves.map(fact).join('')}</div>` : ''}
+      ${pmAttrBars(d.attrs, col)}
+      ${d.cc_tag ? `<div class="pm-cc"><i class="ti ti-download"></i> Download them in WWE 2K25 Community Creations: <b>${esc(d.cc_tag)}</b></div>` : ''}
+      ${d.more ? `<div class="pm-lbl">More</div><p class="pm-bio">${esc(d.more)}</p>` : ''}
+    </div>
+  </div>`;
+}
+function pmAttrBars(attrs, col){
+  const list = PM_ATTRS.filter(a => attrs && attrs[a] != null && attrs[a] !== '');
+  if(!list.length) return '';
+  return `<div class="pm-lbl">Attributes</div><div class="pm-bars" style="--pc:${col}">${list.map(a => { const v = Math.max(0, Math.min(100, Number(attrs[a]) || 0));
+    return `<div class="pm-bar"><span>${esc(a)}</span><i><em style="width:${v}%"></em></i><b>${v}</b></div>`; }).join('')}</div>`;
+}
+
+/* ---- WCA's own roster: WWE 2K25 details (wrestlers.game, filled in by the
+   admin). Shown on the profile only when something is filled in. ---- */
+function wcaGameRows(w){
+  const g = (w && w.game && typeof w.game === 'object') ? w.game : {};
+  const rows = [['Alignment', g.alignment], ['Overall', g.ovr], ['Wrestler class', g.style], ['Weight class', g.wclass],
+    ['Manager', g.manager], ['Team or stable', g.team], ['Rivals', g.rivals], ['Comeback', g.comeback], ['Taunts', g.taunts],
+    ['Catchphrase', g.catchphrase], ['Abilities', g.abilities], ['Paybacks', g.paybacks], ['Community Creations', g.cc_tag]];
+  return rows.map(([k, v]) => fieldRow(k, v)).join('');
+}
+function wcaGameAttrs(w){
+  const g = (w && w.game && typeof w.game === 'object') ? w.game : {};
+  return pmAttrBars(g.attrs, pmColor(g.color, '#e9b949'));
+}
+/* ===================== end PROMOTION PAGES ===================== */
+
 
 /* ===================== AI WRITING HELP =====================
    A small "Help me write" button under the main text box in Fan Reviews, the
@@ -18714,7 +19955,7 @@ function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
   // Pages reached without a nav button: account and the personal dashboard
   // (both from the user chip) and home (the logo).
-  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash') return false;
+  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   if(typeof wcaNavIcon==='function') wcaNavIcon();
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
@@ -18733,6 +19974,12 @@ function activatePage(pg){
   if(pg==='apply') loadApply();
   if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
   if(pg==='account') loadAccount();
+  // promotion pages (Oct 2026). The Promotion Portal composer goes back to the
+  // Feed whenever My Promotion isn't the page being shown.
+  if(pg!=='mypromo' && typeof CP_HOST_ID!=='undefined' && CP_HOST_ID!=='fr-composer'){ CP_HOST_ID='fr-composer'; FR_OPEN=false; }
+  if(pg==='promotions' && typeof pmDirOpen==='function') pmDirOpen();
+  if(pg==='promotion' && typeof pmPageOpen==='function') pmPageOpen();
+  if(pg==='mypromo' && typeof mpOpen==='function') mpOpen();
   // Roster star map: only run its render loop while the tab is actually open,
   // and drop out of fullscreen when navigating away.
   try{
@@ -18754,7 +20001,7 @@ function activatePage(pg){
 function restorePageFromHash(){
   let { pg, qs } = wcaRoute();
   const known = pg && (document.querySelector('nav [data-page="'+pg+'"]') ||
-                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate');
+                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo');
   if(!known) pg = '';                     // unknown address: treat it like the front door
   if(pg==='donate'){
     activatePage('home');                 // the Home script opens the donate options
@@ -22919,6 +24166,7 @@ function openMember(m, opts){
     theme ? '<div class="pf-row"><span class="pf-lbl">Theme</span><span class="pf-val">'+theme+'</span></div>' : '',
     fieldRow('Signatures', w.signatures),
     fieldRow('Finishers', w.finishers),
+    (typeof wcaGameRows==='function' ? wcaGameRows(w) : ''),
     fieldRow('Debut', fmtDate(w.debut_date)),
     fieldRow('Last Match', fmtDate(w.last_match))
   ].join('');
