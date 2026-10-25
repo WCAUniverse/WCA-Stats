@@ -6624,6 +6624,123 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .slv-thumb.on{border-color:var(--gold);opacity:1}
   .slv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
   html.slv-open{overflow:hidden}
+  /* personality sliders (roster editors and profiles) */
+  .pm-traits{display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-top:8px;}
+  .pm-trait{border:1px solid var(--line); border-radius:10px; padding:10px 14px 8px; background:rgba(0,0,0,.18);}
+  .pm-trait-ends{display:flex; justify-content:space-between; font-family:var(--font-cond, 'Barlow Condensed', sans-serif); font-weight:600; letter-spacing:1px; text-transform:uppercase; font-size:13.5px;}
+  .pm-trait input[type=range]{width:100%; margin:8px 0 4px; accent-color:var(--gold, #e9b949);}
+  .pm-trait-foot{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .pm-trait-val{font-size:14px; color:var(--gold, #e9b949);}
+  .pm-trait.unset .pm-trait-val{color:var(--muted, #8a8a86);}
+  .pm-trait.unset input[type=range]{opacity:.45;}
+  .pm-trait-clear{background:none; border:0; padding:2px 4px; color:var(--muted, #8a8a86); font:inherit; font-size:12.5px; cursor:pointer; text-decoration:underline;}
+  .pm-trait.unset .pm-trait-clear{visibility:hidden;}
+  .pm-tbars{display:flex; flex-direction:column; gap:12px; margin:4px 0 14px;}
+  .pm-tbar{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:4px 10px; font-size:13.5px;}
+  .pm-tbar-l{text-align:right; color:var(--muted, #8a8a86);} .pm-tbar-r{color:var(--muted, #8a8a86);}
+  .pm-tbar-l.on,.pm-tbar-r.on{color:var(--txt, #f2f2f0); font-weight:700;}
+  .pm-tbar-track{display:flex; align-items:center; gap:5px; font-style:normal;}
+  .pm-tbar-track em{width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);}
+  .pm-tbar-track em.mid{border-radius:3px;}
+  .pm-tbar-track em.at{background:var(--pc, #e9b949); border-color:var(--pc, #e9b949); box-shadow:0 0 0 3px color-mix(in srgb, var(--pc, #e9b949) 28%, transparent);}
+  .pm-tbar small{grid-column:1 / -1; text-align:center; font-size:12.5px; color:var(--pc, #e9b949);}
+  @media (max-width:640px){ .pm-traits{grid-template-columns:1fr;} .pm-tbar-track em{width:10px; height:10px;} }
+
+/* ===== Promotions, bigger and centered (Oct 2026) ===== */
+.pm-dirhead{text-align:center; margin:6px auto 22px; max-width:760px;}
+.pm-dirkick{font-family:var(--font-cond); font-weight:600; letter-spacing:3px; text-transform:uppercase; font-size:14px; color:var(--gold);}
+.pm-dirtitle{margin:4px 0 8px; font-family:var(--font-display); font-weight:400; font-size:clamp(40px,6vw,64px); line-height:1; letter-spacing:1px; text-transform:uppercase; color:#fff;}
+.pm-dirintro{margin:0; font-size:17px; line-height:1.6; color:var(--txt-2);}
+#page-promotions .pm-dirtools{display:flex; justify-content:center; margin:0 0 30px;}
+#page-promotions .pm-dirtools input{width:min(440px,100%); font-size:16px; padding:12px 16px; text-align:center;}
+#page-promotions .pm-dirgrid{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:56px 52px; padding:6px 0 20px;}
+#page-promotions .pm-dircard{width:320px; align-items:center; text-align:center; gap:0; border:0; background:none; overflow:visible; border-radius:0; transition:transform .2s ease;}
+#page-promotions .pm-dircard:hover{transform:translateY(-6px); border:0;}
+.pm-dir-art{width:320px; height:220px; display:flex; align-items:center; justify-content:center;}
+.pm-dir-art img.pm-dir-logo{max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; display:block; transition:filter .2s;}
+.pm-dircard:hover .pm-dir-art img{filter:drop-shadow(0 10px 28px rgba(0,0,0,.62));}
+.pm-dir-art .pm-dir-logo.pm-logo-init{width:220px; height:220px; border-radius:24px; font-size:76px;}
+.pm-dir-name{display:block; margin-top:16px; font-family:var(--font-display); font-weight:400; font-size:30px; line-height:1.1; letter-spacing:1px; text-transform:uppercase; color:#fff; overflow-wrap:anywhere;}
+.pm-dircard:hover .pm-dir-name{color:var(--pc);}
+.pm-dir-sub{display:block; margin-top:6px; font-family:var(--font-cond); font-weight:600; letter-spacing:1.6px; text-transform:uppercase; font-size:14px; color:var(--muted);}
+.pm-dir-about{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-top:10px; font-size:15px; line-height:1.55; color:var(--txt-2); max-width:300px;}
+/* one promotion */
+.pm-hero.pm-hero-c{position:relative; text-align:center; padding:34px 24px 26px; display:flex; flex-direction:column; align-items:center; background:var(--panel);}
+.pm-hero-glow{position:absolute; inset:0; pointer-events:none; background:radial-gradient(60% 70% at 50% 0%, color-mix(in srgb, var(--pc) 22%, transparent), transparent 70%);}
+.pm-hero-c > *{position:relative;}
+.pm-hero-art{width:min(360px,100%); height:220px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;}
+.pm-hero-art img.pm-hero-logo{width:auto; height:auto; max-width:100%; max-height:100%; flex:none; border-radius:0; object-fit:contain;}
+.pm-hero-art .pm-hero-logo.pm-logo-init{width:200px; height:200px; flex:none; border-radius:24px; font-size:70px;}
+.pm-hero-c .pm-kick{font-size:14px; color:var(--gold);}
+.pm-hero-c .pm-title{font-size:clamp(38px,5.6vw,60px); margin:4px 0 10px;}
+.pm-hero-c .pm-hero-about{margin:0 auto 18px; font-size:17.5px; max-width:760px;}
+.pm-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:0; margin:0 0 18px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:rgba(0,0,0,.22);}
+.pm-stats span{display:flex; flex-direction:column; align-items:center; padding:12px 26px; min-width:110px;}
+.pm-stats span + span{border-left:1px solid var(--line);}
+.pm-stats b{font-family:var(--font-display); font-weight:400; font-size:30px; line-height:1; color:#fff;}
+.pm-stats small{margin-top:6px; font-family:var(--font-cond); font-weight:600; letter-spacing:1.5px; text-transform:uppercase; font-size:13px; color:var(--muted);}
+.pm-hero-c .pm-hero-links{justify-content:center; margin-bottom:14px;}
+.pm-hero-c .pm-hero-links a{font-size:15px; padding:8px 14px;}
+.pm-hero-c .pm-hero-acts{flex-direction:row; align-items:center; justify-content:center; flex-wrap:wrap;}
+#pmpage-body .pm-crumbs{text-align:center;}
+#pmpage-body .pm-tabs-u{justify-content:center; gap:34px; margin:22px 0 22px; padding:0; border-bottom:1px solid var(--line);}
+#pmpage-body .pm-tabs-u .pm-tab{border:0; border-radius:0; background:none; padding:12px 4px; margin-bottom:-1px; font-size:18px; color:var(--muted); border-bottom:3px solid transparent;}
+#pmpage-body .pm-tabs-u .pm-tab:hover{color:var(--txt);}
+#pmpage-body .pm-tabs-u .pm-tab.on{background:none; color:var(--gold); border-bottom-color:var(--gold);}
+@media (max-width:820px){
+  #page-promotions .pm-dirgrid{gap:36px 24px;}
+  #page-promotions .pm-dircard,.pm-dir-art{width:min(320px,100%);}
+  .pm-dir-art{height:180px;}
+  .pm-dir-art .pm-dir-logo.pm-logo-init{width:170px; height:170px; font-size:60px;}
+  .pm-dir-name{font-size:26px;}
+  .pm-hero-art{height:170px;}
+  .pm-hero-art .pm-hero-logo.pm-logo-init{width:150px; height:150px; font-size:52px;}
+  .pm-stats span{padding:10px 14px; min-width:0; flex:1 1 40%;}
+  .pm-stats span + span{border-left:0;}
+  .pm-stats{display:grid; grid-template-columns:1fr 1fr;}
+  .pm-stats span:nth-child(even){border-left:1px solid var(--line);}
+  .pm-stats span:nth-child(n+3){border-top:1px solid var(--line);}
+  #pmpage-body .pm-tabs-u{gap:22px;}
+}
+.hm-sponsors:empty{display:none;}
+.hm-sponsors .dspo-strip{margin-top:0;}
+
+/* ===== Events: one page with a left rail of every show ===== */
+.evx{display:grid; grid-template-columns:250px minmax(0,1fr); gap:26px; align-items:start;}
+.evx-rail{position:sticky; top:146px; max-height:calc(100vh - 166px); overflow:auto; border:1px solid var(--line); border-radius:12px; background:rgba(14,14,16,.94); backdrop-filter:blur(6px); padding:12px; scrollbar-width:thin;}
+.evx-kick{display:block; font-family:var(--font-display); font-size:11.5px; letter-spacing:2.2px; text-transform:uppercase; color:var(--gold);}
+.evx-past{margin:16px 4px 8px;}
+.evx-up{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:12px 12px; border-radius:10px; border:1px solid rgba(233,185,73,.35); background:rgba(233,185,73,.06); color:var(--txt); cursor:pointer; font:inherit;}
+.evx-up.on{background:rgba(233,185,73,.16); border-color:var(--gold);}
+.evx-up .evx-sn{font-weight:700; font-size:15px;}
+.evx-search{display:flex; align-items:center; gap:8px; border:1px solid var(--line, #26262e); border-radius:8px; padding:7px 10px; background:rgba(0,0,0,.25); margin:0 0 8px;}
+.evx-search i{color:var(--muted, #8d8a82);}
+.evx-search input{flex:1; min-width:0; background:transparent; border:0; outline:0; color:var(--txt); font:inherit; font-size:14px;}
+.evx-year{font-family:var(--font-display); font-size:12px; letter-spacing:2px; color:var(--muted, #8d8a82); margin:12px 6px 4px; padding-bottom:4px; border-bottom:1px solid var(--line, #26262e);}
+.evx-show{display:flex; justify-content:space-between; align-items:baseline; gap:10px; width:100%; text-align:left; padding:8px 10px; border-radius:8px; border:0; background:transparent; color:var(--txt); cursor:pointer; font:inherit; font-size:14.5px;}
+.evx-show:hover{background:rgba(255,255,255,.05);}
+.evx-show.on{background:rgba(233,185,73,.14); color:var(--gold); box-shadow:inset 3px 0 0 var(--gold);}
+.evx-sn{overflow-wrap:anywhere;}
+.evx-sd{flex:0 0 auto; font-size:12.5px; color:var(--muted, #8d8a82);}
+.evx-none{padding:10px 8px; font-size:13.5px; color:var(--muted, #8d8a82);}
+.evx-pick{display:none;}
+.evx-live{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 16px; margin:0 0 16px; border-radius:10px; border:1px solid var(--bad, #cf3e3e); background:linear-gradient(90deg,rgba(207,62,62,.22),rgba(207,62,62,.06)); color:#fff; text-decoration:none; font-size:15px;}
+.evx-live b{font-family:var(--font-display); letter-spacing:2px; text-transform:uppercase;}
+.evx-live-go{margin-left:auto; color:var(--gold); font-weight:700;}
+.evx-cd{display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; margin:14px 0 6px; padding:14px; border-radius:12px; border:1px solid rgba(233,185,73,.3); background:rgba(233,185,73,.05);}
+.evx-cd-k{font-family:var(--font-display); font-size:12px; letter-spacing:2.4px; text-transform:uppercase; color:var(--gold); margin-right:4px;}
+.evx-cd-u{display:flex; flex-direction:column; align-items:center; min-width:58px;}
+.evx-cd-u b{font-family:var(--font-display); font-size:28px; line-height:1;}
+.evx-cd-u small{font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted, #8d8a82); margin-top:4px;}
+@media (max-width:900px){
+  .evx{grid-template-columns:minmax(0,1fr); gap:0;}
+  .evx-rail{display:none;}
+  .evx-pick{display:flex; align-items:center; gap:10px; margin:0 0 14px;}
+  .evx-pick-l{font-family:var(--font-display); font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--gold);}
+  .evx-sel{flex:1; min-width:0; background:#16161a; color:var(--txt); border:1px solid var(--line, #26262e); border-radius:8px; padding:10px 12px; font:inherit; font-size:15px;}
+  .evx-cd-u b{font-size:22px;}
+}
+
   .sl-linkbox{align-items:flex-start}
   .sl-linkbox textarea{flex:1 1 220px;min-width:0;min-height:46px;resize:vertical;font:inherit}
   .sl-photo-src{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
@@ -6853,6 +6970,71 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     .pm-prow:not(.pm-prow-btn) .pm-pname{flex:1 1 calc(100% - 50px);}
     .pm-prow:not(.pm-prow-btn) .spc-mini:first-of-type{margin-left:46px;}
   }
+  /* ===== HEADER AND FOOTER (Oct 2026) =====
+     A computer gets two tidy rows, everything centered:
+       row 1: Enter Fire Pro on the left, the logo in the middle, Donate,
+              Get the App and the account on the right (the bell at the far right)
+       row 2: the menu, on ONE line in bigger text. If a small screen can't fit
+              it, the menu scrolls sideways instead of wrapping.
+     Phones keep the menu button and the stacked list they have now. The
+     socials moved to the footer at the bottom of every page. */
+  nav .nav-off{display:none !important;}
+  @media(min-width:761px){
+    header .head-inner{display:grid; grid-template-columns:44px minmax(0,1fr) auto minmax(0,1fr) 44px;
+      grid-template-areas:"x fp brand acts bell" "nav nav nav nav nav";
+      align-items:center; column-gap:14px; row-gap:0; max-width:1360px; margin:0 auto; padding:12px 22px 0;}
+    header .brand{grid-area:brand; justify-self:center;}
+    header .brand .logo-img{height:62px;}
+    header .nav-toggle{display:none !important;}
+    header .notif-btn{grid-area:bell; justify-self:end; margin:0;}
+    header .head-right{display:contents;}
+    header .head-right > nav{grid-area:nav; display:flex; flex-wrap:nowrap; justify-content:flex-start; gap:2px;
+      overflow-x:auto; overflow-y:hidden; scrollbar-width:none; min-width:0; padding:4px 0 6px; scroll-behavior:smooth;}
+    header .head-right > nav::-webkit-scrollbar{display:none;}
+    /* auto margins center the row, and still let it scroll from the very first item when it overflows */
+    header .head-right > nav > :first-child{margin-left:auto;}
+    header .head-right > nav > :last-child{margin-right:auto;}
+    header nav > a, header nav .navdrop-trigger{flex:0 0 auto; white-space:nowrap; font-size:16px; letter-spacing:1.5px; padding:12px 16px 11px;}
+    header nav > a::after, header nav .navdrop-trigger::after{left:16px; right:16px;}
+    header nav .navdrop{flex:0 0 auto;}
+    /* a dropdown can't hang below a row that scrolls, so it opens fixed under its button (wcaToggleDrop places it) */
+    header nav .navdrop-menu{position:fixed; top:auto; left:auto;}
+    header #nav-firepro{grid-area:fp; justify-self:start; font-size:10px !important; padding:8px 14px !important; letter-spacing:1.2px !important; line-height:1.2; border-width:1px !important;}
+    header .head-actions{grid-area:acts; justify-self:end; display:flex; align-items:center; gap:10px; flex-wrap:nowrap; min-width:0;}
+    header .head-actions .donate-btn{font-size:14px; padding:10px 16px;}
+  }
+  /* a narrower computer: the side buttons get smaller before anything wraps */
+  @media(min-width:761px) and (max-width:1180px){
+    header .head-inner{grid-template-columns:0 minmax(0,1fr) auto minmax(0,1fr) 40px; column-gap:10px;}
+    /* Donate and Get the App become icon buttons (they keep their tooltip) */
+    header .head-actions .donate-btn{font-size:0; gap:0; padding:9px 11px;}
+    header .head-actions .donate-btn i{font-size:18px;}
+    header #nav-firepro{font-size:9px !important; padding:7px 10px !important;}
+    header .brand .logo-img{height:52px;}
+    header .user-chip{flex-wrap:nowrap;}
+    header .user-chip .ucol{min-width:0;}
+  }
+  header #nav-firepro{text-decoration:none;}
+  header .user-chip{white-space:nowrap; display:flex; flex-wrap:nowrap; align-items:center;}
+  header .head-actions > *{flex:0 0 auto;}
+  @media(max-width:760px){
+    .head-actions{display:flex; flex-direction:column; align-items:stretch; gap:12px;}
+    .head-actions > .donate-btn{width:100%;}
+    .head-actions > .userbox{display:flex;}
+    header #nav-firepro{text-align:center; font-size:11px !important; padding:13px 14px !important;}
+  }
+  /* the footer */
+  .site-foot{border-top:1px solid var(--au-hair, rgba(var(--gold-rgb),.34)); background:linear-gradient(180deg, rgba(11,11,14,.96), rgba(6,6,8,.98)); position:relative; z-index:1;}
+  .site-foot .sf-in{max-width:1180px; margin:0 auto; padding:34px 24px 20px; text-align:center;}
+  .site-foot .sf-logo{height:64px; width:auto; display:block; margin:0 auto;}
+  .site-foot .sf-tag{margin:10px auto 18px; max-width:520px; font-family:var(--font-body); font-size:15.5px; line-height:1.6; color:var(--muted);}
+  .site-foot .sf-socials{justify-content:center; gap:12px; flex-wrap:wrap; margin:0;}
+  .site-foot .sf-socials a{width:48px; height:48px; font-size:24px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.02); color:var(--txt-2);}
+  .site-foot .sf-socials a:hover{border-color:currentColor; box-shadow:0 0 18px -6px currentColor;}
+  .site-foot .sf-links{display:flex; gap:8px 24px; justify-content:center; flex-wrap:wrap; margin-top:22px;}
+  .site-foot .sf-links a{font-family:var(--font-body); font-size:15px; color:var(--txt-2); text-decoration:none;}
+  .site-foot .sf-links a:hover{color:var(--gold);}
+  .site-foot .sf-copy{max-width:1180px; margin:0 auto; padding:12px 24px 22px; border-top:1px solid rgba(255,255,255,.06); font-family:var(--font-body); font-size:13px; color:var(--muted2,#5c5c58); text-align:center;}
 </style>
 
 <!-- ===== HOME PAGE styles ===== -->
@@ -7767,33 +7949,31 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
       <nav>
         <!-- Flat list on purpose. Dropdown groups are built at runtime from the
              admin's saved layout (Admin -> Layout), so they can be created,
-             renamed, reordered and refilled without editing this markup. -->
+             renamed, reordered and refilled without editing this markup.
+             Oct 2026: one centered line. Past Events is part of Events now and
+             Sponsors lives in the footer, so their links stay here hidden
+             (pages need a nav link to open) and show nowhere on the bar. -->
         <a href="/feed" data-page="storylines" class="active">Feed</a>
-        <a href="/events" data-page="events">Upcoming Events</a>
-        <a href="/archive" data-page="archive">Past Events</a>
+        <a href="/events" data-page="events">Events</a>
+        <a href="/archive" data-page="archive" class="nav-off" tabindex="-1" aria-hidden="true">Past Events</a>
         <a href="/live" data-page="live" id="nav-live-btn">Watch Live</a>
-        <a href="/rankings" data-page="rankings">Rankings</a>
-        <a href="/leaderboard" data-page="leaderboard">Leaderboard</a>
         <a href="/roster" data-page="roster">Roster</a>
-        <a href="/timeline" data-page="timeline">Timeline</a>
-        <a href="/apply" data-page="apply">Apply</a>
-        <a href="/sponsors" data-page="sponsors">Sponsors</a>
-        <a href="/showdown" data-page="showdown">Showdown</a>
+        <a href="/rankings" data-page="rankings">Rankings</a>
+        <a href="/leaderboard" data-page="leaderboard">Betting</a>
         <a href="/promotions" data-page="promotions">Promotions</a>
-        <a href="/firepro/" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
+        <a href="/timeline" data-page="timeline">Timeline</a>
+        <a href="/showdown" data-page="showdown">Showdown</a>
+        <a href="/apply" data-page="apply">Apply</a>
+        <a href="/sponsors" data-page="sponsors" class="nav-off" tabindex="-1" aria-hidden="true">Sponsors</a>
       </nav>
-      <div class="socials">
-        <a href="https://infantryink-shop.fourthwall.com/" id="merchLink" data-social="merch" target="_blank" rel="noopener noreferrer" aria-label="Merch" title="Shop Merch"><i class="ti ti-shopping-bag"></i></a>
-        <a href="https://twitch.tv/Infantryink" data-social="twitch" target="_blank" rel="noopener noreferrer" aria-label="Twitch" title="Twitch"><i class="ti ti-brand-twitch"></i></a>
-        <a href="https://youtube.com/@WCAUniverse" data-social="youtube" target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube"><i class="ti ti-brand-youtube"></i></a>
-        <a href="https://tiktok.com/@wcauniverse" data-social="tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><i class="ti ti-brand-tiktok"></i></a>
-        <a href="https://instagram.com/wcauniverse" data-social="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
-        <a href="https://discord.gg/SBFAnU8SDT" data-social="discord" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
-      </div>
+      <!-- the glowing Fire Pro button: top left on a computer, in the menu on a phone -->
+      <a href="/firepro/" id="nav-firepro" data-page="firepro" onclick="fpEnter(event)">⚡ Enter Fire Pro</a>
+      <div class="head-actions">
       <button class="donate-btn" id="donateBtn" type="button" onclick="openDonate()" title="Help fund the website"><i class="ti ti-heart"></i> Donate</button>
       <button class="donate-btn app-btn" id="appBtn" type="button" onclick="wcaInstall()" title="Install WCA on your phone or computer" hidden><i class="ti ti-download"></i> Get the App</button>
       <div class="userbox" id="userbox">
         <button class="login-btn" id="loginBtn"><i class="ti ti-brand-discord"></i> Sign in</button>
+      </div>
       </div>
     </div>
   </div>
@@ -7841,6 +8021,8 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
         </div>
         <div class="hm-guide" id="hm-guide"></div>
       </section>
+
+      <section class="hm-sec hm-sponsors" id="dash-sponsors" aria-label="Sponsors"></section>
 
       <section class="hm-sec hm-panel hm-donate hm-rise" id="hm-donate">
         <div class="hm-eyebrow">Keep the lights on</div>
@@ -7975,7 +8157,13 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
 
   <!-- EVENTS / FIGHT CARD -->
   <div class="page" id="page-events">
-    <div id="events-content"><div class="loading">Loading…</div></div>
+    <div class="evx">
+      <aside class="evx-rail" data-evrail aria-label="Shows"></aside>
+      <div class="evx-main">
+        <div class="evx-pick" data-evpick></div>
+        <div id="events-content"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- RANKINGS (all divisions in one tab) -->
@@ -8015,7 +8203,7 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
 
   <!-- LEADERBOARD (points: recent event standings + all-time winnings) -->
   <div class="page" id="page-leaderboard">
-    <div class="section-title">Points Leaderboard</div>
+    <div class="section-title">Betting Leaderboard</div>
     <p class="sl-intro">Who's the sharpest bettor in the WCA? Everyone starts each event level —
       so these standings rank pure betting skill, not who's been around longest.</p>
     <div class="roster-filters" id="lb-filters">
@@ -8029,11 +8217,19 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
 
   <!-- ARCHIVE (completed events: card + results + bets + linked storylines) -->
   <div class="page" id="page-archive">
-    <div class="section-title">Event Archive</div>
-    <p class="sl-intro">Every WCA event that's in the books — full match cards, who won,
-      the final betting standings, and the storylines tied to each show.</p>
-    <div id="archive-list"><div class="loading">Loading…</div></div>
-    <div id="archive-detail" style="display:none"></div>
+    <div class="evx">
+      <aside class="evx-rail" data-evrail aria-label="Shows"></aside>
+      <div class="evx-main">
+        <div class="evx-pick" data-evpick></div>
+        <div id="archive-list-head">
+          <div class="section-title">Past Shows</div>
+          <p class="sl-intro">Every WCA show in the books. Full match cards, who won,
+            the final betting standings and the storylines tied to each show.</p>
+        </div>
+        <div id="archive-list"><div class="loading">Loading…</div></div>
+        <div id="archive-detail" style="display:none"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ROSTER — STAR MAP
@@ -8263,8 +8459,11 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
 
   <!-- ===== PROMOTIONS (Oct 2026): the directory, one promotion, and My Promotion ===== -->
   <div class="page" id="page-promotions">
-    <div class="section-title">Promotions</div>
-    <p class="sl-intro">Wrestling promotions from across the WCA Universe. Pick one to see its posts and its roster.</p>
+    <div class="pm-dirhead">
+      <div class="pm-dirkick">The WCA Universe</div>
+      <h1 class="pm-dirtitle">Promotions</h1>
+      <p class="pm-dirintro">Wrestling promotions from across the WCA Universe. Pick one to see its posts and its roster.</p>
+    </div>
     <div id="pmdir-body"></div>
   </div>
   <div class="page" id="page-promotion"><div id="pmpage-body"></div></div>
@@ -8277,6 +8476,33 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     </div>
   </div>
 </div>
+
+
+<!-- ===== FOOTER (Oct 2026): the bottom of every page. The socials moved here
+     from the header. Same .socials block, so Admin > Layout still orders and
+     hides them, and the Merch link still comes from the admin. ===== -->
+<footer class="site-foot" id="siteFoot">
+  <div class="sf-in">
+    <img class="sf-logo" src="brand/wca-logo-sm.png" alt="WCA, World Championship Alliance" width="62" height="58" loading="lazy">
+    <p class="sf-tag">The World Championship Alliance. A live pro wrestling universe built on WWE 2K25.</p>
+    <div class="socials sf-socials">
+      <a href="https://infantryink-shop.fourthwall.com/" id="merchLink" data-social="merch" target="_blank" rel="noopener noreferrer" aria-label="Merch" title="Shop Merch"><i class="ti ti-shopping-bag"></i></a>
+      <a href="https://twitch.tv/Infantryink" data-social="twitch" target="_blank" rel="noopener noreferrer" aria-label="Twitch" title="Twitch"><i class="ti ti-brand-twitch"></i></a>
+      <a href="https://youtube.com/@WCAUniverse" data-social="youtube" target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube"><i class="ti ti-brand-youtube"></i></a>
+      <a href="https://tiktok.com/@wcauniverse" data-social="tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok" title="TikTok"><i class="ti ti-brand-tiktok"></i></a>
+      <a href="https://instagram.com/wcauniverse" data-social="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram"><i class="ti ti-brand-instagram"></i></a>
+      <a href="https://discord.gg/SBFAnU8SDT" data-social="discord" target="_blank" rel="noopener noreferrer" aria-label="Discord" title="Discord"><i class="ti ti-brand-discord"></i></a>
+    </div>
+    <div class="sf-links">
+      <a href="/sponsors">Sponsors</a>
+      <a href="/apply">Apply</a>
+      <a href="/promotions">Promotions</a>
+      <a href="/timeline">Timeline</a>
+      <a href="#" onclick="openDonate();return false;">Donate</a>
+    </div>
+  </div>
+  <div class="sf-copy">© <span id="sfYear">2026</span> World Championship Alliance. A fan made universe.</div>
+</footer>
 
 <!-- WRESTLER PROFILE MODAL -->
 <div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)closeProfile()">
@@ -8533,9 +8759,25 @@ async function loadMerchLink(){
   const a = document.getElementById('merchLink');
   if(a && row.merch_url){ a.href = row.merch_url; }
   // nav order + visibility
-  applyLayout(document.querySelector('nav'), '[data-page]', 'page', row.nav_layout);
+  applyLayout(document.querySelector('nav'), '[data-page]', 'page', navLayoutForHeader(row.nav_layout));
   // social order + visibility
   applyLayout(document.querySelector('.socials'), 'a[data-social]', 'social', row.social_layout);
+}
+// A layout saved before the two row header still lists Past Events, Sponsors
+// and Fire Pro and keeps Events as a dropdown. Past Events now lives inside
+// Events, Sponsors is in the footer and Fire Pro has its own button, so for
+// an old layout keep only what was hidden and use the new menu order. Saving
+// the layout again in admin replaces it for good.
+function navLayoutForHeader(layout){
+  if(!Array.isArray(layout) || !layout.length) return layout;
+  const flat = [];
+  layout.forEach(e=>{ if(!e) return; if(e.group) (e.items||[]).forEach(i=>i && flat.push({key:i.key, hidden:!!(i.hidden||e.hidden)})); else flat.push({key:e.key, hidden:!!e.hidden}); });
+  const legacy = flat.some(e=>e.key==='archive' || e.key==='sponsors' || e.key==='firepro');
+  if(!legacy) return layout;
+  const hid = new Set(flat.filter(e=>e.hidden).map(e=>e.key));
+  return [...document.querySelectorAll('nav [data-page]')].map(a=>a.getAttribute('data-page'))
+    .filter(k=>k!=='archive' && k!=='sponsors')
+    .map(k=>({key:k, hidden:hid.has(k)}));
 }
 // Rebuild `container` from a saved layout.
 //
@@ -12068,11 +12310,44 @@ async function loadEvents(){
   }
 
   const evStream = streamEmbed(ev.stream_url);
-  el.innerHTML = hero + (evStream ? `<div class="ev-player">${evStream}</div>` : '') + cardHTML;
+  // Countdown to the show, only while it's still ahead
+  const evT = ev.event_date ? new Date(ev.event_date).getTime() : NaN;
+  const cdHTML = (!ev.is_complete && !isNaN(evT) && evT > Date.now())
+    ? `<div class="evx-cd" id="evx-cd" data-t="${evT}" aria-label="Time until the show"></div>` : '';
+  el.innerHTML = `<div class="evx-livehost" id="evx-livehost"></div>` + hero + cdHTML + (evStream ? `<div class="ev-player">${evStream}</div>` : '') + cardHTML;
+  evxCountdownStart();
+  evxLiveBar(ev);
+  try{ renderEventRails(); }catch(e){}
   bindNameLinks(el);
   // WCA Showdown episode? brand banner + brand colour on the hero
   try{ if(typeof sdDecorateEvent==='function') sdDecorateEvent(ev, el); }catch(e){}
   collapseStreamChatOnMobile(el);
+}
+
+// The live bar on Events shows only while a show is on air.
+async function evxLiveBar(ev){
+  const host = document.getElementById('evx-livehost');
+  if(!host) return;
+  let ln = null;
+  try{ ln = (await sb.from('live_now').select('*').eq('id',1).single()).data || null; }catch(e){}
+  const st = Object.values((CURRENT_CTX && CURRENT_CTX.statusBySlot) || {});
+  if(!wcaShowIsLive(ev, ln, st)){ host.innerHTML=''; return; }
+  host.innerHTML = `<a class="evx-live" href="/live" onclick="event.preventDefault();goPage('live')">`+
+    `<span class="live-dot"></span><b>Live now</b><span>${esc(ev.name||'The show')} is on</span><span class="evx-live-go">Watch Live <i class="ti ti-arrow-right"></i></span></a>`;
+}
+let EVX_CD_TIMER = null;
+function evxCountdownStart(){
+  if(EVX_CD_TIMER){ clearInterval(EVX_CD_TIMER); EVX_CD_TIMER=null; }
+  const tick = ()=>{
+    const box = document.getElementById('evx-cd');
+    if(!box){ clearInterval(EVX_CD_TIMER); EVX_CD_TIMER=null; return; }
+    const diff = Number(box.dataset.t) - Date.now();
+    if(diff <= 0){ box.innerHTML = `<span class="evx-cd-k">Starting now</span>`; clearInterval(EVX_CD_TIMER); EVX_CD_TIMER=null; return; }
+    const t = Math.floor(diff/1000), pad = n=>String(n).padStart(2,'0');
+    const u = (n,l)=>`<span class="evx-cd-u"><b>${n}</b><small>${l}</small></span>`;
+    box.innerHTML = `<span class="evx-cd-k">Starts in</span>` + u(Math.floor(t/86400),'Days') + u(pad(Math.floor(t%86400/3600)),'Hours') + u(pad(Math.floor(t%3600/60)),'Mins') + u(pad(t%60),'Secs');
+  };
+  tick(); EVX_CD_TIMER = setInterval(tick, 1000);
 }
 
 // ===== LIVE PAGE =====
@@ -13822,6 +14097,107 @@ function sdShowdownIds(){
 }
 let ARCHIVE_EVENTS = [];
 let ARCHIVE_PENDING = null;
+let ARCHIVE_OPEN_ID = null;
+
+/* ===== EVENTS LEFT RAIL =====
+   One rail on Events and on Past Shows: Upcoming at the top, then every past
+   show grouped by year, with a search box. Clicking a show opens its results
+   beside the rail. On a phone the rail turns into a dropdown. */
+let EVRAIL_Q = '';
+function evRailYear(ev){
+  const d = ev && ev.event_date ? new Date(ev.event_date) : null;
+  return d && !isNaN(d) ? String(d.getFullYear()) : 'Earlier';
+}
+function evRailDate(ev){
+  if(!ev || !ev.event_date) return '';
+  const d = new Date(ev.event_date); if(isNaN(d)) return '';
+  return d.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+}
+function evRailMatch(ev, q){
+  if(!q) return true;
+  return ((ev.name||'') + ' ' + (ev.tagline||'') + ' ' + (ev.champion_name||'') + ' ' + evRailYear(ev) + ' ' + evRailDate(ev)).toLowerCase().includes(q);
+}
+function renderEventRails(){
+  const pa = document.getElementById('page-archive');
+  const onArchive = !!(pa && pa.classList.contains('active'));
+  const openId = onArchive ? ARCHIVE_OPEN_ID : null;
+  const upActive = !onArchive;
+  const q = EVRAIL_Q.trim().toLowerCase();
+  const up = (typeof CURRENT_EVENT!=='undefined' && CURRENT_EVENT && !CURRENT_EVENT.is_complete) ? CURRENT_EVENT : null;
+  const years = []; const byYear = {};
+  (ARCHIVE_EVENTS||[]).forEach(ev=>{ const y = evRailYear(ev); if(!byYear[y]){ byYear[y]=[]; years.push(y); } byYear[y].push(ev); });
+
+  let list = '';
+  years.forEach(y=>{
+    const rows = byYear[y].filter(ev=>evRailMatch(ev, q));
+    if(!rows.length) return;
+    list += `<div class="evx-year">${esc(y)}</div>` + rows.map(ev=>
+      `<button type="button" class="evx-show${String(ev.id)===String(openId)?' on':''}" data-id="${escAttr(String(ev.id))}" onclick="evRailOpen(this.dataset.id)"`+
+      `${String(ev.id)===String(openId)?' aria-current="true"':''}>`+
+        `<span class="evx-sn">${esc(ev.name||'Show')}</span>`+
+        `<span class="evx-sd">${esc(evRailDate(ev))}</span>`+
+      `</button>`).join('');
+  });
+  if(!list) list = (ARCHIVE_EVENTS||[]).length ? `<div class="evx-none">No shows match that.</div>` : `<div class="evx-none">Past shows show up here once they're in the books.</div>`;
+
+  const railHTML =
+    `<button type="button" class="evx-up${upActive?' on':''}" onclick="evRailOpen('')"${upActive?' aria-current="true"':''}>`+
+      `<span class="evx-kick">Upcoming</span>`+
+      `<span class="evx-sn">${up ? esc(up.name||'Next show') : 'Next show'}</span>`+
+      `${up && up.event_date ? `<span class="evx-sd">${esc(evRailDate(up))}</span>` : ''}`+
+    `</button>`+
+    `<div class="evx-kick evx-past">Past shows</div>`+
+    `<label class="evx-search"><i class="ti ti-search" aria-hidden="true"></i>`+
+      `<input type="search" placeholder="Search shows" aria-label="Search past shows" value="${escAttr(EVRAIL_Q)}" oninput="evRailSearch(this)"></label>`+
+    `<div class="evx-list">${list}</div>`;
+
+  let opts = `<option value=""${upActive?' selected':''}>Upcoming${up?': '+esc(up.name||''):''}</option>`;
+  years.forEach(y=>{
+    opts += `<optgroup label="${escAttr(y)}">` + byYear[y].map(ev=>
+      `<option value="${escAttr(String(ev.id))}"${String(ev.id)===String(openId)?' selected':''}>${esc(ev.name||'Show')}</option>`).join('') + `</optgroup>`;
+  });
+  if(onArchive && !openId) opts = `<option value="__all" selected>All past shows</option>` + opts;
+  const pickHTML = `<span class="evx-pick-l">Show</span><select class="evx-sel" aria-label="Pick a show" onchange="evRailOpen(this.value)">${opts}</select>`;
+
+  document.querySelectorAll('[data-evrail]').forEach(r=>{
+    const had = r.contains(document.activeElement) && document.activeElement.tagName==='INPUT';
+    const pos = had ? document.activeElement.selectionStart : 0;
+    r.innerHTML = railHTML;
+    if(had){ const i=r.querySelector('input'); if(i){ i.focus(); try{ i.setSelectionRange(pos,pos); }catch(e){} } }
+  });
+  document.querySelectorAll('[data-evpick]').forEach(p=>{ p.innerHTML = pickHTML; });
+}
+function evRailSearch(inp){
+  EVRAIL_Q = inp.value || '';
+  // only the list changes, so the box keeps focus while typing
+  const q = EVRAIL_Q.trim().toLowerCase();
+  document.querySelectorAll('[data-evrail] .evx-list').forEach(list=>{
+    let shown = 0;
+    list.querySelectorAll('.evx-show').forEach(b=>{
+      const ev = (ARCHIVE_EVENTS||[]).find(e=>String(e.id)===String(b.dataset.id));
+      const ok = !ev || evRailMatch(ev, q); b.style.display = ok ? '' : 'none'; if(ok) shown++;
+    });
+    list.querySelectorAll('.evx-year').forEach(h=>{
+      let n=h.nextElementSibling, any=false;
+      while(n && !n.classList.contains('evx-year')){ if(n.classList.contains('evx-show') && n.style.display!=='none') any=true; n=n.nextElementSibling; }
+      h.style.display = any ? '' : 'none';
+    });
+    let none = list.querySelector('.evx-none.q');
+    if(!shown && (ARCHIVE_EVENTS||[]).length){ if(!none){ none=document.createElement('div'); none.className='evx-none q'; none.textContent='No shows match that.'; list.appendChild(none); } }
+    else if(none) none.remove();
+  });
+  document.querySelectorAll('[data-evrail] input[type=search]').forEach(i=>{ if(i!==inp) i.value = inp.value; });
+}
+async function evRailOpen(id){
+  if(id==='__all') return;
+  if(!id){ goPage('events'); return; }
+  const pa = document.getElementById('page-archive');
+  if(!(pa && pa.classList.contains('active'))){
+    goPage('archive');
+    try{ await loadArchive(); }catch(e){}
+  }
+  openArchiveEvent(id);
+}
 function loadArchive(){
   if(!ARCHIVE_PENDING){
     ARCHIVE_PENDING = archiveLoadNow().finally(()=>{ ARCHIVE_PENDING = null; });
@@ -13844,6 +14220,9 @@ async function archiveLoadNow(){
     rows = wcaSortEventsNewestFirst((data || []).filter(ev=>!sdIds.has(String(ev.id))));   // newest show first, by name
   }catch(e){ listEl.innerHTML=`<div class="lb-empty">Couldn't load the archive.</div>`; return; }
   ARCHIVE_EVENTS = rows;
+  ARCHIVE_OPEN_ID = null;
+  { const h=document.getElementById('archive-list-head'); if(h) h.style.display=''; }
+  renderEventRails();
   if(!rows.length){
     listEl.innerHTML=`<div class="lb-empty">No events in the archive yet — completed shows appear here.</div>`;
     return;
@@ -13902,6 +14281,9 @@ async function openArchiveEvent(id, opts){
     wcaSetAddress('archive', 'event=' + encodeURIComponent(id));
   }
   listEl.style.display='none';
+  { const h=document.getElementById('archive-list-head'); if(h) h.style.display='none'; }
+  ARCHIVE_OPEN_ID = String(id);
+  renderEventRails();
   detEl.style.display='';
   detEl.innerHTML = `<div class="loading">Loading…</div>`;
   window.scrollTo({top:0,behavior:'smooth'});
@@ -13948,7 +14330,7 @@ async function openArchiveEvent(id, opts){
   // hero
   const date = ev.event_date ? fmtEventDate(ev.event_date) : '';
   let html = `<div class="arch-topbar">`+
-    `<button class="arch-back" onclick="archiveBackToList()"><i class="ti ti-arrow-left"></i> All events</button>`+
+    `<button class="arch-back" onclick="archiveBackToList()"><i class="ti ti-arrow-left"></i> All past shows</button>`+
     `<button class="arch-back arch-share" id="arch-share-btn" type="button"`+
       ` data-eid="${escAttr(String(id))}" data-ename="${escAttr(ev.name||'Event')}">`+
       `<i class="ti ti-share-3"></i> Share</button>`+
@@ -14404,7 +14786,7 @@ function applyFormHTML(){
       <div class="af-trait-val" id="af_trv_${k}">Right in the middle</div>
     </div>`).join('')}</div>
     <div class="af-field" style="margin-top:6px"><label>Anything else about their personality?</label>
-      <div class="af-help">Catchphrases, taunts, mannerisms, how they talk and act.</div>
+      <div class="af-help">Catchphrases, mannerisms, how they talk and act.</div>
       <textarea id="af_personality"></textarea></div>`;
 
   // 5. look
@@ -18141,12 +18523,73 @@ const PM_DETAILS = [
   ['home','Billed from','profile',''], ['height','Height','profile',`6'2"`], ['weight','Weight','profile','231 lbs'],
   ['wclass','Weight class','profile','',PM_WCLASS], ['style','Wrestler class','profile','',PM_STYLE],
   ['ovr','Overall rating','profile','0 to 100'], ['manager','Manager','profile',''], ['team','Team or stable','profile',''],
-  ['rivals','Rivals','profile',''], ['cc_tag','Community Creations tag','profile','Their upload tag in 2K25'],
+  ['music','Entrance music','profile',''], ['catchphrase','Catchphrase','profile','Optional'],
+  ['cc_tag','Community Creations tag','profile','Their upload tag in 2K25'],
   ['finisher','Finishers','moves','Separate with commas'], ['sigs','Signatures','moves','Separate with commas'],
-  ['comeback','Comeback','moves',''], ['taunts','Taunts','moves',''], ['music','Entrance music','moves',''],
-  ['catchphrase','Catchphrase','moves',''],
   ['abilities','Superstar abilities','abilities','Separate with commas'], ['paybacks','Paybacks','abilities','Separate with commas']
 ];
+/* Personality sliders, the same six pairs as the application. Each one runs
+   from -3 (the left word) to 3 (the right word). A slider nobody touched is
+   "Not set" and isn't saved, so only what was picked shows on the profile. */
+const PM_TRAITS = [
+  ['egotistical_prideful',    'Egotistical',  'Prideful'],
+  ['disrespectful_respectful','Disrespectful','Respectful'],
+  ['desperate_perseverant',   'Desperate',    'Perseverant'],
+  ['treacherous_loyal',       'Treacherous',  'Loyal'],
+  ['cowardly_bold',           'Cowardly',     'Bold'],
+  ['aggressive_disciplined',  'Aggressive',   'Disciplined']
+];
+function pmTraitWord(v, left, right){
+  v = Math.max(-3, Math.min(3, Math.round(Number(v) || 0)));
+  if(v === 0) return 'Right in the middle';
+  const w = v < 0 ? left : right, a = Math.abs(v);
+  return a === 1 ? 'A little ' + w.toLowerCase() : (a === 2 ? w : 'Very ' + w.toLowerCase());
+}
+// the editor: prefix 'mpt' on the site and in Promotion Rosters, 'wgt' for WCA wrestlers
+function pmTraitsHTML(prefix, traits){
+  traits = (traits && typeof traits === 'object') ? traits : {};
+  return `<div class="pm-small pm-dim">Slide toward the side that fits, like the sliders in WWE 2K. Leave one alone to skip it.</div>
+    <div class="pm-traits">${PM_TRAITS.map(([k, l, r], i) => { const has = traits[k] !== undefined && traits[k] !== null && traits[k] !== '';
+      const v = has ? Math.max(-3, Math.min(3, Math.round(Number(traits[k]) || 0))) : 0;
+      return `<div class="pm-trait${has ? '' : ' unset'}" id="${prefix}_row_${i}">
+        <div class="pm-trait-ends"><span>${esc(l)}</span><span>${esc(r)}</span></div>
+        <input type="range" min="-3" max="3" step="1" value="${v}" id="${prefix}_${i}" aria-label="${escAttr(l + ' or ' + r)}" oninput="pmTrait('${prefix}',${i})">
+        <div class="pm-trait-foot"><span class="pm-trait-val" id="${prefix}_v_${i}">${has ? esc(pmTraitWord(v, l, r)) : 'Not set'}</span>
+          <button type="button" class="pm-trait-clear" onclick="pmTraitClear('${prefix}',${i})">Clear</button></div>
+      </div>`; }).join('')}</div>`;
+}
+function pmTrait(prefix, i){
+  const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i), out = pmEl(prefix + '_v_' + i);
+  const t = PM_TRAITS[i]; if(!row || !el || !t) return;
+  row.classList.remove('unset');
+  if(out) out.textContent = pmTraitWord(el.value, t[1], t[2]);
+}
+function pmTraitClear(prefix, i){
+  const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i), out = pmEl(prefix + '_v_' + i);
+  if(el) el.value = 0;
+  if(row) row.classList.add('unset');
+  if(out) out.textContent = 'Not set';
+}
+function pmReadTraits(prefix){
+  const out = {};
+  PM_TRAITS.forEach(([k], i) => { const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i);
+    if(row && el && !row.classList.contains('unset')) out[k] = Math.max(-3, Math.min(3, Math.round(Number(el.value) || 0))); });
+  return out;
+}
+// the public view: a marker on a seven step track between the two words
+function pmTraitBars(traits, col){
+  traits = (traits && typeof traits === 'object') ? traits : {};
+  const list = PM_TRAITS.filter(([k]) => traits[k] !== undefined && traits[k] !== null && traits[k] !== '');
+  if(!list.length) return '';
+  return `<div class="pm-lbl">Personality</div><div class="pm-tbars" style="--pc:${col}">${list.map(([k, l, r]) => {
+    const v = Math.max(-3, Math.min(3, Math.round(Number(traits[k]) || 0)));
+    return `<div class="pm-tbar" title="${escAttr(pmTraitWord(v, l, r))}">
+      <span class="pm-tbar-l${v < 0 ? ' on' : ''}">${esc(l)}</span>
+      <i class="pm-tbar-track" aria-hidden="true">${[-3,-2,-1,0,1,2,3].map(n => `<em class="${n === v ? 'at' : ''}${n === 0 ? ' mid' : ''}"></em>`).join('')}</i>
+      <span class="pm-tbar-r${v > 0 ? ' on' : ''}">${esc(r)}</span>
+      <small>${esc(pmTraitWord(v, l, r))}</small></div>`; }).join('')}</div>`;
+}
+
 const PM_HEX = /^#[0-9a-f]{6}$/i;
 let PM = { tab:'posts', curId:null, as:null, cats:[], roster:[], hist:[], rosterFor:null, rosterMissing:false,
            posts:[], reacts:{}, filter:'all', gfilter:'all', editId:null, catEditId:null, pendingEdit:null, busy:false,
@@ -18590,7 +19033,8 @@ function mpPersonForm(id, keep){
       <label for="mpf_bio">Bio <span class="pm-opt">(not in the game: this is their story on the website)</span></label>
       <textarea id="mpf_bio" rows="4" maxlength="5000" placeholder="Who they are, rivalries, what they want next">${esc(p.bio || '')}</textarea>
     </details>
-    <details class="pm-fold"><summary>Moveset and entrance</summary><div class="pm-g2">${sec('moves')}</div></details>
+    <details class="pm-fold"><summary>Moveset <span class="pm-opt">(finishers and signatures)</span></summary><div class="pm-g2">${sec('moves')}</div></details>
+    <details class="pm-fold"><summary>Personality <span class="pm-opt">(the six sliders from WWE 2K, all optional)</span></summary>${pmTraitsHTML('mpt', d.traits)}</details>
     <details class="pm-fold"><summary>Abilities and Paybacks</summary><div class="pm-g2">${sec('abilities')}</div></details>
     <details class="pm-fold"><summary>Attributes <span class="pm-opt">(the 20 numbers from 2K25's Attributes tab, all optional)</span></summary>
       <div class="pm-small pm-dim">Drag the slider or type the number. Leave one blank to skip it.</div>
@@ -18641,6 +19085,7 @@ async function mpSavePerson(){
   if(!name){ mpMsg('mpf_msg', 'A name is the only thing you have to fill in.', false); return; }
   const details = pmReadDetails(PM_DETAILS.map(x => x[0]).concat(['more']));
   const attrs = pmReadAttrs('mpa'); if(Object.keys(attrs).length) details.attrs = attrs;
+  const traits = pmReadTraits('mpt'); if(Object.keys(traits).length) details.traits = traits;
   const catV = pmEl('mpf_cat').value;
   const row = { name, nickname:(pmEl('mpf_nick').value || '').trim() || null,
     category_id: catV ? Number(catV) : null, gender: pmEl('mpf_gender').value || 'Male',
@@ -18921,10 +19366,11 @@ function pmDirDraw(){
   const list = PM.dir.list.filter(p => !q || p.name.toLowerCase().includes(q) || String(p.about || '').toLowerCase().includes(q));
   if(!list.length){ box.innerHTML = `<div class="pm-empty">${PM.dir.list.length ? 'No promotion matches that.' : 'No promotions yet. Run your own? Open My Promotion in your account menu to register it.'}</div>`; return; }
   box.innerHTML = list.map(p => { const n = PM.dir.counts[p.id] || 0;
-    return `<button type="button" class="pm-dircard" style="--pc:${pmColor(p.color)}" onclick="pmGo(${Number(p.id)})">
-      <span class="pm-dircard-bar"></span>
-      <span class="pm-dircard-top">${pmLogo(p, 'pm-dircard-logo')}<span><b>${esc(p.name)}</b><small>${n ? n + ' on the roster' : 'Promotion'}</small></span></span>
-      ${p.about ? `<span class="pm-dircard-about">${esc(String(p.about).slice(0, 180))}${String(p.about).length > 180 ? '…' : ''}</span>` : ''}
+    return `<button type="button" class="pm-dircard" style="--pc:${pmColor(p.color)}" onclick="pmGo(${Number(p.id)})" aria-label="${escAttr(p.name)}">
+      <span class="pm-dir-art">${pmLogo(p, 'pm-dir-logo')}</span>
+      <b class="pm-dir-name">${esc(p.name)}</b>
+      <small class="pm-dir-sub">${n ? n + ' on the roster' : 'Promotion'}</small>
+      ${p.about ? `<span class="pm-dir-about">${esc(String(p.about).slice(0, 160))}${String(p.about).length > 160 ? '…' : ''}</span>` : ''}
     </button>`; }).join('');
 }
 
@@ -18952,23 +19398,25 @@ async function pmPageOpen(){
   const mine = CURRENT_USER && p.owner_id === CURRENT_USER.id;
   host.innerHTML = `
     <div class="pm-crumbs"><a href="/promotions" onclick="goPage('promotions');return false;">Promotions</a> <span aria-hidden="true">›</span> <span>${esc(p.name)}</span></div>
-    <section class="pm-hero" style="--pc:${col}">
-      <div class="pm-hero-bar"></div>
-      <div class="pm-hero-in">
-        ${pmLogo(p, 'pm-hero-logo')}
-        <div class="pm-hero-mid">
-          <div class="pm-kick">Promotion in the WCA Universe</div>
-          <h1 class="pm-title">${esc(p.name)}</h1>
-          ${p.about ? `<p class="pm-hero-about">${esc(p.about)}</p>` : ''}
-          <div class="pm-hero-links">${CP_LINKS.filter(([k]) => links[k]).map(([k, l]) => `<a href="${escAttr(links[k])}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ${icons[k]}"></i> ${esc(l)}</a>`).join('')}</div>
-        </div>
-        <div class="pm-hero-acts">
-          <button type="button" class="spc-ghost-btn" onclick="pmShare(${Number(p.id)})"><i class="ti ti-share-3"></i> Share</button>
-          ${mine ? `<button type="button" class="spc-mini" onclick="PM.curId=${Number(p.id)};goPage('mypromo')">Edit in My Promotion</button>` : ''}
-        </div>
+    <section class="pm-hero pm-hero-c" style="--pc:${col}">
+      <div class="pm-hero-glow" aria-hidden="true"></div>
+      <span class="pm-hero-art">${pmLogo(p, 'pm-hero-logo')}</span>
+      <div class="pm-kick">Promotion in the WCA Universe</div>
+      <h1 class="pm-title">${esc(p.name)}</h1>
+      ${p.about ? `<p class="pm-hero-about">${esc(p.about)}</p>` : ''}
+      <div class="pm-stats">
+        <span><b>${PM.pub.roster.length}</b><small>On the roster</small></span>
+        <span><b>${PM.pub.cats.length}</b><small>${PM.pub.cats.length === 1 ? 'Division' : 'Divisions'}</small></span>
+        <span><b>${PM.pub.roster.filter(x => x.gender === 'Team').length}</b><small>Teams</small></span>
+        <span><b>${PM.pub.posts.length}</b><small>Posts</small></span>
+      </div>
+      <div class="pm-hero-links">${CP_LINKS.filter(([k]) => links[k]).map(([k, l]) => `<a href="${escAttr(links[k])}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ${icons[k]}"></i> ${esc(l)}</a>`).join('')}</div>
+      <div class="pm-hero-acts">
+        <button type="button" class="spc-ghost-btn" onclick="pmShare(${Number(p.id)})"><i class="ti ti-share-3"></i> Share</button>
+        ${mine ? `<button type="button" class="spc-mini" onclick="PM.curId=${Number(p.id)};goPage('mypromo')">Edit in My Promotion</button>` : ''}
       </div>
     </section>
-    <div class="pm-tabs" role="tablist" aria-label="${escAttr(p.name)}">
+    <div class="pm-tabs pm-tabs-u" role="tablist" aria-label="${escAttr(p.name)}">
       <button type="button" role="tab" class="pm-tab" data-t="posts" onclick="pmPubTab('posts')">Posts <span>${PM.pub.posts.length}</span></button>
       <button type="button" role="tab" class="pm-tab" data-t="roster" onclick="pmPubTab('roster')">Roster <span>${PM.pub.roster.length}</span></button>
     </div>
@@ -19050,9 +19498,9 @@ function pmPersonCard(p, col, catName){
   const d = p.details || {};
   const gender = p.gender === 'Team' ? '' : p.gender;
   const facts = [['Gender', gender], ['Overall', d.ovr], ['Wrestler class', d.style], ['Weight class', d.wclass], ['Billed from', d.home],
-    ['Height', d.height], ['Weight', d.weight], ['Manager', d.manager], ['Team or stable', d.team], ['Rivals', d.rivals],
+    ['Height', d.height], ['Weight', d.weight], ['Manager', d.manager], ['Team or stable', d.team],
     ['Entrance music', d.music], ['Catchphrase', d.catchphrase]].filter(x => x[1]);
-  const moves = [['Finishers', d.finisher], ['Signatures', d.sigs], ['Comeback', d.comeback], ['Taunts', d.taunts],
+  const moves = [['Finishers', d.finisher], ['Signatures', d.sigs],
     ['Superstar abilities', d.abilities], ['Paybacks', d.paybacks]].filter(x => x[1]);
   const fact = ([k, v]) => `<div class="pm-fact"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
   return `<div class="pm-selcard" style="--pc:${col}">
@@ -19064,6 +19512,7 @@ function pmPersonCard(p, col, catName){
       <div class="pm-tags">${p.alignment ? `<span class="pm-tag ${p.alignment.toLowerCase()}">${esc(p.alignment)}</span>` : ''}${p.title ? `<span class="pm-tag gold">${esc(p.title)}</span>` : ''}</div>
       ${facts.length ? `<div class="pm-facts">${facts.map(fact).join('')}</div>` : ''}
       ${p.bio ? `<div class="pm-lbl">Bio</div><p class="pm-bio">${esc(p.bio)}</p>` : ''}
+      ${pmTraitBars(d.traits, col)}
       ${moves.length ? `<div class="pm-facts">${moves.map(fact).join('')}</div>` : ''}
       ${pmAttrBars(d.attrs, col)}
       ${d.cc_tag ? `<div class="pm-cc"><i class="ti ti-download"></i> Download them in WWE 2K25 Community Creations: <b>${esc(d.cc_tag)}</b></div>` : ''}
@@ -19083,13 +19532,14 @@ function pmAttrBars(attrs, col){
 function wcaGameRows(w){
   const g = (w && w.game && typeof w.game === 'object') ? w.game : {};
   const rows = [['Alignment', g.alignment], ['Overall', g.ovr], ['Wrestler class', g.style], ['Weight class', g.wclass],
-    ['Manager', g.manager], ['Team or stable', g.team], ['Rivals', g.rivals], ['Comeback', g.comeback], ['Taunts', g.taunts],
+    ['Manager', g.manager], ['Team or stable', g.team],
     ['Catchphrase', g.catchphrase], ['Abilities', g.abilities], ['Paybacks', g.paybacks], ['Community Creations', g.cc_tag]];
   return rows.map(([k, v]) => fieldRow(k, v)).join('');
 }
 function wcaGameAttrs(w){
   const g = (w && w.game && typeof w.game === 'object') ? w.game : {};
-  return pmAttrBars(g.attrs, pmColor(g.color, '#e9b949'));
+  const col = pmColor(g.color, '#e9b949');
+  return pmTraitBars(g.traits, col) + pmAttrBars(g.attrs, col);
 }
 /* ===================== end PROMOTION PAGES ===================== */
 
@@ -19903,6 +20353,13 @@ function wcaToggleDrop(drop, ev){
   drop.classList.toggle('open', open);
   const t = drop.querySelector('.navdrop-trigger');
   if(t) t.setAttribute('aria-expanded', String(open));
+  // menu groups in the header row open fixed under their button (the row scrolls sideways)
+  const menu = drop.querySelector('.navdrop-menu');
+  if(open && menu && t && drop.closest('header nav') && matchMedia('(min-width:761px)').matches){
+    const r = t.getBoundingClientRect();
+    menu.style.top = Math.round(r.bottom) + 'px';
+    menu.style.left = Math.round(Math.min(r.left, window.innerWidth - Math.max(menu.offsetWidth, 210) - 10)) + 'px';
+  }
 }
 function toggleUserMenu(ev){
   const d = document.getElementById('userMenu');
@@ -19916,6 +20373,9 @@ document.addEventListener('click', e=>{
   if(!e.target.closest('.navdrop')) wcaCloseDrops();
 });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') wcaCloseDrops(); });
+// a header dropdown is placed once when it opens, so scrolling the page or the menu row closes it
+window.addEventListener('scroll', ()=>{ if(document.querySelector('header nav .navdrop.open')) wcaCloseDrops(); }, { passive:true });
+document.addEventListener('scroll', e=>{ if(e.target && e.target.matches && e.target.matches('header nav') && document.querySelector('header nav .navdrop.open')) wcaCloseDrops(); }, { capture:true, passive:true });
 
 /* When a show is on, the Events item turns into a pulsing LIVE link that
    goes straight to the broadcast. The rest of the time it's the menu. */
@@ -19961,6 +20421,8 @@ function activatePage(pg){
   document.querySelectorAll('nav [data-page]').forEach(x=>x.classList.remove('active'));
   if(typeof markNavGroupActive==='function') setTimeout(markNavGroupActive,0);
   if(btn) btn.classList.add('active');
+  // Past Events is part of Events now: keep Events lit on both
+  if(pg==='archive'){ const evb=document.querySelector('nav [data-page="events"]'); if(evb) evb.classList.add('active'); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
@@ -19971,6 +20433,7 @@ function activatePage(pg){
   if(pg==='leaderboard') loadLeaderboard();
   if(pg==='rankings') refreshRankingsIfStale();
   if(pg==='archive') loadArchive();
+  if(pg==='events'){ try{ renderEventRails(); if(!ARCHIVE_EVENTS.length) loadArchive(); }catch(e){} }
   if(pg==='apply') loadApply();
   if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
   if(pg==='account') loadAccount();
@@ -19978,6 +20441,7 @@ function activatePage(pg){
   // Feed whenever My Promotion isn't the page being shown.
   if(pg!=='mypromo' && typeof CP_HOST_ID!=='undefined' && CP_HOST_ID!=='fr-composer'){ CP_HOST_ID='fr-composer'; FR_OPEN=false; }
   if(pg==='promotions' && typeof pmDirOpen==='function') pmDirOpen();
+  if(pg==='home') setTimeout(()=>{ try{ document.querySelectorAll('#dash-sponsors .dspo-marquee').forEach(dspoMarquee); }catch(e){} }, 60);
   if(pg==='promotion' && typeof pmPageOpen==='function') pmPageOpen();
   if(pg==='mypromo' && typeof mpOpen==='function') mpOpen();
   // Roster star map: only run its render loop while the tab is actually open,
