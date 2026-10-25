@@ -6624,6 +6624,34 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .slv-thumb.on{border-color:var(--gold);opacity:1}
   .slv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
   html.slv-open{overflow:hidden}
+/* Watch Live: the chat pinned on the right of the whole page */
+.live-layout.lv-pinned{display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:18px; align-items:start;}
+.lv-main{display:flex; flex-direction:column; gap:18px; min-width:0;}
+.lv-side{align-self:stretch; min-height:1px;}
+/* the chat itself is locked to the screen, in the right column's spot */
+.lv-side .chat-hub{position:fixed; z-index:20; top:calc(var(--hdr-h, 130px) + 12px); bottom:var(--lv-b, 12px); min-height:0; left:var(--lv-x, auto); right:var(--lv-r, 24px); width:380px;
+  margin:0; display:flex; flex-direction:column; box-sizing:border-box;}
+.lv-side .ch-feed{height:auto; flex:1 1 auto; min-height:0;}
+.lv-side .ch-people{height:auto; flex:1 1 auto; min-height:0;}
+.lv-pinned .stage-grid{height:auto; display:block;}
+.lv-pinned .stage-player{width:100%; height:auto; aspect-ratio:16/9; margin:0 auto;
+  max-width:min(100%, calc((100vh - var(--hdr-h, 130px) - 110px) * 16 / 9));}
+.lv-side .ch-tab{font-size:15.5px; padding:8px 12px 9px;}
+.lv-side .ch-sub{font-size:14px; line-height:1.45;}
+.lv-side .chat-hub h3{font-size:16px;}
+.lv-side .ch-tab-count{font-size:12px; line-height:19px;}
+@media (max-width:980px){
+  .live-layout.lv-pinned{display:flex; flex-direction:column; align-items:stretch; gap:18px;}
+  .lv-main{display:contents;}
+  .lv-main > *{order:3;}
+  .lv-main > .live-stage{order:1;}
+  .lv-main > *:not(.live-stage):not(.live-stage ~ *){order:0;}
+  .lv-side{order:2; position:static; height:auto; min-height:0;}
+  .lv-side .chat-hub{position:static; width:auto; top:auto; bottom:auto; left:auto; right:auto;}
+  .lv-side .ch-feed{height:340px; flex:none;}
+  .lv-side .ch-people{height:340px; flex:none;}
+}
+
 /* My Promotion: Add many at once */
 .mpi-cta{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; border:1px dashed rgba(233,185,73,.45); border-radius:12px; padding:14px 16px; margin:0 0 14px; background:rgba(233,185,73,.05);}
 .mpi-cta b{display:block; font-size:16px; color:var(--txt);} .mpi-cta span{font-size:14.5px; color:var(--txt-2);}
@@ -12729,6 +12757,7 @@ async function loadLive(){
         <div class="lr-foot" id="lr-foot"></div>
       </section>
     </div>`;
+  lvPinChat(el);
   bindNameLinks(el);
   try{ if(typeof sdDecorateEvent==='function') sdDecorateEvent(ev, el.querySelector('.live-layout')||el); }catch(e){}
   loadLiveRail();          // fill the rail now
@@ -13027,6 +13056,7 @@ async function renderLiveReplay(el){
       </div>
       ${recapSectionHTML(rev)}
     </div>`;
+  lvPinChat(el);
   initChatHub();
   loadReplayRecap(rev);
   startLiveModeWatch();
@@ -13482,6 +13512,7 @@ async function renderTv(el, chans){
       </section>
       <div id="tv-recap"></div>
     </div>`;
+  lvPinChat(el);
   tvDrawDial();
   tvBindTrack();
   initChatHub();
@@ -13992,7 +14023,43 @@ function presRender(){
     + (guests ? `<div class="ch-pguests"><i class="ti ti-user"></i> ${guests} guest${guests===1?'':'s'} not signed in</div>` : '')
     + (!total ? `<div class="ch-empty">Connecting…</div>` : '');
 }
-// Chat | Watching tabs, added to whichever Watch Live layout is on screen
+/* The chat is pinned on the right of the whole Watch Live page. Scroll down
+   to the channels, the betting or the recap and the chat stays in view, so
+   people can change channels without losing it. On a phone it sits right
+   under the player instead. */
+function lvHeaderHeight(){
+  const h = document.querySelector('header');
+  const st = document.documentElement.style;
+  st.setProperty('--hdr-h', (h ? Math.round(h.getBoundingClientRect().height) : 120) + 'px');
+  // the locked chat sits exactly where the right column is
+  const side = document.querySelector('#page-live .lv-side');
+  if(side){ const r = side.getBoundingClientRect(); if(r.width){ st.setProperty('--lv-x', Math.round(r.left) + 'px'); st.setProperty('--lv-r', 'auto'); } }
+  lvChatBottom();
+}
+// at the very bottom of the page the chat stops above the footer instead of covering it
+function lvChatBottom(){
+  const pg = document.getElementById('page-live');
+  if(!pg || !pg.classList.contains('active')) return;
+  const f = document.getElementById('siteFoot');
+  const top = f ? f.getBoundingClientRect().top : Infinity;
+  const over = Math.max(0, window.innerHeight - top);
+  document.documentElement.style.setProperty('--lv-b', (12 + over) + 'px');
+}
+function lvPinChat(el){
+  const lay = el && el.querySelector('.live-layout'), hub = el && el.querySelector('#chat-hub');
+  if(!lay || !hub || lay.classList.contains('lv-pinned')) return;
+  lay.classList.add('lv-pinned');
+  const main = document.createElement('div'); main.className = 'lv-main';
+  while(lay.firstChild) main.appendChild(lay.firstChild);
+  const side = document.createElement('aside'); side.className = 'lv-side'; side.setAttribute('aria-label', 'Live Chat');
+  side.appendChild(hub);
+  lay.appendChild(main); lay.appendChild(side);
+  lvHeaderHeight(); requestAnimationFrame(lvHeaderHeight);
+  if(!window._lvHdrBound){ window._lvHdrBound = true; window.addEventListener('resize', lvHeaderHeight);
+    window.addEventListener('scroll', lvChatBottom, { passive:true });
+    if(typeof ResizeObserver !== 'undefined') new ResizeObserver(lvHeaderHeight).observe(document.body); }
+}
+// Chat | Who's here tabs, added to whichever Watch Live layout is on screen
 function chatHubTabs(){
   const hub = document.getElementById('chat-hub');
   if(!hub || hub.querySelector('.ch-tabs')) return;
@@ -14001,7 +14068,7 @@ function chatHubTabs(){
   tabs.className = 'ch-tabs';
   tabs.setAttribute('role', 'tablist');
   tabs.innerHTML = `<button type="button" class="ch-tab" data-t="chat" role="tab" onclick="chatHubTab('chat')"><i class="ti ti-messages"></i> Chat</button>
-    <button type="button" class="ch-tab" data-t="people" role="tab" onclick="chatHubTab('people')"><i class="ti ti-users"></i> Watching <span class="ch-tab-count" id="ch-tab-count"></span></button>`;
+    <button type="button" class="ch-tab" data-t="people" role="tab" onclick="chatHubTab('people')"><i class="ti ti-users"></i> Who's here <span class="ch-tab-count" id="ch-tab-count"></span></button>`;
   if(h3) h3.after(tabs); else hub.prepend(tabs);
   const people = document.createElement('div');
   people.className = 'ch-people';
@@ -20869,7 +20936,7 @@ function activatePage(pg){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
-  if(pg==='live') loadLive();   // always fetch the latest live state on open
+  if(pg==='live'){ loadLive(); setTimeout(()=>{ try{ lvHeaderHeight(); }catch(e){} }, 60); }   // always fetch the latest live state on open
   else { stopLiveRailPolling(); stopChatRealtime(); try{ tvSuspend(); }catch(e){} try{ presStop(); }catch(e){} }   // leaving Live — stop polls/realtime, pause the channel, leave "Watching"
   // the music widget steps aside on Watch Live and comes back when you leave
   try{ if(window.smMusic){ if(pg==='live') window.smMusic.autoPause('live'); else window.smMusic.autoResume('live'); } }catch(e){}
