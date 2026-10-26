@@ -10059,10 +10059,10 @@ async function loadInactiveSets(){
   try{
     const [wr, fr] = await Promise.all([
       sb.from('wrestlers').select('name,is_active'),
-      sb.from('factions').select('name,is_active')
+      sb.from('factions').select('name,is_active,is_hidden')
     ]);
     INACTIVE_WRESTLERS = new Set((wr.data||[]).filter(w=>w.is_active===false).map(w=>(w.name||'').toLowerCase()));
-    INACTIVE_FACTIONS  = new Set((fr.data||[]).filter(f=>f.is_active===false).map(f=>(f.name||'').toLowerCase()));
+    INACTIVE_FACTIONS  = new Set((fr.data||[]).filter(factionIsOff).map(f=>(f.name||'').toLowerCase()));
   }catch(e){
     INACTIVE_WRESTLERS = INACTIVE_WRESTLERS || new Set();
     INACTIVE_FACTIONS  = INACTIVE_FACTIONS  || new Set();
@@ -10100,8 +10100,9 @@ async function loadFactions(){
   await loadInactiveSets();
   const {data:dataRaw,error}=await sb.from('v_faction_rankings').select('*');
   if(error){el.innerHTML=`<div class="err">Couldn't load factions: ${error.message}</div>`;return;}
-  // Hide factions flagged is_hidden from the public rankings (record still exists in DB).
-  const data=(dataRaw||[]).filter(p=>p.is_hidden!==true);
+  // Inactive and Hidden factions are left out of the rankings, the same as
+  // wrestlers. Their record stays in the database and in past events.
+  const data=(dataRaw||[]).filter(p=>!factionIsOff(p) && !isInactiveFaction(p.name));
   const {data:champs}=await sb.from('v_current_champions').select('*').eq('division','Faction');
   const champName=(champs&&champs[0])?champs[0].champion:null;
   // pull champion out, sort the rest, then push inactive factions to the bottom,
@@ -10735,13 +10736,17 @@ async function loadRoster(){
     // Star map colours live on the factions table itself. Fetched separately so
     // v_faction_rankings doesn't have to be rebuilt to expose the new column;
     // if the column doesn't exist yet this just no-ops and colours stay automatic.
-    let FAC_COLOR = {};
+    let FAC_COLOR = {}, FAC_OFF = new Set();
     try{
-      const {data:fc} = await sb.from('factions').select('name,color');
-      (fc||[]).forEach(r=>{ if(r && r.color) FAC_COLOR[String(r.name||'').toLowerCase()] = r.color; });
+      let {data:fc, error:fe} = await sb.from('factions').select('name,color,is_active,is_hidden');
+      if(fe) ({data:fc} = await sb.from('factions').select('name,is_active,is_hidden'));
+      (fc||[]).forEach(r=>{ const k = String((r && r.name)||'').toLowerCase();
+        if(r && r.color) FAC_COLOR[k] = r.color;
+        if(factionIsOff(r)) FAC_OFF.add(k); });
     }catch(e){ /* column not added yet — automatic colours */ }
     if(fr && fr.length){
-      FACTIONS = fr.filter(f=>f.is_hidden!==true).map(f=>{
+      // Inactive and Hidden factions are off the roster and the star map, like wrestlers
+      FACTIONS = fr.filter(f=>!factionIsOff(f) && !FAC_OFF.has(String(f.name||'').toLowerCase())).map(f=>{
         const members = String(f.members_txt||'')
           .split(',').map(s=>s.trim()).filter(Boolean)
           .sort((a,b)=>a.localeCompare(b));
@@ -10815,6 +10820,20 @@ function wrestlerIsOff(w){
   return false;
 }
 function wrestlerIsListed(w){ return !!w && !wrestlerIsOff(w); }
+/* Admin → Factions → Visibility. The same rule as a wrestler's Status:
+   Active   : on the roster, star map, rankings and Relationships.
+   Inactive : off all of those.
+   Hidden   : off all of those.
+   Records are never removed, and the team still shows in past events
+   (match cards, Past Events, the Timeline), with its members' faces. */
+function factionIsOff(f){
+  if(!f) return true;
+  if(f.is_hidden === true) return true;
+  const st = String(f.status||'').trim().toLowerCase();
+  if(st === 'hidden' || st === 'inactive') return true;
+  if(f.is_active === false) return true;
+  return false;
+}
 function wrestlerByName(n){
   if(!n) return undefined;
   // _rosterAll so a draft still resolves — that's the whole point of drafts.
@@ -27464,11 +27483,15 @@ async function stxCtxWca(){
     return out; };
   let facs = [];
   try{ const { data } = await sb.from('factions').select('*').order('name'); facs = data || []; }catch(e){}
-  const factions = facs.filter(f => f && f.id != null && f.name && f.is_hidden !== true).map(f => {
+  // Inactive and Hidden factions follow the wrestler rule: off the site's Relationships page,
+  // and no automatic "Same faction" ties. Admin still lists them (marked off) so their story can be written.
+  const facOff = f => f.is_hidden === true || f.is_active === false || /^(inactive|hidden)$/i.test(String(f.status || '').trim());
+  const showOff = !stxOnSite();
+  const factions = facs.filter(f => f && f.id != null && f.name && (showOff || !facOff(f))).map(f => {
     const members = [...new Set(stxMembers(f.members_txt).map(p => p.key))];
-    return { key:'faction:' + f.id, kind:'faction', id:String(f.id), name:f.name, color:stxHex(f.color, '#e9b949'), motto:f.motto || '', members };
+    return { key:'faction:' + f.id, kind:'faction', id:String(f.id), name:f.name, color:stxHex(f.color, '#e9b949'), motto:f.motto || '', members, off:facOff(f) };
   });
-  factions.forEach(f => f.members.forEach(k => { const p = people.find(x => x.key === k); if(p && p.color === '#efe9db') p.color = f.color; }));
+  factions.filter(f => !f.off).forEach(f => f.members.forEach(k => { const p = people.find(x => x.key === k); if(p && p.color === '#efe9db') p.color = f.color; }));
   return stxBuildCtx('wca', people, factions);
 }
 async function stxCtxPromo(pid){
@@ -27537,7 +27560,7 @@ function stxTiesOf(ctx, ties, key){
   });
   const me = ctx.byKey[key];
   if(me && me.kind === 'person'){
-    ctx.factions.filter(f => f.members.includes(key)).forEach(f => f.members.forEach(m => {
+    ctx.factions.filter(f => !f.off && f.members.includes(key)).forEach(f => f.members.forEach(m => {
       if(m === key || seen[m] || !ctx.byKey[m]) return;
       seen[m] = 1;
       out.push({ other:m, tie:null, auto:true, faction:f.name, mine:'faction', theirs:'faction',
@@ -27547,7 +27570,7 @@ function stxTiesOf(ctx, ties, key){
   const rank = l => ({ best:0, faction:1, friends:2, uneasy:3, rivals:4, enemies:5 }[l] ?? 9);
   return out.sort((a, b) => rank(a.mine) - rank(b.mine) || ctx.byKey[a.other].name.localeCompare(ctx.byKey[b.other].name));
 }
-function stxFactionsOf(ctx, key){ return ctx.factions.filter(f => f.members.includes(key)); }
+function stxFactionsOf(ctx, key){ return ctx.factions.filter(f => !f.off && f.members.includes(key)); }
 
 /* ---------- drawing the web (SVG, so it scales to any screen) ---------- */
 function stxNodeSVG(ctx, key, x, y, r, opts){
@@ -27603,9 +27626,10 @@ function stxWebSVG(ctx, center, list, sel){
 function stxWorldSVG(ctx, ties){
   const inv = new Set();
   ties.forEach(t => { if(t.a_kind === 'person') inv.add('person:' + t.a_id); if(t.b_kind === 'person') inv.add('person:' + t.b_id); });
-  ctx.factions.forEach(f => { if(f.members.length > 1) f.members.forEach(m => inv.add(m)); });
+  const live = ctx.factions.filter(f => !f.off);
+  live.forEach(f => { if(f.members.length > 1) f.members.forEach(m => inv.add(m)); });
   const order = [];
-  ctx.factions.forEach(f => f.members.forEach(m => { if(inv.has(m) && !order.includes(m)) order.push(m); }));
+  live.forEach(f => f.members.forEach(m => { if(inv.has(m) && !order.includes(m)) order.push(m); }));
   ctx.people.forEach(p => { if(inv.has(p.key) && !order.includes(p.key)) order.push(p.key); });
   const keys = order.filter(k => ctx.byKey[k]);
   if(!keys.length) return '';
@@ -27615,7 +27639,7 @@ function stxWorldSVG(ctx, ties){
   const pos = {};
   keys.forEach((k, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; pos[k] = [cx + Math.cos(a) * (W / 2 - (nar ? 70 : 90)), cy + Math.sin(a) * (H / 2 - 70)]; });
   let lines = '';
-  ctx.factions.forEach(f => { const m = f.members.filter(k => pos[k]);
+  live.forEach(f => { const m = f.members.filter(k => pos[k]);
     for(let i = 0; i < m.length; i++) for(let j = i + 1; j < m.length; j++){
       if(m.length > 6 && j !== i + 1) continue;
       lines += stxLineSVG(pos[m[i]][0], pos[m[i]][1], pos[m[j]][0], pos[m[j]][1], r, r, 'faction', { thin:true }); } });
@@ -28074,7 +28098,7 @@ async function stxEdFactions(body, ctx){
   body.innerHTML = `<div class="stx-edgrid">
     <section class="stx-card">
       <div class="stx-tlist">${ctx.factions.map(x => `<button type="button" class="stx-tie${STXE.fac === x.key ? ' on' : ''}" onclick="STXE.fac='${stxE(x.key)}';stxEdDraw()">
-        <span class="stx-dot" style="background:${stxHex(x.color, '#e9b949')}"></span><span><b>${stxE(x.name)}</b><small>${x.members.length} member${x.members.length === 1 ? '' : 's'}</small></span></button>`).join('') || '<p class="stx-dim">No factions or teams yet.</p>'}</div>
+        <span class="stx-dot" style="background:${stxHex(x.color, '#e9b949')}"></span><span><b>${stxE(x.name)}</b><small>${x.members.length} member${x.members.length === 1 ? '' : 's'}${x.off ? ' · inactive, not on the site' : ''}</small></span></button>`).join('') || '<p class="stx-dim">No factions or teams yet.</p>'}</div>
       ${isWca ? '<p class="stx-dim stx-small">Members, colors and records are set in the Factions tab.</p>' : `<button type="button" class="stx-btn" onclick="STXE.fac='new';stxEdDraw()">+ New faction or team</button>`}
     </section>
     <section class="stx-card">
