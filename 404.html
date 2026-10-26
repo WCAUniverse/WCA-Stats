@@ -6806,6 +6806,12 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-family{display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:9px 12px; border-radius:10px; border:1px solid rgba(180,140,255,.45); background:rgba(180,140,255,.08); color:#d9c9ff; font-size:15px;}
   .stx-family b{color:#fff;}
   .stx-family > span{display:flex; flex-direction:column; gap:3px;}
+  .dh-stories{margin:22px 0 10px;}
+  .dh-stories-p{font-size:15.5px; line-height:1.6; color:#d7d4cc; margin:6px 0 14px; max-width:900px;}
+  .stx-factcard{margin-top:14px; border-color:rgba(93,202,165,.35);}
+  .stx-factbox{border-left:3px solid #5dcaa5; padding-left:14px;}
+  .stx-theirs{background:rgba(255,255,255,.02);}
+  .stx-pl{color:#9fb4ff; border-color:rgba(159,180,255,.45); margin-left:4px;}
   .stx-facnote{display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:9px 12px; border-radius:10px; border:1px solid rgba(233,185,73,.45); background:rgba(233,185,73,.07); color:#f1d58a; font-size:15px;}
   .stx-facnote b{color:#fff;}
   .stx-lvsep{align-self:center; width:1px; height:24px; background:#34343c; margin:0 4px;}
@@ -8477,6 +8483,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
         <div id="dh-char-full"><div class="loading">Loading…</div></div>
         <!-- Edit your character: bio, nickname, socials... (same fields and approval as edit-wrestler.html) -->
         <div id="dh-char-edit"></div>
+        <!-- Stories and relationships: the player writes their own character's (shared Stories editor, player mode) -->
+        <div id="dh-char-stories"></div>
         <div id="dh-char-history"></div>
       </section>
 
@@ -23017,6 +23025,27 @@ const CE_SOCIALS = [['twitch','Twitch'],['twitter','Twitter / X'],['instagram','
 let CE_LIST = [], CE_CUR = null;
 function ceSocials(x){ if(!x) return {}; if(typeof x === 'string'){ try{ return JSON.parse(x) || {}; }catch(e){ return {}; } } return x; }
 function ceMsg(t, ok){ const m = $d('ce-msg'); if(m){ m.textContent = t || ''; m.className = 'ce-msg ' + (ok ? 'ok' : 'bad'); } }
+/* Stories and relationships for the player's own characters (and their factions).
+   Same editor as the admin's Stories tab, in player mode: they set their own side,
+   write their story and their faction's, and WCA's facts stay WCA's. */
+async function dhStoriesRender(){
+  const host = $d('dh-char-stories');
+  if(!host) return;
+  const uid = (typeof spActingUserId === 'function') ? spActingUserId() : (CURRENT_USER && CURRENT_USER.id);
+  if(!uid){ host.innerHTML = ''; return; }
+  let ids = [];
+  try{
+    const { data: owns } = await sb.from('wrestler_owners').select('wrestler_id').eq('auth_id', uid);
+    ids = (owns || []).map(o => o.wrestler_id).filter(x => x != null);
+  }catch(e){ ids = []; }
+  if(!ids.length){ host.innerHTML = ''; return; }
+  host.innerHTML = `<section class="dh-stories">
+      <div class="dh-lbl">Stories and relationships</div>
+      <p class="dh-stories-p">Nobody knows your character better than you. Write their story, who they get along with and who they can't stand, who their family is, and your faction's story. It shows on the site as soon as you save. What happened at the shows is written by WCA and stays as WCA wrote it.</p>
+      <div id="dh-stx"></div>
+    </section>`;
+  if(typeof stxEditor === 'function') stxEditor($d('dh-stx'), null, { ownerIds:ids });
+}
 async function ceRender(){
   const host = $d('dh-char-edit');
   if(!host) return;
@@ -23147,7 +23176,7 @@ function dhShow(tab){
     const p = $d('dpanel-'+t);
     if(p) p.classList.toggle('on', t === tab);
   });
-  if(tab === 'character'){ renderDhCharFull(); ceRender(); }
+  if(tab === 'character'){ renderDhCharFull(); ceRender(); dhStoriesRender(); }
   if(tab === 'betting'){ renderDashYou(); renderDashBets(); }
   if(tab === 'settings' && typeof renderAccountPage === 'function'){
     renderAccountPage(false, 'dh-settings-body');
@@ -27551,7 +27580,10 @@ function stxBuildCtx(sk, people, factions){
 }
 async function stxCtxWca(){
   let rows = [];
-  if(typeof window !== 'undefined' && Array.isArray(window._roster) && window._roster.length) rows = window._roster;
+  // Everyone (Inactive and Hidden included, so they can still show in someone's web).
+  // The site's own roster list doesn't carry ids, so it's only used when it does.
+  const loaded = (typeof window !== 'undefined' && Array.isArray(window._rosterAll) && window._rosterAll.length) ? window._rosterAll : [];
+  if(loaded.length && loaded.every(w => w && w.id != null)) rows = loaded.filter(w => w.is_draft !== true);
   else if(typeof wrestlers !== 'undefined' && Array.isArray(wrestlers) && wrestlers.length) rows = wrestlers.filter(w => w && w.is_draft !== true);
   if(!rows.length){
     const { data } = await sb.from('wrestlers').select('*').order('name');
@@ -27611,7 +27643,22 @@ async function stxCtx(scope, force){
   if(force || !STX.ctx[sk]) STX.ctx[sk] = (sk === 'wca' ? stxCtxWca() : stxCtxPromo(stxScopeOf(sk))).catch(e => { delete STX.ctx[sk]; throw e; });
   return STX.ctx[sk];
 }
-function stxForget(scope){ const sk = stxSk(scope); delete STX.ctx[sk]; delete STX.ties[sk]; Object.keys(STX.chap).forEach(k => { if(k.indexOf(sk + '|') === 0) delete STX.chap[k]; }); }
+function stxForget(scope){ const sk = stxSk(scope); delete STX.ctx[sk]; delete STX.ties[sk]; Object.keys(STX.chap).forEach(k => { if(k.indexOf(sk + '|') === 0) delete STX.chap[k]; }); if(sk === 'wca') STX.facts = {}; }
+/* WCA's facts from the shows ("What happened in WCA"), kept apart from a player's story.
+   Only the admin writes them (story_facts, SUPABASE_SETUP_player_stories.sql). WCA only. */
+STX.facts = {};
+async function stxFacts(scope, key, force){
+  if(scope != null || !key) return [];
+  const k = String(key);
+  if(force || !STX.facts[k]){
+    const i = k.indexOf(':'), kind = k.slice(0, i), id = k.slice(i + 1);
+    STX.facts[k] = (async () => {
+      const { data, error } = await sb.from('story_facts').select('id,title,body,sort').is('promotion_id', null).eq('owner_kind', kind).eq('owner_id', id).order('sort').order('id');
+      return error ? [] : (data || []);
+    })().catch(() => []);
+  }
+  return STX.facts[k];
+}
 
 /* ---------- ties and chapters ---------- */
 async function stxTies(scope, force){
@@ -27795,7 +27842,7 @@ function stxChapterView(chs, idx){
 }
 function stxBindChapters(root, chs){
   root.querySelectorAll('.stx-chap').forEach(b => b.addEventListener('click', () => {
-    const box = b.closest('.stx-chapbox'); if(!box) return;
+    const box = b.closest('.stx-chapbox') || (root.classList && root.classList.contains('stx-chapbox') ? root : null); if(!box) return;
     box.innerHTML = stxChapterView(chs, Number(b.dataset.ch)); stxBindChapters(box, chs);
     if(STX.view && box.closest('#stx-mbody')){ STX.view.ch = Number(b.dataset.ch); stxSyncAddress(); }
   }));
@@ -28004,6 +28051,7 @@ async function stxRender(){
     if(!v.key || !ctx.byKey[v.key]) v.key = (live[0] || {}).key;
     const f = ctx.byKey[v.key];
     const chs = f ? await stxChapters(v.scope, f.key) : [];
+    const ffacts = f ? await stxFacts(v.scope, f.key) : [];
     const fties = f ? stxTiesOf(ctx, ties, f.key) : [];
     html = `<div class="stx-head"><div class="stx-k">Factions</div>${tabs}</div>
       ${live.length > 1 || (f && f.off && live.length) ? `<div class="stx-pickrow"><label class="stx-l" for="stx-fpick">Faction</label><select id="stx-fpick" class="stx-in">${f && f.off ? '<option value="" selected disabled>Pick a faction</option>' : ''}${live.map(x => `<option value="${stxE(x.key)}"${x.key === v.key ? ' selected' : ''}>${stxE(x.name)}</option>`).join('')}</select></div>` : ''}
@@ -28013,11 +28061,13 @@ async function stxRender(){
         <div class="stx-mems">${f.members.map(k => { const p = ctx.byKey[k]; return p ? `<button type="button" class="stx-mem" data-web="${stxE(k)}" style="--pc:${stxHex(p.color)}"><span>${stxE(stxInit(p.name))}</span>${stxE(p.name)}</button>` : ''; }).join('') || '<span class="stx-dim">No members yet.</span>'}</div>
       </section>
       <div class="stx-sec">The story</div>
-      <div class="stx-chapbox">${chs.length ? stxChapterView(chs, v.ch) : '<p class="stx-dim">No story written yet.</p>'}</div>
+      <div class="stx-chapbox" data-box="story">${chs.length ? stxChapterView(chs, v.ch) : '<p class="stx-dim">No story written yet.</p>'}</div>
+      ${ffacts.length ? `<div class="stx-sec">What happened in WCA</div><div class="stx-chapbox stx-factbox" data-box="facts">${stxChapterView(ffacts, 0)}</div>` : ''}
       ${fties.length ? `<div class="stx-sec">Who they have history with</div><div class="stx-fties">${fties.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
         return `<div class="stx-ftie" style="--lc:${l.color}"><div class="stx-k" style="color:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</div><b>${stxE(o.name)}</b>${t.myWhy ? `<p>${stxE(t.myWhy)}</p>` : ''}</div>`; }).join('')}</div>` : ''}` : '<div class="stx-empty">No factions yet.</div>'}`;
     body.innerHTML = html;
-    stxBindChapters(body, chs);
+    { const sb1 = body.querySelector('[data-box="story"]'), fb = body.querySelector('[data-box="facts"]');
+      if(sb1) stxBindChapters(sb1, chs); if(fb) stxBindChapters(fb, ffacts); }
     const fp = body.querySelector('#stx-fpick'); if(fp) fp.addEventListener('change', () => { if(!fp.value) return; v.key = fp.value; v.ch = 0; stxRender(); });
   } else if(v.mode === 'world'){
     const svg = stxWorldSVG(ctx, ties);
@@ -28050,7 +28100,7 @@ async function stxRender(){
     const hist = t && t.tie && (t.tie.history || (t.tie.moments || []).length) ? `<section class="stx-hist">
         <div class="stx-k">Their history</div><div class="stx-tietitle">${stxE(me.name)} and ${stxE(ctx.byKey[t.other].name)}</div>
         ${stxParas(t.tie.history)}
-        ${(t.tie.moments || []).length ? `<div class="stx-k" style="margin-top:16px">Key moments</div>${t.tie.moments.map(mo => `<div class="stx-moment"><b>${stxE(mo.when || '')}</b><span>${stxE(mo.text || '')}</span></div>`).join('')}` : ''}
+        ${(t.tie.moments || []).length ? `<div class="stx-k" style="margin-top:16px">${v.scope == null ? 'Key moments in WCA' : 'Key moments'}</div>${t.tie.moments.map(mo => `<div class="stx-moment"><b>${stxE(mo.when || '')}</b><span>${stxE(mo.text || '')}</span></div>`).join('')}` : ''}
       </section>` : '';
     body.innerHTML = `<div class="stx-head"><div class="stx-k">Relationships</div><h2 class="stx-title">${me ? stxE(me.name) + "'s web" : 'The web'}</h2>${tabs}</div>
       <div class="stx-pickrow"><label class="stx-l" for="stx-pick">Character</label><select id="stx-pick" class="stx-in">${me && me.off ? '<option value="" selected disabled>Pick a character</option>' : ''}${pickable.map(p => `<option value="${stxE(p.key)}"${p.key === v.key ? ' selected' : ''}>${stxE(p.name)}</option>`).join('')}</select></div>
@@ -28088,6 +28138,7 @@ async function stxHydrate(root){
       if(!key || !ctx.byKey[key]) continue;
       const me = ctx.byKey[key];
       const chs = await stxChapters(scope, key);
+      const facts = await stxFacts(scope, key);
       const list = stxTiesOf(ctx, ties, key);
       const scopeArg = scope == null ? "'wca'" : Number(scope);
       if(me.kind === 'faction'){
@@ -28096,16 +28147,18 @@ async function stxHydrate(root){
           <button type="button" class="stx-btn" onclick="stxOpenFaction(${scopeArg},'${stxE(key)}')">Read their story</button></div>`;
         continue;
       }
-      if(!chs.length && !list.length) continue;
+      if(!chs.length && !list.length && !facts.length) continue;
       el.innerHTML = `<div class="stx-pb">
-        ${chs.length ? `<div class="stx-pb-h">Their story</div><div class="stx-chapbox">${stxChapterView(chs, 0)}</div>` : ''}
+        ${chs.length ? `<div class="stx-pb-h">Their story</div><div class="stx-chapbox" data-box="story">${stxChapterView(chs, 0)}</div>` : ''}
+        ${facts.length ? `<div class="stx-pb-h">What happened in WCA</div><div class="stx-chapbox stx-factbox" data-box="facts">${stxChapterView(facts, 0)}</div>` : ''}
         ${list.length ? `<div class="stx-pb-h">Relationships</div><div class="stx-plist">${list.slice(0, 12).map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
           return `<button type="button" class="stx-prow" onclick="stxOpen({scope:${scopeArg},mode:'web',key:'${stxE(key)}',sel:'${stxE(t.other)}'})">
             <span class="stx-dot" style="background:${stxHex(o.color)}"></span><b>${stxE(o.name)}</b><span class="stx-chip" style="--lc:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</span>
             ${t.myWhy && !t.auto ? `<small>${stxE(t.myWhy)}</small>` : ''}</button>`; }).join('')}</div>
           <button type="button" class="stx-btn" onclick="stxOpenWeb(${scopeArg},'${stxE(key)}')">Open their web</button>` : ''}
       </div>`;
-      stxBindChapters(el, chs);
+      { const sb1 = el.querySelector('[data-box="story"]'), fb = el.querySelector('[data-box="facts"]');
+        if(sb1) stxBindChapters(sb1, chs); if(fb) stxBindChapters(fb, facts); }
     }catch(e){ /* stories not switched on yet: the profile stays as it was */ }
   }
 }
@@ -28128,10 +28181,21 @@ async function stxFactionsTab(box, pid){
 const STXE = { host:null, scope:null, tab:'ties', who:null, other:null, fac:null, chOwner:null, opts:{} };
 async function stxEditor(host, scope, opts){
   STXE.host = host; STXE.scope = scope == null ? null : Number(scope); STXE.opts = opts || {};
+  // Player mode (Dashboard, My Character): opts.ownerIds = the wrestler ids this player owns.
+  // They edit those characters, and the factions those characters are in. WCA only.
+  const wasOwn = !!STXE.own; STXE.own = null;
+  if(STXE.opts.ownerIds && STXE.scope == null){ STXE.own = new Set(STXE.opts.ownerIds.map(id => 'person:' + id)); if(!wasOwn){ STXE.who = null; STXE.other = null; STXE.fac = null; STXE.chOwner = null; } }
+  else if(wasOwn){ STXE.who = null; STXE.other = null; STXE.fac = null; STXE.chOwner = null; }
   if(STXE.sk !== stxSk(scope)){ STXE.sk = stxSk(scope); STXE.who = null; STXE.other = null; STXE.fac = null; STXE.chOwner = null; }
   host.innerHTML = '<div class="stx-loading">Loading…</div>';
   try{ await Promise.all([stxCtx(STXE.scope, true), stxTies(STXE.scope, true)]); }
   catch(e){ host.innerHTML = `<div class="stx-empty">${stxE(stxErr(e))}</div>`; return; }
+  if(STXE.own){
+    const ctx = await stxCtx(null);
+    [...STXE.own].forEach(k => { if(!ctx.byKey[k]) STXE.own.delete(k); });
+    ctx.factions.forEach(f => { if(f.members.some(m => STXE.own.has(m))) STXE.own.add(f.key); });
+    if(![...STXE.own].some(k => k.indexOf('person:') === 0)){ host.innerHTML = '<div class="stx-empty">Your character is not on the roster yet.</div>'; return; }
+  }
   await stxEdDraw();
 }
 function stxEdMsg(t, ok){ const m = document.getElementById('stxe-msg'); if(m){ m.textContent = t; m.className = 'stx-msg ' + (ok ? 'ok' : 'bad'); } }
@@ -28141,9 +28205,14 @@ async function stxEdDraw(){
   const isWca = STXE.scope == null;
   const tabs = [['ties','Relationships'],['people','Character stories'],['factions', isWca ? 'Faction stories' : 'Factions and teams']];
   // admin only: the scan that suggests relationships from the shows and the Feed
-  const canScan = isWca && typeof stxScanTab === 'function';
+  const canScan = isWca && typeof stxScanTab === 'function' && !STXE.own;
   if(canScan) tabs.push(['scan','Scan for rivalries']);
   if(STXE.tab === 'scan' && !canScan) STXE.tab = 'ties';
+  if(STXE.own){
+    // players: their characters, and their factions when they have one
+    if(![...STXE.own].some(k => k.indexOf('faction:') === 0)) tabs.splice(2, 1);
+    if(STXE.tab === 'factions' && tabs.length < 3) STXE.tab = 'ties';
+  }
   host.innerHTML = `<div class="stx-ed">
     <div class="stx-edtabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${STXE.tab === k}" class="stx-edtab${STXE.tab === k ? ' on' : ''}" onclick="STXE.tab='${k}';stxEdDraw()">${l}</button>`).join('')}
       <button type="button" class="stx-btn ghost stx-edview" onclick="stxOpenWorld(${isWca ? "'wca'" : STXE.scope})"><i class="ti ti-affiliate"></i> See the web</button></div>
@@ -28155,9 +28224,10 @@ async function stxEdDraw(){
   if(STXE.tab === 'scan') return stxScanTab(body, ctx);
   return stxEdTies(body, ctx);
 }
-function stxEdOptions(ctx, sel, skip, withFactions){
-  const ppl = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name)).filter(p => !skip || !skip.has(p.key));
-  const fac = withFactions ? ctx.factions.filter(f => !skip || !skip.has(f.key)) : [];
+function stxEdOptions(ctx, sel, skip, withFactions, onlyOwn){
+  const own = onlyOwn && STXE.own ? STXE.own : null;
+  const ppl = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name)).filter(p => (!skip || !skip.has(p.key)) && (!own || own.has(p.key)));
+  const fac = withFactions ? ctx.factions.filter(f => (!skip || !skip.has(f.key)) && (!own || own.has(f.key))) : [];
   const o = x => `<option value="${stxE(x.key)}"${x.key === sel ? ' selected' : ''}>${stxE(x.name)}</option>`;
   return (fac.length ? `<optgroup label="Characters">${ppl.map(o).join('')}</optgroup><optgroup label="Factions">${fac.map(o).join('')}</optgroup>` : ppl.map(o).join(''));
 }
@@ -28194,16 +28264,17 @@ function stxFamToggle(force){
 /* relationships */
 async function stxEdTies(body, ctx){
   const ties = await stxTies(STXE.scope);
-  if(!STXE.who || !ctx.byKey[STXE.who]) STXE.who = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name))[0].key;
+  if(!STXE.who || !ctx.byKey[STXE.who] || (STXE.own && !STXE.own.has(STXE.who)))
+    STXE.who = STXE.own ? ctx.people.filter(p => STXE.own.has(p.key)).sort((a, b) => a.name.localeCompare(b.name))[0].key : ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name))[0].key;
   const who = ctx.byKey[STXE.who];
   const list = stxTiesOf(ctx, ties, STXE.who);
   body.innerHTML = `<div class="stx-edgrid">
     <section class="stx-card">
       <label class="stx-l" for="stxe-who">Character or faction</label>
-      <select id="stxe-who" class="stx-in" onchange="STXE.who=this.value;STXE.other=null;stxEdDraw()">${stxEdOptions(ctx, STXE.who, null, true)}</select>
+      <select id="stxe-who" class="stx-in" onchange="STXE.who=this.value;STXE.other=null;stxEdDraw()">${stxEdOptions(ctx, STXE.who, null, true, true)}</select>
       <div class="stx-tlist">${list.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
         return `<button type="button" class="stx-tie${STXE.other === t.other ? ' on' : ''}" onclick="STXE.other='${stxE(t.other)}';stxEdDraw()">
-          <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
+          <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}${!STXE.own && t.tie && t.tie.player_edited_at ? '<span class="stx-auto stx-pl" title="A player changed this">Player edited</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
       <button type="button" class="stx-btn" onclick="STXE.other='new';stxEdDraw()">+ Add a relationship</button>
       ${STXE.scope == null && typeof stxScanTab === 'function' ? `<button type="button" class="stx-btn ghost" style="margin-left:0" onclick="STXE.tab='scan';stxEdDraw()"><i class="ti ti-radar"></i> Scan for possible rivalries</button>` : ''}
     </section>
@@ -28213,6 +28284,7 @@ async function stxEdTies(body, ctx){
   const isNew = STXE.other === 'new';
   const t = isNew ? null : list.find(x => x.other === STXE.other);
   if(!isNew && !t){ STXE.other = null; return stxEdDraw(); }
+  if(STXE.own) return stxOwnTieForm(form, ctx, list, who, t, isNew);
   const row = t && t.tie;
   const taken = new Set(list.filter(x => !x.auto).map(x => x.other).concat([STXE.who]));
   const otherK = isNew ? null : STXE.other;
@@ -28363,20 +28435,47 @@ async function stxSaveChapters(key, boxId){
   return { n:data, untitled };
 }
 async function stxEdPeople(body, ctx){
-  const ppl = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name));
-  if(!STXE.chOwner || !ctx.byKey[STXE.chOwner] || ctx.byKey[STXE.chOwner].kind !== 'person') STXE.chOwner = ppl[0].key;
+  const ppl = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name)).filter(p => !STXE.own || STXE.own.has(p.key));
+  if(!STXE.chOwner || !ctx.byKey[STXE.chOwner] || ctx.byKey[STXE.chOwner].kind !== 'person' || (STXE.own && !STXE.own.has(STXE.chOwner))) STXE.chOwner = ppl[0].key;
   const chs = await stxChapters(STXE.scope, STXE.chOwner, true);
+  const facts = await stxFacts(STXE.scope, STXE.chOwner, true);
   body.innerHTML = `<section class="stx-card">
     <label class="stx-l" for="stxe-cp">Character</label>
-    <select id="stxe-cp" class="stx-in" onchange="STXE.chOwner=this.value;stxEdDraw()">${stxEdOptions(ctx, STXE.chOwner, null, false)}</select>
-    <p class="stx-dim">Their story shows on their profile, under the bio. One chapter works as a plain bio, or split it into chapters as the story grows.</p>
+    <select id="stxe-cp" class="stx-in" onchange="STXE.chOwner=this.value;stxEdDraw()">${stxEdOptions(ctx, STXE.chOwner, null, false, true)}</select>
+    <div class="stx-h" style="margin-top:16px">Their story</div>
+    <p class="stx-dim">${STXE.own ? 'Who your character is, where they came from, what drives them. It shows on their profile, under the bio. One chapter works as a plain bio, or split it into chapters as the story grows.'
+      : 'Their story shows on their profile, under the bio. One chapter works as a plain bio, or split it into chapters as the story grows.' + (STXE.scope == null ? ' Their player can write this too.' : '')}</p>
     <div id="stxe-chs">${stxChapterRows(chs)}</div>
     <div class="stx-acts"><button type="button" class="stx-mini" onclick="document.getElementById('stxe-chs').insertAdjacentHTML('beforeend', stxChapterRows([]))">+ Add a chapter</button>
       <button type="button" class="stx-btn" onclick="stxEdSavePerson()">Save story</button><span id="stxe-msg" class="stx-msg"></span></div>
-  </section>`;
+  </section>
+  ${stxFactsCard(STXE.chOwner, facts)}`;
+  stxFactsBind(body, facts);
+}
+// "What happened in WCA": the admin writes it, players read it
+function stxFactsCard(key, facts){
+  if(STXE.scope != null) return '';
+  if(STXE.own) return `<section class="stx-card stx-factcard"><div class="stx-h">What happened in WCA</div>
+      <p class="stx-dim stx-small">WCA writes this part from the shows, so it stays as WCA wrote it.</p>
+      ${facts.length ? `<div class="stx-chapbox stx-factbox" data-box="facts">${stxChapterView(facts, 0)}</div>` : '<p class="stx-dim">Nothing written yet.</p>'}</section>`;
+  return `<section class="stx-card stx-factcard"><div class="stx-h">What happened in WCA</div>
+      <p class="stx-dim">The facts from your shows, kept apart from their story. Players can read this but never change it. It shows on the site under their story.</p>
+      <div id="stxe-facts">${stxChapterRows(facts)}</div>
+      <div class="stx-acts"><button type="button" class="stx-mini" onclick="document.getElementById('stxe-facts').insertAdjacentHTML('beforeend', stxChapterRows([]))">+ Add a chapter</button>
+        <button type="button" class="stx-btn" onclick="stxSaveFacts('${stxE(key)}')">Save WCA facts</button><span id="stxe-fmsg" class="stx-msg"></span></div></section>`;
+}
+function stxFactsBind(root, facts){ const fb = root.querySelector('[data-box="facts"]'); if(fb) stxBindChapters(fb, facts); }
+async function stxSaveFacts(key){
+  const i = key.indexOf(':');
+  const m = document.getElementById('stxe-fmsg');
+  const say = (t, ok) => { if(m){ m.textContent = t; m.className = 'stx-msg ' + (ok ? 'ok' : 'bad'); } };
+  const { data, error } = await sb.rpc('save_story_facts', { p_kind:key.slice(0, i), p_owner_id:key.slice(i + 1), p_chapters:stxReadChapters('stxe-facts') });
+  if(error){ say(/could not find the function|schema cache/i.test(error.message || '') ? 'Run SUPABASE_SETUP_player_stories.sql in Supabase first.' : stxErr(error), false); return; }
+  delete STX.facts[key];
+  say(data ? `Saved. ${data} chapter${data === 1 ? '' : 's'} of WCA facts.` : 'Saved. No WCA facts now.', true);
 }
 async function stxEdSavePerson(){
-  const r = await stxSaveChapters(STXE.chOwner, 'stxe-chs');
+  const r = STXE.own ? await stxOwnSaveChapters(STXE.chOwner, 'stxe-chs') : await stxSaveChapters(STXE.chOwner, 'stxe-chs');
   if(r.error){ stxEdMsg(stxErr(r.error), false); return; }
   await stxEdDraw();
   stxEdMsg(r.n ? `Saved. ${r.n} chapter${r.n === 1 ? '' : 's'} on their profile.` : 'Saved. Their story is empty now.', true);
@@ -28388,16 +28487,21 @@ async function stxEdFactions(body, ctx){
   const isWca = STXE.scope == null;
   if(ctx.factionsMissing){ body.innerHTML = `<div class="stx-empty">${stxE(stxErr('does not exist'))}</div>`; return; }
   if(isWca && !ctx.factions.length){ body.innerHTML = '<div class="stx-empty">No factions yet. Make them in the Factions tab.</div>'; return; }
-  if(STXE.fac !== 'new' && (!STXE.fac || !ctx.byKey[STXE.fac])) STXE.fac = ctx.factions.length ? ctx.factions[0].key : (isWca ? null : 'new');
+  const facList = ctx.factions.filter(x => !STXE.own || STXE.own.has(x.key));
+  if(STXE.own && STXE.fac === 'new') STXE.fac = null;
+  if(STXE.fac !== 'new' && (!STXE.fac || !ctx.byKey[STXE.fac] || (STXE.own && !STXE.own.has(STXE.fac)))) STXE.fac = facList.length ? facList[0].key : (isWca ? null : 'new');
   const f = STXE.fac === 'new' ? null : ctx.byKey[STXE.fac];
+  if(!f && STXE.own){ body.innerHTML = '<div class="stx-empty">Your character is not in a faction.</div>'; return; }
   const chs = f ? await stxChapters(STXE.scope, f.key, true) : [];
+  const ffacts = f ? await stxFacts(STXE.scope, f.key, true) : [];
   const col = f ? stxHex(f.color, '#e9b949') : '#e9b949';
   const members = new Set(f ? f.members : []);
   body.innerHTML = `<div class="stx-edgrid">
     <section class="stx-card">
-      <div class="stx-tlist">${ctx.factions.map(x => `<button type="button" class="stx-tie${STXE.fac === x.key ? ' on' : ''}" onclick="STXE.fac='${stxE(x.key)}';stxEdDraw()">
+      <div class="stx-tlist">${facList.map(x => `<button type="button" class="stx-tie${STXE.fac === x.key ? ' on' : ''}" onclick="STXE.fac='${stxE(x.key)}';stxEdDraw()">
         <span class="stx-dot" style="background:${stxHex(x.color, '#e9b949')}"></span><span><b>${stxE(x.name)}</b><small>${x.members.length} member${x.members.length === 1 ? '' : 's'}${x.off ? ' · inactive, not on the site' : ''}</small></span></button>`).join('') || '<p class="stx-dim">No factions or teams yet.</p>'}</div>
-      ${isWca ? '<p class="stx-dim stx-small">Members, colors and records are set in the Factions tab.</p>' : `<button type="button" class="stx-btn" onclick="STXE.fac='new';stxEdDraw()">+ New faction or team</button>`}
+      ${STXE.own ? '<p class="stx-dim stx-small">Every member\'s player can write their faction\'s motto and story. WCA sets the members.</p>'
+        : isWca ? '<p class="stx-dim stx-small">Members, colors and records are set in the Factions tab. Their members\' players can write the motto and story too.</p>' : `<button type="button" class="stx-btn" onclick="STXE.fac='new';stxEdDraw()">+ New faction or team</button>`}
     </section>
     <section class="stx-card">
       <div class="stx-h">${f ? stxE(f.name) : 'New faction or team'}</div>
@@ -28414,12 +28518,25 @@ async function stxEdFactions(body, ctx){
         <button type="button" class="stx-btn" onclick="stxEdSaveFaction()">Save</button>
         ${!isWca && f ? `<button type="button" class="stx-mini stx-danger" onclick="stxEdRemoveFaction(${Number(f.id)})">Remove this faction</button>` : ''}
         <span id="stxe-msg" class="stx-msg"></span></div>
-    </section></div>`;
+    </section></div>
+    ${f ? stxFactsCard(f.key, ffacts) : ''}`;
+  stxFactsBind(body, ffacts);
 }
 async function stxEdSaveFaction(){
   const isWca = STXE.scope == null;
   const motto = document.getElementById('stxe-motto').value.trim() || null;
   let key = STXE.fac;
+  if(isWca && STXE.own){
+    const id = key.slice(key.indexOf(':') + 1);
+    const { error } = await sb.rpc('story_owner_save_motto', { p_faction_id:String(id), p_motto:motto || '' });
+    if(error){ stxEdMsg(stxOwnErr(error), false); return; }
+    const r = await stxOwnSaveChapters(key, 'stxe-chs');
+    if(r.error){ stxEdMsg(stxOwnErr(r.error), false); return; }
+    stxForget(null); STXE.fac = key;
+    await stxEditor(STXE.host, null, STXE.opts);
+    stxEdMsg('Saved.', true);
+    return;
+  }
   if(isWca){
     const id = key.slice(key.indexOf(':') + 1);
     const { data, error } = await sb.from('factions').update({ motto }).eq('id', id).select('id');
@@ -28455,6 +28572,114 @@ async function stxEdRemoveFaction(id){
   if(error){ stxEdMsg(stxErr(error), false); return; }
   stxForget(STXE.scope); STXE.fac = null;
   await stxEditor(STXE.host, STXE.scope, STXE.opts);
+}
+/* ---------- player mode: a player writes their own character's side ----------
+   Saves go through story_owner_* functions, which check the player owns the
+   character first, change only that character's side, and never touch WCA's
+   key moments or facts. SQL: SUPABASE_SETUP_player_stories.sql */
+function stxOwnErr(err){
+  const t = String((err && err.message) || err || '');
+  if(/could not find the function|schema cache|function .* does not exist/i.test(t)) return 'Writing your own stories is not switched on yet. WCA has to finish setting it up.';
+  return t || 'Something went wrong.';
+}
+async function stxOwnSaveChapters(key, boxId){
+  const i = key.indexOf(':');
+  const { data, error } = await sb.rpc('story_owner_save_chapters', { p_kind:key.slice(0, i), p_owner_id:key.slice(i + 1), p_chapters:stxReadChapters(boxId) });
+  if(error) return { error:{ message:stxOwnErr(error) } };
+  stxForget(null);
+  return { n:data };
+}
+function stxOwnTieForm(form, ctx, list, who, t, isNew){
+  const row = t && t.tie;
+  const taken = new Set(list.filter(x => !x.auto).map(x => x.other).concat([STXE.who]));
+  const otherK = isNew ? null : STXE.other;
+  const otherName = otherK ? ctx.byKey[otherK].name : 'them';
+  const meIsA = row ? (row.a_kind + ':' + row.a_id) === STXE.who : true;
+  const myLv = row ? (meIsA ? row.a_level : (row.b_level || row.a_level)) : 'friends';
+  const myWhy = row ? ((meIsA ? row.a_why : (row.b_level ? row.b_why : row.a_why)) || '') : '';
+  const theirsSet = row ? (meIsA ? !!row.b_level : true) : false;
+  const thLv = row ? (meIsA ? (row.b_level || row.a_level) : row.a_level) : null;
+  const thWhy = row ? ((meIsA ? (row.b_level ? row.b_why : row.a_why) : row.a_why) || '') : '';
+  const famOn = !!(row && (row.relation || row.a_role || row.b_role || row.a_level === 'related' || row.b_level === 'related'));
+  const myRole = row ? ((meIsA ? row.a_role : row.b_role) || '') : '', thRole = row ? ((meIsA ? row.b_role : row.a_role) || '') : '';
+  const moments = row ? (row.moments || []) : [];
+  const canRemove = !!(row && meIsA && !row.b_level && !moments.length);
+  const canReset = !!(row && !meIsA && row.b_level);
+  const thL = thLv ? STX_LV[stxLvKey(thLv)] : null;
+  form.innerHTML = `<div class="stx-h">${isNew ? 'New relationship' : stxE(who.name) + ' and ' + stxE(otherName)}</div>
+    ${isNew ? `<label class="stx-l" for="stxe-other">With</label><select id="stxe-other" class="stx-in" onchange="stxEdOtherName(this)">${stxEdOptions(ctx, null, taken, true)}</select>` : ''}
+    ${t && t.auto ? `<p class="stx-dim">You're in ${stxE(t.faction)} together, so you're tied automatically. Saving this gives you your own relationship and history.</p>` : ''}
+    <div class="stx-side">
+      <div class="stx-side-h"><div>How ${stxE(who.name)} feels about <b class="stxe-on">${stxE(otherName)}</b></div></div>
+      ${stxLvChips('stxe-lva', myLv, { fam:true, famOn, faction:t ? (t.faction || '') : '' })}
+      <p class="stx-lvhint">Pick how you feel. Family can go on top of any feeling.</p>
+      <label class="stx-l" for="stxe-wa">Why <span class="stx-opt">(shows on ${stxE(who.name)}'s profile)</span></label>
+      <textarea id="stxe-wa" class="stx-in" rows="2" maxlength="600" placeholder="A line or two">${stxE(myWhy)}</textarea>
+    </div>
+    <div class="stx-side stx-theirs">
+      <div class="stx-side-h"><div>How <b class="stxe-on">${stxE(otherName)}</b> feels about ${stxE(who.name)}</div>${thL && row ? `<span style="color:${thL.color}">${stxE(thL.label)}</span>` : ''}</div>
+      ${row && theirsSet ? `<div class="stx-why">${thWhy ? stxE(thWhy) : '<span class="stx-dim">No reason written.</span>'}</div>
+          <p class="stx-dim stx-small">That's their side. Their player, or WCA, writes it.</p>`
+        : `<p class="stx-dim stx-small">Until their player or WCA sets their side, it shows the same as yours.</p>`}
+    </div>
+    <input type="checkbox" id="stxe-fam" hidden${famOn ? ' checked' : ''}>
+    <div class="stx-fambox" id="stxe-fambox"${famOn ? '' : ' hidden'}>
+      <div class="stx-famck">Family</div>
+      <p class="stx-dim stx-small">Family shows as a purple double line, next to the line for how you feel. Leave the feeling unpicked if you're just family.</p>
+      <label class="stx-l" for="stxe-rel">What they are</label>
+      <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Married, Cousins" value="${stxE(row ? row.relation || '' : '')}">
+      <div class="stx-g2">
+        <div><label class="stx-l" for="stxe-rolea">Who ${stxE(who.name)} is to <span class="stxe-on">${stxE(otherName)}</span> <span class="stx-opt">(optional)</span></label>
+          <input id="stxe-rolea" class="stx-in" maxlength="40" placeholder="Younger brother" value="${stxE(myRole)}"></div>
+        <div><label class="stx-l" for="stxe-roleb">Who <span class="stxe-on">${stxE(otherName)}</span> is to ${stxE(who.name)} <span class="stx-opt">(optional)</span></label>
+          <input id="stxe-roleb" class="stx-in" maxlength="40" placeholder="Older brother" value="${stxE(thRole)}"></div>
+      </div>
+    </div>
+    <label class="stx-l" for="stxe-hist">Your history together <span class="stx-opt">(optional, both players can write here)</span></label>
+    <textarea id="stxe-hist" class="stx-in" rows="6" maxlength="20000" placeholder="How it started, what happened, where it is now. Leave a blank line between paragraphs.">${stxE(row ? row.history || '' : '')}</textarea>
+    <label class="stx-l">Key moments in WCA</label>
+    ${moments.length ? `<div class="stx-factbox">${moments.map(mo => `<div class="stx-moment"><b>${stxE(mo.when || '')}</b><span>${stxE(mo.text || '')}</span></div>`).join('')}</div>
+        <p class="stx-dim stx-small">WCA adds these from the shows, so they stay as WCA wrote them.</p>`
+      : '<p class="stx-dim stx-small">None yet. WCA adds these from the shows.</p>'}
+    <div class="stx-acts">
+      <button type="button" class="stx-btn" onclick="stxOwnSaveTie()">Save</button>
+      ${canRemove ? '<button type="button" class="stx-mini stx-danger" onclick="stxOwnRemoveTie()">Remove this relationship</button>' : ''}
+      ${canReset ? '<button type="button" class="stx-mini" onclick="stxOwnRemoveTie()">Reset my side</button>' : ''}
+      <span id="stxe-msg" class="stx-msg"></span>
+    </div>`;
+  if(isNew) stxEdOtherName(document.getElementById('stxe-other'));
+}
+async function stxOwnSaveTie(){
+  const ctx = await stxCtx(null), ties = await stxTies(null);
+  const otherK = STXE.other === 'new' ? (document.getElementById('stxe-other') || {}).value : STXE.other;
+  if(!otherK || !ctx.byKey[otherK]){ stxEdMsg('Pick who the relationship is with.', false); return; }
+  const famOn = !!(document.getElementById('stxe-fam') || {}).checked;
+  let lv = document.getElementById('stxe-lva').dataset.lv;
+  if(!lv && famOn) lv = 'related';
+  if(!lv){ stxEdMsg('Pick how you feel, or Family.', false); return; }
+  const val = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  const split = k => { const i = k.indexOf(':'); return [k.slice(0, i), k.slice(i + 1)]; };
+  const [mk, mi] = split(STXE.who), [ok, oi] = split(otherK);
+  const existing = ties.find(x => { const a = x.a_kind + ':' + x.a_id, b = x.b_kind + ':' + x.b_id; return (a === STXE.who && b === otherK) || (b === STXE.who && a === otherK); });
+  const hadFam = !!(existing && (existing.relation || existing.a_role || existing.b_role));
+  const { error } = await sb.rpc('story_owner_save_tie', { p_me_kind:mk, p_me_id:mi, p_other_kind:ok, p_other_id:oi, p_level:lv, p_why:val('stxe-wa'),
+    p_family: famOn ? true : (hadFam ? false : null), p_relation:val('stxe-rel'), p_my_role:val('stxe-rolea'), p_their_role:val('stxe-roleb'),
+    p_history:(document.getElementById('stxe-hist') || {}).value || '' });
+  if(error){ stxEdMsg(stxOwnErr(error), false); return; }
+  stxForget(null);
+  STXE.other = otherK;
+  await stxEditor(STXE.host, null, STXE.opts);
+  stxEdMsg('Saved. Both profiles show it now.', true);
+}
+async function stxOwnRemoveTie(){
+  const [mk, mi] = [STXE.who.slice(0, STXE.who.indexOf(':')), STXE.who.slice(STXE.who.indexOf(':') + 1)];
+  const [ok, oi] = [STXE.other.slice(0, STXE.other.indexOf(':')), STXE.other.slice(STXE.other.indexOf(':') + 1)];
+  const { data, error } = await sb.rpc('story_owner_remove_tie', { p_me_kind:mk, p_me_id:mi, p_other_kind:ok, p_other_id:oi });
+  if(error){ stxEdMsg(stxOwnErr(error), false); return; }
+  stxForget(null);
+  if(data === 'removed') STXE.other = null;
+  await stxEditor(STXE.host, null, STXE.opts);
+  stxEdMsg(data === 'reset' ? 'Your side shows the same as theirs again.' : 'Removed.', true);
 }
 /* ===================== end STORIES AND RELATIONSHIPS ===================== */
 // This script loads after the page has already opened the address it was
