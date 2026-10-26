@@ -27464,8 +27464,12 @@ async function stxCtxWca(){
     const { data } = await sb.from('wrestlers').select('*').order('name');
     rows = (data || []).filter(w => w && w.is_draft !== true);
   }
+  // off: Status set to Inactive or Hidden (or a draft). They stay in other people's webs,
+  // but the Character dropdown on the Relationships page lists active people only.
+  const personOff = w => { if(w.is_draft === true) return true; const st = String(w.status || '').trim().toLowerCase();
+    if(st === 'inactive' || st === 'hidden') return true; return !st && w.is_active === false; };
   const people = rows.filter(w => w && w.id != null && w.name).map(w => ({ key:'person:' + w.id, kind:'person', id:String(w.id), name:w.name,
-    color:'#efe9db', image:w.image_url || w.avatar_url || '' }));
+    color:'#efe9db', image:w.image_url || w.avatar_url || '', off:personOff(w) }));
   // every spelling: the name and each alias, lowercased with spaces and dots evened out,
   // so "Stella" or "Parallax Stella" in a faction's member list still finds ParallaxStella
   const stxNm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -27757,7 +27761,9 @@ async function stxRender(){
   const body = document.getElementById('stx-mbody'); if(!body) return;
   const [ctx, ties] = await Promise.all([stxCtx(v.scope), stxTies(v.scope)]);
   const people = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name));
-  if(v.mode === 'web' && (!v.key || !ctx.byKey[v.key])) v.key = (people[0] || {}).key;
+  // the Character dropdown: active people only
+  const pickable = people.filter(p => !p.off);
+  if(v.mode === 'web' && (!v.key || !ctx.byKey[v.key])) v.key = (pickable[0] || people[0] || {}).key;
   const tabs = `<div class="stx-views" role="tablist">
     <button type="button" role="tab" class="stx-view${v.mode === 'web' ? ' on' : ''}" aria-selected="${v.mode === 'web'}" data-go="web">Their web</button>
     <button type="button" role="tab" class="stx-view${v.mode === 'world' ? ' on' : ''}" aria-selected="${v.mode === 'world'}" data-go="world">The whole roster</button>
@@ -27816,9 +27822,9 @@ async function stxRender(){
         ${(t.tie.moments || []).length ? `<div class="stx-k" style="margin-top:16px">Key moments</div>${t.tie.moments.map(mo => `<div class="stx-moment"><b>${stxE(mo.when || '')}</b><span>${stxE(mo.text || '')}</span></div>`).join('')}` : ''}
       </section>` : '';
     body.innerHTML = `<div class="stx-head"><div class="stx-k">Relationships</div><h2 class="stx-title">${me ? stxE(me.name) + "'s web" : 'The web'}</h2>${tabs}</div>
-      <div class="stx-pickrow"><label class="stx-l" for="stx-pick">Character</label><select id="stx-pick" class="stx-in">${people.map(p => `<option value="${stxE(p.key)}"${p.key === v.key ? ' selected' : ''}>${stxE(p.name)}</option>`).join('')}</select></div>
+      <div class="stx-pickrow"><label class="stx-l" for="stx-pick">Character</label><select id="stx-pick" class="stx-in">${me && me.off ? '<option value="" selected disabled>Pick a character</option>' : ''}${pickable.map(p => `<option value="${stxE(p.key)}"${p.key === v.key ? ' selected' : ''}>${stxE(p.name)}</option>`).join('')}</select></div>
       <div class="stx-grid"><div class="stx-stage">${me ? stxWebSVG(ctx, v.key, list, v.sel) : ''}${stxLegend()}</div><aside class="stx-aside">${aside}</aside></div>${hist}`;
-    const pk = body.querySelector('#stx-pick'); if(pk) pk.addEventListener('change', () => { v.key = pk.value; v.sel = null; stxRender(); });
+    const pk = body.querySelector('#stx-pick'); if(pk) pk.addEventListener('change', () => { if(!pk.value) return; v.key = pk.value; v.sel = null; stxRender(); });
   }
   body.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { v.mode = b.dataset.go; v.sel = null; v.ch = 0; if(v.mode === 'faction') v.key = null; if(v.mode === 'web' && v.key && !String(v.key).startsWith('person:')) v.key = null; stxRender(); }));
   body.querySelectorAll('[data-web]').forEach(b => b.addEventListener('click', () => { v.mode = 'web'; v.key = b.dataset.web; v.sel = null; stxRender(); }));
