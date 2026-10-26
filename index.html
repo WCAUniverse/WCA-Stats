@@ -27479,9 +27479,9 @@ else boot();
    SQL: SUPABASE_SETUP_stories.sql */
 const STX_LV = {
   friends: { label:'Friends',      color:'#5dcaa5', n:4, good:true,  w:3 },
-  // family: brothers, cousins, father and son. Drawn as a double line. How they're related is
+  // Family (saved as 'related'): brothers, cousins, married, father and son. Drawn as a double line. Who they are to each other is
   // the tie's relation text, and it can sit on top of any feeling (brothers who are Rivals).
-  related: { label:'Related',      color:'#b48cff', n:5, good:true,  w:4, family:true },
+  related: { label:'Family',       color:'#b48cff', n:5, good:true,  w:4, family:true },
   uneasy:  { label:'Uneasy',       color:'#c9a45c', n:3, good:false, w:2 },
   rivals:  { label:'Rivals',       color:'#ff8a96', n:2, good:false, w:3 },
   enemies: { label:'Enemies',      color:'#ff3b54', n:1, good:false, w:5 },
@@ -27505,12 +27505,12 @@ function stxE(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ 
 function stxHex(c, d){ return /^#[0-9a-f]{6}$/i.test(String(c || '').trim()) ? String(c).trim() : (d || '#c9c6be'); }
 function stxInit(n){ return String(n || '?').replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'; }
 function stxMissing(err){ return /does not exist|PGRST20[0-9]|could not find|schema cache/i.test(String((err && err.message) || err || '')); }
-// saving a tie: Related and "How they're related" need SUPABASE_SETUP_relationships_related.sql
+// saving a tie: Family and "How they're family" need SUPABASE_SETUP_relationships_related.sql
 function stxTieErr(err, dupMsg){
   const t = String((err && err.message) || err || '');
   if(/duplicate|unique/i.test(t)) return dupMsg;
   if(/relation.*(column|schema cache)|column.*relation/i.test(t) || /check constraint|violates check|invalid input value for enum/i.test(t))
-    return 'Related needs one more step. Run SUPABASE_SETUP_relationships_related.sql in Supabase, then save again.';
+    return 'Family needs one more step. Run SUPABASE_SETUP_relationships_related.sql in Supabase, then save again.';
   return stxErr(err);
 }
 function stxErr(err){
@@ -28169,9 +28169,9 @@ async function stxEdTies(body, ctx){
         <textarea id="stxe-wb" class="stx-in" rows="2" maxlength="600" placeholder="Their side of it">${stxE(thWhy)}</textarea>
       </div>
     </div>
-    <label class="stx-l" for="stxe-rel">How they're related <span class="stx-opt">(optional, family only)</span></label>
-    <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Cousins, Father and son" value="${stxE(row ? row.relation || '' : '')}">
-    <p class="stx-dim stx-small">Pick <b style="color:${STX_LV.related.color}">Related</b> above when family is the whole story. Or keep their feeling, like Rivals, and still write Brothers here. Either way the tie shows who they are to each other.</p>
+    <label class="stx-l" for="stxe-rel">How they're family <span class="stx-opt">(optional)</span></label>
+    <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Married, Father and son" value="${stxE(row ? row.relation || '' : '')}">
+    <p class="stx-dim stx-small">Pick <b style="color:${STX_LV.related.color}">Family</b> above for blood relatives, a married couple, or anyone who is family, and write who they are to each other here. Or keep their feeling, like Rivals, and still write Brothers here. Either way the tie shows it.</p>
     <label class="stx-l" for="stxe-hist">Their history <span class="stx-opt">(optional, as long as you like)</span></label>
     <textarea id="stxe-hist" class="stx-in" rows="7" maxlength="20000" placeholder="Tell the whole story between them. How it started, what happened, where it is now. Leave a blank line between paragraphs.">${stxE(row ? row.history || '' : '')}</textarea>
     <label class="stx-l">Key moments <span class="stx-opt">(optional)</span></label>
