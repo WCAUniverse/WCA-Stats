@@ -27483,11 +27483,11 @@ async function stxCtxWca(){
     return out; };
   let facs = [];
   try{ const { data } = await sb.from('factions').select('*').order('name'); facs = data || []; }catch(e){}
-  // Inactive and Hidden factions follow the wrestler rule: off the site's Relationships page,
-  // and no automatic "Same faction" ties. Admin still lists them (marked off) so their story can be written.
+  // Inactive and Hidden factions (off:true) make no automatic "Same faction" ties and are left out of
+  // the Factions dropdown and the whole roster view. A relationship someone wrote with one still shows
+  // in that person's web. Admin lists them, marked, so their story can still be written.
   const facOff = f => f.is_hidden === true || f.is_active === false || /^(inactive|hidden)$/i.test(String(f.status || '').trim());
-  const showOff = !stxOnSite();
-  const factions = facs.filter(f => f && f.id != null && f.name && (showOff || !facOff(f))).map(f => {
+  const factions = facs.filter(f => f && f.id != null && f.name).map(f => {
     const members = [...new Set(stxMembers(f.members_txt).map(p => p.key))];
     return { key:'faction:' + f.id, kind:'faction', id:String(f.id), name:f.name, color:stxHex(f.color, '#e9b949'), motto:f.motto || '', members, off:facOff(f) };
   });
@@ -27761,16 +27761,19 @@ async function stxRender(){
   const tabs = `<div class="stx-views" role="tablist">
     <button type="button" role="tab" class="stx-view${v.mode === 'web' ? ' on' : ''}" aria-selected="${v.mode === 'web'}" data-go="web">Their web</button>
     <button type="button" role="tab" class="stx-view${v.mode === 'world' ? ' on' : ''}" aria-selected="${v.mode === 'world'}" data-go="world">The whole roster</button>
-    ${ctx.factions.length ? `<button type="button" role="tab" class="stx-view${v.mode === 'faction' ? ' on' : ''}" aria-selected="${v.mode === 'faction'}" data-go="faction">Factions</button>` : ''}
+    ${ctx.factions.some(f => !f.off) ? `<button type="button" role="tab" class="stx-view${v.mode === 'faction' ? ' on' : ''}" aria-selected="${v.mode === 'faction'}" data-go="faction">Factions</button>` : ''}
   </div>`;
   let html = '';
   if(v.mode === 'faction'){
-    if(!v.key || !ctx.byKey[v.key]) v.key = (ctx.factions[0] || {}).key;
+    // the dropdown lists active factions only. An inactive one can still be opened
+    // from someone's web (Open ...), and then the dropdown just says Pick a faction.
+    const live = ctx.factions.filter(x => !x.off);
+    if(!v.key || !ctx.byKey[v.key]) v.key = (live[0] || {}).key;
     const f = ctx.byKey[v.key];
     const chs = f ? await stxChapters(v.scope, f.key) : [];
     const fties = f ? stxTiesOf(ctx, ties, f.key) : [];
     html = `<div class="stx-head"><div class="stx-k">Factions</div>${tabs}</div>
-      ${ctx.factions.length > 1 ? `<div class="stx-pickrow"><label class="stx-l" for="stx-fpick">Faction</label><select id="stx-fpick" class="stx-in">${ctx.factions.map(x => `<option value="${stxE(x.key)}"${x.key === v.key ? ' selected' : ''}>${stxE(x.name)}</option>`).join('')}</select></div>` : ''}
+      ${live.length > 1 || (f && f.off && live.length) ? `<div class="stx-pickrow"><label class="stx-l" for="stx-fpick">Faction</label><select id="stx-fpick" class="stx-in">${f && f.off ? '<option value="" selected disabled>Pick a faction</option>' : ''}${live.map(x => `<option value="${stxE(x.key)}"${x.key === v.key ? ' selected' : ''}>${stxE(x.name)}</option>`).join('')}</select></div>` : ''}
       ${f ? `<section class="stx-fac" style="--fc:${stxHex(f.color, '#e9b949')}">
         <div class="stx-k">Faction</div><h2 class="stx-ftitle">${stxE(f.name)}</h2>
         ${f.motto ? `<p class="stx-motto">“${stxE(f.motto)}”</p>` : ''}
@@ -27782,7 +27785,7 @@ async function stxRender(){
         return `<div class="stx-ftie" style="--lc:${l.color}"><div class="stx-k" style="color:${l.color}">${stxE(l.label)}</div><b>${stxE(o.name)}</b>${t.myWhy ? `<p>${stxE(t.myWhy)}</p>` : ''}</div>`; }).join('')}</div>` : ''}` : '<div class="stx-empty">No factions yet.</div>'}`;
     body.innerHTML = html;
     stxBindChapters(body, chs);
-    const fp = body.querySelector('#stx-fpick'); if(fp) fp.addEventListener('change', () => { v.key = fp.value; v.ch = 0; stxRender(); });
+    const fp = body.querySelector('#stx-fpick'); if(fp) fp.addEventListener('change', () => { if(!fp.value) return; v.key = fp.value; v.ch = 0; stxRender(); });
   } else if(v.mode === 'world'){
     const svg = stxWorldSVG(ctx, ties);
     body.innerHTML = `<div class="stx-head"><div class="stx-k">Relationships</div><h2 class="stx-title">The whole roster</h2>${tabs}</div>
@@ -27874,7 +27877,7 @@ async function stxFactionsTab(box, pid){
   let ctx, ties;
   try{ [ctx, ties] = await Promise.all([stxCtx(pid, true), stxTies(pid, true)]); }
   catch(e){ box.innerHTML = `<div class="stx-empty">${stxE(stxErr(e))}</div>`; return; }
-  const anyTie = ties.length || ctx.factions.some(f => f.members.length > 1);
+  const anyTie = ties.length || ctx.factions.some(f => !f.off && f.members.length > 1);
   box.innerHTML = `${anyTie ? `<div class="stx-tabtop"><button type="button" class="stx-btn" onclick="stxOpenWorld(${Number(pid)})"><i class="ti ti-affiliate"></i> See the whole roster's relationships</button></div>` : ''}
     ${ctx.factions.length ? `<div class="stx-fgrid">${ctx.factions.map(f => `<button type="button" class="stx-fcard" style="--fc:${stxHex(f.color, '#e9b949')}" onclick="stxOpenFaction(${Number(pid)},'${stxE(f.key)}')">
       <span class="stx-fcard-bar"></span><b>${stxE(f.name)}</b>${f.motto ? `<span class="stx-motto">“${stxE(f.motto)}”</span>` : ''}
