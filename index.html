@@ -6747,7 +6747,7 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   /* ===== Stories and relationships (Oct 2026). Same block in index.html and admin.html ===== */
   .stx-panel{position:relative; width:min(1180px,100%); background:#0d0e14; border:1px solid rgba(233,185,73,.28); border-radius:16px; padding:26px 26px 30px;
     box-shadow:0 20px 60px rgba(0,0,0,.4); color:#f2f2f0; font-family:'Barlow', system-ui, sans-serif;}
-  .stx-pagewrap{max-width:1240px; margin:0 auto;}
+  .stx-pagewrap{max-width:1480px; margin:0 auto;}
   .stx-crumbs{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:6px 0 14px; position:relative; z-index:2;}
   .stx-back{display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:8px; border:1px solid rgba(233,185,73,.5); background:rgba(10,10,14,.9);
     color:#e9b949; cursor:pointer; font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; font-size:15px;}
@@ -6772,7 +6772,20 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-in:focus{outline:2px solid rgba(233,185,73,.55); outline-offset:1px;}
   .stx-grid{display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start;}
   .stx-stage{border:1px solid #20212a; border-radius:14px; background:radial-gradient(70% 60% at 50% 45%, rgba(233,185,73,.07), transparent 70%), #08090e; padding:8px 8px 12px;}
-  .stx-svg{display:block; width:100%; height:auto;}
+  .stx-svg{display:block; width:100%; height:auto; user-select:none; -webkit-user-select:none;}
+  .stx-ztools{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:4px 4px 8px;}
+  .stx-zhint{font-size:14.5px; color:#a9a6a0;}
+  .stx-zbar{display:inline-flex; gap:6px; margin-left:auto;}
+  .stx-zb{min-width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; border-radius:10px;
+    border:1px solid rgba(233,185,73,.45); background:rgba(8,9,14,.9); color:#f2f2f0; font:inherit; font-weight:700; font-size:15px; cursor:pointer; margin:0;}
+  .stx-zb i{font-size:20px;}
+  .stx-zb:hover:not(:disabled){border-color:#e9b949; color:#e9b949;}
+  .stx-zb:disabled{opacity:.4; cursor:default;}
+  .stx-zoom{position:relative; overflow:hidden; border-radius:10px; cursor:grab; touch-action:pan-y;}
+  .stx-zoom.zoomed{box-shadow:inset 0 0 0 1px rgba(233,185,73,.25);}
+  .stx-zoom.dragging{cursor:grabbing;}
+  .stx-zoom .stx-node{cursor:pointer;}
+  .stx-zoom.dragging .stx-node{cursor:grabbing;}
   .stx-node{cursor:pointer; outline:none;}
   .stx-node:hover circle, .stx-node:focus-visible circle{filter:brightness(1.25);}
   .stx-node:focus-visible circle:first-of-type{stroke:#fff;}
@@ -6790,6 +6803,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-meter{display:flex; gap:4px; margin:8px 0 6px;} .stx-meter i{flex:1; height:7px; border-radius:4px;}
   .stx-why{font-size:15px; line-height:1.55; color:#d7d4cc; white-space:pre-wrap;}
   .stx-copied{margin-top:6px; font-size:12.5px; color:#8a8a86;}
+  .stx-family{display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:9px 12px; border-radius:10px; border:1px solid rgba(180,140,255,.45); background:rgba(180,140,255,.08); color:#d9c9ff; font-size:15px;}
+  .stx-family b{color:#fff;}
   .stx-dim{color:#8a8a86; font-size:14.5px; line-height:1.55;}
   .stx-small{font-size:13px;}
   .stx-btn{display:inline-flex; align-items:center; gap:7px; margin-top:12px; padding:10px 16px; border-radius:8px; border:0; cursor:pointer;
@@ -7802,6 +7817,36 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .sm-vbtn:hover{color:var(--txt);border-color:var(--gold-dim);}
   .sm-vbtn.active{color:var(--gold);border-color:var(--gold);background:var(--gold-deep);}
   .sm-viewbar .sm-note{font-family:var(--font-body);font-size:12px;color:var(--muted2);margin-left:auto;}
+  /* Star map, List and Relationships: a big column on the left, in the space beside the views */
+  .sm-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start;}
+  .sm-layout.no-rail{grid-template-columns:minmax(0,1fr);}
+  .sm-layout.no-rail > .sm-rail{display:none;}
+  .sm-views{min-width:0;}
+  .sm-rail{position:sticky;top:150px;flex-direction:column;align-items:stretch;gap:10px;margin:0;flex-wrap:nowrap;}
+  .sm-rail .sm-vbtn{width:100%;justify-content:flex-start;text-align:left;gap:14px;padding:15px 16px;border-radius:12px;
+    font-size:18px;letter-spacing:1.4px;color:var(--txt);background:rgba(10,10,14,.88);border-width:1px;}
+  .sm-rail .sm-vbtn i{font-size:26px;flex:0 0 auto;color:var(--gold);}
+  .sm-rail .sm-vbtn span{display:flex;flex-direction:column;min-width:0;}
+  .sm-rail .sm-vbtn b{font-weight:700;}
+  .sm-rail .sm-vbtn small{font-family:var(--font-body);text-transform:none;letter-spacing:0;font-size:14px;color:var(--muted);margin-top:3px;line-height:1.3;}
+  .sm-rail .sm-vbtn:hover{border-color:var(--gold);transform:translateX(2px);}
+  .sm-rail .sm-vbtn.active{background:var(--gold-deep);border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset, 0 0 22px rgba(233,185,73,.16);}
+  .sm-rail .sm-vbtn.active b{color:var(--gold);}
+  .sm-rail .sm-note{margin:4px 2px 0;font-size:14px;line-height:1.45;}
+  .sm-rail .sm-note:empty{display:none;}
+  .sm-rail .sm-vbtn::after{display:none !important;}
+  @media (max-width:1100px){
+    .sm-layout{grid-template-columns:minmax(0,1fr);gap:12px;}
+    .sm-rail{position:static;flex-direction:row;}
+    .sm-rail .sm-vbtn{flex:1 1 0;justify-content:center;padding:13px 10px;font-size:16px;}
+    .sm-rail .sm-vbtn small{display:none;}
+    .sm-rail .sm-vbtn i{font-size:22px;}
+    .sm-rail .sm-note{flex-basis:100%;}
+    .sm-rail{flex-wrap:wrap;}
+  }
+  @media (max-width:520px){
+    .sm-rail .sm-vbtn{flex-direction:column;gap:4px;font-size:14px;letter-spacing:1px;padding:11px 6px;}
+  }
 
   /* ── the stage ─────────────────────────────────────────────── */
   .sm-stage{
@@ -8543,12 +8588,16 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
     </div>
     <input class="search" id="roster-search" placeholder="Search this list…" autocomplete="off">
 
-    <div class="sm-viewbar">
-      <button class="sm-vbtn active" id="sm-view-map" type="button"><i class="ti ti-stars"></i> Star map</button>
-      <button class="sm-vbtn" id="sm-view-list" type="button"><i class="ti ti-layout-list"></i> List</button>
-      <button class="sm-vbtn" id="sm-view-web" type="button" onclick="stxOpenWorld('wca')"><i class="ti ti-affiliate"></i> Relationships</button>
+    <!-- the three roster views: a column on the left on wide screens, a row on phones.
+         The Relationships page draws the same column (stxCrumbs) so it never moves. -->
+    <div class="sm-layout">
+    <nav class="sm-viewbar sm-rail" aria-label="Roster views">
+      <button class="sm-vbtn active" id="sm-view-map" type="button"><i class="ti ti-stars"></i><span><b>Star map</b><small>The roster in the stars</small></span></button>
+      <button class="sm-vbtn" id="sm-view-list" type="button"><i class="ti ti-layout-list"></i><span><b>List</b><small>Every wrestler, card by card</small></span></button>
+      <button class="sm-vbtn" id="sm-view-web" onclick="stxOpenWorld('wca')" type="button"><i class="ti ti-affiliate"></i><span><b>Relationships</b><small>Who likes and hates who</small></span></button>
       <span class="sm-note" id="sm-viewnote"></span>
-    </div>
+    </nav>
+    <div class="sm-views">
 
     <!-- ===== STAR MAP VIEW ===== -->
     <div id="sm-wrap">
@@ -8689,6 +8738,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
       <!-- legacy grid kept as a hidden fallback (still wired by bindRosterCards) -->
       <div class="roster-grid" id="roster-grid" style="display:none"></div>
     </div>
+    </div><!-- /.sm-views -->
+    </div><!-- /.sm-layout -->
   </div>
 
   <!-- STORYLINES (storyline-driven content hub: social / articles / HR / timeline) -->
@@ -8770,7 +8821,10 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   <!-- RELATIONSHIPS: the web, the whole roster and faction pages (WCA and promotions) -->
   <div class="page" id="page-relationships"><div class="stx-pagewrap">
     <div class="stx-crumbs" id="stx-crumbs"></div>
-    <div class="stx-panel"><div id="stx-mbody"></div></div>
+    <div class="sm-layout stx-layout no-rail" id="stx-layout">
+      <nav class="sm-viewbar sm-rail" id="stx-rail" aria-label="Roster views"></nav>
+      <div class="sm-views"><div class="stx-panel"><div id="stx-mbody"></div></div></div>
+    </div>
   </div></div>
   <div class="page" id="page-mypromo"><div id="mp-body"></div></div>
 
@@ -27424,14 +27478,25 @@ else boot();
    A scope is null for WCA, or a promotion's id.
    SQL: SUPABASE_SETUP_stories.sql */
 const STX_LV = {
-  best:    { label:'Best friends', color:'#3ee0a8', n:5, good:true,  w:5 },
   friends: { label:'Friends',      color:'#5dcaa5', n:4, good:true,  w:3 },
+  // family: brothers, cousins, father and son. Drawn as a double line. How they're related is
+  // the tie's relation text, and it can sit on top of any feeling (brothers who are Rivals).
+  related: { label:'Related',      color:'#b48cff', n:5, good:true,  w:4, family:true },
   uneasy:  { label:'Uneasy',       color:'#c9a45c', n:3, good:false, w:2 },
   rivals:  { label:'Rivals',       color:'#ff8a96', n:2, good:false, w:3 },
   enemies: { label:'Enemies',      color:'#ff3b54', n:1, good:false, w:5 },
   faction: { label:'Same faction', color:'#e9b949', n:5, good:true,  w:4 }
 };
-const STX_LEVELS = ['best','friends','uneasy','rivals','enemies'];
+// Best friends was retired (Oct 2026). Old rows still saying 'best' read as Friends.
+STX_LV.best = STX_LV.friends;
+const STX_LEVELS = ['friends','related','uneasy','rivals','enemies'];
+function stxLvKey(l){ return l === 'best' ? 'friends' : (STX_LV[l] ? l : 'friends'); }
+// the words under a name: "Brothers" for family, "Brothers, Rivals" when there's a feeling on top
+function stxTieLabel(level, relation){
+  const l = STX_LV[stxLvKey(level)], r = String(relation || '').trim();
+  if(!r) return l.label;
+  return level === 'related' ? r : r + ', ' + l.label;
+}
 const STX = { ctx:{}, ties:{}, chap:{}, view:null };
 
 function stxSk(scope){ return (scope === null || scope === undefined || scope === '' || scope === 'wca') ? 'wca' : 'p' + Number(scope); }
@@ -27440,6 +27505,14 @@ function stxE(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ 
 function stxHex(c, d){ return /^#[0-9a-f]{6}$/i.test(String(c || '').trim()) ? String(c).trim() : (d || '#c9c6be'); }
 function stxInit(n){ return String(n || '?').replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'; }
 function stxMissing(err){ return /does not exist|PGRST20[0-9]|could not find|schema cache/i.test(String((err && err.message) || err || '')); }
+// saving a tie: Related and "How they're related" need SUPABASE_SETUP_relationships_related.sql
+function stxTieErr(err, dupMsg){
+  const t = String((err && err.message) || err || '');
+  if(/duplicate|unique/i.test(t)) return dupMsg;
+  if(/relation.*(column|schema cache)|column.*relation/i.test(t) || /check constraint|violates check|invalid input value for enum/i.test(t))
+    return 'Related needs one more step. Run SUPABASE_SETUP_relationships_related.sql in Supabase, then save again.';
+  return stxErr(err);
+}
 function stxErr(err){
   const t = String((err && err.message) || err || '');
   if(stxMissing(err)) return 'Stories are not switched on yet. Run SUPABASE_SETUP_stories.sql in Supabase.';
@@ -27527,6 +27600,7 @@ async function stxTies(scope, force){
     STX.ties[sk] = (async () => {
       const { data, error } = await stxScopeQ(sb.from('story_ties').select('*'), stxScopeOf(sk)).order('id');
       if(error){ if(stxMissing(error)) return []; throw error; }
+      (data || []).forEach(t => { t.a_level = stxLvKey(t.a_level); if(t.b_level) t.b_level = stxLvKey(t.b_level); });
       return data || [];
     })().catch(e => { delete STX.ties[sk]; throw e; });
   }
@@ -27554,7 +27628,7 @@ function stxTiesOf(ctx, ties, key){
     const meA = ak === key, other = meA ? bk : ak;
     if(!ctx.byKey[other]) return;
     const bSame = !t.b_level;
-    out.push({ other, tie:t, auto:false,
+    out.push({ other, tie:t, auto:false, relation:String(t.relation || '').trim(),
       mine:   meA ? t.a_level : (t.b_level || t.a_level),
       myWhy:  meA ? (t.a_why || '') : (bSame ? (t.a_why || '') : (t.b_why || '')),
       theirs: meA ? (t.b_level || t.a_level) : t.a_level,
@@ -27571,7 +27645,7 @@ function stxTiesOf(ctx, ties, key){
         myWhy:'Same faction: ' + f.name + '.', theirWhy:'Same faction: ' + f.name + '.' });
     }));
   }
-  const rank = l => ({ best:0, faction:1, friends:2, uneasy:3, rivals:4, enemies:5 }[l] ?? 9);
+  const rank = l => ({ related:0, faction:1, friends:2, uneasy:3, rivals:4, enemies:5 }[l] ?? 9);
   return out.sort((a, b) => rank(a.mine) - rank(b.mine) || ctx.byKey[a.other].name.localeCompare(ctx.byKey[b.other].name));
 }
 function stxFactionsOf(ctx, key){ return ctx.factions.filter(f => !f.off && f.members.includes(key)); }
@@ -27581,24 +27655,30 @@ function stxNodeSVG(ctx, key, x, y, r, opts){
   const n = ctx.byKey[key] || { name:'?', color:'#c9c6be' };
   const col = stxHex(n.color, '#c9c6be');
   const lv = opts.level ? STX_LV[opts.level] : null;
+  const lvText = lv ? stxTieLabel(opts.level, opts.relation) : '';
   const name = n.name.length > 20 ? n.name.slice(0, 19) + '…' : n.name;
   const clip = 'stxc' + Math.random().toString(36).slice(2, 8);
   const img = n.image ? `<clipPath id="${clip}"><circle cx="${x}" cy="${y}" r="${r - 3}"/></clipPath>
-    <image href="${stxE(n.image)}" x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}" clip-path="url(#${clip})" preserveAspectRatio="xMidYMin slice" onerror="this.remove()"/>` : '';
-  return `<g class="stx-node${opts.sel ? ' sel' : ''}${opts.center ? ' center' : ''}" data-k="${stxE(key)}" tabindex="0" role="button" aria-label="${stxE(n.name)}${lv ? ', ' + lv.label : ''}">
+    <image href="${stxE(n.image)}" x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}" clip-path="url(#${clip})" preserveAspectRatio="xMidYMin slice" onerror="var t=this.parentNode&&this.parentNode.querySelector('.stx-ini');if(t)t.removeAttribute('visibility');this.remove()"/>` : '';
+  return `<g class="stx-node${opts.sel ? ' sel' : ''}${opts.center ? ' center' : ''}" data-k="${stxE(key)}" tabindex="0" role="button" aria-label="${stxE(n.name)}${lv ? ', ' + lvText : ''}">
     ${opts.sel || opts.center ? `<circle cx="${x}" cy="${y}" r="${r + 7}" fill="none" stroke="${col}" stroke-width="2" opacity=".55"/>` : ''}
     <circle cx="${x}" cy="${y}" r="${r}" fill="#0b0b0d" stroke="${col}" stroke-width="3"/>
-    <text x="${x}" y="${y}" dy=".35em" text-anchor="middle" class="stx-ini" style="font-size:${Math.round(r * 0.62)}px" fill="${col}">${stxE(stxInit(n.name))}</text>
+    <text x="${x}" y="${y}" dy=".35em" text-anchor="middle" class="stx-ini" style="font-size:${Math.round(r * 0.62)}px" fill="${col}"${n.image ? ' visibility="hidden"' : ''}>${stxE(stxInit(n.name))}</text>
     ${img}
     <text x="${x}" y="${y + r + 18}" text-anchor="middle" class="stx-nm" style="font-size:${opts.small ? 12.5 : 15}px">${stxE(name)}</text>
-    ${lv ? `<text x="${x}" y="${y + r + 34}" text-anchor="middle" class="stx-lvl" fill="${lv.color}">${stxE(lv.label)}</text>` : ''}
+    ${lv ? `<text x="${x}" y="${y + r + 34}" text-anchor="middle" class="stx-lvl" fill="${lv.color}">${stxE(lvText.length > 26 ? lvText.slice(0, 25) + '…' : lvText)}</text>` : ''}
   </g>`;
 }
 function stxLineSVG(x1, y1, x2, y2, r1, r2, level, opts){
   const lv = STX_LV[level] || STX_LV.friends;
   const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1;
   const ax = x1 + dx / len * (r1 + 4), ay = y1 + dy / len * (r1 + 4), bx = x2 - dx / len * (r2 + 4), by = y2 - dy / len * (r2 + 4);
-  return `<line x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="${lv.color}" stroke-width="${(opts && opts.thin) ? Math.max(1.5, lv.w * 0.55) : lv.w + ((opts && opts.sel) ? 2 : 0)}"
+  const sw = (opts && opts.thin) ? Math.max(1.5, lv.w * 0.55) : lv.w + ((opts && opts.sel) ? 2 : 0);
+  const pts = `x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}"`;
+  // family: a double line (a wide purple line with a dark core)
+  if(lv.family) return `<line ${pts} stroke="${lv.color}" stroke-width="${(sw * 2.1).toFixed(1)}" stroke-linecap="round" opacity="${(opts && opts.thin) ? .6 : .9}"/>
+    <line ${pts} stroke="#08090e" stroke-width="${Math.max(1, sw * 0.7).toFixed(1)}" stroke-linecap="round"/>`;
+  return `<line ${pts} stroke="${lv.color}" stroke-width="${sw}"
     ${lv.good ? '' : 'stroke-dasharray="9 7"'} stroke-linecap="round" opacity="${(opts && opts.thin) ? .55 : .85}"/>`;
 }
 // one character (or faction) in the middle, their ties around them:
@@ -27623,7 +27703,7 @@ function stxWebSVG(ctx, center, list, sel){
       return { t, x: cx + Math.cos(a) * (W / 2 - (stxNarrow() ? 80 : 120)), y: cy + Math.sin(a) * (H / 2 - 80) }; });
   }
   const lines = pts.map(p => stxLineSVG(cx, cy, p.x, p.y, R, r, p.t.mine, { sel: p.t.other === sel })).join('');
-  const nodes = pts.map(p => stxNodeSVG(ctx, p.t.other, p.x, p.y, r, { level:p.t.mine, sel:p.t.other === sel })).join('');
+  const nodes = pts.map(p => stxNodeSVG(ctx, p.t.other, p.x, p.y, r, { level:p.t.mine, relation:p.t.relation, sel:p.t.other === sel })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H + 20}" role="group" aria-label="Relationships">${lines}${stxNodeSVG(ctx, center, cx, cy, R, { center:true })}${nodes}</svg>`;
 }
 // the whole roster: everyone with any tie, faction mates next to each other
@@ -27648,13 +27728,14 @@ function stxWorldSVG(ctx, ties){
       if(m.length > 6 && j !== i + 1) continue;
       lines += stxLineSVG(pos[m[i]][0], pos[m[i]][1], pos[m[j]][0], pos[m[j]][1], r, r, 'faction', { thin:true }); } });
   ties.forEach(t => { const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id;
-    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, t.a_level, { thin:true }); });
+    const lvl = (t.a_level === 'related' || t.b_level === 'related') ? 'related' : t.a_level;
+    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true }); });
   const nodes = keys.map(k => stxNodeSVG(ctx, k, pos[k][0], pos[k][1], r, { small:true })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="The whole roster">${lines}${nodes}</svg>`;
 }
 function stxLegend(){
-  return `<div class="stx-legend">${['best','friends','faction','uneasy','rivals','enemies'].map(k => { const l = STX_LV[k];
-    return `<span><i style="border-top:${Math.max(2, l.w - 1)}px ${l.good ? 'solid' : 'dashed'} ${l.color}"></i>${stxE(l.label)}</span>`; }).join('')}</div>`;
+  return `<div class="stx-legend">${['friends','related','faction','uneasy','rivals','enemies'].map(k => { const l = STX_LV[k];
+    return `<span><i style="border-top:${l.family ? '6px double' : Math.max(2, l.w - 1) + 'px ' + (l.good ? 'solid' : 'dashed')} ${l.color}"></i>${stxE(l.label)}</span>`; }).join('')}</div>`;
 }
 function stxMeter(level){ const l = STX_LV[level] || STX_LV.friends;
   return `<div class="stx-meter" aria-hidden="true">${[1,2,3,4,5].map(i => `<i style="background:${i <= l.n ? l.color : 'rgba(255,255,255,.07)'}"></i>`).join('')}</div>`; }
@@ -27670,6 +27751,101 @@ function stxBindChapters(root, chs){
     box.innerHTML = stxChapterView(chs, Number(b.dataset.ch)); stxBindChapters(box, chs);
     if(STX.view && box.closest('#stx-mbody')){ STX.view.ch = Number(b.dataset.ch); stxSyncAddress(); }
   }));
+}
+
+/* ---------- zoom and move around a web ----------
+   Their web and The whole roster: scroll (or pinch) to zoom in where the
+   pointer is, drag to move, + and - buttons, Fit to see it all again.
+   Works by changing the SVG's viewBox, so lines and names stay sharp.
+   A drag never counts as a click, so letting go over someone doesn't open them.
+   The zoom is remembered while you pick people in the same web. */
+STX.zoom = {};
+function stxZoomWrap(zk, svg){
+  return `<div class="stx-ztools"><span class="stx-zhint">Scroll or pinch to zoom, drag to move around.</span>
+      <span class="stx-zbar" role="group" aria-label="Zoom">
+        <button type="button" class="stx-zb" data-z="out" aria-label="Zoom out" title="Zoom out"><i class="ti ti-minus"></i></button>
+        <button type="button" class="stx-zb" data-z="in" aria-label="Zoom in" title="Zoom in"><i class="ti ti-plus"></i></button>
+        <button type="button" class="stx-zb wide" data-z="fit" title="Show the whole web again"><i class="ti ti-focus-centered"></i> Fit</button>
+      </span></div>
+    <div class="stx-zoom" data-zk="${stxE(zk)}">${svg}</div>`;
+}
+function stxZoomBind(box){
+  const svg = box.querySelector('svg.stx-svg'); if(!svg || box.dataset.zbound) return;
+  box.dataset.zbound = '1';
+  const vb0 = String(svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+  if(vb0.length !== 4 || !(vb0[2] > 0) || !(vb0[3] > 0)) return;
+  const zk = box.dataset.zk, base = vb0.join(' ');
+  let st = STX.zoom[zk];
+  if(!st || st.base !== base) st = STX.zoom[zk] = { base, s:1, cx:vb0[0] + vb0[2] / 2, cy:vb0[1] + vb0[3] / 2 };
+  const MIN = 1, MAX = 6;
+  const apply = () => {
+    st.s = Math.max(MIN, Math.min(MAX, st.s));
+    const w = vb0[2] / st.s, h = vb0[3] / st.s;
+    // never drift off the edge of the web
+    st.cx = Math.max(vb0[0] + w / 2, Math.min(vb0[0] + vb0[2] - w / 2, st.cx));
+    st.cy = Math.max(vb0[1] + h / 2, Math.min(vb0[1] + vb0[3] - h / 2, st.cy));
+    svg.setAttribute('viewBox', `${(st.cx - w / 2).toFixed(2)} ${(st.cy - h / 2).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)}`);
+    const z = st.s > 1.01;
+    box.classList.toggle('zoomed', z);
+    // at full size a finger still scrolls the page; zoomed in, a finger moves the web
+    svg.style.touchAction = z ? 'none' : 'pan-y';
+    const tools = box.previousElementSibling;
+    if(tools && tools.classList.contains('stx-ztools')){
+      tools.classList.toggle('zoomed', z);
+      tools.querySelectorAll('.stx-zb').forEach(b => { b.disabled = (b.dataset.z === 'in' && st.s >= MAX - 0.01) || (b.dataset.z !== 'in' && !z); });
+    }
+  };
+  const toWeb = (x, y) => { const r = svg.getBoundingClientRect(), w = vb0[2] / st.s, h = vb0[3] / st.s;
+    return [st.cx - w / 2 + (x - r.left) / (r.width || 1) * w, st.cy - h / 2 + (y - r.top) / (r.height || 1) * h]; };
+  const zoomAt = (factor, x, y) => {
+    const p = (x == null) ? [st.cx, st.cy] : toWeb(x, y);
+    const s0 = st.s; st.s = Math.max(MIN, Math.min(MAX, st.s * factor));
+    const k = s0 / st.s;      // keep the point under the pointer where it is
+    st.cx = p[0] + (st.cx - p[0]) * k; st.cy = p[1] + (st.cy - p[1]) * k;
+    apply();
+  };
+  svg.addEventListener('wheel', e => {
+    // all the way out and still scrolling down: let the page scroll instead
+    if((e.deltaY > 0 && st.s <= MIN + 0.001) || (e.deltaY < 0 && st.s >= MAX - 0.001)) return;
+    e.preventDefault();
+    zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.06 : 0.0022)), e.clientX, e.clientY);
+  }, { passive:false });
+  const pts = new Map(); let drag = null, moved = false, pinch = null;
+  svg.addEventListener('pointerdown', e => {
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if(pts.size === 1){ drag = { x:e.clientX, y:e.clientY, cx:st.cx, cy:st.cy }; moved = false; }
+    else if(pts.size === 2){ const [a, b] = [...pts.values()]; pinch = { d:Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, s:st.s }; drag = null; moved = true; }
+  });
+  svg.addEventListener('pointermove', e => {
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if(pinch && pts.size >= 2){ const [a, b] = [...pts.values()];
+      const d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
+      zoomAt((pinch.s * d / pinch.d) / st.s, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); return; }
+    if(!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if(!moved && Math.hypot(dx, dy) < 5) return;
+    if(e.pointerType === 'touch' && st.s <= MIN + 0.01) return;
+    if(!moved){ moved = true; box.classList.add('dragging'); try{ svg.setPointerCapture(e.pointerId); }catch(_){} }
+    const r = svg.getBoundingClientRect();
+    st.cx = drag.cx - dx / (r.width || 1) * (vb0[2] / st.s);
+    st.cy = drag.cy - dy / (r.height || 1) * (vb0[3] / st.s);
+    apply();
+  });
+  const end = e => { pts.delete(e.pointerId); if(pts.size < 2) pinch = null; if(!pts.size){ drag = null; box.classList.remove('dragging'); } };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end); svg.addEventListener('lostpointercapture', end);
+  // a drag isn't a click
+  box.addEventListener('click', e => { if(moved){ e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  svg.addEventListener('dblclick', e => { if(e.target.closest && e.target.closest('.stx-node')) return; e.preventDefault(); zoomAt(1.8, e.clientX, e.clientY); });
+  const tools = box.previousElementSibling;
+  if(tools) tools.querySelectorAll('.stx-zb').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    if(b.dataset.z === 'in') zoomAt(1.5);
+    else if(b.dataset.z === 'out') zoomAt(1 / 1.5);
+    else { st.s = 1; st.cx = vb0[0] + vb0[2] / 2; st.cy = vb0[1] + vb0[3] / 2; apply(); }
+  }));
+  apply();
 }
 
 /* ---------- the Relationships page (/relationships) ----------
@@ -27720,16 +27896,19 @@ async function stxPageOpen(){
 // Star map, List and Relationships buttons the Roster page has
 async function stxCrumbs(){
   const el = document.getElementById('stx-crumbs'); if(!el) return;
+  const rail = document.getElementById('stx-rail'), lay = document.getElementById('stx-layout');
   const v = STX.view || {};
   if(v.scope == null){
-    el.innerHTML = `<button type="button" class="stx-back" onclick="stxBackToRoster()"><i class="ti ti-arrow-left"></i> Back to the Roster</button>
-      <div class="sm-viewbar stx-viewbar">
-        <button class="sm-vbtn" type="button" onclick="stxBackToRoster('map')"><i class="ti ti-stars"></i> Star map</button>
-        <button class="sm-vbtn" type="button" onclick="stxBackToRoster('list')"><i class="ti ti-layout-list"></i> List</button>
-        <button class="sm-vbtn active" type="button" aria-current="page"><i class="ti ti-affiliate"></i> Relationships</button>
-      </div>`;
+    el.innerHTML = `<button type="button" class="stx-back" onclick="stxBackToRoster()"><i class="ti ti-arrow-left"></i> Back to the Roster</button>`;
+    // the same Star map, List and Relationships column the Roster page has
+    if(rail){ rail.innerHTML = `<button class="sm-vbtn" onclick="stxBackToRoster('map')" type="button"><i class="ti ti-stars"></i><span><b>Star map</b><small>The roster in the stars</small></span></button>
+      <button class="sm-vbtn" onclick="stxBackToRoster('list')" type="button"><i class="ti ti-layout-list"></i><span><b>List</b><small>Every wrestler, card by card</small></span></button>
+      <button class="sm-vbtn active" aria-current="page" type="button"><i class="ti ti-affiliate"></i><span><b>Relationships</b><small>Who likes and hates who</small></span></button>`;
+      if(lay) lay.classList.remove('no-rail'); }
     return;
   }
+  if(rail) rail.innerHTML = '';
+  if(lay) lay.classList.add('no-rail');
   let name = 'the promotion';
   try{ const { data } = await sb.from('promotions').select('name').eq('id', v.scope).maybeSingle(); if(data && data.name) name = data.name; }catch(e){}
   el.innerHTML = `<button type="button" class="stx-back" onclick="pmGo(${Number(v.scope)},'roster')"><i class="ti ti-arrow-left"></i> Back to ${stxE(name)}</button>`;
@@ -27788,14 +27967,14 @@ async function stxRender(){
       <div class="stx-sec">The story</div>
       <div class="stx-chapbox">${chs.length ? stxChapterView(chs, v.ch) : '<p class="stx-dim">No story written yet.</p>'}</div>
       ${fties.length ? `<div class="stx-sec">Who they have history with</div><div class="stx-fties">${fties.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
-        return `<div class="stx-ftie" style="--lc:${l.color}"><div class="stx-k" style="color:${l.color}">${stxE(l.label)}</div><b>${stxE(o.name)}</b>${t.myWhy ? `<p>${stxE(t.myWhy)}</p>` : ''}</div>`; }).join('')}</div>` : ''}` : '<div class="stx-empty">No factions yet.</div>'}`;
+        return `<div class="stx-ftie" style="--lc:${l.color}"><div class="stx-k" style="color:${l.color}">${stxE(stxTieLabel(t.mine, t.relation))}</div><b>${stxE(o.name)}</b>${t.myWhy ? `<p>${stxE(t.myWhy)}</p>` : ''}</div>`; }).join('')}</div>` : ''}` : '<div class="stx-empty">No factions yet.</div>'}`;
     body.innerHTML = html;
     stxBindChapters(body, chs);
     const fp = body.querySelector('#stx-fpick'); if(fp) fp.addEventListener('change', () => { if(!fp.value) return; v.key = fp.value; v.ch = 0; stxRender(); });
   } else if(v.mode === 'world'){
     const svg = stxWorldSVG(ctx, ties);
     body.innerHTML = `<div class="stx-head"><div class="stx-k">Relationships</div><h2 class="stx-title">The whole roster</h2>${tabs}</div>
-      ${svg ? `<p class="stx-dim">Everyone with a relationship. Faction mates sit next to each other. Pick anyone to see their web.</p><div class="stx-stage">${svg}${stxLegend()}</div>`
+      ${svg ? `<p class="stx-dim">Everyone with a relationship. Faction mates sit next to each other. Pick anyone to see their web.</p><div class="stx-stage">${stxZoomWrap('world', svg)}${stxLegend()}</div>`
             : '<div class="stx-empty">No relationships written yet.</div>'}`;
   } else {
     const me = ctx.byKey[v.key];
@@ -27808,6 +27987,7 @@ async function stxRender(){
         ${copied ? `<div class="stx-copied">The same both ways.</div>` : ''}</div>`; };
     const aside = t ? `<div class="stx-k">${t.auto ? 'Faction mates' : 'Relationship'}</div>
         <div class="stx-tietitle">${stxE(me.name)} and ${stxE(ctx.byKey[t.other].name)}</div>
+        ${t.relation ? `<div class="stx-family"><i class="ti ti-users"></i> Family: <b>${stxE(t.relation)}</b></div>` : ''}
         ${side(v.key, t.other, t.mine, t.myWhy, t.mineCopied)}
         ${side(t.other, v.key, t.theirs, t.theirWhy, t.theirsCopied)}
         ${ctx.byKey[t.other].kind === 'person' ? `<button type="button" class="stx-btn" data-web="${stxE(t.other)}">See ${stxE(ctx.byKey[t.other].name)}'s web</button>`
@@ -27823,13 +28003,14 @@ async function stxRender(){
       </section>` : '';
     body.innerHTML = `<div class="stx-head"><div class="stx-k">Relationships</div><h2 class="stx-title">${me ? stxE(me.name) + "'s web" : 'The web'}</h2>${tabs}</div>
       <div class="stx-pickrow"><label class="stx-l" for="stx-pick">Character</label><select id="stx-pick" class="stx-in">${me && me.off ? '<option value="" selected disabled>Pick a character</option>' : ''}${pickable.map(p => `<option value="${stxE(p.key)}"${p.key === v.key ? ' selected' : ''}>${stxE(p.name)}</option>`).join('')}</select></div>
-      <div class="stx-grid"><div class="stx-stage">${me ? stxWebSVG(ctx, v.key, list, v.sel) : ''}${stxLegend()}</div><aside class="stx-aside">${aside}</aside></div>${hist}`;
+      <div class="stx-grid"><div class="stx-stage">${me ? stxZoomWrap('web|' + v.key, stxWebSVG(ctx, v.key, list, v.sel)) : ''}${stxLegend()}</div><aside class="stx-aside">${aside}</aside></div>${hist}`;
     const pk = body.querySelector('#stx-pick'); if(pk) pk.addEventListener('change', () => { if(!pk.value) return; v.key = pk.value; v.sel = null; stxRender(); });
   }
   body.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { v.mode = b.dataset.go; v.sel = null; v.ch = 0; if(v.mode === 'faction') v.key = null; if(v.mode === 'web' && v.key && !String(v.key).startsWith('person:')) v.key = null; stxRender(); }));
   body.querySelectorAll('[data-web]').forEach(b => b.addEventListener('click', () => { v.mode = 'web'; v.key = b.dataset.web; v.sel = null; stxRender(); }));
   body.querySelectorAll('[data-fac]').forEach(b => b.addEventListener('click', () => { v.mode = 'faction'; v.key = b.dataset.fac; v.ch = 0; stxRender(); }));
   stxSyncAddress();
+  body.querySelectorAll('.stx-zoom').forEach(z => stxZoomBind(z));
   body.querySelectorAll('.stx-node').forEach(g => {
     const go = () => { const k = g.dataset.k;
       if(v.mode === 'world'){ v.mode = 'web'; v.key = k; v.sel = null; }
@@ -27869,7 +28050,7 @@ async function stxHydrate(root){
         ${chs.length ? `<div class="stx-pb-h">Their story</div><div class="stx-chapbox">${stxChapterView(chs, 0)}</div>` : ''}
         ${list.length ? `<div class="stx-pb-h">Relationships</div><div class="stx-plist">${list.slice(0, 12).map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
           return `<button type="button" class="stx-prow" onclick="stxOpen({scope:${scopeArg},mode:'web',key:'${stxE(key)}',sel:'${stxE(t.other)}'})">
-            <span class="stx-dot" style="background:${stxHex(o.color)}"></span><b>${stxE(o.name)}</b><span class="stx-chip" style="--lc:${l.color}">${stxE(l.label)}</span>
+            <span class="stx-dot" style="background:${stxHex(o.color)}"></span><b>${stxE(o.name)}</b><span class="stx-chip" style="--lc:${l.color}">${stxE(stxTieLabel(t.mine, t.relation))}</span>
             ${t.myWhy && !t.auto ? `<small>${stxE(t.myWhy)}</small>` : ''}</button>`; }).join('')}</div>
           <button type="button" class="stx-btn" onclick="stxOpenWeb(${scopeArg},'${stxE(key)}')">Open their web</button>` : ''}
       </div>`;
@@ -27948,7 +28129,7 @@ async function stxEdTies(body, ctx){
       <select id="stxe-who" class="stx-in" onchange="STXE.who=this.value;STXE.other=null;stxEdDraw()">${stxEdOptions(ctx, STXE.who, null, true)}</select>
       <div class="stx-tlist">${list.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
         return `<button type="button" class="stx-tie${STXE.other === t.other ? ' on' : ''}" onclick="STXE.other='${stxE(t.other)}';stxEdDraw()">
-          <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(l.label)}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
+          <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(stxTieLabel(t.mine, t.relation))}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
       <button type="button" class="stx-btn" onclick="STXE.other='new';stxEdDraw()">+ Add a relationship</button>
       ${STXE.scope == null && typeof stxScanTab === 'function' ? `<button type="button" class="stx-btn ghost" style="margin-left:0" onclick="STXE.tab='scan';stxEdDraw()"><i class="ti ti-radar"></i> Scan for possible rivalries</button>` : ''}
     </section>
@@ -27964,7 +28145,7 @@ async function stxEdTies(body, ctx){
   const otherName = otherK ? ctx.byKey[otherK].name : 'them';
   const same = row ? !row.b_level : true;
   const meIsA = row ? (row.a_kind + ':' + row.a_id) === STXE.who : true;
-  const myLv = row ? (meIsA ? row.a_level : (row.b_level || row.a_level)) : (t && t.auto ? 'best' : 'friends');
+  const myLv = row ? (meIsA ? row.a_level : (row.b_level || row.a_level)) : 'friends';
   const myWhy = row ? (meIsA ? row.a_why : (row.b_level ? row.b_why : row.a_why)) || '' : '';
   const thLv = row ? (meIsA ? (row.b_level || row.a_level) : row.a_level) : myLv;
   const thWhy = row ? (meIsA ? (row.b_level ? row.b_why : '') : row.a_why) || '' : '';
@@ -27988,6 +28169,9 @@ async function stxEdTies(body, ctx){
         <textarea id="stxe-wb" class="stx-in" rows="2" maxlength="600" placeholder="Their side of it">${stxE(thWhy)}</textarea>
       </div>
     </div>
+    <label class="stx-l" for="stxe-rel">How they're related <span class="stx-opt">(optional, family only)</span></label>
+    <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Cousins, Father and son" value="${stxE(row ? row.relation || '' : '')}">
+    <p class="stx-dim stx-small">Pick <b style="color:${STX_LV.related.color}">Related</b> above when family is the whole story. Or keep their feeling, like Rivals, and still write Brothers here. Either way the tie shows who they are to each other.</p>
     <label class="stx-l" for="stxe-hist">Their history <span class="stx-opt">(optional, as long as you like)</span></label>
     <textarea id="stxe-hist" class="stx-in" rows="7" maxlength="20000" placeholder="Tell the whole story between them. How it started, what happened, where it is now. Leave a blank line between paragraphs.">${stxE(row ? row.history || '' : '')}</textarea>
     <label class="stx-l">Key moments <span class="stx-opt">(optional)</span></label>
@@ -28029,10 +28213,13 @@ async function stxEdSaveTie(){
   else rec = { a_level:lvb || lva, a_why:wb || null, b_level:lva, b_why:wa || null };
   const [ak, ai] = split(A), [bk, bi] = split(B);
   Object.assign(rec, { a_kind:ak, a_id:ai, b_kind:bk, b_id:bi, history:document.getElementById('stxe-hist').value.trim() || null, moments });
+  // relation is only sent when there is one (or one is being cleared), so saving works before the SQL is run
+  const relIn = document.getElementById('stxe-rel'), rel = relIn ? relIn.value.trim() : '';
+  if(rel || (existing && existing.relation)) rec.relation = rel || null;
   let res;
   if(existing) res = await sb.from('story_ties').update(rec).eq('id', existing.id).select('id');
   else res = await sb.from('story_ties').insert(Object.assign({ promotion_id:STXE.scope }, rec)).select('id');
-  if(res.error){ stxEdMsg(/duplicate|unique/i.test(res.error.message || '') ? 'Those two already have a relationship. Pick it from the list.' : stxErr(res.error), false); return; }
+  if(res.error){ stxEdMsg(stxTieErr(res.error, 'Those two already have a relationship. Pick it from the list.'), false); return; }
   if(!res.data || !res.data.length){ stxEdMsg('Not saved. Make sure you are signed in, then try again.', false); return; }
   stxForget(STXE.scope);
   STXE.other = otherK;
