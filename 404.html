@@ -6782,6 +6782,22 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-zb:hover:not(:disabled){border-color:#e9b949; color:#e9b949;}
   .stx-zb:disabled{opacity:.4; cursor:default;}
   .stx-zoom{position:relative; overflow:hidden; border-radius:10px; cursor:grab; touch-action:pan-y;}
+  /* the whole roster: a 16:9 frame like the star map */
+  .stx-stage-wide .stx-zoom{aspect-ratio:16 / 9; width:100%; max-height:calc(100vh - 210px);}
+  .stx-stage-wide .stx-zoom > .stx-svg{width:100%; height:100%;}
+  .stx-stage:fullscreen, .stx-stage.stx-max{display:flex; flex-direction:column; box-sizing:border-box; width:100vw; height:100vh; padding:14px 18px; border-radius:0; background:radial-gradient(70% 60% at 50% 45%, rgba(233,185,73,.07), transparent 70%), #05060c;}
+  .stx-stage:-webkit-full-screen{display:flex; flex-direction:column; box-sizing:border-box; width:100vw; height:100vh; padding:14px 18px; background:#05060c;}
+  .stx-stage.stx-max{position:fixed; inset:0; z-index:10000;}
+  html.stx-maxed, html.stx-maxed body{overflow:hidden;}
+  .stx-stage:fullscreen .stx-zoom, .stx-stage.stx-max .stx-zoom{flex:1 1 auto; min-height:0; aspect-ratio:auto; max-height:none;}
+  .stx-stage:-webkit-full-screen .stx-zoom{flex:1 1 auto; min-height:0; max-height:none;}
+  .stx-stage:fullscreen .stx-zoom > .stx-svg, .stx-stage.stx-max .stx-zoom > .stx-svg{width:100%; height:100%;}
+  .stx-wctl{display:flex; flex-wrap:wrap; gap:10px 26px; margin:4px 0 12px;}
+  .stx-wgrp{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+  .stx-wgrp .stx-l{margin:0 4px 0 0;}
+  .stx-wbtn{padding:9px 15px; border-radius:20px; border:1px solid #2f2f37; background:rgba(8,9,14,.9); color:#c9c6be; font:inherit; font-weight:700; font-size:15px; cursor:pointer;}
+  .stx-wbtn:hover{border-color:#e9b949; color:#fff;}
+  .stx-wbtn.on{background:#e9b949; border-color:#e9b949; color:#15120a;}
   .stx-zoom.zoomed{box-shadow:inset 0 0 0 1px rgba(233,185,73,.25);}
   .stx-zoom.dragging{cursor:grabbing;}
   .stx-zoom .stx-node{cursor:pointer;}
@@ -27594,7 +27610,7 @@ async function stxCtxWca(){
   const personOff = w => { if(w.is_draft === true) return true; const st = String(w.status || '').trim().toLowerCase();
     if(st === 'inactive' || st === 'hidden') return true; return !st && w.is_active === false; };
   const people = rows.filter(w => w && w.id != null && w.name).map(w => ({ key:'person:' + w.id, kind:'person', id:String(w.id), name:w.name,
-    color:'#efe9db', image:w.image_url || w.avatar_url || '', off:personOff(w) }));
+    color:'#efe9db', image:w.image_url || w.avatar_url || '', off:personOff(w), gender:String(w.gender || '').trim().toUpperCase() }));
   // every spelling: the name and each alias, lowercased with spaces and dots evened out,
   // so "Stella" or "Parallax Stella" in a faction's member list still finds ParallaxStella
   const stxNm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -27797,21 +27813,90 @@ function stxWebSVG(ctx, center, list, sel){
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H + 20}" role="group" aria-label="Relationships">${lines}${stxNodeSVG(ctx, center, cx, cy, R, { center:true })}${nodes}</svg>`;
 }
 // the whole roster: everyone with any tie, faction mates next to each other
-function stxWorldSVG(ctx, ties){
-  const inv = new Set();
-  ties.forEach(t => { if(t.a_kind === 'person') inv.add('person:' + t.a_id); if(t.b_kind === 'person') inv.add('person:' + t.b_id); });
+/* The whole roster. Everyone (or just people with relationships), filtered by division.
+   Laid out like a web: faction mates pull together, people with history pull close,
+   everyone else spreads around them, all inside a 16:9 frame like the star map. */
+function stxForceLayout(keys, edges, W, H, groups, minGap){
+  const n = keys.length, idx = {}; keys.forEach((k, i) => { idx[k] = i; });
+  const E = edges.map(e => [idx[e[0]], idx[e[1]], e[2] || 1]).filter(e => e[0] != null && e[1] != null && e[0] !== e[1]);
+  const P = new Array(n);
+  let c = 0;
+  groups.forEach(g => { g.forEach((k, j) => { const a = (c + j) / n * Math.PI * 2; P[idx[k]] = [W / 2 + Math.cos(a) * W * 0.4, H / 2 + Math.sin(a) * H * 0.4]; }); c += g.length; });
+  const k = Math.sqrt(W * H / Math.max(1, n));
+  const L = Math.max(minGap * 1.35, k * 0.8);             // how long a tie wants to be
+  let temp = W / 12;
+  for(let it = 0; it < 400; it++){
+    const D = P.map(() => [0, 0]);
+    for(let i = 0; i < n; i++) for(let j = i + 1; j < n; j++){
+      let dx = P[i][0] - P[j][0], dy = P[i][1] - P[j][1];
+      let d = Math.sqrt(dx * dx + dy * dy); if(d < 0.5){ dx = ((i * 7 + j) % 5) - 2 || 1; dy = 1; d = Math.hypot(dx, dy); }
+      const f = k * k / d * 0.35; dx /= d; dy /= d;
+      D[i][0] += dx * f; D[i][1] += dy * f; D[j][0] -= dx * f; D[j][1] -= dy * f;
+    }
+    E.forEach(([a, b, w]) => { let dx = P[a][0] - P[b][0], dy = P[a][1] - P[b][1]; const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      const f = (d - L) * 0.9 * w; dx /= d; dy /= d; D[a][0] -= dx * f; D[a][1] -= dy * f; D[b][0] += dx * f; D[b][1] += dy * f; });
+    for(let i = 0; i < n; i++){
+      // pull back toward the middle, harder the further out (keeps small groups from drifting to the edges)
+      const gx = (P[i][0] - W / 2) / (W / 2), gy = (P[i][1] - H / 2) / (H / 2), gd = Math.sqrt(gx * gx + gy * gy);
+      D[i][0] -= gx * k * 0.9 * (0.4 + gd); D[i][1] -= gy * k * 0.9 * (0.4 + gd);
+      const len = Math.sqrt(D[i][0] ** 2 + D[i][1] ** 2) || 1, m = Math.min(len, temp);
+      P[i][0] += D[i][0] / len * m; P[i][1] += D[i][1] / len * m;
+    }
+    temp = Math.max(1, temp * 0.988);
+  }
+  // fit to the frame
+  const fit = () => { let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    P.forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+    const mx = 80, myT = 46, myB = 66, sx = (W - 2 * mx) / Math.max(1, x1 - x0), sy = (H - myT - myB) / Math.max(1, y1 - y0);
+    P.forEach(p => { p[0] = mx + (p[0] - x0) * sx; p[1] = myT + (p[1] - y0) * sy; }); };
+  fit();
+  // nobody on top of anybody: names need room sideways more than up and down
+  for(let pass = 0; pass < 60; pass++){
+    let moved = false;
+    for(let i = 0; i < n; i++) for(let j = i + 1; j < n; j++){
+      const dx = P[j][0] - P[i][0], dy = P[j][1] - P[i][1];
+      const ex = dx / (minGap * 1.7), ey = dy / minGap, d = Math.sqrt(ex * ex + ey * ey);
+      if(d >= 1) continue;
+      moved = true;
+      const push = (1 - d) / 2 + 0.01, ux = d ? ex / d : 1, uy = d ? ey / d : 0;
+      P[i][0] -= ux * push * minGap * 1.7; P[i][1] -= uy * push * minGap;
+      P[j][0] += ux * push * minGap * 1.7; P[j][1] += uy * push * minGap;
+    }
+    P.forEach(p => { p[0] = Math.max(70, Math.min(W - 70, p[0])); p[1] = Math.max(40, Math.min(H - 60, p[1])); });
+    if(!moved) break;
+  }
+  const out = {}; keys.forEach((kk, i) => { out[kk] = P[i]; }); return out;
+}
+
+STX.layout = {};
+function stxWorldPick(ctx, ties, opts, divs){
   const live = ctx.factions.filter(f => !f.off);
-  live.forEach(f => { if(f.members.length > 1) f.members.forEach(m => inv.add(m)); });
-  const order = [];
-  live.forEach(f => f.members.forEach(m => { if(inv.has(m) && !order.includes(m)) order.push(m); }));
-  ctx.people.forEach(p => { if(inv.has(p.key) && !order.includes(p.key)) order.push(p.key); });
-  const keys = order.filter(k => ctx.byKey[k]);
+  const tied = new Set();
+  ties.forEach(t => { if(t.a_kind === 'person') tied.add('person:' + t.a_id); if(t.b_kind === 'person') tied.add('person:' + t.b_id); });
+  live.forEach(f => { if(f.members.length > 1) f.members.forEach(m => tied.add(m)); });
+  let ppl = ctx.people.filter(p => !p.off || tied.has(p.key));          // inactive people only when someone has history with them
+  if(opts.show === 'ties') ppl = ppl.filter(p => tied.has(p.key));
+  if(opts.div === 'Factions') ppl = ppl.filter(p => live.some(f => f.members.includes(p.key)));
+  else if(divs && divs[opts.div]) ppl = ppl.filter(p => divs[opts.div].has(p.key));
+  return ppl.map(p => p.key);
+}
+function stxWorldSVG(ctx, ties, opts, divs){
+  opts = opts || { show:'ties', div:'all' };
+  const live = ctx.factions.filter(f => !f.off);
+  const keys = stxWorldPick(ctx, ties, opts, divs).filter(k => ctx.byKey[k]);
   if(!keys.length) return '';
-  const n = keys.length, nar = stxNarrow();
-  const W = nar ? 460 : Math.max(820, 420 + n * 22), H = nar ? Math.max(520, 260 + n * 30) : Math.max(560, 300 + n * 15), cx = W / 2, cy = H / 2;
-  const r = n > 30 ? 16 : n > 16 ? 20 : 24;
-  const pos = {};
-  keys.forEach((k, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; pos[k] = [cx + Math.cos(a) * (W / 2 - (nar ? 70 : 90)), cy + Math.sin(a) * (H / 2 - 70)]; });
+  const inSet = new Set(keys), n = keys.length;
+  const W = n > 40 ? 1500 : n > 16 ? 1300 : 1100, H = Math.round(W * 9 / 16);
+  const r = n > 60 ? 17 : n > 30 ? 19 : 23;
+  // faction mates first so they start together; then the rest one by one
+  const groups = [], placed = new Set();
+  live.forEach(f => { const m = f.members.filter(k => inSet.has(k) && !placed.has(k)); if(m.length){ m.forEach(k => placed.add(k)); groups.push(m); } });
+  keys.forEach(k => { if(!placed.has(k)) groups.push([k]); });
+  const edges = [];
+  live.forEach(f => { const m = f.members.filter(k => inSet.has(k)); for(let i = 0; i < m.length; i++) for(let j = i + 1; j < m.length; j++) edges.push([m[i], m[j], 1.3]); });
+  ties.forEach(t => { const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id; if(inSet.has(a) && inSet.has(b)) edges.push([a, b, 1]); });
+  const sig = W + '|' + keys.join(',') + '|' + edges.map(e => e[0] + e[1]).join(',');
+  const pos = STX.layout[sig] || (STX.layout = { [sig]: stxForceLayout(keys, edges, W, H, groups, n > 60 ? 58 : 64) })[sig];
   let lines = '';
   const written = new Set(ties.map(t => [t.a_kind + ':' + t.a_id, t.b_kind + ':' + t.b_id].sort().join('|')));
   const mates = (a, b) => live.some(f => f.members.includes(a) && f.members.includes(b));
@@ -27828,6 +27913,26 @@ function stxWorldSVG(ctx, ties){
   const nodes = keys.map(k => stxNodeSVG(ctx, k, pos[k][0], pos[k][1], r, { small:true })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="The whole roster">${lines}${nodes}</svg>`;
 }
+// who is in which division: the rankings first, then Mens or Womens from the profile
+STX.div = null;
+async function stxDivisions(ctx){
+  if(!STX.div) STX.div = (async () => {
+    const out = { Mens:new Set(), Womens:new Set(), Undisputed:new Set() };
+    try{ const { data } = await sb.from('v_division_rankings').select('name,division');
+      (data || []).forEach(r => { if(out[r.division]) out[r.division].add(String(r.name || '').trim().toLowerCase()); }); }catch(e){}
+    return out;
+  })();
+  const names = await STX.div, res = { Mens:new Set(), Womens:new Set(), Undisputed:new Set() };
+  ctx.people.forEach(p => { const nm = p.name.trim().toLowerCase();
+    ['Mens','Womens','Undisputed'].forEach(d => { if(names[d].has(nm)) res[d].add(p.key); });
+    if(!names.Mens.has(nm) && !names.Womens.has(nm)){ if(p.gender === 'M') res.Mens.add(p.key); if(p.gender === 'F') res.Womens.add(p.key); } });
+  if(!res.Undisputed.size) ctx.people.forEach(p => res.Undisputed.add(p.key));   // Undisputed is open to everyone
+  return res;
+}
+const STX_WORLD_KEY = 'wca-stx-world';
+function stxWorldOpts(){ let o = {}; try{ o = JSON.parse(localStorage.getItem(STX_WORLD_KEY) || '{}') || {}; }catch(e){}
+  return { show: o.show === 'ties' ? 'ties' : 'all', div: ['Mens','Womens','Undisputed','Factions'].includes(o.div) ? o.div : 'all' }; }
+function stxWorldSet(k, v){ const o = stxWorldOpts(); o[k] = v; try{ localStorage.setItem(STX_WORLD_KEY, JSON.stringify(o)); }catch(e){} stxRender(); }
 function stxLegend(){
   return `<div class="stx-legend">${['friends','related','faction','uneasy','rivals','enemies'].map(k => { const l = STX_LV[k];
     return `<span><i style="border-top:${l.family ? '6px double' : Math.max(2, l.w - 1) + 'px ' + (l.good ? 'solid' : 'dashed')} ${l.color}"></i>${stxE(l.label)}</span>`; }).join('')}</div>`;
@@ -27861,9 +27966,27 @@ function stxZoomWrap(zk, svg){
         <button type="button" class="stx-zb" data-z="out" aria-label="Zoom out" title="Zoom out"><i class="ti ti-minus"></i></button>
         <button type="button" class="stx-zb" data-z="in" aria-label="Zoom in" title="Zoom in"><i class="ti ti-plus"></i></button>
         <button type="button" class="stx-zb wide" data-z="fit" title="Show the whole web again"><i class="ti ti-focus-centered"></i> Fit</button>
+        <button type="button" class="stx-zb wide" data-z="full" title="Fill the screen"><i class="ti ti-arrows-maximize"></i> <span>Fullscreen</span></button>
       </span></div>
     <div class="stx-zoom" data-zk="${stxE(zk)}">${svg}</div>`;
 }
+// Fullscreen for a web: the real thing where the browser allows it, otherwise fill the window
+function stxFullscreen(stage, btn){
+  if(!stage) return;
+  const label = on => { const sp = btn && btn.querySelector('span'); if(sp) sp.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+    const ic = btn && btn.querySelector('i'); if(ic) ic.className = on ? 'ti ti-arrows-minimize' : 'ti ti-arrows-maximize'; };
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if(fsEl){ (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+  if(stage.classList.contains('stx-max')){ stage.classList.remove('stx-max'); document.documentElement.classList.remove('stx-maxed'); label(false); return; }
+  const go = stage.requestFullscreen || stage.webkitRequestFullscreen;
+  const fallback = () => { stage.classList.add('stx-max'); document.documentElement.classList.add('stx-maxed'); label(true); };
+  if(!go){ fallback(); return; }
+  try{ const p = go.call(stage); if(p && p.catch) p.catch(fallback); }catch(e){ fallback(); }
+  const onChange = () => { const on = (document.fullscreenElement || document.webkitFullscreenElement) === stage; label(on);
+    if(!on){ document.removeEventListener('fullscreenchange', onChange); document.removeEventListener('webkitfullscreenchange', onChange); } };
+  document.addEventListener('fullscreenchange', onChange); document.addEventListener('webkitfullscreenchange', onChange);
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ const m = document.querySelector('.stx-stage.stx-max'); if(m){ const b = m.querySelector('.stx-zb[data-z="full"]'); stxFullscreen(m, b); } } });
 function stxZoomBind(box){
   const svg = box.querySelector('svg.stx-svg'); if(!svg || box.dataset.zbound) return;
   box.dataset.zbound = '1';
@@ -27887,11 +28010,15 @@ function stxZoomBind(box){
     const tools = box.previousElementSibling;
     if(tools && tools.classList.contains('stx-ztools')){
       tools.classList.toggle('zoomed', z);
-      tools.querySelectorAll('.stx-zb').forEach(b => { b.disabled = (b.dataset.z === 'in' && st.s >= MAX - 0.01) || (b.dataset.z !== 'in' && !z); });
+      tools.querySelectorAll('.stx-zb').forEach(b => { if(b.dataset.z === 'full') return; b.disabled = (b.dataset.z === 'in' && st.s >= MAX - 0.01) || (b.dataset.z !== 'in' && !z); });
     }
   };
-  const toWeb = (x, y) => { const r = svg.getBoundingClientRect(), w = vb0[2] / st.s, h = vb0[3] / st.s;
-    return [st.cx - w / 2 + (x - r.left) / (r.width || 1) * w, st.cy - h / 2 + (y - r.top) / (r.height || 1) * h]; };
+  // the drawing may sit letterboxed inside its box (16:9 frame, fullscreen), so measure the real scale
+  const geo = () => { const r = svg.getBoundingClientRect(), w = vb0[2] / st.s, h = vb0[3] / st.s;
+    const sc = Math.min((r.width || 1) / w, (r.height || 1) / h) || 1;
+    return { r, w, h, sc, ox:((r.width || 0) - w * sc) / 2, oy:((r.height || 0) - h * sc) / 2 }; };
+  const toWeb = (x, y) => { const g = geo();
+    return [st.cx - g.w / 2 + (x - g.r.left - g.ox) / g.sc, st.cy - g.h / 2 + (y - g.r.top - g.oy) / g.sc]; };
   const zoomAt = (factor, x, y) => {
     const p = (x == null) ? [st.cx, st.cy] : toWeb(x, y);
     const s0 = st.s; st.s = Math.max(MIN, Math.min(MAX, st.s * factor));
@@ -27923,9 +28050,9 @@ function stxZoomBind(box){
     if(!moved && Math.hypot(dx, dy) < 5) return;
     if(e.pointerType === 'touch' && st.s <= MIN + 0.01) return;
     if(!moved){ moved = true; box.classList.add('dragging'); try{ svg.setPointerCapture(e.pointerId); }catch(_){} }
-    const r = svg.getBoundingClientRect();
-    st.cx = drag.cx - dx / (r.width || 1) * (vb0[2] / st.s);
-    st.cy = drag.cy - dy / (r.height || 1) * (vb0[3] / st.s);
+    const g = geo();
+    st.cx = drag.cx - dx / g.sc;
+    st.cy = drag.cy - dy / g.sc;
     apply();
   });
   const end = e => { pts.delete(e.pointerId); if(pts.size < 2) pinch = null; if(!pts.size){ drag = null; box.classList.remove('dragging'); } };
@@ -27936,6 +28063,7 @@ function stxZoomBind(box){
   const tools = box.previousElementSibling;
   if(tools) tools.querySelectorAll('.stx-zb').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
+    if(b.dataset.z === 'full') return stxFullscreen(box.closest('.stx-stage'), b);
     if(b.dataset.z === 'in') zoomAt(1.5);
     else if(b.dataset.z === 'out') zoomAt(1 / 1.5);
     else { st.s = 1; st.cx = vb0[0] + vb0[2] / 2; st.cy = vb0[1] + vb0[3] / 2; apply(); }
@@ -28070,10 +28198,17 @@ async function stxRender(){
       if(sb1) stxBindChapters(sb1, chs); if(fb) stxBindChapters(fb, ffacts); }
     const fp = body.querySelector('#stx-fpick'); if(fp) fp.addEventListener('change', () => { if(!fp.value) return; v.key = fp.value; v.ch = 0; stxRender(); });
   } else if(v.mode === 'world'){
-    const svg = stxWorldSVG(ctx, ties);
+    const wo = stxWorldOpts(), divs = await stxDivisions(ctx);
+    const svg = stxWorldSVG(ctx, ties, wo, divs);
+    const count = svg ? stxWorldPick(ctx, ties, wo, divs).length : 0;
+    const chip = (k, val, label) => `<button type="button" class="stx-wbtn${wo[k] === val ? ' on' : ''}" aria-pressed="${wo[k] === val}" onclick="stxWorldSet('${k}','${val}')">${label}</button>`;
     body.innerHTML = `<div class="stx-head"><div class="stx-k">Relationships</div><h2 class="stx-title">The whole roster</h2>${tabs}</div>
-      ${svg ? `<p class="stx-dim">Everyone with a relationship. Faction mates sit next to each other. Pick anyone to see their web.</p><div class="stx-stage">${stxZoomWrap('world', svg)}${stxLegend()}</div>`
-            : '<div class="stx-empty">No relationships written yet.</div>'}`;
+      <div class="stx-wctl">
+        <div class="stx-wgrp" role="group" aria-label="Show"><span class="stx-l">Show</span>${chip('show','all','Everyone')}${chip('show','ties','With relationships')}</div>
+        <div class="stx-wgrp" role="group" aria-label="Division"><span class="stx-l">Division</span>${chip('div','all','All')}${chip('div','Mens','Mens')}${chip('div','Womens','Womens')}${chip('div','Undisputed','Undisputed')}${chip('div','Factions','Factions')}</div>
+      </div>
+      ${svg ? `<p class="stx-dim">${count} ${count === 1 ? 'wrestler' : 'wrestlers'}. Faction mates sit together and people with history pull close. Pick anyone to see their web.</p><div class="stx-stage stx-stage-wide">${stxZoomWrap('world|' + wo.show + '|' + wo.div, svg)}${stxLegend()}</div>`
+            : `<div class="stx-empty">${wo.show === 'ties' ? 'No relationships in this division yet.' : 'Nobody in this division yet.'}</div>`}`;
   } else {
     const me = ctx.byKey[v.key];
     const list = me ? stxTiesOf(ctx, ties, v.key) : [];
