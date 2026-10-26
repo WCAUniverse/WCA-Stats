@@ -27447,11 +27447,25 @@ async function stxCtxWca(){
   }
   const people = rows.filter(w => w && w.id != null && w.name).map(w => ({ key:'person:' + w.id, kind:'person', id:String(w.id), name:w.name,
     color:'#efe9db', image:w.image_url || w.avatar_url || '' }));
-  const byName = {}; people.forEach(p => { byName[p.name.trim().toLowerCase()] = p; });
+  // every spelling: the name and each alias, lowercased with spaces and dots evened out,
+  // so "Stella" or "Parallax Stella" in a faction's member list still finds ParallaxStella
+  const stxNm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const byName = {};
+  rows.forEach(w => { if(!w || w.id == null || !w.name) return; const p = people.find(x => x.id === String(w.id)); if(!p) return;
+    [w.name].concat(Array.isArray(w.aliases) ? w.aliases : String(w.aliases || '').split(',')).forEach(a => { const k = stxNm(a); if(k && !byName[k]) byName[k] = p; }); });
+  people.forEach(p => { const k = stxNm(p.name); if(k) byName[k] = p; });
+  // "A, B & C" splits on commas and &. A piece that still doesn't match is tried again split on "and".
+  const stxMembers = txt => { const out = [];
+    String(txt || '').split(/\s*[,&]\s*/).map(s => s.trim()).filter(Boolean).forEach(piece => {
+      const hit = byName[stxNm(piece)] || byName[stxNm(piece.replace(/\s*\(.*?\)\s*/g, ' '))];
+      if(hit){ out.push(hit); return; }
+      piece.split(/\s+and\s+/i).forEach(x => { const h = byName[stxNm(x)]; if(h) out.push(h); });
+    });
+    return out; };
   let facs = [];
   try{ const { data } = await sb.from('factions').select('*').order('name'); facs = data || []; }catch(e){}
   const factions = facs.filter(f => f && f.id != null && f.name && f.is_hidden !== true).map(f => {
-    const members = String(f.members_txt || '').split(/\s*[,&]\s*/).map(s => byName[s.trim().toLowerCase()]).filter(Boolean).map(p => p.key);
+    const members = [...new Set(stxMembers(f.members_txt).map(p => p.key))];
     return { key:'faction:' + f.id, kind:'faction', id:String(f.id), name:f.name, color:stxHex(f.color, '#e9b949'), motto:f.motto || '', members };
   });
   factions.forEach(f => f.members.forEach(k => { const p = people.find(x => x.key === k); if(p && p.color === '#efe9db') p.color = f.color; }));
@@ -27861,6 +27875,10 @@ async function stxEdDraw(){
   const ctx = await stxCtx(STXE.scope);
   const isWca = STXE.scope == null;
   const tabs = [['ties','Relationships'],['people','Character stories'],['factions', isWca ? 'Faction stories' : 'Factions and teams']];
+  // admin only: the scan that suggests relationships from the shows and the Feed
+  const canScan = isWca && typeof stxScanTab === 'function';
+  if(canScan) tabs.push(['scan','Scan for rivalries']);
+  if(STXE.tab === 'scan' && !canScan) STXE.tab = 'ties';
   host.innerHTML = `<div class="stx-ed">
     <div class="stx-edtabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${STXE.tab === k}" class="stx-edtab${STXE.tab === k ? ' on' : ''}" onclick="STXE.tab='${k}';stxEdDraw()">${l}</button>`).join('')}
       <button type="button" class="stx-btn ghost stx-edview" onclick="stxOpenWorld(${isWca ? "'wca'" : STXE.scope})"><i class="ti ti-affiliate"></i> See the web</button></div>
@@ -27869,6 +27887,7 @@ async function stxEdDraw(){
   if(!ctx.people.length){ body.innerHTML = `<div class="stx-empty">${isWca ? 'No wrestlers on the roster yet.' : 'Add people on the Roster tab first. Their stories and relationships go here.'}</div>`; return; }
   if(STXE.tab === 'people') return stxEdPeople(body, ctx);
   if(STXE.tab === 'factions') return stxEdFactions(body, ctx);
+  if(STXE.tab === 'scan') return stxScanTab(body, ctx);
   return stxEdTies(body, ctx);
 }
 function stxEdOptions(ctx, sel, skip, withFactions){
@@ -27898,6 +27917,7 @@ async function stxEdTies(body, ctx){
         return `<button type="button" class="stx-tie${STXE.other === t.other ? ' on' : ''}" onclick="STXE.other='${stxE(t.other)}';stxEdDraw()">
           <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(l.label)}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
       <button type="button" class="stx-btn" onclick="STXE.other='new';stxEdDraw()">+ Add a relationship</button>
+      ${STXE.scope == null && typeof stxScanTab === 'function' ? `<button type="button" class="stx-btn ghost" style="margin-left:0" onclick="STXE.tab='scan';stxEdDraw()"><i class="ti ti-radar"></i> Scan for possible rivalries</button>` : ''}
     </section>
     <section class="stx-card" id="stxe-form"></section></div>`;
   const form = document.getElementById('stxe-form');
