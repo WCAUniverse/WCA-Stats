@@ -4087,6 +4087,36 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     font-family:var(--font-display); font-size:11px; letter-spacing:2px; color:var(--gold-dim);
     text-transform:uppercase; margin-bottom:10px;}
   .rbout .rvs{display:flex; align-items:stretch; justify-content:center; gap:12px; flex-wrap:wrap;}
+  /* Royal Rumble and other big fields: winner banner, then three columns read top to bottom */
+  .rpool-hero{display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; margin:8px auto 14px; padding:12px 18px; max-width:760px;
+    border:1px solid rgba(95,184,122,.45); border-radius:12px; background:linear-gradient(90deg, rgba(95,184,122,.10), rgba(233,185,73,.08));}
+  .rpool-hpic .mp-row{justify-content:center; margin:0;}
+  .rpool-htext{text-align:left;}
+  .rpool-hk{font-family:var(--font-cond); letter-spacing:1.6px; text-transform:uppercase; font-size:15px; color:var(--good,#5fb87a);}
+  .rpool-hn{font-family:var(--font-display, 'Anton', Impact, sans-serif); font-size:clamp(26px,3.4vw,38px); line-height:1.05; text-transform:uppercase;}
+  .rpool-hf{font-size:15.5px; color:var(--muted); margin-top:4px;}
+  .rpool-count{text-align:center; font-family:var(--font-cond); letter-spacing:1.4px; text-transform:uppercase; font-size:14px; color:var(--muted); margin:4px 0 10px;}
+  .rpool-grid{columns:3 300px; column-gap:14px; text-align:left;}
+  .rpool-row{break-inside:avoid; display:flex; align-items:center; gap:10px; padding:7px 10px; margin:0 0 7px; border:1px solid var(--line); border-radius:10px; background:rgba(0,0,0,.28);}
+  .rpool-row.win{border-color:var(--good,#5fb87a); background:rgba(95,184,122,.12); box-shadow:0 0 0 1px rgba(95,184,122,.35) inset;}
+  .rpool-no{flex:0 0 40px; font-family:var(--font-cond); font-weight:700; font-size:16px; color:var(--gold); text-align:right;}
+  .rpool-pic{flex:0 0 46px; width:46px; height:46px; border-radius:8px; overflow:hidden; background:#0b0b0e; border:1px solid var(--line); display:flex; align-items:center; justify-content:center;}
+  .rpool-row.win .rpool-pic{border-color:var(--good,#5fb87a);}
+  .rpool-pic img{width:100%; height:100%; object-fit:cover; object-position:50% 6%;}
+  .rpool-ph{display:flex; width:100%; height:100%; align-items:center; justify-content:center;}
+  .rpool-ph[hidden]{display:none;}
+  .rpool-ph > *{max-width:100%; max-height:100%;}
+  .rpool-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  .rpool-nm{font-family:var(--font-body); font-weight:700; font-size:16px; line-height:1.2; overflow-wrap:break-word;}
+  .rpool-nm a{color:inherit;}
+  .rpool-st{font-size:14px; line-height:1.35; color:var(--muted);}
+  .rpool-st.win{color:var(--good,#5fb87a); font-weight:700;}
+  .rpool-how{color:var(--muted2, #7d7a72);}
+  .rpool-row.out .rpool-nm{opacity:.92;}
+  .rpool-ko{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; min-width:38px; padding:3px 6px; border-radius:8px; border:1px solid rgba(255,138,150,.45); color:#ff8a96; font-weight:700; font-size:16px; line-height:1;}
+  .rpool-ko small{font-size:11px; font-weight:600; letter-spacing:.8px; text-transform:uppercase; margin-top:2px;}
+  .rbout-pool .elog{margin-top:6px;}
+  @media (max-width:640px){ .rpool-grid{columns:1;} .rpool-htext{text-align:center;} }
   .rside{flex:1; min-width:0; text-align:center; padding:10px 12px; border-radius:10px;
     border:1px solid transparent;}
   .rside.win{border-color:var(--win); background:rgba(62,207,142,.08);}
@@ -14892,8 +14922,90 @@ async function openArchiveEvent(id, opts){
 }
 
 // Read-only historical bout: matchup + winner highlight (no betting controls).
+/* One big field (Royal Rumble, Battle Royal, Gauntlet, Elimination Chamber,
+   Money in the Bank, or any match with more than 4 single entrants): a winner
+   banner, then every entrant in three columns that read top to bottom, each
+   with a small portrait, their name, their entry number and how they went out.
+   The old layout put all 30 side by side with VS between them. */
+const ARCH_POOL_TYPES = /rumble|battle royal|gauntlet|chamber|money in the bank/i;
+function archIsPool(m, sides){
+  if(ARCH_POOL_TYPES.test(String(m.match_type || ''))) return true;
+  return sides.length > 4 && sides.every(s => sideMembers(s).length <= 1);
+}
+function archPoolPic(name){
+  const src = (typeof mpPhotoFor === 'function') ? mpPhotoFor(name) : '';
+  const w = (typeof wrestlerByName === 'function' ? wrestlerByName(name) : null) || { name };
+  const ph = (typeof wcaPlaceholder === 'function') ? wcaPlaceholder(w, { mode:'icon' }) : `<span>${esc(String(name || '?').slice(0, 1))}</span>`;
+  // a broken photo link falls back to the silhouette underneath it
+  return src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="var p=this.nextElementSibling;if(p)p.hidden=false;this.remove()"><span class="rpool-ph" hidden>${ph}</span>`
+             : `<span class="rpool-ph">${ph}</span>`;
+}
+function archPoolHTML(m, isMain, status, winningSide, sides){
+  const label = m.match_title || m.match_type || (isMain ? 'Main Event' : 'Match');
+  const voided = status === 'void';
+  const d = mdOf(m);
+  const el = Array.isArray(d.eliminations) ? d.eliminations.filter(e => e && e.out) : [];
+  const by = e => (Array.isArray(e.by) ? e.by : (e.by ? [e.by] : [])).filter(Boolean);
+  const low = x => String(x || '').trim().toLowerCase();
+  const noOf = {}; (Array.isArray(d.entrants) ? d.entrants : []).forEach(x => { if(x && x.name && +x.no) noOf[low(x.name)] = +x.no; });
+  const outOf = {}; el.forEach((e, k) => { if(outOf[low(e.out)] == null) outOf[low(e.out)] = k; });
+  const ko = {}; el.forEach(e => by(e).forEach(b => { ko[low(b)] = (ko[low(b)] || 0) + 1; }));
+  const winSide = (!voided && winningSide != null && sides[winningSide]) ? sides[winningSide] : null;
+  const winners = winSide ? sideMembers(winSide).map(low) : [];
+  // over the top rope is how almost everyone goes out of a Rumble or battle royal, so only say it when it's something else
+  const topRope = /rumble|battle royal/i.test(String(m.match_type || ''));
+  const showHow = h => h && !(topRope && /over the top/i.test(h));
+  // everyone in it, once each, in entry order when there are numbers
+  const seen = new Set(), ppl = [];
+  sides.forEach((s, si) => sideMembers(s).forEach(n => { if(n && !seen.has(low(n))){ seen.add(low(n)); ppl.push({ n, si }); } }));
+  const numbered = ppl.some(p => noOf[low(p.n)]);
+  if(numbered) ppl.sort((a, b) => (noOf[low(a.n)] || 999) - (noOf[low(b.n)] || 999));
+  const rows = ppl.map(p => {
+    const k = low(p.n), out = outOf[k], isWin = winners.includes(k), kos = ko[k] || 0;
+    const e = out != null ? el[out] : null;
+    const st = isWin ? `<span class="rpool-st win"><i class="ti ti-trophy"></i> Winner</span>`
+      : e ? `<span class="rpool-st">${mdOrd(out + 1)} out${by(e).length ? ', by ' + by(e).map(nameLink).join(' &amp; ') : ''}${showHow(e.how) ? ` <span class="rpool-how">(${esc(e.how)})</span>` : ''}</span>` : '';
+    return `<div class="rpool-row${isWin ? ' win' : ''}${e ? ' out' : ''}">
+      ${numbered ? `<span class="rpool-no">${noOf[k] ? '#' + noOf[k] : ''}</span>` : ''}
+      <span class="rpool-pic">${archPoolPic(p.n)}</span>
+      <span class="rpool-main"><span class="rpool-nm">${nameLink(p.n)}</span>${st}</span>
+      ${kos ? `<span class="rpool-ko" title="Eliminated ${kos} ${kos === 1 ? 'person' : 'people'}">${kos}<small>${kos === 1 ? 'elim' : 'elims'}</small></span>` : ''}
+    </div>`; }).join('');
+  // the winner banner
+  let hero = '';
+  if(winSide){
+    const wn = sideMembers(winSide), first = wn[0];
+    const facts = [];
+    if(wn.length === 1 && noOf[low(first)]) facts.push(`Entered at number ${noOf[low(first)]}`);
+    const wk = wn.reduce((t, n) => t + (ko[low(n)] || 0), 0);
+    if(wk) facts.push(`${wk} elimination${wk === 1 ? '' : 's'}`);
+    hero = `<div class="rpool-hero">
+      <div class="rpool-hpic">${wn.length ? mpRowFor(wn, winSide.team_name) : ''}</div>
+      <div class="rpool-htext"><div class="rpool-hk"><i class="ti ti-trophy"></i> Won the ${esc(m.match_type || 'match')}</div>
+        <div class="rpool-hn">${winSide.team_name ? esc(winSide.team_name) : wn.map(nameLink).join(' &amp; ')}</div>
+        ${facts.length ? `<div class="rpool-hf">${facts.join(' · ')}</div>` : ''}</div>
+    </div>`;
+  }
+  const order = el.length ? `<details class="elog"><summary><i class="ti ti-list-numbers"></i> Elimination order · ${el.length} elimination${el.length === 1 ? '' : 's'}</summary>
+      <ol class="elog-list">${el.map((e, k) => `<li><span class="elog-no">${k + 1}</span><span class="elog-nm">${nameLink(e.out)}</span>
+        <span class="elog-out">${by(e).length ? `eliminated by ${by(e).map(nameLink).join(' &amp; ')}` : 'eliminated'}${e.how ? ` <span class="elog-how">(${esc(e.how)})</span>` : ''}</span></li>`).join('')}</ol></details>` : '';
+  const rulesTxt = mdRulesLine(m);
+  const pts = d.points === 'custom' && d.points_note ? `<div class="elog-pts"><i class="ti ti-adjustments"></i> Custom points rule: ${esc(d.points_note)}</div>` : '';
+  return `<div class="rbout rbout-pool ${isMain ? 'main' : ''}">
+    <div class="rbout-label">${esc(label)}</div>
+    ${m.championship ? `<div class="rbout-label">${esc(m.championship)} Championship</div>` : ''}
+    ${rulesTxt ? `<div class="rstip">${esc(rulesTxt)}</div>` : ''}
+    ${voided ? `<div class="rvoid">Match voided, all bets refunded</div>` : ''}
+    ${hero}
+    <div class="rpool-count">${ppl.length} entrant${ppl.length === 1 ? '' : 's'}${el.length ? ` · ${el.length} elimination${el.length === 1 ? '' : 's'}` : ''}${numbered ? ' · in entry order' : ''}</div>
+    <div class="rpool-grid">${rows}</div>
+    ${order}${pts}
+    ${ratingWidget(m.slot)}
+  </div>`;
+}
 function archBoutHTML(m, isMain, status, winningSide){
   const sides = parseSides(m);
+  if(archIsPool(m, sides)) return archPoolHTML(m, isMain, status, winningSide, sides);
   const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
   const titleTag = m.championship ? `<div class="rbout-label">${esc(m.championship)} Championship</div>` : '';
   const voided = status==='void';
