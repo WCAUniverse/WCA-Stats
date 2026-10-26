@@ -6806,6 +6806,15 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-family{display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:9px 12px; border-radius:10px; border:1px solid rgba(180,140,255,.45); background:rgba(180,140,255,.08); color:#d9c9ff; font-size:15px;}
   .stx-family b{color:#fff;}
   .stx-family > span{display:flex; flex-direction:column; gap:3px;}
+  .stx-facnote{display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:9px 12px; border-radius:10px; border:1px solid rgba(233,185,73,.45); background:rgba(233,185,73,.07); color:#f1d58a; font-size:15px;}
+  .stx-facnote b{color:#fff;}
+  .stx-lvsep{align-self:center; width:1px; height:24px; background:#34343c; margin:0 4px;}
+  .stx-lvb.fam{border-style:solid;}
+  .stx-lvb.fam::before{content:'+ '; font-weight:700;}
+  .stx-lvb.fam.on::before{content:'✓ ';}
+  .stx-lvb.lock{cursor:default; opacity:.95;}
+  .stx-lvb.lock::before{content:'✓ ';}
+  .stx-lvhint{font-size:13.5px; color:#8d8a82; margin:4px 0 0;}
   .stx-family small{font-size:14.5px; color:#d9c9ff;}
   .stx-famck{display:flex; align-items:center; gap:8px; margin:16px 0 4px; font-size:15.5px; font-weight:700; color:#d9c9ff; cursor:pointer;}
   .stx-famck input{width:18px; height:18px; accent-color:#b48cff;}
@@ -27646,7 +27655,10 @@ function stxTiesOf(ctx, ties, key){
       myWhy:  meA ? (t.a_why || '') : (bSame ? (t.a_why || '') : (t.b_why || '')),
       theirs: meA ? (t.b_level || t.a_level) : t.a_level,
       theirWhy: meA ? (bSame ? (t.a_why || '') : (t.b_why || '')) : (t.a_why || ''),
-      mineCopied: !meA && bSame, theirsCopied: meA && bSame });
+      mineCopied: !meA && bSame, theirsCopied: meA && bSame,
+      // written ties between faction mates still show Same faction (a gold line beside the others)
+      faction: (ak.indexOf('person:') === 0 && bk.indexOf('person:') === 0)
+        ? ctx.factions.filter(f => !f.off && f.members.includes(ak) && f.members.includes(bk)).map(f => f.name).join(' and ') : '' });
     seen[other] = 1;
   });
   const me = ctx.byKey[key];
@@ -27671,12 +27683,14 @@ function stxNodeSVG(ctx, key, x, y, r, opts){
   const fam = stxFamWords(opts.relation, opts.role);
   // Family as the feeling: just the family words. Any other feeling: the feeling, then the family words under it.
   const lvText = lv ? (opts.level === 'related' ? (fam || lv.label) : lv.label) : '';
+  // the second line: their family role, or Same faction when that's the other thing that's true
   const famText = lv && fam && opts.level !== 'related' ? fam : '';
+  const facText = !famText && lv && opts.faction && opts.level !== 'faction' ? STX_LV.faction.label : '';
   const name = n.name.length > 20 ? n.name.slice(0, 19) + '…' : n.name;
   const clip = 'stxc' + Math.random().toString(36).slice(2, 8);
   const img = n.image ? `<clipPath id="${clip}"><circle cx="${x}" cy="${y}" r="${r - 3}"/></clipPath>
     <image href="${stxE(n.image)}" x="${x - r}" y="${y - r}" width="${r * 2}" height="${r * 2}" clip-path="url(#${clip})" preserveAspectRatio="xMidYMin slice" onerror="var t=this.parentNode&&this.parentNode.querySelector('.stx-ini');if(t)t.removeAttribute('visibility');this.remove()"/>` : '';
-  return `<g class="stx-node${opts.sel ? ' sel' : ''}${opts.center ? ' center' : ''}" data-k="${stxE(key)}" tabindex="0" role="button" aria-label="${stxE(n.name)}${lv ? ', ' + lvText : ''}${famText ? ', ' + famText : ''}">
+  return `<g class="stx-node${opts.sel ? ' sel' : ''}${opts.center ? ' center' : ''}" data-k="${stxE(key)}" tabindex="0" role="button" aria-label="${stxE(n.name)}${lv ? ', ' + lvText : ''}${famText ? ', ' + famText : ''}${facText ? ', ' + facText : ''}">
     ${opts.sel || opts.center ? `<circle cx="${x}" cy="${y}" r="${r + 7}" fill="none" stroke="${col}" stroke-width="2" opacity=".55"/>` : ''}
     <circle cx="${x}" cy="${y}" r="${r}" fill="#0b0b0d" stroke="${col}" stroke-width="3"/>
     <text x="${x}" y="${y}" dy=".35em" text-anchor="middle" class="stx-ini" style="font-size:${Math.round(r * 0.62)}px" fill="${col}"${n.image ? ' visibility="hidden"' : ''}>${stxE(stxInit(n.name))}</text>
@@ -27684,6 +27698,7 @@ function stxNodeSVG(ctx, key, x, y, r, opts){
     <text x="${x}" y="${y + r + 18}" text-anchor="middle" class="stx-nm" style="font-size:${opts.small ? 12.5 : 15}px">${stxE(name)}</text>
     ${lv ? `<text x="${x}" y="${y + r + 34}" text-anchor="middle" class="stx-lvl" fill="${lv.color}">${stxE(lvText.length > 26 ? lvText.slice(0, 25) + '…' : lvText)}</text>` : ''}
     ${famText ? `<text x="${x}" y="${y + r + 50}" text-anchor="middle" class="stx-lvl" fill="${STX_LV.related.color}">${stxE(famText.length > 26 ? famText.slice(0, 25) + '…' : famText)}</text>` : ''}
+    ${facText ? `<text x="${x}" y="${y + r + 50}" text-anchor="middle" class="stx-lvl" fill="${STX_LV.faction.color}">${stxE(facText)}</text>` : ''}
   </g>`;
 }
 function stxLineSVG(x1, y1, x2, y2, r1, r2, level, opts){
@@ -27695,15 +27710,18 @@ function stxLineSVG(x1, y1, x2, y2, r1, r2, level, opts){
   const famLine = p => { const f = STX_LV.related, fw = (opts && opts.thin) ? Math.max(1.5, f.w * 0.55) : f.w;
     return `<line ${p} stroke="${f.color}" stroke-width="${(fw * 2.1).toFixed(1)}" stroke-linecap="round" opacity="${(opts && opts.thin) ? .6 : .9}"/>
     <line ${p} stroke="#08090e" stroke-width="${Math.max(1, fw * 0.7).toFixed(1)}" stroke-linecap="round"/>`; };
-  // Family as the feeling: one purple double line
-  if(lv.family) return famLine(pts);
-  const feel = p => `<line ${p} stroke="${lv.color}" stroke-width="${sw}"
-    ${lv.good ? '' : 'stroke-dasharray="9 7"'} stroke-linecap="round" opacity="${(opts && opts.thin) ? .55 : .85}"/>`;
-  if(!(opts && opts.family)) return feel(pts);
-  // family AND a feeling (brothers who are Enemies): the two lines run side by side
-  const off = ((opts && opts.thin) ? 2.2 : 4.5) + sw / 2, nx = -dy / len * off, ny = dx / len * off;
-  const at = (k) => `x1="${(ax + nx * k).toFixed(1)}" y1="${(ay + ny * k).toFixed(1)}" x2="${(bx + nx * k).toFixed(1)}" y2="${(by + ny * k).toFixed(1)}"`;
-  return famLine(at(1)) + feel(at(-1));
+  const lineOf = (L, p) => `<line ${p} stroke="${L.color}" stroke-width="${(opts && opts.thin) ? Math.max(1.5, L.w * 0.55) : L.w + ((opts && opts.sel) ? 2 : 0)}"
+    ${L.good ? '' : 'stroke-dasharray="9 7"'} stroke-linecap="round" opacity="${(opts && opts.thin) ? .55 : .85}"/>`;
+  // Everything that's true about the two of them, each its own line, side by side:
+  // Same faction (gold), Family (purple double), and how they feel (Rivals red and so on)
+  const parts = [];
+  if(opts && opts.faction && level !== 'faction') parts.push(p => lineOf(STX_LV.faction, p));
+  if(lv.family || (opts && opts.family)) parts.push(famLine);
+  if(!lv.family) parts.push(p => lineOf(lv, p));
+  if(parts.length === 1) return parts[0](pts);
+  const gap = (opts && opts.thin) ? 4.5 : 9.5, nx = -dy / len, ny = dx / len;
+  return parts.map((draw, i) => { const k = (i - (parts.length - 1) / 2) * gap;
+    return draw(`x1="${(ax + nx * k).toFixed(1)}" y1="${(ay + ny * k).toFixed(1)}" x2="${(bx + nx * k).toFixed(1)}" y2="${(by + ny * k).toFixed(1)}"`); }).join('');
 }
 // one character (or faction) in the middle, their ties around them:
 // the good ones on the left, the bad ones on the right
@@ -27727,8 +27745,8 @@ function stxWebSVG(ctx, center, list, sel){
       return { t, x: cx + Math.cos(a) * (W / 2 - (stxNarrow() ? 80 : 120)), y: cy + Math.sin(a) * (H / 2 - 80) }; });
   }
   const isFam = t => !!(t.relation || t.myRole || t.theirRole);
-  const lines = pts.map(p => stxLineSVG(cx, cy, p.x, p.y, R, r, p.t.mine, { sel: p.t.other === sel, family:isFam(p.t) })).join('');
-  const nodes = pts.map(p => stxNodeSVG(ctx, p.t.other, p.x, p.y, r, { level:p.t.mine, relation:p.t.relation, role:p.t.theirRole, sel:p.t.other === sel })).join('');
+  const lines = pts.map(p => stxLineSVG(cx, cy, p.x, p.y, R, r, p.t.mine, { sel: p.t.other === sel, family:isFam(p.t), faction:!p.t.auto && !!p.t.faction })).join('');
+  const nodes = pts.map(p => stxNodeSVG(ctx, p.t.other, p.x, p.y, r, { level:p.t.mine, relation:p.t.relation, role:p.t.theirRole, faction:!p.t.auto && !!p.t.faction, sel:p.t.other === sel })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H + 20}" role="group" aria-label="Relationships">${lines}${stxNodeSVG(ctx, center, cx, cy, R, { center:true })}${nodes}</svg>`;
 }
 // the whole roster: everyone with any tie, faction mates next to each other
@@ -27748,15 +27766,18 @@ function stxWorldSVG(ctx, ties){
   const pos = {};
   keys.forEach((k, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; pos[k] = [cx + Math.cos(a) * (W / 2 - (nar ? 70 : 90)), cy + Math.sin(a) * (H / 2 - 70)]; });
   let lines = '';
+  const written = new Set(ties.map(t => [t.a_kind + ':' + t.a_id, t.b_kind + ':' + t.b_id].sort().join('|')));
+  const mates = (a, b) => live.some(f => f.members.includes(a) && f.members.includes(b));
   live.forEach(f => { const m = f.members.filter(k => pos[k]);
     for(let i = 0; i < m.length; i++) for(let j = i + 1; j < m.length; j++){
       if(m.length > 6 && j !== i + 1) continue;
+      if(written.has([m[i], m[j]].sort().join('|'))) continue;   // drawn with their own tie below
       lines += stxLineSVG(pos[m[i]][0], pos[m[i]][1], pos[m[j]][0], pos[m[j]][1], r, r, 'faction', { thin:true }); } });
   ties.forEach(t => { const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id;
     const fam = !!(String(t.relation || '').trim() || String(t.a_role || '').trim() || String(t.b_role || '').trim());
     // a tie where either side's feeling is bad shows the bad line; otherwise A's feeling
     const lvl = [t.a_level, t.b_level || t.a_level].find(l => STX_LV[l] && !STX_LV[l].good) || t.a_level;
-    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true, family:fam }); });
+    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true, family:fam, faction:mates(a, b) }); });
   const nodes = keys.map(k => stxNodeSVG(ctx, k, pos[k][0], pos[k][1], r, { small:true })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="The whole roster">${lines}${nodes}</svg>`;
 }
@@ -28014,6 +28035,7 @@ async function stxRender(){
         ${copied ? `<div class="stx-copied">The same both ways.</div>` : ''}</div>`; };
     const aside = t ? `<div class="stx-k">${t.auto ? 'Faction mates' : 'Relationship'}</div>
         <div class="stx-tietitle">${stxE(me.name)} and ${stxE(ctx.byKey[t.other].name)}</div>
+        ${!t.auto && t.faction ? `<div class="stx-facnote"><i class="ti ti-shield"></i> Same faction: <b>${stxE(t.faction)}</b></div>` : ''}
         ${t.relation || t.myRole || t.theirRole ? `<div class="stx-family"><i class="ti ti-users"></i><span><span>Family${t.relation ? ': <b>' + stxE(t.relation) + '</b>' : ''}</span>
           ${t.myRole ? `<small>${stxE(me.name)} is ${stxE(ctx.byKey[t.other].name)}'s ${stxE(t.myRole.toLowerCase())}.</small>` : ''}
           ${t.theirRole ? `<small>${stxE(ctx.byKey[t.other].name)} is ${stxE(me.name)}'s ${stxE(t.theirRole.toLowerCase())}.</small>` : ''}</span></div>` : ''}
@@ -28139,13 +28161,35 @@ function stxEdOptions(ctx, sel, skip, withFactions){
   const o = x => `<option value="${stxE(x.key)}"${x.key === sel ? ' selected' : ''}>${stxE(x.name)}</option>`;
   return (fac.length ? `<optgroup label="Characters">${ppl.map(o).join('')}</optgroup><optgroup label="Factions">${fac.map(o).join('')}</optgroup>` : ppl.map(o).join(''));
 }
-function stxLvChips(id, cur){
-  return `<div class="stx-lvs" id="${id}" data-lv="${cur || ''}" role="radiogroup">${STX_LEVELS.map(k => { const l = STX_LV[k];
-    return `<button type="button" role="radio" aria-checked="${cur === k}" class="stx-lvb${cur === k ? ' on' : ''}" style="--lc:${l.color}" data-v="${k}" onclick="stxLvPick('${id}','${k}')">${stxE(l.label)}</button>`; }).join('')}</div>`;
+// The feelings: pick one (press it again to clear it)
+const STX_FEEL = ['friends','uneasy','rivals','enemies'];
+// opts.fam: add the Family chip, which goes ON TOP of a feeling (brothers who are Rivals).
+//           Family with no feeling picked is saved as just family ('related').
+// opts.faction: they're faction mates, shown as a locked chip (it comes from the Factions tab)
+function stxLvChips(id, cur, opts){
+  opts = opts || {};
+  const feel = cur === 'related' ? '' : (cur || '');
+  const famOn = !!opts.famOn || cur === 'related';
+  const feelHtml = STX_FEEL.map(k => { const l = STX_LV[k];
+    return `<button type="button" role="radio" aria-checked="${feel === k}" class="stx-lvb${feel === k ? ' on' : ''}" style="--lc:${l.color}" data-v="${k}" onclick="stxLvPick('${id}','${k}')">${stxE(l.label)}</button>`; }).join('');
+  const famHtml = opts.fam ? `<span class="stx-lvsep" aria-hidden="true"></span><button type="button" role="checkbox" aria-checked="${famOn}" class="stx-lvb fam${famOn ? ' on' : ''}" style="--lc:${STX_LV.related.color}" data-fam="1" onclick="stxFamToggle()">${stxE(STX_LV.related.label)}</button>` : '';
+  const facHtml = opts.faction ? `<button type="button" class="stx-lvb lock on" style="--lc:${STX_LV.faction.color}" title="They're in ${stxE(opts.faction)} together. Set in the Factions tab." aria-disabled="true">${stxE(STX_LV.faction.label)}</button>` : '';
+  return `<div class="stx-lvs" id="${id}" data-lv="${feel}" data-none="${opts.fam ? '1' : ''}" role="radiogroup">${feelHtml}${famHtml}${facHtml}</div>`;
 }
-function stxLvPick(id, k){ const box = document.getElementById(id); if(!box) return; box.dataset.lv = k;
-  if(k === 'related' && /^stxe-lv/.test(id)){ const c = document.getElementById('stxe-fam'), f = document.getElementById('stxe-fambox'); if(c && !c.checked){ c.checked = true; if(f) f.hidden = false; } }
-  box.querySelectorAll('.stx-lvb').forEach(b => { const on = b.dataset.v === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); }
+function stxLvPick(id, k){
+  const box = document.getElementById(id); if(!box) return;
+  // pressing the picked feeling again clears it, when Family can stand on its own
+  if(box.dataset.lv === k && box.dataset.none) k = '';
+  box.dataset.lv = k;
+  box.querySelectorAll('.stx-lvb[data-v]').forEach(b => { const on = b.dataset.v === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+}
+// Family is one thing for the pair, so its chip on both sides and the family details move together
+function stxFamToggle(force){
+  const c = document.getElementById('stxe-fam'); if(!c) return;
+  c.checked = force == null ? !c.checked : !!force;
+  const f = document.getElementById('stxe-fambox'); if(f) f.hidden = !c.checked;
+  document.querySelectorAll('#stxe-form .stx-lvb[data-fam]').forEach(b => { b.classList.toggle('on', c.checked); b.setAttribute('aria-checked', c.checked); });
+}
 
 /* relationships */
 async function stxEdTies(body, ctx){
@@ -28180,12 +28224,15 @@ async function stxEdTies(body, ctx){
   const thLv = row ? (meIsA ? (row.b_level || row.a_level) : row.a_level) : myLv;
   const thWhy = row ? (meIsA ? (row.b_level ? row.b_why : '') : row.a_why) || '' : '';
   const moments = row ? (row.moments || []) : [];
+  const famOn = !!(row && (row.relation || row.a_role || row.b_role || row.a_level === 'related' || row.b_level === 'related'));
+  const famFaction = t ? (t.faction || '') : '';
   form.innerHTML = `<div class="stx-h">${isNew ? 'New relationship' : stxE(who.name) + ' and ' + stxE(otherName)}</div>
     ${isNew ? `<label class="stx-l" for="stxe-other">With</label><select id="stxe-other" class="stx-in" onchange="stxEdOtherName(this)">${stxEdOptions(ctx, null, taken, true)}</select>` : ''}
     ${t && t.auto ? `<p class="stx-dim">They're in ${stxE(t.faction)} together, so they're tied automatically. Saving this gives them their own relationship and history.</p>` : ''}
     <div class="stx-side">
       <div class="stx-side-h"><div>How ${stxE(who.name)} feels about <b class="stxe-on">${stxE(otherName)}</b></div></div>
-      ${stxLvChips('stxe-lva', myLv)}
+      ${stxLvChips('stxe-lva', myLv, { fam:true, famOn, faction:famFaction })}
+      <p class="stx-lvhint">Pick how they feel. Family can go on top of any feeling.</p>
       <label class="stx-l" for="stxe-wa">Why <span class="stx-opt">(shows on ${stxE(who.name)}'s profile)</span></label>
       <textarea id="stxe-wa" class="stx-in" rows="2" maxlength="600" placeholder="A line or two">${stxE(myWhy)}</textarea>
     </div>
@@ -28194,16 +28241,17 @@ async function stxEdTies(body, ctx){
         <label class="stx-same"><input type="checkbox" id="stxe-same"${same ? ' checked' : ''} onchange="document.getElementById('stxe-bside').hidden=this.checked;document.getElementById('stxe-samenote').hidden=!this.checked"> The same</label></div>
       <div class="stx-dim" id="stxe-samenote"${same ? '' : ' hidden'}>Copied from ${stxE(who.name)}'s side, so both profiles show it. Untick to give them their own feeling and reason.</div>
       <div id="stxe-bside"${same ? ' hidden' : ''}>
-        ${stxLvChips('stxe-lvb', thLv)}
+        ${stxLvChips('stxe-lvb', thLv, { fam:true, famOn, faction:famFaction })}
         <label class="stx-l" for="stxe-wb">Why <span class="stx-opt">(shows on their profile)</span></label>
         <textarea id="stxe-wb" class="stx-in" rows="2" maxlength="600" placeholder="Their side of it">${stxE(thWhy)}</textarea>
       </div>
     </div>
-    ${(() => { const famOn = !!(row && (row.relation || row.a_role || row.b_role));
+    ${(() => {
       const myRole = row ? ((meIsA ? row.a_role : row.b_role) || '') : '', thRole = row ? ((meIsA ? row.b_role : row.a_role) || '') : '';
-      return `<label class="stx-famck"><input type="checkbox" id="stxe-fam"${famOn ? ' checked' : ''} onchange="document.getElementById('stxe-fambox').hidden=!this.checked"> They're family</label>
+      return `<input type="checkbox" id="stxe-fam" hidden${famOn ? ' checked' : ''}>
     <div class="stx-fambox" id="stxe-fambox"${famOn ? '' : ' hidden'}>
-      <p class="stx-dim stx-small">Family shows as a purple double line, beside the line for their feeling. So brothers who are Enemies get the purple line and the red one. Pick <b style="color:${STX_LV.related.color}">Family</b> as the feeling when there's no beef.</p>
+      <div class="stx-famck">Family</div>
+      <p class="stx-dim stx-small">Family shows as a purple double line, next to the line for how they feel. So brothers who are Rivals get the purple line and the red one. Leave the feeling unpicked if they're just family.</p>
       <label class="stx-l" for="stxe-rel">What they are</label>
       <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Married, Cousins" value="${stxE(row ? row.relation || '' : '')}">
       <div class="stx-g2">
@@ -28240,8 +28288,12 @@ async function stxEdSaveTie(){
   const ctx = await stxCtx(STXE.scope), ties = await stxTies(STXE.scope);
   const otherK = STXE.other === 'new' ? (document.getElementById('stxe-other') || {}).value : STXE.other;
   if(!otherK || !ctx.byKey[otherK]){ stxEdMsg('Pick who the relationship is with.', false); return; }
-  const lva = document.getElementById('stxe-lva').dataset.lv, lvb = document.getElementById('stxe-lvb').dataset.lv;
-  if(!lva){ stxEdMsg('Pick how they feel.', false); return; }
+  const famPicked = !!(document.getElementById('stxe-fam') || {}).checked;
+  // no feeling picked + Family on = just family
+  let lva = document.getElementById('stxe-lva').dataset.lv, lvb = document.getElementById('stxe-lvb').dataset.lv;
+  if(!lva && famPicked) lva = 'related';
+  if(!lvb) lvb = famPicked ? 'related' : lva;
+  if(!lva){ stxEdMsg('Pick how they feel, or Family.', false); return; }
   const same = document.getElementById('stxe-same').checked;
   const wa = document.getElementById('stxe-wa').value.trim(), wb = (document.getElementById('stxe-wb').value || '').trim();
   const moments = [...document.querySelectorAll('#stxe-moments .stx-mrow')].map(r => { const i = r.querySelectorAll('input'); return { when:i[0].value.trim(), text:i[1].value.trim() }; }).filter(m => m.when || m.text);
