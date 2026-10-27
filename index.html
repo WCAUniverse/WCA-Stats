@@ -27787,7 +27787,8 @@ function stxTieErr(err, dupMsg){
 }
 function stxErr(err){
   const t = String((err && err.message) || err || '');
-  if(stxMissing(err)) return 'Stories are not switched on yet. Run SUPABASE_SETUP_stories.sql in Supabase.';
+  if(err && err.step) return t;
+  if(stxMissing(err) && /story_|stories/i.test(t)) return 'Stories are not switched on yet. Run SUPABASE_SETUP_stories.sql in Supabase.';
   return t || 'Something went wrong.';
 }
 function stxScopeQ(q, scope){ return scope == null ? q.is('promotion_id', null) : q.eq('promotion_id', scope); }
@@ -28832,7 +28833,7 @@ async function stxEdSavePerson(){
    story are here. A promotion makes its own factions and teams here. */
 async function stxEdFactions(body, ctx){
   const isWca = STXE.scope == null;
-  if(ctx.factionsMissing){ body.innerHTML = `<div class="stx-empty">${stxE(stxErr('does not exist'))}</div>`; return; }
+  if(ctx.factionsMissing){ body.innerHTML = `<div class="stx-empty">${stxE(stxErr('relation story_ties does not exist'))}</div>`; return; }
   if(isWca && !ctx.factions.length){ body.innerHTML = '<div class="stx-empty">No factions yet. Make them in the Factions tab.</div>'; return; }
   const facList = ctx.factions.filter(x => !STXE.own || STXE.own.has(x.key));
   if(STXE.own && STXE.fac === 'new') STXE.fac = null;
@@ -29059,7 +29060,8 @@ function rvNorm(r){
 }
 function rvErr(err){
   const t = String((err && err.message) || err || '');
-  if(stxMissing(err)) return 'Rivalries are not switched on yet. Run SUPABASE_SETUP_rivalries.sql in Supabase.';
+  if(err && err.step) return t;
+  if(stxMissing(err) && /rivalries/i.test(t)) return 'Rivalries are not switched on yet. Run SUPABASE_SETUP_rivalries.sql in Supabase.';
   return t || 'Something went wrong.';
 }
 async function rvList(scope, force){
@@ -29078,7 +29080,7 @@ function rvForget(scope){ delete RV.cache[stxSk(scope)]; }
 async function rvEvents(scope){
   if(scope != null) return [];
   if(!RV.events) RV.events = (async () => {
-    const { data } = await sb.from('events').select('id,name,show_number,event_date,completed_at,is_complete').order('id');
+    const { data } = await sb.from('events').select('*').order('id');
     const num = e => (e.show_number != null && isFinite(+e.show_number)) ? +e.show_number : ((String(e.name || '').match(/\bWCA\s*(\d+)/i) || [])[1] | 0);
     return (data || []).map(e => ({ id:e.id, name:e.name || ('Show ' + e.id), n:num(e), date:(e.event_date || e.completed_at || '').slice(0, 10), done:!!(e.is_complete || e.completed_at) }))
       .sort((a, b) => b.n - a.n || String(b.date).localeCompare(String(a.date)));
@@ -29166,7 +29168,7 @@ async function rvRenderList(host, scope, opts){
   let ctx, res, evs;
   try{ [ctx, res, evs] = await Promise.all([stxCtx(scope), rvList(scope), rvEvents(scope)]); }
   catch(e){ host.innerHTML = `<div class="stx-empty">${stxE(rvErr(e))}</div>`; return; }
-  if(res.missing){ host.innerHTML = `<div class="stx-empty">${opts.admin ? stxE(rvErr('does not exist')) : 'No rivalries yet.'}</div>`; return; }
+  if(res.missing){ host.innerHTML = `<div class="stx-empty">${opts.admin ? stxE(rvErr('relation rivalries does not exist')) : 'No rivalries yet.'}</div>`; return; }
   const sk = stxSk(scope);
   const rows = res.rows;
   const focus = opts.focus != null ? rows.find(r => String(r.id) === String(opts.focus)) : null;
@@ -29229,7 +29231,7 @@ function rvEdMsg(t, ok){ const m = document.getElementById('rve-msg'); if(m){ m.
 async function rvEdDraw(){
   const host = RVE.host; if(!host) return;
   const [ctx, res, evs] = await Promise.all([stxCtx(RVE.scope), rvList(RVE.scope), rvEvents(RVE.scope)]);
-  if(res.missing){ host.innerHTML = `<div class="stx-empty">${stxE(rvErr('does not exist'))}</div>`; return; }
+  if(res.missing){ host.innerHTML = `<div class="stx-empty">${stxE(rvErr('relation rivalries does not exist'))}</div>`; return; }
   const isWca = RVE.scope == null;
   const canSuggest = isWca && typeof rvSuggestTab === 'function';
   const act = res.rows.filter(r => r.status === 'active'), past = res.rows.filter(r => r.status === 'past');
