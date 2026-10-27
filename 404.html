@@ -8648,6 +8648,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
 
   <!-- EVENTS / FIGHT CARD -->
   <div class="page" id="page-events">
+    <div class="pe-switch" data-peswitch hidden></div>
+    <div class="pe-host" data-pehost hidden></div>
     <div class="evx">
       <aside class="evx-rail" data-evrail aria-label="Shows"></aside>
       <div class="evx-main">
@@ -8708,6 +8710,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
 
   <!-- ARCHIVE (completed events: card + results + bets + linked storylines) -->
   <div class="page" id="page-archive">
+    <div class="pe-switch" data-peswitch hidden></div>
+    <div class="pe-host" data-pehost hidden></div>
     <div class="evx">
       <aside class="evx-rail" data-evrail aria-label="Shows"></aside>
       <div class="evx-main">
@@ -8903,6 +8907,7 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
       <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
       <button class="rfilter" data-slfilter="wca" onclick="slSetFilter('wca',this)">WCA</button>
       <button class="rfilter" data-slfilter="outside" onclick="slSetFilter('outside',this)">Around the Universe</button>
+      <button class="rfilter" data-slfilter="following" id="sl-f-follow" onclick="slSetFilter('following',this)" hidden>Following</button>
       <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
       <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
       <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
@@ -10208,6 +10213,7 @@ async function refreshUser(){
   catch(e){ IS_ADMIN = false; }
   renderUserChip();
   try{ if(typeof wcaNotifAuth === 'function') wcaNotifAuth(); }catch(e){}     // notifications: who this device belongs to
+  try{ if(typeof peLoadFollows === 'function') peLoadFollows(); }catch(e){}   // the Feed's Following filter
   // The Apply page draws as soon as it opens, which can be before this sign in
   // has loaded. Redraw it now so a signed in visitor sees the form, not the
   // "Sign in to apply" box.
@@ -19395,7 +19401,7 @@ function mpRender(){
       </div>
     </section>
     <div class="pm-tabs" role="tablist" aria-label="My Promotion">
-      ${[['posts','Posts'],['roster','Roster'],['stories','Stories'],['rivalries','Rivalries'],['edit','Edit Promotion']].map(([k, l]) =>
+      ${[['posts','Posts'],['events','Events'],['betting','Betting'],['roster','Roster'],['stories','Stories'],['rivalries','Rivalries'],['edit','Edit Promotion']].map(([k, l]) =>
         `<button type="button" role="tab" aria-selected="${PM.tab === k}" class="pm-tab${PM.tab === k ? ' on' : ''}" onclick="mpTab('${k}')">${l}</button>`).join('')}
     </div>
     <div id="mp-tab"></div>`;
@@ -19409,13 +19415,15 @@ function mpTab(k){
   if(k !== 'posts'){ CP_HOST_ID = 'fr-composer'; FR_OPEN = false; }
   if(k === 'edit') return mpEditTab(box);
   if(!mpApproved()){
-    box.innerHTML = `<div class="pm-card pm-empty"><i class="ti ti-hourglass"></i> ${k === 'posts' ? 'Posting' : k === 'stories' ? 'Stories' : k === 'rivalries' ? 'Rivalries' : 'Your roster'} opens once WCA approves your promotion. You can still change everything under Edit Promotion.</div>`;
+    box.innerHTML = `<div class="pm-card pm-empty"><i class="ti ti-hourglass"></i> ${k === 'posts' ? 'Posting' : k === 'stories' ? 'Stories' : k === 'rivalries' ? 'Rivalries' : k === 'events' ? 'Events' : k === 'betting' ? 'Betting' : 'Your roster'} opens once WCA approves your promotion. You can still change everything under Edit Promotion.</div>`;
     return;
   }
   if(k === 'posts') return mpPostsTab(box);
   if(k === 'roster') return mpRosterTab(box);
   if(k === 'stories') return mpStoriesTab(box);
   if(k === 'rivalries') return mpRivalriesTab(box);
+  if(k === 'events') return typeof mpEventsTab === 'function' ? mpEventsTab(box) : (box.innerHTML = '<div class="loading">Loading…</div>', setTimeout(() => mpTab(k), 200));
+  if(k === 'betting') return typeof mpBettingTab === 'function' ? mpBettingTab(box) : (box.innerHTML = '<div class="loading">Loading…</div>', setTimeout(() => mpTab(k), 200));
   if(k === 'import') return mpImportTab(box);
 }
 
@@ -20215,7 +20223,10 @@ async function pmPageOpen(){
   const host = pmEl('pmpage-body'); if(!host) return;
   const qs = wcaRoute().qs || '';
   const id = Number((qs.match(/(?:^|&)id=(\d+)/) || [])[1]);
-  const tab = (qs.match(/(?:^|&)tab=(roster|posts|factions)/) || [])[1] || 'posts';
+  const tab = (qs.match(/(?:^|&)tab=(roster|posts|events|factions|rivalries)/) || [])[1] || 'posts';
+  PM.pubEv = (qs.match(/(?:^|&)ev=(\d+)/) || [])[1] || null;         // one show on the Events tab
+  const wantSel = (qs.match(/(?:^|&)p=(\d+)/) || [])[1] || null;      // one person on the Roster tab
+  PM.pubRv = (qs.match(/(?:^|&)rv=(\d+)/) || [])[1] || null;   // one rivalry opened on the Rivalries tab
   if(!id){ activatePage('promotions'); wcaSetAddress('promotions', ''); return; }
   host.innerHTML = `<div class="loading">Loading…</div>`;
   const [pr, cr, rr] = await Promise.all([
@@ -20238,7 +20249,7 @@ async function pmPageOpen(){
         .eq('promotion_id', id).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(120);
   }
   if(!p){ host.innerHTML = `<div class="pm-card pm-empty">That promotion isn't here. <button class="spc-mini" onclick="goPage('promotions')">See every promotion</button></div>`; return; }
-  PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:null };
+  PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:wantSel ? Number(wantSel) : null };
   const col = pmColor(p.color);
   const links = p.links || {};
   const icons = { website:'ti-world', youtube:'ti-brand-youtube', twitch:'ti-brand-twitch', x:'ti-brand-x', tiktok:'ti-brand-tiktok', instagram:'ti-brand-instagram', discord:'ti-brand-discord' };
@@ -20253,6 +20264,7 @@ async function pmPageOpen(){
           <div class="pm-kick">Promotion in the WCA Universe</div>
           <h1 class="pm-title">${esc(p.name)}</h1>
           <div class="pm-hs-links">${CP_LINKS.filter(([k]) => links[k]).map(([k, l]) => `<a href="${escAttr(links[k])}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ${icons[k]}"></i> ${esc(l)}</a>`).join('')}
+            <span id="pe-follow-slot"></span>
             <button type="button" class="pm-hs-share" onclick="pmShare(${Number(p.id)})"><i class="ti ti-share-3"></i> Share</button>
             ${mine ? `<button type="button" class="pm-hs-share" onclick="PM.curId=${Number(p.id)};goPage('mypromo')"><i class="ti ti-pencil"></i> Edit in My Promotion</button>` : ''}</div>
         </div>
@@ -20262,16 +20274,19 @@ async function pmPageOpen(){
         <span><b>${PM.pub.cats.length}</b><small>${PM.pub.cats.length === 1 ? 'Division' : 'Divisions'}</small></span>
         <span><b>${PM.pub.roster.filter(x => x.gender === 'Team').length}</b><small>Teams</small></span>
         <span><b>${PM.pub.posts.length}</b><small>Posts</small></span>
+        <span id="pe-followers-stat" hidden></span>
       </div>
     </section>
     <div class="pm-tabs pm-tabs-u" role="tablist" aria-label="${escAttr(p.name)}">
       <button type="button" role="tab" class="pm-tab" data-t="posts" onclick="pmPubTab('posts')">Posts <span>${PM.pub.posts.length}</span></button>
+      <button type="button" role="tab" class="pm-tab" data-t="events" onclick="pmPubTab('events')">Events</button>
       <button type="button" role="tab" class="pm-tab" data-t="roster" onclick="pmPubTab('roster')">Roster <span>${PM.pub.roster.length}</span></button>
       <button type="button" role="tab" class="pm-tab" data-t="factions" onclick="pmPubTab('factions')">Factions</button>
       <button type="button" role="tab" class="pm-tab" data-t="rivalries" onclick="pmPubTab('rivalries')">Rivalries</button>
     </div>
     <div id="pmpub-tab"></div>`;
   pmPubTab(tab, true);
+  if(typeof pePaintFollow === 'function') pePaintFollow(p.id);
 }
 function pmShare(id){
   const url = (WCA_PATHS ? location.origin : wcaShareBase()) + wcaHref('promotion', 'id=' + Number(id));
@@ -20287,8 +20302,25 @@ function pmPubTab(t, quiet){
   document.querySelectorAll('#pmpage-body .pm-tab').forEach(b => { b.classList.toggle('on', b.dataset.t === t); b.setAttribute('aria-selected', b.dataset.t === t); });
   if(!quiet) wcaSetAddress('promotion', 'id=' + Number(P.p.id) + (t !== 'posts' ? '&tab=' + t : ''), false);
   const box = pmEl('pmpub-tab'); if(!box) return;
-  if(t === 'factions'){ if(typeof stxFactionsTab === 'function') stxFactionsTab(box, P.p.id); return; }
-  if(t === 'rivalries'){ if(typeof rvRenderList === 'function') rvRenderList(box, P.p.id, {}); return; }
+  // a direct link can land here before the Stories and Rivalries code has loaded: wait for it
+  const later = fn => { box.innerHTML = '<div class="loading">Loading…</div>'; let n = 0;
+    const tick = () => { if(P !== PM.pub || P.tab !== t) return; if(typeof window[fn] === 'function' || (fn === 'rvRenderList' && typeof rvRenderList === 'function') || (fn === 'stxFactionsTab' && typeof stxFactionsTab === 'function')) pmPubTab(t, quiet); else if(++n < 100) setTimeout(tick, 100); };
+    setTimeout(tick, 100); };
+  if(t === 'factions'){ if(typeof stxFactionsTab === 'function') stxFactionsTab(box, P.p.id); else later('stxFactionsTab'); return; }
+  if(t === 'events'){
+    if(typeof peRenderPublic !== 'function'){ later('peRenderPublic'); return; }
+    const ev = quiet ? PM.pubEv : null; PM.pubEv = null;
+    peRenderPublic(box, P.p.id, { view:'all', focusEv:ev });
+    return;
+  }
+  if(t === 'rivalries'){
+    if(typeof rvRenderList !== 'function'){ later('rvRenderList'); return; }
+    const want = quiet ? PM.pubRv : null; PM.pubRv = null;
+    if(want == null) delete RVL.cur[stxSk(P.p.id)];
+    const q = rid => 'id=' + Number(P.p.id) + '&tab=rivalries' + (rid != null ? '&rv=' + Number(rid) : '');
+    rvRenderList(box, P.p.id, { focus:want, onOpen:rid => wcaSetAddress('promotion', q(rid), true) });
+    return;
+  }
   if(t === 'posts'){
     const about = P.p.about ? `<section class="pm-aboutcard"><div class="pm-kick">About ${esc(P.p.name)}</div><p>${esc(P.p.about)}</p></section>` : '';
     box.innerHTML = about + (P.posts.length ? `<div class="pm-cards pm-cards-m">${P.posts.map(r => {
@@ -21143,6 +21175,7 @@ function renderStorylines(){
   if(!feed) return;
   let list = slSort(SL_ALL);
   if(SL_FILTER === 'outside') list = list.filter(p=>!!slSrc(p));          // other promotions + Press Pass
+  else if(SL_FILTER === 'following') list = list.filter(p=>typeof peFollowsPost === 'function' && peFollowsPost(p));   // promotions you follow
   else if(SL_FILTER === 'wca') list = list.filter(p=>!slSrc(p) && p.kind!=='review');
   else if(String(SL_FILTER).indexOf('src:') === 0){
     const want = String(SL_FILTER).slice(4);
@@ -21297,6 +21330,7 @@ function activatePage(pg){
   if(pg==='rankings') refreshRankingsIfStale();
   if(pg==='archive') loadArchive();
   if(pg==='events'){ try{ renderEventRails(); if(!ARCHIVE_EVENTS.length) loadArchive(); }catch(e){} }
+  if((pg==='events' || pg==='archive') && typeof peSwitchOpen==='function') peSwitchOpen(pg);   // WCA or a promotion's shows
   if(pg==='apply') loadApply();
   if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
   if(pg==='account') loadAccount();
@@ -21763,6 +21797,7 @@ const NP_CATS = [
   { key:'shows', icon:'ti-calendar-event', label:'New shows in Upcoming Events' },
   { key:'bets',  icon:'ti-cash',           label:'Betting opens and showtime reminders' },
   { key:'live',  icon:'ti-broadcast',      label:'Shows going live' },
+  { key:'follow', icon:'ti-heart',         label:'Promotions you follow: shows, betting and results', signedIn:true },
   { key:'mine',  icon:'ti-user-check',     label:'Updates on your posts and applications', signedIn:true },
   { key:'admin', icon:'ti-inbox',          label:'Waiting for you (admin)', admin:true },
   { key:'news',  icon:'ti-speakerphone',   label:'Announcements from WCA' },
@@ -29122,6 +29157,9 @@ function rvDate(d){
 function rvOnSite(){ return typeof activatePage === 'function' && !!document.getElementById('page-rivalries'); }
 function rvEventHref(id){ return (rvOnSite() && typeof wcaHref === 'function') ? wcaHref('archive', 'event=' + encodeURIComponent(id)) : STX_SITE + '/archive?event=' + encodeURIComponent(id); }
 function rvHref(id){ return (rvOnSite() && typeof wcaHref === 'function') ? wcaHref('rivalries', 'id=' + Number(id)) : STX_SITE + '/rivalries?id=' + Number(id); }
+// a promotion's rivalry: its own address on that promotion's page
+function rvPromoHref(pid, id){ const q = 'id=' + Number(pid) + '&tab=rivalries' + (id != null ? '&rv=' + Number(id) : '');
+  return (rvOnSite() && typeof wcaHref === 'function') ? wcaHref('promotion', q) : STX_SITE + '/promotion?' + q; }
 function rvNames(ctx, r){ return r.members.map(k => (ctx.byKey[k] || {}).name).filter(Boolean); }
 function rvTitle(ctx, r){ return String(r.title || '').trim() || rvNames(ctx, r).join(' vs ') || 'Rivalry'; }
 // "WCA 41, Mar 3, 2026" or just one of them
@@ -29175,12 +29213,14 @@ function rvCardHTML(ctx, evs, r, opts){
     ${r.status === 'past' && (ended || r.ended_how) ? `<section class="rv-end"><div class="rv-k">How it ended${ended ? ' <span class="rv-kw">' + ended + '</span>' : ''}</div>${stxParas(r.ended_how || '')}</section>` : ''}
     <div class="rv-acts">
       ${people.length >= 2 ? `<button type="button" class="stx-btn ghost" onclick="stxOpen({scope:${ctx.scope == null ? "'wca'" : Number(ctx.scope)},mode:'web',key:'${stxE(people[0])}',sel:'${stxE(people[1])}'})"><i class="ti ti-affiliate"></i> See their relationship</button>` : ''}
-      <button type="button" class="stx-btn ghost" onclick="rvShare(${Number(r.id)})"><i class="ti ti-share-3"></i> Share</button>
+      <button type="button" class="stx-btn ghost" onclick="rvShare(${Number(r.id)}, ${ctx.scope == null ? 'null' : Number(ctx.scope)})"><i class="ti ti-share-3"></i> Share</button>
     </div>
   </article>`;
 }
-function rvShare(id){
-  const url = (rvOnSite() && typeof WCA_PATHS !== 'undefined' && WCA_PATHS ? location.origin : STX_SITE) + (rvOnSite() && typeof wcaHref === 'function' ? wcaHref('rivalries', 'id=' + Number(id)) : '/rivalries?id=' + Number(id));
+function rvShare(id, scope){
+  const base = rvOnSite() && typeof WCA_PATHS !== 'undefined' && WCA_PATHS ? location.origin : STX_SITE;
+  const path = scope != null ? rvPromoHref(scope, id) : rvHref(id);
+  const url = /^https?:/.test(path) ? path : base + path;
   if(typeof wcaShowSharePopup === 'function' && navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(url).then(() => wcaShowSharePopup(url, true, 'Share this rivalry', ''), () => wcaShowSharePopup(url, false, 'Share this rivalry', ''));
   } else { try{ window.prompt('Copy this link:', url); }catch(e){} }
@@ -29194,7 +29234,7 @@ function rvTileHTML(ctx, r){
   const faces = sides.map((k, i) => `${i ? '<span class="rv-tvs">VS</span>' : ''}${rvFace(ctx, k, true)}`).join('');
   const names = sides.map(k => `<b>${stxE(ctx.byKey[k].name)}</b>`).join('<span class="rv-tvs2">vs</span>');
   const title = String(r.title || '').trim();
-  const href = ctx.scope == null ? rvHref(r.id) : '#rv-' + Number(r.id);
+  const href = ctx.scope == null ? rvHref(r.id) : rvPromoHref(ctx.scope, r.id);
   return `<a class="rv-tile${r.status === 'past' ? ' past' : ''}" href="${stxE(href)}" data-rvgo="${Number(r.id)}" style="--hc:${H.color}">
     <div class="rv-tfaces${sides.length > 2 ? ' many' : ''}">${faces}</div>
     <div class="rv-tnames">${names}</div>
@@ -29458,5 +29498,811 @@ try{ if(stxOnSite() && wcaRoute().pg === 'relationships' && document.getElementB
 try{ if(rvOnSite() && wcaRoute().pg === 'rivalries' && document.getElementById('page-rivalries').classList.contains('active')) rvPageOpen(); }catch(e){}
 
 </script>
+<style>
+/* ===================== PROMOTION EVENTS, BETTING AND FOLLOW (Oct 2026) ===================== */
+.pe{font-size:15.5px;}
+.pe input:not([type=checkbox]):not([type=radio]), .pe select, .pe textarea{background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:9px 11px; border-radius:8px; font-size:15px; font-family:var(--font-body); box-sizing:border-box;}
+.pe input:focus, .pe select:focus, .pe textarea:focus{outline:none; border-color:var(--gold);}
+.pe-switch{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 18px;}
+.pe-switch[hidden]{display:none;}
+#page-events > .pe-switch, #page-archive > .pe-switch{margin-top:18px;}
+.pe-side{display:flex; flex-direction:column; align-items:flex-start; gap:6px;}
+.pe-side .pe-betbtn{margin-top:auto; align-self:stretch;}
+.pm-card .mpe-bet select{width:auto; flex:0 1 280px; min-width:180px;}
+@media (max-width:560px){
+  .pe-ev{padding:14px;} .pe-m{padding:12px;}
+  .pe .pe-sides{flex-direction:column;} .pe .pe-sides .pe-side{flex:0 0 auto;} .pe-vs{align-self:center;}
+  .pe-form input{flex:1 1 120px; width:auto;}
+  .pe-wallet b.pe-bal{font-size:24px;}
+  .pe-chip{font-size:15px; padding:6px 12px 6px 6px;}
+}
+.pe-switch .pe-sk{font-family:var(--font-cond); font-weight:700; letter-spacing:1.8px; text-transform:uppercase; font-size:14px; color:var(--muted); margin-right:4px;}
+.pe-chip{display:inline-flex; align-items:center; gap:9px; padding:8px 16px 8px 8px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--txt); font:inherit; font-weight:700; font-size:16px; cursor:pointer; transition:border-color .15s, transform .15s;}
+.pe-chip:hover{transform:translateY(-1px); border-color:var(--pc, var(--gold));}
+.pe-chip.on{border-color:var(--pc, var(--gold)); box-shadow:0 0 0 1px var(--pc, var(--gold)) inset; background:color-mix(in srgb, var(--pc, var(--gold)) 12%, var(--panel));}
+.pe-chip .pe-cl{width:32px; height:32px; border-radius:8px; object-fit:cover; font-size:13px; display:inline-flex; align-items:center; justify-content:center;}
+.pe-chip .pe-cl.wca{background:#0b0b0d; border:1px solid var(--line); color:var(--gold); font-family:var(--font-display); object-fit:contain; padding:2px;}
+.pe-wallet{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border:1px solid var(--line); border-left:4px solid var(--pc, var(--gold)); border-radius:12px; padding:14px 18px; background:var(--panel); margin-bottom:16px;}
+.pe-wallet b.pe-bal{font-family:var(--font-display); font-size:28px; color:#fff; letter-spacing:.5px;}
+.pe-wallet .pe-wk{font-family:var(--font-cond); font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:13.5px; color:var(--muted);}
+.pe-wallet p{margin:4px 0 0; color:var(--txt-2); font-size:15px; line-height:1.5; max-width:640px;}
+.pe-tabs{display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap;}
+.pe-tab{padding:9px 16px; border-radius:9px; border:1px solid var(--line); background:transparent; color:var(--muted); font:inherit; font-weight:700; font-size:15.5px; cursor:pointer;}
+.pe-tab.on{color:#fff; border-color:var(--pc, var(--gold));}
+.pe-tab span{margin-left:6px; padding:1px 8px; border-radius:10px; background:rgba(255,255,255,.08); font-size:13px;}
+.pe-ev{border:1px solid var(--line); border-top:4px solid var(--pc, var(--gold)); border-radius:14px; background:var(--panel); padding:18px 20px; margin-bottom:16px; scroll-margin-top:90px;}
+.pe-ev.focus{box-shadow:0 0 0 2px var(--pc, var(--gold));}
+.pe-evtop{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;}
+.pe-evstat{font-family:var(--font-cond); font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:14px; padding:3px 10px; border-radius:20px; border:1px solid currentColor;}
+.pe-evstat.up{color:var(--gold);} .pe-evstat.live{color:#ff5a6a;} .pe-evstat.done{color:#5dcaa5;} .pe-evstat.draft{color:var(--muted);}
+.pe-evdate{color:var(--txt-2); font-size:15px;}
+.pe-evname{margin:8px 0 4px; font-family:var(--font-display); font-weight:400; font-size:clamp(24px,3vw,32px); text-transform:uppercase; color:#fff; line-height:1.1;}
+.pe-evabout{color:var(--txt-2); font-size:15.5px; line-height:1.6; margin:6px 0 10px; white-space:pre-line;}
+.pe-evlinks{display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px;}
+.pe-card{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:12px;}
+.pe-m{border:1px solid #23232b; border-radius:12px; padding:14px 16px; background:rgba(0,0,0,.25);}
+.pe-mhead{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;}
+.pe-mno{font-family:var(--font-cond); font-weight:700; color:var(--muted); font-size:14px; letter-spacing:1px;}
+.pe-tag{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:13.5px; padding:2px 9px; border-radius:6px; background:rgba(255,255,255,.06); color:var(--txt-2);}
+.pe-tag.title{color:var(--gold); background:color-mix(in srgb, var(--gold) 12%, transparent);}
+.pe-bs{margin-left:auto; font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:13.5px; color:var(--muted);}
+.pe-bs.open{color:#5dcaa5;} .pe-bs.locked{color:var(--gold);}
+.pe-sides{display:flex; flex-wrap:wrap; align-items:stretch; gap:8px;}
+.pe-side{flex:1 1 180px; min-width:0; border:1px solid #2a2a33; border-radius:10px; padding:10px 12px; background:var(--panel);}
+.pe-side.win{border-color:#5dcaa5; background:color-mix(in srgb, #5dcaa5 10%, var(--panel));}
+.pe-side.lose{opacity:.72;}
+.pe-side .pe-sn{font-weight:700; font-size:17px; color:#fff; overflow-wrap:anywhere;}
+.pe-side .pe-sm{font-size:14.5px; color:var(--txt-2); overflow-wrap:anywhere;}
+.pe-side .pe-wtag{display:inline-block; font-family:var(--font-cond); font-weight:700; letter-spacing:1.3px; text-transform:uppercase; font-size:13px; color:#5dcaa5;}
+.pe-side .pe-pool{font-size:14px; color:var(--muted);}
+.pe-vs{align-self:center; font-family:var(--font-display); color:var(--pc, var(--gold)); font-size:18px;}
+a.pe-who{color:inherit; text-decoration:none; border-bottom:1px dotted rgba(255,255,255,.3);}
+a.pe-who:hover{color:var(--gold);}
+.pe-betbtn{width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--pc, var(--gold)); background:transparent; color:#fff; font:inherit; font-weight:700; font-size:15px; cursor:pointer;}
+.pe-betbtn.on, .pe-betbtn:hover{background:color-mix(in srgb, var(--pc, var(--gold)) 22%, transparent);}
+.pe-mine{margin-top:10px; font-size:15px; color:var(--txt-2);}
+.pe-mine b{color:#fff;}
+.pe-mine.won b{color:#5dcaa5;} .pe-mine.lost b{color:#ff8a96;}
+.pe-form{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; padding:12px; border-radius:10px; border:1px dashed var(--pc, var(--gold));}
+.pe-form input{width:150px;}
+.pe-form .pe-est{flex:1 1 220px; color:var(--txt-2); font-size:14.5px;}
+.pe-note{margin-top:8px; color:var(--txt-2); font-size:15px; line-height:1.55; white-space:pre-line;}
+.pe-msg{font-size:14.5px; margin-top:8px;} .pe-msg:empty{display:none;} .pe-msg.bad{color:#ff8a96;} .pe-msg.ok{color:#5dcaa5;}
+.pe-top{border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px 18px; margin-top:8px;}
+.pe-top ol{list-style:none; margin:8px 0 0; padding:0;}
+.pe-top li{display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #1f1f27; font-size:15.5px;}
+.pe-top li:last-child{border-bottom:0;}
+.pe-top .pe-rk{width:28px; font-family:var(--font-cond); font-weight:700; color:var(--muted);}
+.pe-top .pe-tb{margin-left:auto; font-weight:700; color:#fff;}
+.pe-top img{width:28px; height:28px; border-radius:50%; object-fit:cover;}
+.pe-empty{color:var(--muted); font-size:15.5px; padding:18px; text-align:center; border:1px dashed var(--line); border-radius:12px;}
+.pe-h{font-family:var(--font-cond); font-weight:700; letter-spacing:1.8px; text-transform:uppercase; font-size:15px; color:var(--gold); margin:0 0 4px;}
+.pe-follow{display:inline-flex; align-items:center; gap:7px;}
+.pe-follow.on{color:#5dcaa5 !important; border-color:#5dcaa5 !important;}
+/* My Promotion: Events and Betting */
+.mpe-head{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; justify-content:space-between;}
+.mpe-grid{display:grid; grid-template-columns:260px 1fr; gap:18px; margin-top:14px;}
+@media (max-width:860px){ .mpe-grid{grid-template-columns:1fr;} }
+.mpe-list{display:flex; flex-direction:column; gap:8px;}
+.mpe-show{text-align:left; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel2); color:var(--txt); font:inherit; cursor:pointer;}
+.mpe-show.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
+.mpe-show b{display:block; font-size:15.5px;} .mpe-show small{display:block; color:var(--muted); font-size:13.5px; margin-top:2px;}
+.mpe-fields{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px;}
+.mpe-fields label, .mpe label.pe-l{display:block; font-family:var(--font-cond); font-weight:600; letter-spacing:1.3px; text-transform:uppercase; font-size:13px; color:var(--muted); margin:0 0 5px;}
+.mpe-fields input, .mpe-fields select{width:100%;}
+.mpe textarea{width:100%;}
+.mpe-sec{margin-top:22px; padding-top:16px; border-top:1px solid #23232b;}
+.mpe-m{border:1px solid #2a2a33; border-radius:12px; padding:14px; margin-top:12px; background:rgba(0,0,0,.2);}
+.mpe-mtop{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+.mpe-mtop .pe-sides{margin-top:8px; width:100%;}
+.mpe-bet{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; padding-top:10px; border-top:1px dashed #2a2a33;}
+.mpe-bet select{min-width:200px;}
+.mpe-side{border:1px solid #2a2a33; border-radius:10px; padding:12px; margin-top:10px;}
+.mpe-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
+.mpe-chip{display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-radius:16px; background:rgba(255,255,255,.07); font-size:14.5px;}
+.mpe-chip button{border:0; background:transparent; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;}
+.mpe-addrow{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+.mpe-addrow select, .mpe-addrow input{flex:1 1 180px;}
+.mpb-mode{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-top:6px;}
+.mpb-opt{display:block; border:1px solid var(--line); border-radius:12px; padding:14px; cursor:pointer;}
+.mpb-opt.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
+.mpb-opt b{display:block; font-size:16px; color:#fff; margin-bottom:4px;}
+.mpb-opt p{margin:0; color:var(--txt-2); font-size:14.5px; line-height:1.55;}
+.mpb-opt input{margin-right:8px;}
+#page-mypromo .mpb-opt, #page-mypromo .mpb-opt b, #page-mypromo .mpb-opt p{text-transform:none; letter-spacing:normal; font-family:var(--font-body);}
+#page-mypromo .mpb-opt{display:block; margin:0;}
+#page-mypromo .pe input[type=checkbox], #page-mypromo .pe input[type=radio]{width:auto !important; flex:0 0 auto; padding:0; margin:0; accent-color:var(--gold);}
+#page-mypromo .mpb-opt b{display:flex; align-items:center; gap:8px; font-size:16.5px;}
+#page-mypromo .mpb-opt p{font-weight:400; font-size:15px; color:var(--txt-2);}
+#page-mypromo label.mpb-check{display:inline-flex; align-items:center; gap:8px; text-transform:none; letter-spacing:normal; font-family:var(--font-body); font-size:15.5px; color:var(--txt); margin:0;}
+.mpb-table{width:100%; border-collapse:collapse; font-size:15px; margin-top:8px;}
+.mpb-table th{text-align:left; font-family:var(--font-cond); font-weight:600; letter-spacing:1.2px; text-transform:uppercase; font-size:13px; color:var(--muted); padding:6px 8px; border-bottom:1px solid #2a2a33;}
+.mpb-table td{padding:8px; border-bottom:1px solid #1f1f27;}
+</style>
+<script>
+/* ===================== PROMOTION EVENTS, BETTING AND FOLLOW (Oct 2026) =====================
+   Every promotion gets what WCA has: shows with a card, betting with its own money,
+   and a FOLLOW button.
+     Public:  the promotion page's Events tab (and Events / Past Events, picking the
+              promotion from the row of buttons at the top).
+     Owner:   My Promotion, Events (shows, the card, open and lock betting, the winner)
+              and Betting (the money's name, starting balance, how bets pay, bonuses).
+     Feed:    a Following filter for promotions you follow.
+     Alerts:  followers hear about new shows, betting opening, live and results
+              (bell and phone, category "follow").
+   SQL: WCA Promotion Events (SUPABASE_SETUP_promotion_events.sql). Money only moves
+   through its functions (promo_place_bet, promo_settle, ...), never from here.
+   Running order: slot 1 is the opener, the last one is the main event. */
+const PE = { follows:null, promos:null, promosAt:0, pub:null };
+function peNum(n){ return Number(n || 0).toLocaleString('en-US'); }
+function peMoney(info, n){
+  const sym = info && info.currency_symbol != null ? String(info.currency_symbol) : '$';
+  const nm = (info && info.currency_name) || 'Dollars';
+  return sym ? sym + peNum(n) : peNum(n) + ' ' + nm;
+}
+function peErr(err){
+  const t = String((err && err.message) || err || '');
+  if(/promotion_(events|matches|economy|wallets|bets|follows|grants)|promo_[a-z_]+/i.test(t) && /does not exist|schema cache|could not find/i.test(t))
+    return 'Promotion events are not switched on yet. Run SUPABASE_SETUP_promotion_events.sql in Supabase.';
+  return (typeof cpErrText === 'function' ? cpErrText(err) : t) || t || 'Something went wrong.';
+}
+function peWhen(d){
+  if(!d) return '';
+  const t = new Date(d); if(isNaN(t)) return '';
+  return t.toLocaleString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+}
+function peLocal(d){
+  if(!d) return ''; const t = new Date(d); if(isNaN(t)) return '';
+  const z = n => String(n).padStart(2, '0');
+  return `${t.getFullYear()}-${z(t.getMonth() + 1)}-${z(t.getDate())}T${z(t.getHours())}:${z(t.getMinutes())}`;
+}
+function peSides(m){ let s = m && m.sides; if(typeof s === 'string'){ try{ s = JSON.parse(s); }catch(e){ s = []; } } return Array.isArray(s) ? s : []; }
+function peOdds(m){ let s = m && m.odds; if(typeof s === 'string'){ try{ s = JSON.parse(s); }catch(e){ s = []; } } return Array.isArray(s) ? s : []; }
+function peSideName(side){
+  const names = ((side && side.members) || []).map(x => x && x.name).filter(Boolean);
+  return String((side && side.name) || '').trim() || names.join(' & ') || 'TBA';
+}
+function pePersonHref(pid, id){ return wcaHref('promotion', 'id=' + Number(pid) + '&tab=roster&p=' + Number(id)); }
+function peGoPerson(pid, id){
+  wcaSetAddress('promotion', 'id=' + Number(pid) + '&tab=roster&p=' + Number(id), true);
+  activatePage('promotion'); window.scrollTo({ top:0, behavior:'smooth' });
+  return false;
+}
+// a side as it reads on the card: the team name big, the people under it, each a link to their roster card
+function peSideInner(pid, side){
+  const team = String((side && side.name) || '').trim();
+  const ppl = ((side && side.members) || []).filter(x => x && x.name);
+  const who = ppl.map(x => x.id != null
+    ? `<a class="pe-who" href="${escAttr(pePersonHref(pid, x.id))}" onclick="return peGoPerson(${Number(pid)},${Number(x.id)})">${esc(x.name)}</a>`
+    : esc(x.name)).join(' &amp; ');
+  if(team) return `<div class="pe-sn">${esc(team)}</div>${who ? `<div class="pe-sm">${who}</div>` : ''}`;
+  return `<div class="pe-sn">${who || 'TBA'}</div>`;
+}
+function peStatusLabel(s){ return ({ draft:'Draft, only you can see it', upcoming:'Upcoming', live:'Live now', done:'Results' })[s] || s; }
+const PE_BS = { closed:'Betting not open', open:'Betting open', locked:'Betting locked', settled:'Result in', refunded:'Bets refunded' };
+
+/* ---------------- follows (the Feed filter and the buttons) ---------------- */
+async function peLoadFollows(){
+  if(typeof sb === 'undefined' || !sb) return;
+  if(!frSignedIn()){ PE.follows = new Set(); pePaintFeedChip(); return; }
+  try{
+    const { data, error } = await sb.from('promotion_follows').select('promotion_id').eq('user_id', CURRENT_USER.id);
+    PE.follows = new Set(error ? [] : (data || []).map(r => Number(r.promotion_id)));
+  }catch(e){ PE.follows = new Set(); }
+  pePaintFeedChip();
+}
+function pePaintFeedChip(){
+  const b = document.getElementById('sl-f-follow'); if(!b) return;
+  b.hidden = !(PE.follows && PE.follows.size);
+  if(b.hidden && typeof SL_FILTER !== 'undefined' && SL_FILTER === 'following' && typeof slSetFilter === 'function'){
+    const all = document.querySelector('#sl-filters [data-slfilter="all"]'); slSetFilter('all', all);
+  }
+}
+// a Feed post from a promotion this person follows
+function peFollowsPost(p){
+  if(!PE.follows || !PE.follows.size || !p) return false;
+  if(p.promotion_id != null && PE.follows.has(Number(p.promotion_id))) return true;
+  const s = typeof slSrc === 'function' ? slSrc(p) : null;
+  return !!(s && s.type === 'promotion' && PE.follows.has(Number(s.id)));
+}
+// the FOLLOW button and the Followers count on a promotion's page
+async function pePaintFollow(pid){
+  const slot = document.getElementById('pe-follow-slot'), stat = document.getElementById('pe-followers-stat');
+  if(!slot) return;
+  let info = null;
+  try{ const r = await sb.rpc('promo_public', { p_promotion:Number(pid) }); if(!r.error) info = r.data; }catch(e){}
+  if(!info){ slot.innerHTML = ''; if(stat) stat.hidden = true; return; }
+  if(stat){ stat.hidden = false; stat.innerHTML = `<b>${peNum(info.followers)}</b><small>${Number(info.followers) === 1 ? 'Follower' : 'Followers'}</small>`; }
+  if(info.is_owner){ slot.innerHTML = ''; return; }
+  slot.innerHTML = `<button type="button" class="pm-hs-share pe-follow${info.following ? ' on' : ''}" onclick="peFollowToggle(${Number(pid)}, ${!info.following})" aria-pressed="${!!info.following}">
+    <i class="ti ${info.following ? 'ti-check' : 'ti-plus'}"></i> ${info.following ? 'Following' : 'FOLLOW'}</button>`;
+}
+async function peFollowToggle(pid, on){
+  if(!frSignedIn()){ if(typeof frSignIn === 'function') frSignIn(); return; }
+  let before = null;
+  try{ const r = await sb.rpc('promo_public', { p_promotion:Number(pid) }); before = r.data; }catch(e){}
+  const { error } = await sb.rpc('promo_follow', { p_promotion:Number(pid), p_on:!!on });
+  if(error){ wcaToast('Could not follow', peErr(error), true); return; }
+  if(!PE.follows) PE.follows = new Set();
+  if(on) PE.follows.add(Number(pid)); else PE.follows.delete(Number(pid));
+  pePaintFeedChip();
+  await pePaintFollow(pid);
+  const name = PM.pub && PM.pub.p ? PM.pub.p.name : 'this promotion';
+  if(on) wcaToast('Following ' + name, before && !before.has_wallet && before.start_amount > 0
+    ? 'You got ' + peMoney(before, before.start_amount) + ' to bet on their shows. Their news shows under Following on the Feed.'
+    : 'Their shows and results come to your notifications, and their posts show under Following on the Feed.');
+  if(PE.pub && Number(PE.pub.pid) === Number(pid)) peReloadPublic();
+}
+
+/* ---------------- the public Events view ----------------
+   opts.view: 'all' (the promotion page, with Upcoming and Past), 'upcoming' or 'past'
+   opts.focusEv: open on one show */
+async function peRenderPublic(host, pid, opts){
+  if(!host) return;
+  opts = opts || {};
+  host.classList.add('pe');
+  host.innerHTML = '<div class="loading">Loading…</div>';
+  const S = { host, pid:Number(pid), opts, view:opts.view === 'all' ? (opts.tab || 'upcoming') : opts.view, open:{}, msg:{} };
+  PE.pub = S;
+  try{ await peLoadPublic(S); }
+  catch(e){ host.innerHTML = `<div class="pe-empty">${esc(peErr(e))}</div>`; return; }
+  if(S.focusEv){ const ev = S.events.find(e => String(e.id) === String(S.focusEv)); if(ev && opts.view === 'all') S.view = ev.status === 'done' ? 'past' : 'upcoming'; }
+  peDrawPublic();
+  if(S.focusEv) setTimeout(() => { const el = document.getElementById('pe-ev-' + Number(S.focusEv)); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }, 120);
+}
+async function peLoadPublic(S){
+  const pid = S.pid;
+  const [ir, er, pr] = await Promise.all([
+    sb.rpc('promo_public', { p_promotion:pid }),
+    sb.from('promotion_events').select('*').eq('promotion_id', pid).neq('status', 'draft').order('event_date', { ascending:false, nullsFirst:false }),
+    sb.from('promotions').select('id,name,color,logo_url,owner_id').eq('id', pid).maybeSingle()
+  ]);
+  if(er.error) throw er.error;
+  if(ir.error) throw ir.error;
+  S.info = ir.data || {};
+  S.promo = (pr && pr.data) || {};
+  S.color = typeof pmColor === 'function' ? pmColor(S.promo.color) : '#e9b949';
+  S.events = (er.data || []).filter(e => e.status !== 'draft');
+  if(S.opts.focusEv != null) S.focusEv = S.opts.focusEv;
+  const ids = S.events.map(e => e.id);
+  S.matches = {}; S.board = {}; S.mine = {};
+  if(ids.length){
+    const mr = await sb.from('promotion_matches').select('*').in('event_id', ids).order('slot');
+    if(mr.error) throw mr.error;
+    (mr.data || []).forEach(m => { (S.matches[m.event_id] = S.matches[m.event_id] || []).push(m); });
+    Object.values(S.matches).forEach(l => l.sort((a, b) => (a.slot || 0) - (b.slot || 0) || a.id - b.id));
+    const live = S.events.filter(e => e.status !== 'done' || (S.matches[e.id] || []).some(m => m.bet_status === 'open' || m.bet_status === 'locked'));
+    const boards = await Promise.all(live.map(e => sb.rpc('promo_board', { p_event:e.id })));
+    boards.forEach(b => ((b && b.data) || []).forEach(r => { (S.board[r.match_id] = S.board[r.match_id] || {})[r.side_idx] = { total:Number(r.total), n:Number(r.bettors) }; }));
+    if(frSignedIn()){
+      const br = await sb.from('promotion_bets').select('*').eq('promotion_id', pid).eq('user_id', CURRENT_USER.id);
+      ((br && br.data) || []).forEach(b => { S.mine[b.match_id] = b; });
+    }
+  }
+  try{ const t = await sb.rpc('promo_leaderboard', { p_promotion:pid, p_limit:10 }); S.top = (t && t.data) || []; }catch(e){ S.top = []; }
+}
+async function peReloadPublic(){
+  const S = PE.pub; if(!S || !S.host.isConnected) return;
+  try{ await peLoadPublic(S); }catch(e){}
+  peDrawPublic();
+}
+function peWalletHTML(S){
+  const I = S.info || {};
+  const how = I.payout_mode === 'odds'
+    ? 'Each side has its own odds. A winning bet pays the bet times the odds.'
+    : 'Everything bet on a match goes in one pot, and everyone who picked the winner splits it.';
+  if(I.betting_on === false) return `<div class="pe-wallet"><div><div class="pe-wk">Betting</div><p>${esc(S.promo.name || 'This promotion')} has betting switched off right now.</p></div></div>`;
+  if(!I.signed_in) return `<div class="pe-wallet"><div><div class="pe-wk">Bet on ${esc(S.promo.name || 'their')} shows</div>
+      <p>${esc(S.promo.name || 'This promotion')} has its own money, ${esc(I.currency_name || 'Dollars')}, separate from WCA's. Everyone starts with ${esc(peMoney(I, I.start_amount))}. ${how}</p></div>
+      <button type="button" class="spc-post-btn" onclick="frSignIn(event)">Sign in to bet</button></div>`;
+  if(I.is_owner) return `<div class="pe-wallet"><div><div class="pe-wk">You run this promotion</div>
+      <p>You see the bets, but you can't place any, because you pick the winners. Open betting and set winners from My Promotion, Events.</p></div>
+      <button type="button" class="spc-ghost-btn" onclick="PM.curId=${S.pid};PM.tab='events';goPage('mypromo')"><i class="ti ti-pencil"></i> Open My Promotion</button></div>`;
+  return `<div class="pe-wallet"><div><div class="pe-wk">Your ${esc(I.currency_name || 'Dollars')}</div>
+      <b class="pe-bal">${esc(peMoney(I, I.has_wallet ? I.balance : I.start_amount))}</b>
+      <p>${I.has_wallet ? '' : 'You get this the first time you bet or follow. '}This money is only for ${esc(S.promo.name || 'this promotion')}'s shows. ${how}</p></div></div>`;
+}
+function peDrawPublic(){
+  const S = PE.pub; if(!S || !S.host) return;
+  const up = S.events.filter(e => e.status === 'upcoming' || e.status === 'live')
+    .sort((a, b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || String(a.event_date || '9').localeCompare(String(b.event_date || '9')));
+  const past = S.events.filter(e => e.status === 'done');
+  const shown = S.view === 'past' ? past : up;
+  const tabs = S.opts.view === 'all' ? `<div class="pe-tabs" role="tablist">
+      <button type="button" role="tab" class="pe-tab${S.view !== 'past' ? ' on' : ''}" aria-selected="${S.view !== 'past'}" onclick="PE.pub.view='upcoming';peDrawPublic()">Upcoming<span>${up.length}</span></button>
+      <button type="button" role="tab" class="pe-tab${S.view === 'past' ? ' on' : ''}" aria-selected="${S.view === 'past'}" onclick="PE.pub.view='past';peDrawPublic()">Past shows<span>${past.length}</span></button></div>` : '';
+  const head = S.opts.view !== 'all' ? `<div class="section-title">${esc(S.promo.name || 'Promotion')} ${S.view === 'past' ? 'past shows' : 'shows'}</div>` : '';
+  S.host.style.setProperty('--pc', S.color);
+  S.host.innerHTML = head + tabs + (S.view === 'past' ? '' : peWalletHTML(S)) +
+    (shown.length ? shown.map(e => peEventHTML(S, e)).join('')
+      : `<div class="pe-empty">${S.view === 'past' ? 'No finished shows yet.' : 'No shows on the calendar right now.'}${S.opts.view !== 'all' ? ` <a href="${escAttr(wcaHref('promotion', 'id=' + S.pid))}" onclick="pmGo(${S.pid});return false;">See ${esc(S.promo.name || 'their')} page</a>` : ''}</div>`) +
+    (S.top && S.top.length && S.opts.view === 'all' ? `<section class="pe-top"><div class="pe-h">Top fans</div><ol>${S.top.map(t => `<li><span class="pe-rk">${Number(t.rank)}</span>${t.avatar ? `<img src="${escAttr(t.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<span>${esc(t.name)}</span><span class="pe-tb">${esc(peMoney(S.info, t.balance))}</span></li>`).join('')}</ol></section>` : '');
+}
+function peEventHTML(S, e){
+  const ms = S.matches[e.id] || [];
+  const st = e.status === 'live' ? 'live' : e.status === 'done' ? 'done' : 'up';
+  const links = [];
+  if(e.watch_url && e.status !== 'done') links.push(`<a class="spc-post-btn" href="${escAttr(e.watch_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> ${e.status === 'live' ? 'Watch live' : 'Where to watch'}</a>`);
+  if(e.replay_url && e.status === 'done') links.push(`<a class="spc-ghost-btn" href="${escAttr(e.replay_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> Watch the replay</a>`);
+  return `<article class="pe-ev${String(S.focusEv) === String(e.id) ? ' focus' : ''}" id="pe-ev-${Number(e.id)}">
+    <div class="pe-evtop"><span class="pe-evstat ${st}">${st === 'live' ? 'Live now' : st === 'done' ? 'Results' : 'Upcoming'}</span>
+      <span class="pe-evdate">${esc(peWhen(e.event_date))}</span></div>
+    <h3 class="pe-evname">${esc(e.name)}${e.show_number != null ? ` <span class="pe-dim" style="color:var(--muted);font-size:.6em">Show ${Number(e.show_number)}</span>` : ''}</h3>
+    ${e.about ? `<div class="pe-evabout">${esc(e.about)}</div>` : ''}
+    ${links.length ? `<div class="pe-evlinks">${links.join('')}</div>` : ''}
+    ${ms.length ? `<ol class="pe-card">${ms.map((m, i) => peMatchHTML(S, e, m, i, ms.length)).join('')}</ol>` : '<div class="pe-empty" style="margin-top:10px">The card is coming soon.</div>'}
+  </article>`;
+}
+function peMatchHTML(S, e, m, i, n){
+  const I = S.info || {}, sides = peSides(m), odds = peOdds(m), board = S.board[m.id] || {}, mine = S.mine[m.id];
+  const tot = Object.values(board).reduce((a, b) => a + b.total, 0);
+  const canBet = m.bet_status === 'open' && I.signed_in && !I.is_owner && I.betting_on !== false;
+  const done = m.bet_status === 'settled';
+  const label = n > 1 && i === n - 1 ? 'Main event' : i === 0 && n > 1 ? 'Opener' : 'Match ' + (i + 1);
+  const sideHTML = sides.map((s, k) => {
+    const pool = board[k];
+    const extra = m.bet_status !== 'closed' && (pool || I.payout_mode === 'odds') ? `<div class="pe-pool">${I.payout_mode === 'odds' && odds[k] ? 'Pays ' + esc(String(odds[k])) + ' times the bet' : ''}${pool ? (I.payout_mode === 'odds' && odds[k] ? ', ' : '') + esc(peMoney(I, pool.total)) + ' from ' + pool.n + (pool.n === 1 ? ' fan' : ' fans') : ''}</div>` : '';
+    const btn = canBet ? `<button type="button" class="pe-betbtn${S.open[m.id] === k ? ' on' : ''}" onclick="peBetPick(${Number(m.id)},${k})">${mine && mine.side_idx === k ? 'Change my bet' : 'Bet on ' + esc(peSideName(s))}</button>` : '';
+    return `${k ? '<span class="pe-vs">VS</span>' : ''}<div class="pe-side${done && m.winner_idx === k ? ' win' : done && m.winner_idx != null ? ' lose' : ''}">${peSideInner(S.pid, s)}${done && m.winner_idx === k ? '<span class="pe-wtag">Winner</span>' : ''}${extra}${btn}</div>`;
+  }).join('');
+  let mineHTML = '';
+  if(mine){
+    const side = esc(peSideName(sides[mine.side_idx] || {}));
+    if(mine.status === 'open') mineHTML = `<div class="pe-mine">Your bet: <b>${esc(peMoney(I, mine.amount))}</b> on ${side}.${m.bet_status === 'open' ? ` <button type="button" class="spc-mini" onclick="peBetCancel(${Number(m.id)})">Take it back</button>` : ' Betting is locked, so it stays.'}</div>`;
+    else if(mine.status === 'won') mineHTML = `<div class="pe-mine won">You won <b>${esc(peMoney(I, mine.payout))}</b> on ${side}.</div>`;
+    else if(mine.status === 'lost') mineHTML = `<div class="pe-mine lost">You lost <b>${esc(peMoney(I, mine.amount))}</b> on ${side}.</div>`;
+    else if(mine.status === 'refunded') mineHTML = `<div class="pe-mine">Your <b>${esc(peMoney(I, mine.amount))}</b> came back to you.</div>`;
+  }
+  let form = '';
+  if(canBet && S.open[m.id] != null){
+    const k = S.open[m.id];
+    form = `<div class="pe-form"><label for="pe-amt-${m.id}" style="font-weight:700">Bet on ${esc(peSideName(sides[k] || {}))}</label>
+      <input id="pe-amt-${m.id}" type="number" min="${Number(I.min_bet) || 1}" ${I.max_bet ? `max="${Number(I.max_bet)}"` : ''} step="1" inputmode="numeric" value="${mine ? Number(mine.amount) : ''}" placeholder="Amount" oninput="peBetEst(${Number(m.id)})">
+      <button type="button" class="spc-post-btn" onclick="peBetGo(${Number(m.id)})">Place bet</button>
+      <button type="button" class="spc-mini" onclick="PE.pub.open[${Number(m.id)}]=null;peDrawPublic()">Cancel</button>
+      <span class="pe-est" id="pe-est-${m.id}"></span>
+      <div class="pe-msg${S.msg[m.id] && S.msg[m.id].bad ? ' bad' : ''}" style="flex-basis:100%">${S.msg[m.id] ? esc(S.msg[m.id].t) : ''}</div></div>`;
+  }
+  const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="pe-mine"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
+  return `<li class="pe-m" id="pe-m-${Number(m.id)}">
+    <div class="pe-mhead"><span class="pe-mno">${esc(label)}</span>${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${m.title ? `<span class="pe-tag title"><i class="ti ti-trophy"></i> ${esc(m.title)}</span>` : ''}
+      ${m.bet_status !== 'closed' ? `<span class="pe-bs ${m.bet_status}">${esc(PE_BS[m.bet_status] || '')}${tot && m.bet_status !== 'settled' ? ', ' + esc(peMoney(I, tot)) + ' in the pot' : ''}</span>` : ''}</div>
+    <div class="pe-sides">${sideHTML || '<div class="pe-side"><div class="pe-sn">TBA</div></div>'}</div>
+    ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
+    ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
+    ${m.notes ? `<div class="pe-note">${esc(m.notes)}</div>` : ''}
+    ${mineHTML}${signIn}${form}
+  </li>`;
+}
+function peBetPick(mid, k){
+  const S = PE.pub; S.open[mid] = S.open[mid] === k ? null : k; S.msg[mid] = null;
+  peDrawPublic();
+  const inp = document.getElementById('pe-amt-' + mid); if(inp){ inp.focus(); peBetEst(mid); }
+}
+// what a bet would pay right now
+function peBetEst(mid){
+  const S = PE.pub, out = document.getElementById('pe-est-' + mid), inp = document.getElementById('pe-amt-' + mid);
+  if(!S || !out || !inp) return;
+  const amt = Math.floor(Number(inp.value) || 0), k = S.open[mid];
+  const m = Object.values(S.matches).flat().find(x => x.id === mid); if(!m || !amt){ out.textContent = ''; return; }
+  const I = S.info, mine = S.mine[mid];
+  if(I.payout_mode === 'odds'){ const o = Number(peOdds(m)[k]) || 1; out.textContent = 'If they win, you get ' + peMoney(I, Math.floor(amt * o)) + '.'; return; }
+  const b = S.board[mid] || {};
+  let tot = Object.values(b).reduce((a, x) => a + x.total, 0), side = (b[k] || {}).total || 0;
+  if(mine && mine.status === 'open'){ tot -= mine.amount; if(mine.side_idx === k) side -= mine.amount; }
+  const pay = Math.floor(amt * (tot + amt) / Math.max(1, side + amt));
+  out.textContent = 'If they win right now, you get about ' + peMoney(I, pay) + '. It moves as more fans bet.';
+}
+async function peBetGo(mid){
+  const S = PE.pub, inp = document.getElementById('pe-amt-' + mid);
+  const amt = Math.floor(Number(inp && inp.value) || 0);
+  if(amt < 1){ S.msg[mid] = { t:'Enter how much to bet.', bad:true }; peDrawPublic(); return; }
+  const { data, error } = await sb.rpc('promo_place_bet', { p_match:mid, p_side:S.open[mid], p_amount:amt });
+  if(error){ S.msg[mid] = { t:peErr(error), bad:true }; peDrawPublic(); const i2 = document.getElementById('pe-amt-' + mid); if(i2) i2.value = amt; return; }
+  S.open[mid] = null; S.msg[mid] = null;
+  wcaToast('Bet placed', 'You can change it or take it back until betting locks.');
+  await peReloadPublic();
+}
+async function peBetCancel(mid){
+  const { error } = await sb.rpc('promo_cancel_bet', { p_match:mid });
+  if(error){ wcaToast('Could not take it back', peErr(error), true); return; }
+  wcaToast('Bet taken back', 'The money is back in your balance.');
+  await peReloadPublic();
+}
+
+/* ---------------- Events and Past Events: WCA or a promotion ---------------- */
+async function peLoadPromoList(){
+  if(PE.promos && Date.now() - PE.promosAt < 60000) return PE.promos;
+  let list = [];
+  try{
+    const er = await sb.from('promotion_events').select('promotion_id,status').neq('status', 'draft');
+    const ids = [...new Set(((er && er.data) || []).map(r => Number(r.promotion_id)))];
+    if(ids.length){
+      const pr = await sb.from('promotions').select('id,name,color,logo_url,status').in('id', ids).order('name');
+      list = ((pr && pr.data) || []).filter(p => !p.status || p.status === 'approved');
+    }
+  }catch(e){ list = []; }
+  PE.promos = list; PE.promosAt = Date.now();
+  return list;
+}
+function pePromoQS(){ const qs = (typeof wcaRoute === 'function' ? wcaRoute().qs : '') || ''; return { promo:(qs.match(/(?:^|&)promo=(\d+)/) || [])[1] || null, ev:(qs.match(/(?:^|&)ev=(\d+)/) || [])[1] || null, wcaEvent:/(?:^|&)event=/.test(qs) }; }
+async function peSwitchOpen(pg){
+  const page = document.getElementById('page-' + pg); if(!page) return;
+  const sw = page.querySelector('[data-peswitch]'), host = page.querySelector('[data-pehost]'), evx = page.querySelector('.evx');
+  if(!sw || !host || !evx) return;
+  const promos = await peLoadPromoList();
+  if(!page.classList.contains('active')) return;
+  const q = pePromoQS();
+  let pick = q.promo;
+  if(!pick && !q.wcaEvent){ try{ pick = localStorage.getItem('wca-events-promo'); }catch(e){} }
+  if(q.wcaEvent) pick = 'wca';
+  if(!pick || !promos.some(p => String(p.id) === String(pick))) pick = 'wca';
+  if(!promos.length){ sw.hidden = true; host.hidden = true; evx.style.display = ''; return; }
+  sw.hidden = false;
+  sw.innerHTML = `<span class="pe-sk">Shows from</span>
+    <button type="button" class="pe-chip${pick === 'wca' ? ' on' : ''}" onclick="pePick('${pg}','wca')" aria-pressed="${pick === 'wca'}"><img class="pe-cl wca" src="/brand/wca-logo-sm.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pe-cl wca',textContent:'W'}))">WCA</button>` +
+    promos.map(p => { const c = typeof pmColor === 'function' ? pmColor(p.color) : '#e9b949';
+      return `<button type="button" class="pe-chip${String(pick) === String(p.id) ? ' on' : ''}" style="--pc:${c}" onclick="pePick('${pg}',${Number(p.id)})" aria-pressed="${String(pick) === String(p.id)}">${typeof pmLogo === 'function' ? pmLogo(p, 'pe-cl') : ''}${esc(p.name)}</button>`; }).join('');
+  if(pick === 'wca'){ host.hidden = true; host.innerHTML = ''; evx.style.display = ''; return; }
+  evx.style.display = 'none'; host.hidden = false;
+  peRenderPublic(host, Number(pick), { view:pg === 'archive' ? 'past' : 'upcoming', focusEv:q.ev });
+}
+function pePick(pg, v){
+  try{ localStorage.setItem('wca-events-promo', String(v)); }catch(e){}
+  wcaSetAddress(pg, v === 'wca' ? '' : 'promo=' + Number(v), true);
+  peSwitchOpen(pg);
+}
+
+/* ---------------- My Promotion: Events ---------------- */
+const MPE = { pid:null, events:[], cur:null, matches:[], info:null, roster:[], board:{}, edit:null, draft:null, sure:{} };
+const PE_TYPES = ['Singles','Tag Team','Triple Threat','Fatal 4 Way','Six Man Tag','Handicap','No Holds Barred','Extreme Rules','Ladder','Tables','TLC','Steel Cage','Hell in a Cell','Last Man Standing','Iron Man','Submission','Royal Rumble','Battle Royal','Gauntlet','Elimination Chamber','Money in the Bank','Falls Count Anywhere','Street Fight','I Quit'];
+async function mpEventsTab(box){
+  box.innerHTML = '<div class="loading">Loading your shows…</div>';
+  MPE.pid = Number(PM.curId); MPE.box = box;
+  const [er, ir, rr] = await Promise.all([
+    sb.from('promotion_events').select('*').eq('promotion_id', MPE.pid).order('event_date', { ascending:false, nullsFirst:true }),
+    sb.rpc('promo_public', { p_promotion:MPE.pid }),
+    sb.from('promotion_roster').select('id,name,gender').eq('promotion_id', MPE.pid).order('name')
+  ]);
+  if(er.error){ box.innerHTML = `<div class="pm-card pm-empty">${esc(peErr(er.error))}</div>`; return; }
+  MPE.events = er.data || []; MPE.info = ir.data || {}; MPE.roster = (rr && rr.data) || [];
+  if(MPE.cur !== 'new' && !MPE.events.some(e => e.id === MPE.cur)) MPE.cur = (MPE.events.find(e => e.status !== 'done') || MPE.events[0] || {}).id || null;
+  await mpeLoadCard();
+  mpeDraw();
+}
+async function mpeLoadCard(){
+  MPE.matches = []; MPE.board = {};
+  if(!MPE.cur || MPE.cur === 'new') return;
+  const [mr, br] = await Promise.all([
+    sb.from('promotion_matches').select('*').eq('event_id', MPE.cur).order('slot'),
+    sb.rpc('promo_board', { p_event:MPE.cur })
+  ]);
+  MPE.matches = ((mr && mr.data) || []).sort((a, b) => (a.slot || 0) - (b.slot || 0) || a.id - b.id);
+  ((br && br.data) || []).forEach(r => { (MPE.board[r.match_id] = MPE.board[r.match_id] || {})[r.side_idx] = { total:Number(r.total), n:Number(r.bettors) }; });
+}
+function mpeDraw(){
+  const box = MPE.box; if(!box || !box.isConnected) return;
+  const ev = MPE.events.find(e => e.id === MPE.cur) || null;
+  const order = { live:0, upcoming:1, draft:2, done:3 };
+  const list = MPE.events.slice().sort((a, b) => order[a.status] - order[b.status] || String(b.event_date || '').localeCompare(String(a.event_date || '')));
+  box.innerHTML = `<div class="pm-card mpe pe">
+    <div class="mpe-head"><div><div class="pm-h3">Events</div>
+      <p class="pm-p">Your shows and their cards. Save a show as a Draft while you build the card, then set it to Upcoming and it shows on your page and in Events, and your followers get a notification. Open betting on each match, lock it when the match starts, then set the winner and everyone is paid at once.</p></div>
+      <button type="button" class="spc-post-btn" onclick="mpeNew()"><i class="ti ti-plus"></i> New show</button></div>
+    <div class="mpe-grid">
+      <aside class="mpe-list">${list.length ? list.map(e => `<button type="button" class="mpe-show${e.id === MPE.cur ? ' on' : ''}" onclick="mpePick(${Number(e.id)})"><b>${esc(e.name)}</b><small>${esc(peStatusLabel(e.status))}${e.event_date ? ', ' + esc(peWhen(e.event_date)) : ''}</small></button>`).join('')
+        : '<div class="pe-empty">No shows yet. Press New show to make your first one.</div>'}
+        ${MPE.cur === 'new' ? '<div class="mpe-show on"><b>New show</b><small>Not saved yet</small></div>' : ''}</aside>
+      <div class="mpe-main">${MPE.cur ? mpeShowForm(ev) + (ev ? mpeCardHTML(ev) : '') : '<div class="pe-empty">Pick a show on the left, or press New show.</div>'}</div>
+    </div></div>
+    <datalist id="pe-types">${PE_TYPES.map(t => `<option value="${escAttr(t)}">`).join('')}</datalist>`;
+}
+function mpeNew(){ MPE.cur = 'new'; MPE.matches = []; MPE.edit = null; mpeDraw(); const n = pmEl('mpe_name'); if(n) n.focus(); }
+async function mpePick(id){ MPE.cur = id; MPE.edit = null; await mpeLoadCard(); mpeDraw(); }
+function mpeShowForm(ev){
+  ev = ev || { status:'draft' };
+  return `<section>
+    <div class="mpe-fields">
+      <div style="grid-column:1/-1"><label for="mpe_name">Show name</label><input id="mpe_name" maxlength="120" value="${escAttr(ev.name || '')}" placeholder="Northside Wrestling 12"></div>
+      <div><label for="mpe_no">Show number <span class="pm-opt">(optional)</span></label><input id="mpe_no" type="number" min="0" step="1" value="${ev.show_number != null ? Number(ev.show_number) : ''}"></div>
+      <div><label for="mpe_date">Date and time</label><input id="mpe_date" type="datetime-local" value="${escAttr(peLocal(ev.event_date))}"></div>
+      <div><label for="mpe_status">Status</label><select id="mpe_status">${['draft','upcoming','live','done'].map(s => `<option value="${s}"${ev.status === s ? ' selected' : ''}>${esc(({ draft:'Draft, only you see it', upcoming:'Upcoming', live:'Live now', done:'Finished' })[s])}</option>`).join('')}</select></div>
+      <div><label for="mpe_watch">Where to watch <span class="pm-opt">(Twitch or YouTube link)</span></label><input id="mpe_watch" maxlength="400" value="${escAttr(ev.watch_url || '')}" placeholder="https://twitch.tv/..."></div>
+      <div><label for="mpe_replay">Replay link <span class="pm-opt">(after the show)</span></label><input id="mpe_replay" maxlength="400" value="${escAttr(ev.replay_url || '')}"></div>
+      <div style="grid-column:1/-1"><label for="mpe_about">About this show <span class="pm-opt">(optional)</span></label><textarea id="mpe_about" rows="3" maxlength="2000">${esc(ev.about || '')}</textarea></div>
+    </div>
+    <p class="pm-p pm-small" style="margin-top:10px">Followers get a notification when you set a show to Upcoming, to Live now, and to Finished.</p>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpeSaveShow()">${ev.id ? 'Save show' : 'Save new show'}</button>
+      ${ev.id ? `<button type="button" class="spc-mini" onclick="mpeDeleteShow(this)">Delete this show</button>` : ''}
+      ${ev.id && ev.status !== 'draft' ? `<button type="button" class="spc-mini" onclick="pmGo(${MPE.pid},'events')">See it on your page</button>` : ''}</div>
+    <div class="msg" id="mpe_msg"></div></section>`;
+}
+async function mpeSaveShow(){
+  const name = (pmEl('mpe_name').value || '').trim();
+  if(!name){ mpMsg('mpe_msg', 'Give the show a name first.', false); return; }
+  const dv = pmEl('mpe_date').value, no = pmEl('mpe_no').value;
+  const row = { promotion_id:MPE.pid, name, show_number:no === '' ? null : Math.floor(Number(no)), event_date:dv ? new Date(dv).toISOString() : null,
+    status:pmEl('mpe_status').value, watch_url:(pmEl('mpe_watch').value || '').trim() || null, replay_url:(pmEl('mpe_replay').value || '').trim() || null,
+    about:(pmEl('mpe_about').value || '').trim() || null };
+  const isNew = MPE.cur === 'new';
+  const q = isNew ? sb.from('promotion_events').insert(row).select('*') : sb.from('promotion_events').update(row).eq('id', MPE.cur).select('*');
+  const { data, error } = await q;
+  if(error || !data || !data.length){ mpMsg('mpe_msg', error ? peErr(error) : 'Not saved. Make sure you are signed in.', false); return; }
+  const saved = data[0];
+  if(isNew){ MPE.events.unshift(saved); MPE.cur = saved.id; } else { const i = MPE.events.findIndex(e => e.id === saved.id); if(i >= 0) MPE.events[i] = saved; }
+  PE.promos = null;
+  await mpeLoadCard(); mpeDraw();
+  mpMsg('mpe_msg', isNew ? 'Saved. Now add the card below.' : 'Saved.', true);
+}
+async function mpeDeleteShow(btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to delete the show and its card'; mpMsg('mpe_msg', 'Any bets still open are given back first.', false); return; }
+  const { error } = await sb.from('promotion_events').delete().eq('id', MPE.cur);
+  if(error){ mpMsg('mpe_msg', peErr(error), false); return; }
+  MPE.events = MPE.events.filter(e => e.id !== MPE.cur); MPE.cur = null; PE.promos = null;
+  mpEventsTab(MPE.box);
+}
+function mpeCardHTML(ev){
+  const I = MPE.info || {};
+  return `<section class="mpe-sec">
+    <div class="mpe-head"><div><div class="pm-h3">The card</div><p class="pm-p">In running order: the first match is the opener, the last is the main event. Bets pay out ${I.payout_mode === 'odds' ? 'with the fixed odds you set on each side' : 'from a shared pot, like WCA'}. Change that under Betting.</p></div>
+      <button type="button" class="spc-ghost-btn" onclick="mpeEditMatch('new')"><i class="ti ti-plus"></i> Add a match</button></div>
+    ${MPE.edit === 'new' ? mpeMatchForm(null) : ''}
+    ${MPE.matches.length ? MPE.matches.map((m, i) => MPE.edit === m.id ? mpeMatchForm(m, i) : mpeMatchRow(m, i)).join('') : (MPE.edit === 'new' ? '' : '<div class="pe-empty" style="margin-top:12px">No matches yet. Press Add a match.</div>')}
+  </section>`;
+}
+function mpeMatchRow(m, i){
+  const I = MPE.info || {}, sides = peSides(m), b = MPE.board[m.id] || {}, n = MPE.matches.length;
+  const pot = Object.values(b).reduce((a, x) => a + x.total, 0);
+  const st = m.bet_status;
+  const sideHTML = sides.map((s, k) => `${k ? '<span class="pe-vs">VS</span>' : ''}<div class="pe-side${st === 'settled' && m.winner_idx === k ? ' win' : ''}"><div class="pe-sn">${esc(peSideName(s))}</div>
+      ${String(s.name || '').trim() && (s.members || []).length ? `<div class="pe-sm">${esc((s.members || []).map(x => x.name).join(' & '))}</div>` : ''}
+      ${b[k] ? `<div class="pe-pool">${esc(peMoney(I, b[k].total))} from ${b[k].n} ${b[k].n === 1 ? 'fan' : 'fans'}</div>` : ''}
+      ${I.payout_mode === 'odds' && peOdds(m)[k] ? `<div class="pe-pool">Pays ${esc(String(peOdds(m)[k]))} times</div>` : ''}
+      ${st === 'settled' && m.winner_idx === k ? '<span class="pe-wtag">Winner</span>' : ''}</div>`).join('');
+  const win = `<select id="mpw_${m.id}" aria-label="Winner">${sides.map((s, k) => `<option value="${k}">${esc(peSideName(s))}</option>`).join('')}<option value="none">No winner, give every bet back</option></select>
+    <button type="button" class="spc-post-btn" onclick="mpeSettle(${Number(m.id)})">Set the winner</button>`;
+  let acts = '';
+  if(st === 'closed') acts = `<button type="button" class="spc-ghost-btn" onclick="mpeBetting(${Number(m.id)},'open')"><i class="ti ti-cash"></i> Open betting</button>` + win;
+  else if(st === 'open') acts = `<button type="button" class="spc-ghost-btn" onclick="mpeBetting(${Number(m.id)},'locked')"><i class="ti ti-lock"></i> Lock betting</button>` + win + `<button type="button" class="spc-mini" onclick="mpeRefund(${Number(m.id)},this)">Refund the bets</button>`;
+  else if(st === 'locked') acts = win + `<button type="button" class="spc-mini" onclick="mpeBetting(${Number(m.id)},'open')">Open betting again</button><button type="button" class="spc-mini" onclick="mpeRefund(${Number(m.id)},this)">Refund the bets</button>`;
+  else if(st === 'refunded') acts = `<button type="button" class="spc-ghost-btn" onclick="mpeBetting(${Number(m.id)},'open')">Open betting again</button>` + win;
+  else if(st === 'settled') acts = `<span>${m.winner_idx == null ? 'No winner, every bet was given back.' : 'Winner: <b>' + esc(peSideName(sides[m.winner_idx] || {})) + '</b>. Everyone has been paid.'}</span><button type="button" class="spc-mini" onclick="mpeUnsettle(${Number(m.id)},this)">Undo the result</button>`;
+  return `<div class="mpe-m" id="mpe-m-${Number(m.id)}">
+    <div class="mpe-mtop"><span class="pe-mno">${n > 1 && i === n - 1 ? 'Main event' : i === 0 && n > 1 ? 'Opener' : 'Match ' + (i + 1)}</span>
+      ${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${m.title ? `<span class="pe-tag title">${esc(m.title)}</span>` : ''}
+      <span class="pe-bs ${st}">${esc(PE_BS[st] || '')}${pot && st !== 'settled' ? ', ' + esc(peMoney(I, pot)) + ' in the pot' : ''}</span>
+      <div class="pe-sides">${sideHTML}</div></div>
+    <div class="mpe-bet">${acts}</div>
+    <div class="pm-acts" style="margin-top:8px"><button type="button" class="spc-mini" onclick="mpeEditMatch(${Number(m.id)})"><i class="ti ti-pencil"></i> Edit</button>
+      ${i > 0 ? `<button type="button" class="spc-mini" onclick="mpeMove(${Number(m.id)},-1)" aria-label="Move earlier">Move earlier</button>` : ''}
+      ${i < n - 1 ? `<button type="button" class="spc-mini" onclick="mpeMove(${Number(m.id)},1)" aria-label="Move later">Move later</button>` : ''}
+      <button type="button" class="spc-mini" onclick="mpeDeleteMatch(${Number(m.id)},this)">Delete</button></div>
+    <div class="msg" id="mpe_mmsg_${m.id}"></div></div>`;
+}
+function mpeEditMatch(id){
+  MPE.edit = id;
+  const m = id === 'new' ? null : MPE.matches.find(x => x.id === id);
+  MPE.draft = m ? { match_type:m.match_type || '', title:m.title || '', notes:m.notes || '', finish:m.finish || '', sides:JSON.parse(JSON.stringify(peSides(m))), odds:peOdds(m).slice() }
+    : { match_type:'Singles', title:'', notes:'', finish:'', sides:[{ name:'', members:[] }, { name:'', members:[] }], odds:[] };
+  while(MPE.draft.sides.length < 2) MPE.draft.sides.push({ name:'', members:[] });
+  mpeDraw();
+  const f = pmEl('mpm_form'); if(f) f.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function mpeReadDraft(){
+  const D = MPE.draft; if(!D || !pmEl('mpm_type')) return D;
+  D.match_type = pmEl('mpm_type').value.trim(); D.title = pmEl('mpm_title').value.trim();
+  D.notes = pmEl('mpm_notes').value.trim(); D.finish = pmEl('mpm_finish').value.trim();
+  D.sides.forEach((s, i) => { const n = pmEl('mpm_sn' + i); if(n) s.name = n.value.trim(); const o = pmEl('mpm_odds' + i); if(o) D.odds[i] = o.value === '' ? null : Number(o.value); });
+  return D;
+}
+function mpeMatchForm(m){
+  const D = MPE.draft, I = MPE.info || {};
+  const opts = MPE.roster.map(p => `<option value="${Number(p.id)}">${esc(p.name)}</option>`).join('');
+  return `<div class="mpe-m" id="mpm_form">
+    <div class="pm-h3">${m ? 'Edit match' : 'New match'}</div>
+    <div class="mpe-fields">
+      <div><label for="mpm_type">Match type</label><input id="mpm_type" list="pe-types" maxlength="80" value="${escAttr(D.match_type)}"></div>
+      <div><label for="mpm_title">Championship <span class="pm-opt">(if any)</span></label><input id="mpm_title" maxlength="120" value="${escAttr(D.title)}"></div>
+    </div>
+    ${D.sides.map((s, i) => `<div class="mpe-side">
+      <div class="mpe-addrow"><b style="flex:0 0 auto">Side ${i + 1}</b>
+        <input id="mpm_sn${i}" maxlength="80" placeholder="Team name (optional)" value="${escAttr(s.name || '')}">
+        ${I.payout_mode === 'odds' ? `<input id="mpm_odds${i}" type="number" min="1.01" step="0.01" placeholder="Odds, like 2.5" value="${D.odds[i] != null ? escAttr(String(D.odds[i])) : ''}" style="flex:0 1 150px" aria-label="Odds for side ${i + 1}">` : ''}
+        ${D.sides.length > 2 ? `<button type="button" class="spc-mini" onclick="mpeSideDrop(${i})">Remove side</button>` : ''}</div>
+      <div class="mpe-chips">${(s.members || []).map((x, k) => `<span class="mpe-chip">${esc(x.name)}<button type="button" aria-label="Remove ${escAttr(x.name)}" onclick="mpeMemberDrop(${i},${k})">×</button></span>`).join('') || '<span class="pm-dim pm-small">Nobody yet</span>'}</div>
+      <div class="mpe-addrow"><select id="mpm_add${i}" aria-label="Add from your roster" onchange="mpeMemberAdd(${i})"><option value="">Add from your roster</option>${opts}</select>
+        <input id="mpm_typed${i}" maxlength="80" placeholder="Or type a name" onkeydown="if(event.key==='Enter'){event.preventDefault();mpeMemberAdd(${i},true)}">
+        <button type="button" class="spc-mini" onclick="mpeMemberAdd(${i},true)">Add</button></div>
+    </div>`).join('')}
+    <div class="pm-acts" style="margin-top:10px"><button type="button" class="spc-mini" onclick="mpeSideAdd()"><i class="ti ti-plus"></i> Add a side</button></div>
+    ${I.payout_mode === 'odds' ? '<p class="pm-p pm-small">Odds: 2 means a winning bet doubles, 1.5 pays one and a half times the bet. Set every side before you open betting.</p>' : ''}
+    <div class="mpe-fields" style="margin-top:12px">
+      <div><label for="mpm_finish">How it was won <span class="pm-opt">(after, like pinfall)</span></label><input id="mpm_finish" maxlength="80" value="${escAttr(D.finish)}"></div>
+    </div>
+    <label class="pe-l" for="mpm_notes" style="margin-top:12px">Notes <span class="pm-opt">(the story of the match, shown under it)</span></label>
+    <textarea id="mpm_notes" rows="3" maxlength="2000">${esc(D.notes)}</textarea>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpeSaveMatch()">${m ? 'Save match' : 'Add to the card'}</button>
+      <button type="button" class="spc-mini" onclick="MPE.edit=null;mpeDraw()">Cancel</button></div>
+    <div class="msg" id="mpm_msg"></div></div>`;
+}
+function mpeMemberAdd(i, typed){
+  const D = mpeReadDraft();
+  let add = null;
+  if(typed){ const t = pmEl('mpm_typed' + i); const v = (t && t.value || '').trim(); if(!v) return;
+    const hit = MPE.roster.find(p => p.name.trim().toLowerCase() === v.toLowerCase()); add = hit ? { id:hit.id, name:hit.name } : { id:null, name:v.slice(0, 80) }; }
+  else { const s = pmEl('mpm_add' + i); const p = MPE.roster.find(x => String(x.id) === String(s && s.value)); if(!p) return; add = { id:p.id, name:p.name }; }
+  if(D.sides.some(s => (s.members || []).some(x => (add.id != null && x.id === add.id) || x.name.toLowerCase() === add.name.toLowerCase()))){ mpeDraw(); mpMsg('mpm_msg', add.name + ' is already in this match.', false); return; }
+  (D.sides[i].members = D.sides[i].members || []).push(add);
+  mpeDraw();
+  const s2 = pmEl(typed ? 'mpm_typed' + i : 'mpm_add' + i); if(s2) s2.focus();
+}
+function mpeMemberDrop(i, k){ const D = mpeReadDraft(); D.sides[i].members.splice(k, 1); mpeDraw(); }
+function mpeSideAdd(){ const D = mpeReadDraft(); if(D.sides.length >= 30) return; D.sides.push({ name:'', members:[] }); mpeDraw(); }
+function mpeSideDrop(i){ const D = mpeReadDraft(); D.sides.splice(i, 1); D.odds.splice(i, 1); mpeDraw(); }
+async function mpeSaveMatch(){
+  const D = mpeReadDraft();
+  const sides = D.sides.map(s => ({ name:s.name || '', members:(s.members || []).map(x => ({ id:x.id != null ? Number(x.id) : null, name:x.name })) }));
+  if(sides.filter(s => s.name || s.members.length).length < 2){ mpMsg('mpm_msg', 'Put someone on at least two sides.', false); return; }
+  const odds = (MPE.info || {}).payout_mode === 'odds' ? sides.map((s, i) => D.odds[i] != null && isFinite(D.odds[i]) ? Number(D.odds[i]) : null) : (MPE.edit !== 'new' ? peOdds(MPE.matches.find(x => x.id === MPE.edit)) : []);
+  const row = { match_type:D.match_type || null, title:D.title || null, notes:D.notes || null, finish:D.finish || null, sides, odds };
+  let res;
+  if(MPE.edit === 'new') res = await sb.from('promotion_matches').insert(Object.assign({ event_id:MPE.cur, promotion_id:MPE.pid, slot:MPE.matches.length + 1 }, row)).select('id');
+  else res = await sb.from('promotion_matches').update(row).eq('id', MPE.edit).select('id');
+  if(res.error || !res.data || !res.data.length){ mpMsg('mpm_msg', res.error ? peErr(res.error) : 'Not saved.', false); return; }
+  MPE.edit = null; await mpeLoadCard(); mpeDraw();
+}
+async function mpeMove(id, dir){
+  const i = MPE.matches.findIndex(m => m.id === id), j = i + dir;
+  if(i < 0 || j < 0 || j >= MPE.matches.length) return;
+  const a = MPE.matches[i], b = MPE.matches[j];
+  const order = MPE.matches.map(m => m.id); order[i] = b.id; order[j] = a.id;
+  for(let k = 0; k < order.length; k++){ const m = MPE.matches.find(x => x.id === order[k]); if(m.slot !== k + 1){ const { error } = await sb.from('promotion_matches').update({ slot:k + 1 }).eq('id', m.id); if(error){ wcaToast('Could not move it', peErr(error), true); break; } } }
+  await mpeLoadCard(); mpeDraw();
+}
+async function mpeDeleteMatch(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to delete'; mpMsg('mpe_mmsg_' + id, 'Any bets still open on it are given back.', false); return; }
+  const { error } = await sb.from('promotion_matches').delete().eq('id', id);
+  if(error){ mpMsg('mpe_mmsg_' + id, peErr(error), false); return; }
+  await mpeLoadCard();
+  for(let k = 0; k < MPE.matches.length; k++) if(MPE.matches[k].slot !== k + 1) await sb.from('promotion_matches').update({ slot:k + 1 }).eq('id', MPE.matches[k].id);
+  await mpeLoadCard(); mpeDraw();
+}
+async function mpeBetting(id, status){
+  const { error } = await sb.rpc('promo_match_betting', { p_match:id, p_status:status });
+  if(error){ mpMsg('mpe_mmsg_' + id, peErr(error), false); return; }
+  await mpeLoadCard(); mpeDraw();
+  mpMsg('mpe_mmsg_' + id, status === 'open' ? 'Betting is open. Fans can bet on your page and in Events.' : status === 'locked' ? 'Betting is locked. Set the winner when the match is over.' : 'Done.', true);
+}
+async function mpeRefund(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to give every bet back'; return; }
+  return mpeBetting(id, 'refund');
+}
+async function mpeSettle(id){
+  const v = pmEl('mpw_' + id).value;
+  const { data, error } = await sb.rpc('promo_settle', { p_match:id, p_winner:v === 'none' ? null : Number(v) });
+  if(error){ mpMsg('mpe_mmsg_' + id, peErr(error), false); return; }
+  await mpeLoadCard(); mpeDraw();
+  const paid = data && data.paid ? data.paid : 0;
+  mpMsg('mpe_mmsg_' + id, v === 'none' ? 'No winner. Every bet was given back.' : paid ? 'Winner saved. ' + paid + (paid === 1 ? ' fan was' : ' fans were') + ' paid.' : 'Winner saved.', true);
+  if(MPE.matches.length && MPE.matches.every(m => m.bet_status === 'settled')){
+    const ev = MPE.events.find(e => e.id === MPE.cur);
+    if(ev && ev.status !== 'done') mpMsg('mpe_msg', 'Every match has a winner. Set the status to Finished and press Save show, and your followers hear the results are in.', true);
+  }
+}
+async function mpeUnsettle(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to take the result and payouts back'; return; }
+  const { error } = await sb.rpc('promo_unsettle', { p_match:id });
+  if(error){ mpMsg('mpe_mmsg_' + id, peErr(error), false); return; }
+  await mpeLoadCard(); mpeDraw();
+  mpMsg('mpe_mmsg_' + id, 'Result taken back, and so were the payouts. Betting is locked. Set the right winner.', true);
+}
+
+/* ---------------- My Promotion: Betting ---------------- */
+const MPB = { pid:null, econ:null, fans:[], grants:[] };
+async function mpBettingTab(box){
+  box.innerHTML = '<div class="loading">Loading…</div>';
+  MPB.pid = Number(PM.curId); MPB.box = box;
+  const [er, fr, gr] = await Promise.all([
+    sb.from('promotion_economy').select('*').eq('promotion_id', MPB.pid).maybeSingle(),
+    sb.rpc('promo_fans', { p_promotion:MPB.pid }),
+    sb.from('promotion_grants').select('*').eq('promotion_id', MPB.pid).order('created_at', { ascending:false }).limit(30)
+  ]);
+  if(er.error){ box.innerHTML = `<div class="pm-card pm-empty">${esc(peErr(er.error))}</div>`; return; }
+  MPB.saved = !!er.data;
+  MPB.econ = er.data || { currency_name:'Dollars', currency_symbol:'$', start_amount:1000, payout_mode:'pool', min_bet:1, max_bet:null, betting_on:true };
+  MPB.fans = (fr && fr.data) || []; MPB.grants = (gr && gr.data) || [];
+  mpbDraw();
+}
+function mpbDraw(){
+  const box = MPB.box; if(!box || !box.isConnected) return;
+  const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion';
+  const fanName = id => (MPB.fans.find(f => f.user_id === id) || {}).name || 'A fan';
+  box.innerHTML = `<div class="pe">
+  <section class="pm-card">
+    <div class="pm-h3">Your money</div>
+    <p class="pm-p">${esc(name)} has its own money, separate from WCA's. Fans bet it on your shows only. ${MPB.saved ? '' : '<b>It starts off like WCA</b>: a starting balance and pooled payouts. You can change any of it here.'}</p>
+    <div class="mpe-fields">
+      <div><label for="mpb_name">What it's called</label><input id="mpb_name" maxlength="40" value="${escAttr(E.currency_name)}" placeholder="Northside Bucks" oninput="mpbPreview()"></div>
+      <div><label for="mpb_sym">Symbol <span class="pm-opt">(like $, or leave it blank)</span></label><input id="mpb_sym" maxlength="4" value="${escAttr(E.currency_symbol)}" oninput="mpbPreview()"></div>
+      <div><label for="mpb_start">Starting balance</label><input id="mpb_start" type="number" min="0" step="1" value="${Number(E.start_amount)}" oninput="mpbPreview()"></div>
+      <div><label for="mpb_min">Smallest bet</label><input id="mpb_min" type="number" min="1" step="1" value="${Number(E.min_bet) || 1}"></div>
+      <div><label for="mpb_max">Biggest bet <span class="pm-opt">(blank for no limit)</span></label><input id="mpb_max" type="number" min="1" step="1" value="${E.max_bet != null ? Number(E.max_bet) : ''}"></div>
+      <div style="align-self:end;padding-bottom:8px"><label class="mpb-check"><input id="mpb_on" type="checkbox"${E.betting_on !== false ? ' checked' : ''}> Betting is on</label></div>
+    </div>
+    <p class="pm-p" id="mpb_prev" style="margin-top:10px"></p>
+    <div class="pm-lbl">How bets pay out</div>
+    <div class="mpb-mode">
+      <label class="mpb-opt${E.payout_mode !== 'odds' ? ' on' : ''}"><b><input type="radio" name="mpb_mode" value="pool"${E.payout_mode !== 'odds' ? ' checked' : ''} onchange="mpbMode()"> Shared pot, like WCA</b>
+        <p>Everything bet on a match goes into one pot. When you set the winner, everyone who picked right splits the whole pot, by how much each put in. The payout moves as fans bet, and you never run out of money to pay with.</p></label>
+      <label class="mpb-opt${E.payout_mode === 'odds' ? ' on' : ''}"><b><input type="radio" name="mpb_mode" value="odds"${E.payout_mode === 'odds' ? ' checked' : ''} onchange="mpbMode()"> Fixed odds you set</b>
+        <p>You set the odds for each side when you build the match, like 2 for a bet that doubles or 4 for a big upset. A winning bet pays the bet times the odds, no matter how many people bet. You set the odds on each match in Events.</p></label>
+    </div>
+    <p class="pm-p pm-small" style="margin-top:8px">You can switch any time. Switch between shows, not while bets are open, so everyone gets paid the way they expected.</p>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSave()">Save money settings</button></div>
+    <div class="msg" id="mpb_msg"></div>
+  </section>
+  <section class="pm-card" style="margin-top:16px">
+    <div class="pm-h3">Give a bonus</div>
+    <p class="pm-p">Hand out money whenever you like: to everyone who follows ${esc(name)} or has a balance with you, or to one fan. They get a notification. Use Take back to fix a mistake.</p>
+    <div class="mpe-fields">
+      <div><label for="mpb_gamt">Amount</label><input id="mpb_gamt" type="number" min="1" step="1" placeholder="500"></div>
+      <div><label for="mpb_gto">Who gets it</label><select id="mpb_gto"><option value="">Everyone (${MPB.fans.length} ${MPB.fans.length === 1 ? 'fan' : 'fans'})</option>${MPB.fans.map(f => `<option value="${escAttr(f.user_id)}">${esc(f.name)}</option>`).join('')}</select></div>
+      <div style="grid-column:1/-1"><label for="mpb_gnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_gnote" maxlength="200" placeholder="Thanks for watching Northside 12!"></div>
+    </div>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbGive(1)">Give</button><button type="button" class="spc-mini" onclick="mpbGive(-1)">Take back</button></div>
+    <div class="msg" id="mpb_gmsg"></div>
+  </section>
+  <section class="pm-card" style="margin-top:16px">
+    <div class="pm-h3">Your fans</div>
+    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(E, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
+      : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
+  </section>
+  ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
+    <table class="mpb-table"><thead><tr><th>When</th><th>To</th><th>Amount</th><th>Note</th></tr></thead><tbody>${MPB.grants.map(g => `<tr><td>${esc(new Date(g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</td><td>${g.user_id ? esc(fanName(g.user_id)) : 'Everyone (' + Number(g.people) + ')'}</td><td>${esc((g.amount < 0 ? 'Took back ' : '') + peMoney(E, Math.abs(g.amount)))}</td><td>${esc(g.note || '')}</td></tr>`).join('')}</tbody></table></section>` : ''}
+  </div>`;
+  mpbPreview();
+}
+function mpbMode(){ document.querySelectorAll('.mpb-opt').forEach(l => l.classList.toggle('on', !!l.querySelector('input:checked'))); }
+function mpbPreview(){
+  const p = pmEl('mpb_prev'); if(!p) return;
+  const info = { currency_name:(pmEl('mpb_name').value || 'Dollars').trim(), currency_symbol:pmEl('mpb_sym').value.trim() };
+  p.innerHTML = `Fans see it like this: <b>${esc(peMoney(info, Number(pmEl('mpb_start').value) || 0))}</b> to start, and <b>${esc(peMoney(info, 2500))}</b> after a good night.`;
+}
+async function mpbSave(){
+  const name = (pmEl('mpb_name').value || '').trim();
+  if(!name){ mpMsg('mpb_msg', 'Give your money a name, like Dollars or Northside Bucks.', false); return; }
+  const num = (id, d) => { const v = pmEl(id).value; return v === '' ? d : Math.max(0, Math.floor(Number(v) || 0)); };
+  const mode = (document.querySelector('input[name="mpb_mode"]:checked') || {}).value || 'pool';
+  const row = { promotion_id:MPB.pid, currency_name:name.slice(0, 40), currency_symbol:pmEl('mpb_sym').value.trim().slice(0, 4), start_amount:num('mpb_start', 1000),
+    min_bet:Math.max(1, num('mpb_min', 1)), max_bet:pmEl('mpb_max').value === '' ? null : Math.max(1, num('mpb_max', 1)), betting_on:pmEl('mpb_on').checked, payout_mode:mode };
+  if(row.max_bet != null && row.max_bet < row.min_bet){ mpMsg('mpb_msg', 'The biggest bet has to be at least the smallest bet.', false); return; }
+  const { error } = await sb.from('promotion_economy').upsert(row, { onConflict:'promotion_id' });
+  if(error){ mpMsg('mpb_msg', peErr(error), false); return; }
+  MPB.econ = row; MPB.saved = true;
+  mpbDraw(); mpMsg('mpb_msg', 'Saved. ' + (mode === 'odds' ? 'Set the odds on each match in Events before you open betting.' : 'Bets pay out from a shared pot.'), true);
+}
+async function mpbGive(sign){
+  const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
+  if(amt < 1){ mpMsg('mpb_gmsg', 'Enter an amount.', false); return; }
+  const to = pmEl('mpb_gto').value || null;
+  if(!to && !MPB.fans.length){ mpMsg('mpb_gmsg', 'Nobody follows you or has a balance yet.', false); return; }
+  const { data, error } = await sb.rpc('promo_grant', { p_promotion:MPB.pid, p_user:to, p_amount:amt * sign, p_note:pmEl('mpb_gnote').value || null });
+  if(error){ mpMsg('mpb_gmsg', peErr(error), false); return; }
+  const n = data && data.people != null ? data.people : 0;
+  await mpBettingTab(MPB.box);
+  mpMsg('mpb_gmsg', (sign > 0 ? 'Gave ' : 'Took back ') + peMoney(MPB.econ, amt) + (to ? '.' : (sign > 0 ? ' to ' : ' from ') + n + (n === 1 ? ' fan.' : ' fans.')), true);
+}
+
+// a direct link to Events or a promotion page can land before this code: catch up
+setTimeout(() => {
+  ['events','archive'].forEach(pg => { const el = document.getElementById('page-' + pg); if(el && el.classList.contains('active')) peSwitchOpen(pg); });
+  if(typeof PM !== 'undefined' && PM.pub && PM.pub.p && document.getElementById('pe-follow-slot')) pePaintFollow(PM.pub.p.id);
+  // sign in may finish before or after this loads: the Following filter waits for it
+  let n = 0; const wait = () => { if(PE.follows) return; if(typeof CURRENT_USER !== 'undefined' && CURRENT_USER){ peLoadFollows(); return; } if(++n < 40) setTimeout(wait, 250); };
+  wait();
+}, 0);
+/* ===================== end PROMOTION EVENTS, BETTING AND FOLLOW ===================== */
+</script>
+
 </body>
 </html>
