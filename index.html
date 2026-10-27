@@ -8450,8 +8450,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
         <a href="/rankings" data-page="rankings">Rankings</a>
         <a href="/leaderboard" data-page="leaderboard">Betting</a>
         <a href="/promotions" data-page="promotions">Promotions</a>
-        <a href="/timeline" data-page="timeline">Timeline</a>
-        <a href="/showdown" data-page="showdown">Showdown</a>
+        <a href="/timeline" data-page="timeline" class="nav-off" tabindex="-1" aria-hidden="true">Timeline</a>
+        <a href="/showdown" data-page="showdown" class="nav-off" tabindex="-1" aria-hidden="true">Showdown</a>
         <a href="/apply" data-page="apply">Apply</a>
         <a href="/sponsors" data-page="sponsors" class="nav-off" tabindex="-1" aria-hidden="true">Sponsors</a>
       </nav>
@@ -8526,6 +8526,7 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   <!-- TIMELINE — the WCA story travelled as a star route. Reads events,
        event_matches and recorded winners; nothing is maintained twice. -->
   <div class="page" id="page-timeline">
+    <div class="pe-switch" data-peswitch hidden></div>
     <div class="tl-wrap">
       <div class="section-title">Timeline</div>
       <p class="sl-intro">Every WCA show, in order, with what happened and why it mattered.
@@ -8560,6 +8561,7 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   <!-- WCA SHOWDOWN — non-canon two-brand spin-off. Rendered by the
        Showdown script at the end of the page into #sd-root. -->
   <div class="page" id="page-showdown">
+    <div class="pe-switch" data-peswitch hidden></div>
     <div class="sd-wrap" id="sd-root"></div>
   </div>
 
@@ -20279,8 +20281,7 @@ async function pmPageOpen(){
         <div class="pm-hs-name">
           <div class="pm-kick">Promotion in the WCA Universe</div>
           <h1 class="pm-title">${esc(p.name)}</h1>
-          <div class="pm-hs-links">${CP_LINKS.filter(([k]) => links[k]).map(([k, l]) => `<a href="${escAttr(links[k])}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ${icons[k]}"></i> ${esc(l)}</a>`).join('')}
-            <span id="pe-follow-slot"></span>
+          <div class="pm-hs-links"><span id="pe-follow-slot"></span>${CP_LINKS.filter(([k]) => links[k]).map(([k, l]) => `<a href="${escAttr(links[k])}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ${icons[k]}"></i> ${esc(l)}</a>`).join('')}
             <button type="button" class="pm-hs-share" onclick="pmShare(${Number(p.id)})"><i class="ti ti-share-3"></i> Share</button>
             ${mine ? `<button type="button" class="pm-hs-share" onclick="PM.curId=${Number(p.id)};goPage('mypromo')"><i class="ti ti-pencil"></i> Edit in My Promotion</button>` : ''}</div>
         </div>
@@ -21352,7 +21353,7 @@ function activatePage(pg){
   if(typeof markNavGroupActive==='function') setTimeout(markNavGroupActive,0);
   if(btn) btn.classList.add('active');
   // Past Events is part of Events now: keep Events lit on both
-  if(pg==='archive'){ const evb=document.querySelector('nav [data-page="events"]'); if(evb) evb.classList.add('active'); }
+  if(pg==='archive' || pg==='showdown' || pg==='timeline'){ const evb=document.querySelector('nav [data-page="events"]'); if(evb) evb.classList.add('active'); }   // all part of Events
   // Relationships belongs to the Roster (or to Promotions, for a promotion's roster)
   if(pg==='relationships'){ const rb=document.querySelector('nav [data-page="'+(/(^|&)promo=\d/.test(wcaRoute().qs)?'promotions':'roster')+'"]'); if(rb) rb.classList.add('active'); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -21368,7 +21369,7 @@ function activatePage(pg){
   if(pg==='rankings') refreshRankingsIfStale();
   if(pg==='archive') loadArchive();
   if(pg==='events'){ try{ renderEventRails(); if(!ARCHIVE_EVENTS.length) loadArchive(); }catch(e){} }
-  if((pg==='events' || pg==='archive') && typeof peSwitchOpen==='function') peSwitchOpen(pg);   // WCA or a promotion's shows
+  if((pg==='events' || pg==='archive' || pg==='showdown' || pg==='timeline') && typeof peSwitchOpen==='function') peSwitchOpen(pg);   // WCA or a promotion's shows, and WCA's modes
   if(pg==='apply') loadApply();
   if(pg==='sponsors' && typeof loadSponsors==='function') loadSponsors();
   if(pg==='account') loadAccount();
@@ -29543,7 +29544,22 @@ try{ if(rvOnSite() && wcaRoute().pg === 'rivalries' && document.getElementById('
 .pe input:focus, .pe select:focus, .pe textarea:focus{outline:none; border-color:var(--gold);}
 .pe-switch{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 18px;}
 .pe-switch[hidden]{display:none;}
-#page-events > .pe-switch, #page-archive > .pe-switch{margin-top:18px;}
+#page-events > .pe-switch, #page-archive > .pe-switch, #page-showdown > .pe-switch, #page-timeline > .pe-switch{margin-top:18px;}
+.pe-switch{flex-direction:column; align-items:stretch;}
+.pe-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+.pe-row:empty{display:none;}
+.pe-modes{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px;}
+.pe-mode{display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--txt); text-decoration:none; transition:border-color .15s, transform .15s;}
+.pe-mode:hover{transform:translateY(-1px); border-color:var(--gold);}
+.pe-mode.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; background:color-mix(in srgb, var(--gold) 10%, var(--panel));}
+.pe-mode .ti{font-size:26px; color:var(--gold); flex:0 0 auto;}
+.pe-mode b{display:block; font-family:var(--font-display); font-weight:400; text-transform:uppercase; letter-spacing:.6px; font-size:19px; color:#fff;}
+.pe-mode small{display:block; font-size:14px; color:var(--txt-2); margin-top:2px;}
+@media (max-width:640px){
+  .pe-modes{gap:6px;} .pe-mode{flex-direction:column; justify-content:center; gap:4px; padding:10px 6px; text-align:center;}
+  .pe-mode .ti{font-size:22px;} .pe-mode b{font-size:15.5px; letter-spacing:.3px;} .pe-mode small{display:none;}
+  .pe-switch .pe-sk{flex-basis:100%;}
+}
 .pe-side{display:flex; flex-direction:column; align-items:flex-start; gap:6px;}
 .pe-side .pe-betbtn{margin-top:auto; align-self:stretch;}
 .pm-card .mpe-bet select{width:auto; flex:0 1 280px; min-width:180px;}
@@ -29615,8 +29631,13 @@ a.pe-who:hover{color:var(--gold);}
 .pe-top img{width:28px; height:28px; border-radius:50%; object-fit:cover;}
 .pe-empty{color:var(--muted); font-size:15.5px; padding:18px; text-align:center; border:1px dashed var(--line); border-radius:12px;}
 .pe-h{font-family:var(--font-cond); font-weight:700; letter-spacing:1.8px; text-transform:uppercase; font-size:15px; color:var(--gold); margin:0 0 4px;}
-.pe-follow{display:inline-flex; align-items:center; gap:7px;}
-.pe-follow.on{color:#5dcaa5 !important; border-color:#5dcaa5 !important;}
+/* FOLLOW: first, filled in the promotion's color with white letters */
+#pe-follow-slot:empty{display:none;}
+#pe-follow-slot{display:inline-flex;}
+#pmpage-body .pm-hs-links .pe-follow{display:inline-flex; align-items:center; gap:7px; background:var(--pc, var(--gold)); border:1px solid var(--pc, var(--gold)); color:#fff;
+  font-weight:800; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,.55); padding-left:16px; padding-right:18px;}
+#pmpage-body .pm-hs-links .pe-follow:hover{filter:brightness(1.12); color:#fff;}
+#pmpage-body .pm-hs-links .pe-follow.on{background:color-mix(in srgb, var(--pc, var(--gold)) 38%, #0b0b10); color:#fff;}
 /* My Promotion: Events and Betting */
 .mpe-head{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; justify-content:space-between;}
 .mpe-grid{display:grid; grid-template-columns:260px 1fr; gap:18px; margin-top:14px;}
@@ -29964,31 +29985,61 @@ async function peLoadPromoList(){
   return list;
 }
 function pePromoQS(){ const qs = (typeof wcaRoute === 'function' ? wcaRoute().qs : '') || ''; return { promo:(qs.match(/(?:^|&)promo=(\d+)/) || [])[1] || null, ev:(qs.match(/(?:^|&)ev=(\d+)/) || [])[1] || null, wcaEvent:/(?:^|&)event=/.test(qs) }; }
+// Events is where visitors pick what to follow, like a mode select:
+//   first the promotion (WCA, or any promotion with shows),
+//   then for WCA the mode: Main show (Events and Past Events), Showdown, or Timeline.
+// Showdown and Timeline keep their own pages and links (/showdown, /timeline); they just
+// live under Events now, so the same row sits at the top of them too.
+const PE_WCA_MODES = [
+  { k:'main',     pg:'events',   icon:'ti-calendar-event', name:'Main show', sub:'Every WCA show, the card and the betting' },
+  { k:'showdown', pg:'showdown', icon:'ti-swords',         name:'Showdown',  sub:'The spin off, HEAT vs OVERDRIVE' },
+  { k:'timeline', pg:'timeline', icon:'ti-timeline',       name:'Timeline',  sub:'The WCA story, show by show' }
+];
+const PE_MODE_OF = { events:'main', archive:'main', showdown:'showdown', timeline:'timeline' };
 async function peSwitchOpen(pg){
   const page = document.getElementById('page-' + pg); if(!page) return;
   const sw = page.querySelector('[data-peswitch]'), host = page.querySelector('[data-pehost]'), evx = page.querySelector('.evx');
-  if(!sw || !host || !evx) return;
+  if(!sw) return;
+  const eventsPage = pg === 'events' || pg === 'archive';
   const promos = await peLoadPromoList();
   if(!page.classList.contains('active')) return;
   const q = pePromoQS();
-  let pick = q.promo;
-  if(!pick && !q.wcaEvent){ try{ pick = localStorage.getItem('wca-events-promo'); }catch(e){} }
+  let pick = eventsPage ? q.promo : 'wca';
+  if(eventsPage && !pick && !q.wcaEvent){ try{ pick = localStorage.getItem('wca-events-promo'); }catch(e){} }
   if(q.wcaEvent) pick = 'wca';
   if(!pick || !promos.some(p => String(p.id) === String(pick))) pick = 'wca';
-  if(!promos.length){ sw.hidden = true; host.hidden = true; evx.style.display = ''; return; }
+  const mode = PE_MODE_OF[pg] || 'main';
   sw.hidden = false;
-  sw.innerHTML = `<span class="pe-sk">Shows from</span>
+  sw.innerHTML = `<div class="pe-row">${promos.length ? `<span class="pe-sk">Shows from</span>
     <button type="button" class="pe-chip${pick === 'wca' ? ' on' : ''}" onclick="pePick('${pg}','wca')" aria-pressed="${pick === 'wca'}"><img class="pe-cl wca" src="/brand/wca-logo-sm.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pe-cl wca',textContent:'W'}))">WCA</button>` +
     promos.map(p => { const c = typeof pmColor === 'function' ? pmColor(p.color) : '#e9b949';
-      return `<button type="button" class="pe-chip${String(pick) === String(p.id) ? ' on' : ''}" style="--pc:${c}" onclick="pePick('${pg}',${Number(p.id)})" aria-pressed="${String(pick) === String(p.id)}">${typeof pmLogo === 'function' ? pmLogo(p, 'pe-cl') : ''}${esc(p.name)}</button>`; }).join('');
+      return `<button type="button" class="pe-chip${String(pick) === String(p.id) ? ' on' : ''}" style="--pc:${c}" onclick="pePick('${pg}',${Number(p.id)})" aria-pressed="${String(pick) === String(p.id)}">${typeof pmLogo === 'function' ? pmLogo(p, 'pe-cl') : ''}${esc(p.name)}</button>`; }).join('') : ''}</div>
+    ${pick === 'wca' ? `<div class="pe-modes" role="tablist" aria-label="WCA">${PE_WCA_MODES.map(m => `<a class="pe-mode${m.k === mode ? ' on' : ''}" role="tab" aria-selected="${m.k === mode}" href="/${m.k === 'main' ? (pg === 'archive' ? 'archive' : 'events') : m.pg}" onclick="return peMode('${pg}','${m.k}')">
+        <i class="ti ${m.icon}" aria-hidden="true"></i><span><b>${esc(m.name)}</b><small>${esc(m.sub)}</small></span></a>`).join('')}</div>` : ''}`;
+  if(!eventsPage || !host || !evx) return;
   if(pick === 'wca'){ host.hidden = true; host.innerHTML = ''; evx.style.display = ''; return; }
   evx.style.display = 'none'; host.hidden = false;
   peRenderPublic(host, Number(pick), { view:pg === 'archive' ? 'past' : 'upcoming', focusEv:q.ev });
 }
 function pePick(pg, v){
   try{ localStorage.setItem('wca-events-promo', String(v)); }catch(e){}
+  if(pg === 'showdown' || pg === 'timeline'){
+    // a promotion's shows live on Events
+    if(v === 'wca') return;
+    wcaSetAddress('events', 'promo=' + Number(v), true);
+    activatePage('events'); window.scrollTo({ top:0, behavior:'smooth' });
+    return;
+  }
   wcaSetAddress(pg, v === 'wca' ? '' : 'promo=' + Number(v), true);
   peSwitchOpen(pg);
+}
+function peMode(pg, k){
+  const m = PE_WCA_MODES.find(x => x.k === k); if(!m) return false;
+  try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){}
+  const to = k === 'main' ? (pg === 'archive' ? 'archive' : 'events') : m.pg;
+  if(to === pg) return false;
+  goPage(to);
+  return false;
 }
 
 /* ---------------- My Promotion: Events ---------------- */
@@ -30333,7 +30384,7 @@ async function mpbGive(sign){
 
 // a direct link to Events or a promotion page can land before this code: catch up
 setTimeout(() => {
-  ['events','archive'].forEach(pg => { const el = document.getElementById('page-' + pg); if(el && el.classList.contains('active')) peSwitchOpen(pg); });
+  ['events','archive','showdown','timeline'].forEach(pg => { const el = document.getElementById('page-' + pg); if(el && el.classList.contains('active')) peSwitchOpen(pg); });
   if(typeof PM !== 'undefined' && PM.pub && PM.pub.p && document.getElementById('pe-follow-slot')) pePaintFollow(PM.pub.p.id);
   // sign in may finish before or after this loads: the Following filter waits for it
   let n = 0; const wait = () => { if(PE.follows) return; if(typeof CURRENT_USER !== 'undefined' && CURRENT_USER){ peLoadFollows(); return; } if(++n < 40) setTimeout(wait, 250); };
