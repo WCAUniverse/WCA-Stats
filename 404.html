@@ -6946,6 +6946,15 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-lvb.fam.on::before{content:'✓ ';}
   .stx-lvb.feel::before{content:'+ '; font-weight:700; opacity:.7;}
   .stx-lvb.feel.on::before{content:'✓ '; opacity:1;}
+  .stx-lvsep[hidden]{display:none;}
+  .stx-styles{display:flex; flex-direction:column; gap:10px; margin:12px 0 4px;}
+  .stx-srow{display:grid; grid-template-columns:140px auto minmax(170px, 230px) 1fr; gap:14px; align-items:center; border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 14px;}
+  .stx-sname{font-size:16px;}
+  .stx-scol, .stx-sline{display:flex; align-items:center; gap:8px; margin:0;}
+  .stx-scol input[type=color]{width:46px; height:34px; padding:2px; border:1px solid rgba(255,255,255,.15); border-radius:8px; background:transparent; cursor:pointer;}
+  .stx-sline select{min-width:160px;}
+  .stx-sprev{width:100%; height:24px;}
+  @media (max-width:760px){ .stx-srow{grid-template-columns:1fr 1fr;} .stx-sprev{grid-column:1/-1;} }
   .stx-lvb.lock{cursor:default; opacity:.95;}
   .stx-lvb.lock::before{content:'✓ ';}
   .stx-lvhint{font-size:13.5px; color:#8d8a82; margin:4px 0 0;}
@@ -27858,6 +27867,26 @@ const STX_LV = {
 };
 // Best friends was retired (Oct 2026). Old rows still saying 'best' read as Friends.
 STX_LV.best = STX_LV.friends;
+// How each kind of relationship looks: its color and its line. Every line starts the same
+// (single and solid, one thickness). WCA (admin) and each promotion (My Promotion, Stories)
+// change theirs in the Colors and lines tab. Saved in story_styles (SUPABASE_SETUP_relationship_styles.sql).
+const STX_LINES = { solid:'Single solid line', double:'Double line', dashed:'Dashed line' };
+const STX_STYLE_KEYS = ['friends','uneasy','rivals','enemies','related','faction'];
+const STX_LV_DEF = {};
+STX_STYLE_KEYS.forEach(k => { STX_LV_DEF[k] = { color:STX_LV[k].color, line:'solid' }; STX_LV[k].line = 'solid'; });
+const STX_STYLES = {};
+function stxApplyStyle(sk, over){
+  const s = over || STX_STYLES[sk] || {};
+  STX_STYLE_KEYS.forEach(k => { const v = s[k] || {};
+    STX_LV[k].color = /^#[0-9a-f]{6}$/i.test(String(v.color || '')) ? String(v.color).toLowerCase() : STX_LV_DEF[k].color;
+    STX_LV[k].line = STX_LINES[v.line] ? v.line : 'solid'; });
+}
+async function stxLoadStyle(sk, force){
+  if(STX_STYLES[sk] && !force) return;
+  try{ const r = await sb.from('story_styles').select('style').eq('scope_key', sk).maybeSingle();
+    STX_STYLES[sk] = (r && !r.error && r.data && r.data.style) || {}; }
+  catch(e){ STX_STYLES[sk] = {}; }
+}
 const STX_LEVELS = ['friends','related','uneasy','rivals','enemies'];
 function stxLvKey(l){ return l === 'best' ? 'friends' : (STX_LV[l] ? l : 'friends'); }
 // the words under a name: "Brothers" for family, "Brothers, Rivals" when there's a feeling on top
@@ -27981,7 +28010,10 @@ async function stxCtxPromo(pid){
 async function stxCtx(scope, force){
   const sk = stxSk(scope);
   if(force || !STX.ctx[sk]) STX.ctx[sk] = (sk === 'wca' ? stxCtxWca() : stxCtxPromo(stxScopeOf(sk))).catch(e => { delete STX.ctx[sk]; throw e; });
-  return STX.ctx[sk];
+  // this roster's colors and lines, ready before anything is drawn
+  const [c] = await Promise.all([STX.ctx[sk], stxLoadStyle(sk)]);
+  stxApplyStyle(sk);
+  return c;
 }
 function stxForget(scope){ const sk = stxSk(scope); delete STX.ctx[sk]; delete STX.ties[sk]; Object.keys(STX.chap).forEach(k => { if(k.indexOf(sk + '|') === 0) delete STX.chap[k]; }); if(sk === 'wca') STX.facts = {}; }
 /* WCA's facts from the shows ("What happened in WCA"), kept apart from a player's story.
@@ -28093,15 +28125,19 @@ function stxLineSVG(x1, y1, x2, y2, r1, r2, level, opts){
   const lv = STX_LV[level] || STX_LV.friends;
   const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1;
   const ax = x1 + dx / len * (r1 + 4), ay = y1 + dy / len * (r1 + 4), bx = x2 - dx / len * (r2 + 4), by = y2 - dy / len * (r2 + 4);
-  const sw = (opts && opts.thin) ? Math.max(1.5, lv.w * 0.55) : lv.w + ((opts && opts.sel) ? 2 : 0);
+  const thin = !!(opts && opts.thin);
+  const lw = thin ? 1.8 : 3 + ((opts && opts.sel) ? 1.5 : 0);        // every line the same thickness
+  const op = thin ? .65 : .9;
   const pts = `x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}"`;
-  const famLine = p => { const f = STX_LV.related, fw = (opts && opts.thin) ? Math.max(1.5, f.w * 0.55) : f.w;
-    return `<line ${p} stroke="${f.color}" stroke-width="${(fw * 2.1).toFixed(1)}" stroke-linecap="round" opacity="${(opts && opts.thin) ? .6 : .9}"/>
-    <line ${p} stroke="#08090e" stroke-width="${Math.max(1, fw * 0.7).toFixed(1)}" stroke-linecap="round"/>`; };
-  const lineOf = (L, p) => `<line ${p} stroke="${L.color}" stroke-width="${(opts && opts.thin) ? Math.max(1.5, L.w * 0.55) : L.w + ((opts && opts.sel) ? 2 : 0)}"
-    ${L.good ? '' : 'stroke-dasharray="9 7"'} stroke-linecap="round" opacity="${(opts && opts.thin) ? .55 : .85}"/>`;
+  // the line for one kind: single solid, double, or dashed, in its color
+  const lineOf = (L, p) => {
+    if(L.line === 'double') return `<line ${p} stroke="${L.color}" stroke-width="${(lw * 2.4).toFixed(1)}" stroke-linecap="round" opacity="${op}"/>
+      <line ${p} stroke="#08090e" stroke-width="${Math.max(1, lw * 0.8).toFixed(1)}" stroke-linecap="round"/>`;
+    return `<line ${p} stroke="${L.color}" stroke-width="${lw}"${L.line === 'dashed' ? ` stroke-dasharray="${thin ? '6 5' : '9 7'}"` : ''} stroke-linecap="round" opacity="${op}"/>`;
+  };
+  const famLine = p => lineOf(STX_LV.related, p);
   // Everything that's true about the two of them, each its own line, side by side:
-  // Same faction (gold), Family (purple double), and how they feel (Rivals red and so on)
+  // Same faction, Family, and every feeling (Rivals, Friends and so on)
   const parts = [];
   if(opts && opts.faction && level !== 'faction') parts.push(p => lineOf(STX_LV.faction, p));
   if(lv.family || (opts && opts.family)) parts.push(famLine);
@@ -28262,7 +28298,7 @@ function stxWorldOpts(){ let o = {}; try{ o = JSON.parse(localStorage.getItem(ST
 function stxWorldSet(k, v){ const o = stxWorldOpts(); o[k] = v; try{ localStorage.setItem(STX_WORLD_KEY, JSON.stringify(o)); }catch(e){} stxRender(); }
 function stxLegend(){
   return `<div class="stx-legend">${['friends','related','faction','uneasy','rivals','enemies'].map(k => { const l = STX_LV[k];
-    return `<span><i style="border-top:${l.family ? '6px double' : Math.max(2, l.w - 1) + 'px ' + (l.good ? 'solid' : 'dashed')} ${l.color}"></i>${stxE(l.label)}</span>`; }).join('')}</div>`;
+    return `<span><i style="border-top:${l.line === 'double' ? '7px double' : '3px ' + (l.line === 'dashed' ? 'dashed' : 'solid')} ${l.color}"></i>${stxE(l.label)}</span>`; }).join('')}</div>`;
 }
 function stxMeter(level){ const l = STX_LV[level] || STX_LV.friends;
   return `<div class="stx-meter" aria-hidden="true">${[1,2,3,4,5].map(i => `<i style="background:${i <= l.n ? l.color : 'rgba(255,255,255,.07)'}"></i>`).join('')}</div>`; }
@@ -28675,6 +28711,9 @@ async function stxEdDraw(){
   const canScan = isWca && typeof stxScanTab === 'function' && !STXE.own;
   if(canScan) tabs.push(['scan','Scan for rivalries']);
   if(STXE.tab === 'scan' && !canScan) STXE.tab = 'ties';
+  // WCA (admin) and promotion owners: how each kind of relationship looks
+  if(!STXE.own) tabs.push(['style','Colors and lines']);
+  if(STXE.tab === 'style' && STXE.own) STXE.tab = 'ties';
   if(STXE.own){
     // players: their characters, and their factions when they have one
     if(![...STXE.own].some(k => k.indexOf('faction:') === 0)) tabs.splice(2, 1);
@@ -28689,8 +28728,55 @@ async function stxEdDraw(){
   if(STXE.tab === 'people') return stxEdPeople(body, ctx);
   if(STXE.tab === 'factions') return stxEdFactions(body, ctx);
   if(STXE.tab === 'scan') return stxScanTab(body, ctx);
+  if(STXE.tab === 'style') return stxEdStyle(body);
   return stxEdTies(body, ctx);
 }
+/* Colors and lines: a color and a line for each kind, for WCA or this promotion */
+async function stxEdStyle(body){
+  const sk = stxSk(STXE.scope);
+  await stxLoadStyle(sk, true); stxApplyStyle(sk);
+  const lbl = k => k === 'related' ? 'Family' : STX_LV[k].label;
+  body.innerHTML = `<section class="stx-card">
+    <div class="stx-h">Colors and lines</div>
+    <p class="stx-dim" style="font-size:15px">How each kind of relationship looks in the webs, the lists and the buttons. Every line starts out the same, a single solid line. Pick a color and a line for each one.${STXE.scope == null ? ' This is for WCA. Each promotion sets its own.' : ' This is for your promotion only.'}</p>
+    <div class="stx-styles">${STX_STYLE_KEYS.map(k => `<div class="stx-srow">
+        <b class="stx-sname" id="stxs-n-${k}" style="color:${STX_LV[k].color}">${stxE(lbl(k))}</b>
+        <label class="stx-scol"><span class="stx-dim">Color</span><input type="color" id="stxs-c-${k}" value="${STX_LV[k].color}" oninput="stxStylePreview()"></label>
+        <label class="stx-sline"><span class="stx-dim">Line</span><select id="stxs-l-${k}" class="stx-in" onchange="stxStylePreview()">${Object.entries(STX_LINES).map(([v, t]) => `<option value="${v}"${STX_LV[k].line === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+        <svg class="stx-sprev" id="stxs-p-${k}" viewBox="0 0 200 24" aria-hidden="true"></svg></div>`).join('')}</div>
+    <div class="stx-acts"><button type="button" class="stx-btn" onclick="stxStyleSave()">Save colors and lines</button>
+      <button type="button" class="stx-mini" onclick="stxStyleReset()">Back to the starting look</button>
+      <span id="stxe-msg" class="stx-msg"></span></div>
+  </section>`;
+  stxStylePreview();
+}
+function stxStyleRead(){
+  const s = {};
+  STX_STYLE_KEYS.forEach(k => { const c = document.getElementById('stxs-c-' + k), l = document.getElementById('stxs-l-' + k);
+    if(c && l) s[k] = { color:c.value.toLowerCase(), line:l.value }; });
+  return s;
+}
+function stxStylePreview(){
+  const sk = stxSk(STXE.scope), s = stxStyleRead();
+  stxApplyStyle(sk, s);
+  STX_STYLE_KEYS.forEach(k => {
+    const p = document.getElementById('stxs-p-' + k); if(p) p.innerHTML = stxLineSVG(0, 12, 200, 12, -4, -4, k, {});
+    const n = document.getElementById('stxs-n-' + k); if(n) n.style.color = STX_LV[k].color;
+  });
+  stxApplyStyle(sk);   // the saved look stays in charge until Save
+}
+async function stxStyleSave(reset){
+  const sk = stxSk(STXE.scope);
+  const style = reset ? {} : stxStyleRead();
+  // only what differs from the starting look is kept
+  Object.keys(style).forEach(k => { if(style[k].color === STX_LV_DEF[k].color && style[k].line === 'solid') delete style[k]; });
+  const { error } = await sb.from('story_styles').upsert({ scope_key:sk, promotion_id:STXE.scope == null ? null : Number(STXE.scope), style, updated_at:new Date().toISOString() }, { onConflict:'scope_key' });
+  if(error){ stxEdMsg(/story_styles|schema cache|does not exist/i.test(String(error.message)) ? 'Colors and lines need one more step. Run SUPABASE_SETUP_relationship_styles.sql in Supabase, then save again.' : stxErr(error), false); return; }
+  STX_STYLES[sk] = style; stxApplyStyle(sk);
+  await stxEdStyle(document.getElementById('stxe-body'));
+  stxEdMsg(reset ? 'Back to the starting look.' : 'Saved. The webs and lists use these colors and lines now.', true);
+}
+function stxStyleReset(){ return stxStyleSave(true); }
 function stxEdOptions(ctx, sel, skip, withFactions, onlyOwn){
   const own = onlyOwn && STXE.own ? STXE.own : null;
   const ppl = ctx.people.slice().sort((a, b) => a.name.localeCompare(b.name)).filter(p => (!skip || !skip.has(p.key)) && (!own || own.has(p.key)));
@@ -28709,11 +28795,23 @@ function stxLvChips(id, cur, opts){
   const famOn = !!opts.famOn || cur === 'related';
   const picked = [feel].concat(stxMoreArr(opts.more)).filter(Boolean);
   const sp = stxSplitFeel(picked);
-  const feelHtml = STX_FEEL.map(k => { const l = STX_LV[k], on = picked.includes(k);
-    return `<button type="button" role="checkbox" aria-checked="${on}" class="stx-lvb feel${on ? ' on' : ''}" style="--lc:${l.color}" data-v="${k}" onclick="stxLvPick('${id}','${k}')">${stxE(l.label)}</button>`; }).join('');
-  const famHtml = opts.fam ? `<span class="stx-lvsep" aria-hidden="true"></span><button type="button" role="checkbox" aria-checked="${famOn}" class="stx-lvb fam${famOn ? ' on' : ''}" style="--lc:${STX_LV.related.color}" data-fam="1" onclick="stxFamToggle()">${stxE(STX_LV.related.label)}</button>` : '';
-  const facHtml = opts.faction ? `<button type="button" class="stx-lvb lock on" style="--lc:${STX_LV.faction.color}" title="They're in ${stxE(opts.faction)} together. Set in the Factions tab." aria-disabled="true">${stxE(STX_LV.faction.label)}</button>` : '';
-  return `<div class="stx-lvs" id="${id}" data-lv="${sp.main}" data-more="${sp.more.join(',')}" data-none="${opts.fam ? '1' : ''}" role="group">${feelHtml}${famHtml}${facHtml}</div>`;
+  const chips = STX_FEEL.map((k, i) => { const l = STX_LV[k], on = picked.includes(k);
+    return { on, r:i, h:`<button type="button" role="checkbox" aria-checked="${on}" class="stx-lvb feel${on ? ' on' : ''}" style="--lc:${l.color}" data-v="${k}" onclick="stxLvPick('${id}','${k}')">${stxE(l.label)}</button>` }; });
+  if(opts.fam) chips.push({ on:famOn, r:10, h:`<button type="button" role="checkbox" aria-checked="${famOn}" class="stx-lvb fam${famOn ? ' on' : ''}" style="--lc:${STX_LV.related.color}" data-fam="1" onclick="stxFamToggle()">${stxE(STX_LV.related.label)}</button>` });
+  if(opts.faction) chips.push({ on:true, r:11, h:`<button type="button" class="stx-lvb lock on" style="--lc:${STX_LV.faction.color}" title="They're in ${stxE(opts.faction)} together. Set in the Factions tab." aria-disabled="true">${stxE(STX_LV.faction.label)}</button>` });
+  const off = chips.filter(c => !c.on), on = chips.filter(c => c.on);
+  return `<div class="stx-lvs" id="${id}" data-lv="${sp.main}" data-more="${sp.more.join(',')}" data-none="${opts.fam ? '1' : ''}" role="group">${off.map(c => c.h).join('')}<span class="stx-lvsep" aria-hidden="true"${off.length && on.length ? '' : ' hidden'}></span>${on.map(c => c.h).join('')}</div>`;
+}
+// what's on sits to the right of the divider (with a check), what's off to the left (with a plus)
+function stxLvArrange(box){
+  if(!box) return;
+  const rank = b => b.dataset.v ? STX_FEEL.indexOf(b.dataset.v) : b.dataset.fam ? 10 : 11;
+  const chips = [...box.querySelectorAll('.stx-lvb')].sort((a, b) => rank(a) - rank(b));
+  let sep = box.querySelector('.stx-lvsep');
+  if(!sep){ sep = document.createElement('span'); sep.className = 'stx-lvsep'; sep.setAttribute('aria-hidden', 'true'); }
+  const off = chips.filter(b => !b.classList.contains('on')), on = chips.filter(b => b.classList.contains('on'));
+  off.forEach(b => box.appendChild(b)); box.appendChild(sep); on.forEach(b => box.appendChild(b));
+  sep.hidden = !(off.length && on.length);
 }
 // every feeling can be on at the same time: press one to add it (a check shows), press again to take it off
 function stxLvPick(id, k){
@@ -28723,6 +28821,7 @@ function stxLvPick(id, k){
   const sp = stxSplitFeel([...now]);
   box.dataset.lv = sp.main; box.dataset.more = sp.more.join(',');
   box.querySelectorAll('.stx-lvb[data-v]').forEach(b => { const on = now.has(b.dataset.v); b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  stxLvArrange(box);
 }
 function stxLvMore(id){ const b = document.getElementById(id); return b ? String(b.dataset.more || '').split(',').filter(Boolean) : []; }
 // Family is one thing for the pair, so its chip on both sides and the family details move together
@@ -28731,6 +28830,7 @@ function stxFamToggle(force){
   c.checked = force == null ? !c.checked : !!force;
   const f = document.getElementById('stxe-fambox'); if(f) f.hidden = !c.checked;
   document.querySelectorAll('#stxe-form .stx-lvb[data-fam]').forEach(b => { b.classList.toggle('on', c.checked); b.setAttribute('aria-checked', c.checked); });
+  document.querySelectorAll('#stxe-form .stx-lvs').forEach(stxLvArrange);
 }
 
 /* relationships */
@@ -28795,7 +28895,7 @@ async function stxEdTies(body, ctx){
       return `<input type="checkbox" id="stxe-fam" hidden${famOn ? ' checked' : ''}>
     <div class="stx-fambox" id="stxe-fambox"${famOn ? '' : ' hidden'}>
       <div class="stx-famck">Family</div>
-      <p class="stx-dim stx-small">Family shows as a purple double line, next to the line for how they feel. So brothers who are Rivals get the purple line and the red one. Leave the feeling unpicked if they're just family.</p>
+      <p class="stx-dim stx-small">Family gets its own line, next to a line for each feeling. So brothers who are Rivals get the Family line and the Rivals line. Leave the feelings unpicked if they're just family.</p>
       <label class="stx-l" for="stxe-rel">What they are</label>
       <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Married, Cousins" value="${stxE(row ? row.relation || '' : '')}">
       <div class="stx-g2">
@@ -29107,7 +29207,7 @@ function stxOwnTieForm(form, ctx, list, who, t, isNew){
     <input type="checkbox" id="stxe-fam" hidden${famOn ? ' checked' : ''}>
     <div class="stx-fambox" id="stxe-fambox"${famOn ? '' : ' hidden'}>
       <div class="stx-famck">Family</div>
-      <p class="stx-dim stx-small">Family shows as a purple double line, next to the line for how you feel. Leave the feeling unpicked if you're just family.</p>
+      <p class="stx-dim stx-small">Family gets its own line, next to a line for each feeling. Leave the feelings unpicked if you're just family.</p>
       <label class="stx-l" for="stxe-rel">What they are</label>
       <input id="stxe-rel" class="stx-in" maxlength="60" placeholder="Brothers, Married, Cousins" value="${stxE(row ? row.relation || '' : '')}">
       <div class="stx-g2">
