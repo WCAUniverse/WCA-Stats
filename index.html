@@ -6887,6 +6887,32 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .rv-acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
   .rv-acts .stx-btn{margin:0;}
   .rv-prow{text-decoration:none; color:inherit;}
+  .rv-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px;}
+  .rv-tile{position:relative; display:flex; flex-direction:column; align-items:center; gap:10px; padding:18px 16px 14px; border:1px solid #26262e; border-top:4px solid var(--hc); border-radius:14px; text-decoration:none; color:#efe9db; text-align:center;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--hc) 12%, transparent), transparent 60%), #0b0b10; transition:transform .15s, box-shadow .15s, border-color .15s; cursor:pointer;}
+  .rv-tile:hover, .rv-tile:focus-visible{transform:translateY(-2px); border-color:color-mix(in srgb, var(--hc) 60%, #26262e); box-shadow:0 8px 26px color-mix(in srgb, var(--hc) 22%, transparent); outline:none;}
+  .rv-tile.past{border-top-color:#5b5a56; background:#0b0b10;}
+  .rv-tfaces{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;}
+  .rv-tfaces .rv-face.big{width:72px; height:72px;}
+  .rv-tfaces.many .rv-face.big{width:54px; height:54px;} .rv-tfaces.many .rv-tvs{font-size:16px;}
+  .rv-tvs{font-family:'Anton', Impact, sans-serif; font-size:22px; color:var(--hc);}
+  .rv-tnames{font-size:17px; line-height:1.35;} .rv-tnames b{font-weight:700; color:#fff;}
+  .rv-tvs2{margin:0 7px; font-family:'Barlow Condensed', sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1px; font-size:14px; color:var(--hc);}
+  .rv-tsub{margin-top:-4px; font-size:15px; color:#c9c6be;}
+  .rv-tmeter{flex-direction:column; gap:6px;} .rv-tmeter .rv-hl{white-space:nowrap;}
+  .rv-tmeter .rv-bars i{width:12px; height:10px;}
+  @media (max-width:560px){
+    .rv-grid{grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;}
+    .rv-tile{padding:14px 8px 12px; gap:8px;}
+    .rv-tfaces{gap:6px;} .rv-tfaces .rv-face.big{width:52px; height:52px;} .rv-tfaces .rv-face.big .rv-ini{font-size:20px;}
+    .rv-tfaces.many .rv-face.big{width:40px; height:40px;}
+    .rv-tvs{font-size:17px;} .rv-tnames{font-size:15.5px; overflow-wrap:break-word;} .rv-tvs2{margin:0 4px; font-size:13px;}
+    .rv-tmeter .rv-bars{gap:2px;} .rv-tmeter .rv-bars i{width:9px; height:9px;} .rv-tmeter .rv-hl{font-size:14px;}
+    .rv-tgo{font-size:13.5px;}
+  }
+  .rv-tgo{margin-top:auto; padding-top:2px; font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:14px; color:#e9b949;}
+  .rv-back{display:inline-flex; align-items:center; gap:8px; margin:0 0 14px; padding:9px 16px; border-radius:9px; border:1px solid #33333d; background:#111118; color:#efe9db; font:inherit; font-weight:700; font-size:15.5px; cursor:pointer;}
+  .rv-back:hover{border-color:#e9b949; color:#fff;}
   /* the editor */
   .rv-sec{font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:15px; color:#e9b949; margin:20px 0 6px; padding-top:12px; border-top:1px solid #23232b;}
   .rv-mems{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 8px;}
@@ -29159,8 +29185,24 @@ function rvShare(id){
     navigator.clipboard.writeText(url).then(() => wcaShowSharePopup(url, true, 'Share this rivalry', ''), () => wcaShowSharePopup(url, false, 'Share this rivalry', ''));
   } else { try{ window.prompt('Copy this link:', url); }catch(e){} }
 }
-// the list: Active and Past tabs, cards, and a focused card from ?id=
-const RVL = { tab:{}, open:{} };
+// the list: Active and Past tabs and a grid of small tiles. Clicking a tile opens that
+// rivalry on its own (how it started, the build, how it ended), with a way back to the grid.
+const RVL = { tab:{}, open:{}, cur:{} };
+function rvTileHTML(ctx, r){
+  const H = rvHeat(r.heat);
+  const sides = r.members.filter(k => ctx.byKey[k]);
+  const faces = sides.map((k, i) => `${i ? '<span class="rv-tvs">VS</span>' : ''}${rvFace(ctx, k, true)}`).join('');
+  const names = sides.map(k => `<b>${stxE(ctx.byKey[k].name)}</b>`).join('<span class="rv-tvs2">vs</span>');
+  const title = String(r.title || '').trim();
+  const href = ctx.scope == null ? rvHref(r.id) : '#rv-' + Number(r.id);
+  return `<a class="rv-tile${r.status === 'past' ? ' past' : ''}" href="${stxE(href)}" data-rvgo="${Number(r.id)}" style="--hc:${H.color}">
+    <div class="rv-tfaces${sides.length > 2 ? ' many' : ''}">${faces}</div>
+    <div class="rv-tnames">${names}</div>
+    ${title && title.toLowerCase() !== rvNames(ctx, r).join(' vs ').toLowerCase() ? `<div class="rv-tsub">${stxE(title)}</div>` : ''}
+    ${rvMeter(r.heat, 'rv-tmeter')}
+    <span class="rv-tgo">See the rivalry <i class="ti ti-arrow-right" aria-hidden="true"></i></span>
+  </a>`;
+}
 async function rvRenderList(host, scope, opts){
   opts = opts || {};
   if(!host) return;
@@ -29171,8 +29213,18 @@ async function rvRenderList(host, scope, opts){
   if(res.missing){ host.innerHTML = `<div class="stx-empty">${opts.admin ? stxE(rvErr('relation rivalries does not exist')) : 'No rivalries yet.'}</div>`; return; }
   const sk = stxSk(scope);
   const rows = res.rows;
-  const focus = opts.focus != null ? rows.find(r => String(r.id) === String(opts.focus)) : null;
-  if(focus) RVL.tab[sk] = focus.status;
+  if(opts.focus != null) RVL.cur[sk] = String(opts.focus);
+  const again = extra => rvRenderList(host, scope, Object.assign({}, opts, { focus:null }, extra || {}));
+  // one rivalry, opened
+  const cur = RVL.cur[sk] != null ? rows.find(r => String(r.id) === String(RVL.cur[sk])) : null;
+  if(cur){
+    RVL.tab[sk] = cur.status;
+    host.innerHTML = `<button type="button" class="rv-back" data-rvback><i class="ti ti-arrow-left" aria-hidden="true"></i> All ${cur.status === 'past' ? 'past ' : ''}rivalries</button>
+      ${rvCardHTML(ctx, evs, cur, { open:true })}`;
+    host.querySelector('[data-rvback]').addEventListener('click', () => { delete RVL.cur[sk]; if(opts.onOpen) opts.onOpen(null, cur.status); again(); rvTop(host); });
+    return;
+  }
+  delete RVL.cur[sk];
   const tab = RVL.tab[sk] || (rows.some(r => r.status === 'active') || !rows.length ? 'active' : 'past');
   const act = rows.filter(r => r.status === 'active'), past = rows.filter(r => r.status === 'past');
   const shown = tab === 'past' ? past : act;
@@ -29180,11 +29232,20 @@ async function rvRenderList(host, scope, opts){
       <button type="button" role="tab" class="stx-view${tab === 'active' ? ' on' : ''}" aria-selected="${tab === 'active'}" data-rvtab="active">Active <span class="rv-n">${act.length}</span></button>
       <button type="button" role="tab" class="stx-view${tab === 'past' ? ' on' : ''}" aria-selected="${tab === 'past'}" data-rvtab="past">Past <span class="rv-n">${past.length}</span></button>
     </div>
-    ${shown.length ? `<div class="rv-list">${shown.map(r => rvCardHTML(ctx, evs, r, { focus:focus && focus.id === r.id, open:!!RVL.open[r.id] || (focus && focus.id === r.id) })).join('')}</div>`
+    ${shown.length ? `<div class="rv-grid">${shown.map(r => rvTileHTML(ctx, r)).join('')}</div>`
       : `<div class="stx-empty">${tab === 'past' ? 'No past rivalries yet.' : 'No active rivalries right now.'}</div>`}`;
-  host.querySelectorAll('[data-rvtab]').forEach(b => b.addEventListener('click', () => { RVL.tab[sk] = b.dataset.rvtab; if(opts.onTab) opts.onTab(b.dataset.rvtab); rvRenderList(host, scope, Object.assign({}, opts, { focus:null })); }));
-  host.querySelectorAll('[data-rvopen]').forEach(b => b.addEventListener('click', () => { RVL.open[b.dataset.rvopen] = 1; rvRenderList(host, scope, Object.assign({}, opts, { focus:null })); }));
-  if(focus){ const el = host.querySelector('#rv-' + Number(focus.id)); if(el) setTimeout(() => el.scrollIntoView({ behavior:'smooth', block:'start' }), 80); }
+  host.querySelectorAll('[data-rvtab]').forEach(b => b.addEventListener('click', () => { RVL.tab[sk] = b.dataset.rvtab; if(opts.onTab) opts.onTab(b.dataset.rvtab); again(); }));
+  host.querySelectorAll('[data-rvgo]').forEach(a => a.addEventListener('click', e => {
+    if(e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;   // a new tab still works
+    e.preventDefault();
+    RVL.cur[sk] = a.dataset.rvgo;
+    if(opts.onOpen) opts.onOpen(a.dataset.rvgo);
+    again(); rvTop(host);
+  }));
+}
+function rvTop(host){
+  const y = host.getBoundingClientRect().top + window.scrollY - 90;
+  if(y < window.scrollY) window.scrollTo({ top:Math.max(0, y), behavior:'smooth' });
 }
 
 /* ---------- the Rivalries page (/rivalries) ---------- */
@@ -29203,7 +29264,13 @@ async function rvPageOpen(){
   body.innerHTML = `<div class="stx-head"><div class="stx-k">Roster</div><h2 class="stx-title">Rivalries</h2>
       <p class="stx-dim rv-intro">Who is at war in WCA right now, how it started, and everything that has happened since. Missed a show? Start here.</p></div>
     <div id="rv-list-host"></div>`;
-  await rvRenderList(document.getElementById('rv-list-host'), null, { focus, onTab:t => { if(typeof wcaSetAddress === 'function') wcaSetAddress('rivalries', t === 'past' ? 'tab=past' : ''); } });
+  // no ?id= means the grid, even if one was open before
+  if(focus == null) delete RVL.cur.wca;
+  const addr = (qs, push) => { if(typeof wcaSetAddress === 'function') wcaSetAddress('rivalries', qs, push); };
+  await rvRenderList(document.getElementById('rv-list-host'), null, { focus,
+    onTab:t => addr(t === 'past' ? 'tab=past' : ''),
+    // opening one gets its own address (so Back returns to the grid, and the link can be shared)
+    onOpen:(id, st) => id != null ? addr('id=' + Number(id), true) : addr(st === 'past' ? 'tab=past' : '', true) });
 }
 
 /* ---------- on a profile: the rivalries they're in ---------- */
