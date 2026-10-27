@@ -6944,6 +6944,8 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-lvb.fam{border-style:solid;}
   .stx-lvb.fam::before{content:'+ '; font-weight:700;}
   .stx-lvb.fam.on::before{content:'✓ ';}
+  .stx-lvb.feel::before{content:'+ '; font-weight:700; opacity:.7;}
+  .stx-lvb.feel.on::before{content:'✓ '; opacity:1;}
   .stx-lvb.lock{cursor:default; opacity:.95;}
   .stx-lvb.lock::before{content:'✓ ';}
   .stx-lvhint{font-size:13.5px; color:#8d8a82; margin:4px 0 0;}
@@ -27864,10 +27866,23 @@ function stxLvKey(l){ return l === 'best' ? 'friends' : (STX_LV[l] ? l : 'friend
 // a_role / b_role = who each one is to the other ("Younger brother", "Older brother").
 // fam = the family words to show for one side: their role, else the relation.
 function stxFamWords(relation, role){ return String(role || '').trim() || String(relation || '').trim(); }
-function stxTieLabel(level, relation, role){
+// more than one feeling can be true (Friends and Rivals). The main one is saved in a_level/b_level,
+// the rest in a_more/b_more (SUPABASE_SETUP_relationship_feelings.sql). The main one is the
+// strongest: Enemies, then Rivals, Uneasy, Friends.
+const STX_FEEL_ORDER = ['enemies','rivals','uneasy','friends'];
+function stxMoreArr(v){ return (Array.isArray(v) ? v : []).map(x => x === 'best' ? 'friends' : x).filter(x => STX_FEEL_ORDER.includes(x)); }
+function stxSplitFeel(list){ const s = STX_FEEL_ORDER.filter(k => list.includes(k)); return { main:s[0] || '', more:s.slice(1) }; }
+// a tie row's extra feelings for one side (B copies A while b_level is empty)
+function stxRowMore(row, sideA){ if(!row) return []; const aM = stxMoreArr(row.a_more); return sideA ? aM : (row.b_level ? stxMoreArr(row.b_more) : aM); }
+function stxFeelWords(level, more){
+  const all = [level].concat(more || []).filter((k, i, a) => k && k !== 'related' && STX_LV[k] && a.indexOf(k) === i).map(k => STX_LV[stxLvKey(k)].label);
+  return all.length <= 1 ? (all[0] || '') : all.slice(0, -1).join(', ') + ' and ' + all[all.length - 1];
+}
+function stxTieLabel(level, relation, role, more){
   const l = STX_LV[stxLvKey(level)], f = stxFamWords(relation, role);
-  if(!f) return l.label;
-  return level === 'related' ? f : f + ', ' + l.label;
+  const feel = level === 'related' ? '' : (stxFeelWords(level, more) || l.label);
+  if(!f) return feel || l.label;
+  return level === 'related' ? f : f + ', ' + feel;
 }
 const STX = { ctx:{}, ties:{}, chap:{}, view:null };
 
@@ -27881,6 +27896,7 @@ function stxMissing(err){ return /does not exist|PGRST20[0-9]|could not find|sch
 function stxTieErr(err, dupMsg){
   const t = String((err && err.message) || err || '');
   if(/duplicate|unique/i.test(t)) return dupMsg;
+  if(/a_more|b_more/i.test(t)) return 'More than one feeling needs one more step. Run SUPABASE_SETUP_relationship_feelings.sql in Supabase, then save again.';
   if(/(relation|a_role|b_role).*(column|schema cache)|column.*(relation|a_role|b_role)/i.test(t) || /check constraint|violates check|invalid input value for enum/i.test(t))
     return 'Family needs one more step. Run SUPABASE_SETUP_relationships_related.sql in Supabase, then save again.';
   return stxErr(err);
@@ -28027,6 +28043,7 @@ function stxTiesOf(ctx, ties, key){
       theirs: meA ? (t.b_level || t.a_level) : t.a_level,
       theirWhy: meA ? (bSame ? (t.a_why || '') : (t.b_why || '')) : (t.a_why || ''),
       mineCopied: !meA && bSame, theirsCopied: meA && bSame,
+      mineMore: stxRowMore(t, meA), theirsMore: stxRowMore(t, !meA),
       // written ties between faction mates still show Same faction (a gold line beside the others)
       faction: (ak.indexOf('person:') === 0 && bk.indexOf('person:') === 0)
         ? ctx.factions.filter(f => !f.off && f.members.includes(ak) && f.members.includes(bk)).map(f => f.name).join(' and ') : '' });
@@ -28053,7 +28070,7 @@ function stxNodeSVG(ctx, key, x, y, r, opts){
   const lv = opts.level ? STX_LV[opts.level] : null;
   const fam = stxFamWords(opts.relation, opts.role);
   // Family as the feeling: just the family words. Any other feeling: the feeling, then the family words under it.
-  const lvText = lv ? (opts.level === 'related' ? (fam || lv.label) : lv.label) : '';
+  const lvText = lv ? (opts.level === 'related' ? (fam || lv.label) : (stxFeelWords(opts.level, opts.more) || lv.label)) : '';
   // the second line: their family role, or Same faction when that's the other thing that's true
   const famText = lv && fam && opts.level !== 'related' ? fam : '';
   const facText = !famText && lv && opts.faction && opts.level !== 'faction' ? STX_LV.faction.label : '';
@@ -28089,6 +28106,7 @@ function stxLineSVG(x1, y1, x2, y2, r1, r2, level, opts){
   if(opts && opts.faction && level !== 'faction') parts.push(p => lineOf(STX_LV.faction, p));
   if(lv.family || (opts && opts.family)) parts.push(famLine);
   if(!lv.family) parts.push(p => lineOf(lv, p));
+  ((opts && opts.more) || []).forEach(k => { const L = STX_LV[k]; if(L && k !== level) parts.push(p => lineOf(L, p)); });
   if(parts.length === 1) return parts[0](pts);
   const gap = (opts && opts.thin) ? 4.5 : 9.5, nx = -dy / len, ny = dx / len;
   return parts.map((draw, i) => { const k = (i - (parts.length - 1) / 2) * gap;
@@ -28116,8 +28134,8 @@ function stxWebSVG(ctx, center, list, sel){
       return { t, x: cx + Math.cos(a) * (W / 2 - (stxNarrow() ? 80 : 120)), y: cy + Math.sin(a) * (H / 2 - 80) }; });
   }
   const isFam = t => !!(t.relation || t.myRole || t.theirRole);
-  const lines = pts.map(p => stxLineSVG(cx, cy, p.x, p.y, R, r, p.t.mine, { sel: p.t.other === sel, family:isFam(p.t), faction:!p.t.auto && !!p.t.faction })).join('');
-  const nodes = pts.map(p => stxNodeSVG(ctx, p.t.other, p.x, p.y, r, { level:p.t.mine, relation:p.t.relation, role:p.t.theirRole, faction:!p.t.auto && !!p.t.faction, sel:p.t.other === sel })).join('');
+  const lines = pts.map(p => stxLineSVG(cx, cy, p.x, p.y, R, r, p.t.mine, { sel: p.t.other === sel, family:isFam(p.t), faction:!p.t.auto && !!p.t.faction, more:p.t.mineMore })).join('');
+  const nodes = pts.map(p => stxNodeSVG(ctx, p.t.other, p.x, p.y, r, { level:p.t.mine, more:p.t.mineMore, relation:p.t.relation, role:p.t.theirRole, faction:!p.t.auto && !!p.t.faction, sel:p.t.other === sel })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H + 20}" role="group" aria-label="Relationships">${lines}${stxNodeSVG(ctx, center, cx, cy, R, { center:true })}${nodes}</svg>`;
 }
 // the whole roster: everyone with any tie, faction mates next to each other
@@ -28217,7 +28235,8 @@ function stxWorldSVG(ctx, ties, opts, divs){
     const fam = !!(String(t.relation || '').trim() || String(t.a_role || '').trim() || String(t.b_role || '').trim());
     // a tie where either side's feeling is bad shows the bad line; otherwise A's feeling
     const lvl = [t.a_level, t.b_level || t.a_level].find(l => STX_LV[l] && !STX_LV[l].good) || t.a_level;
-    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true, family:fam, faction:mates(a, b) }); });
+    const more = [...new Set(stxRowMore(t, true).concat(stxRowMore(t, false), [t.a_level, t.b_level || t.a_level]))].filter(k => k !== lvl && STX_FEEL_ORDER.includes(k));
+    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true, family:fam, faction:mates(a, b), more }); });
   const nodes = keys.map(k => stxNodeSVG(ctx, k, pos[k][0], pos[k][1], r, { small:true })).join('');
   return `<svg class="stx-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="The whole roster">${lines}${nodes}</svg>`;
 }
@@ -28501,7 +28520,7 @@ async function stxRender(){
       <div class="stx-chapbox" data-box="story">${chs.length ? stxChapterView(chs, v.ch) : '<p class="stx-dim">No story written yet.</p>'}</div>
       ${ffacts.length ? `<div class="stx-sec">What happened in WCA</div><div class="stx-chapbox stx-factbox" data-box="facts">${stxChapterView(ffacts, 0)}</div>` : ''}
       ${fties.length ? `<div class="stx-sec">Who they have history with</div><div class="stx-fties">${fties.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
-        return `<div class="stx-ftie" style="--lc:${l.color}"><div class="stx-k" style="color:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</div><b>${stxE(o.name)}</b>${t.myWhy ? `<p>${stxE(t.myWhy)}</p>` : ''}</div>`; }).join('')}</div>` : ''}` : '<div class="stx-empty">No factions yet.</div>'}`;
+        return `<div class="stx-ftie" style="--lc:${l.color}"><div class="stx-k" style="color:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole, t.mineMore))}</div><b>${stxE(o.name)}</b>${t.myWhy ? `<p>${stxE(t.myWhy)}</p>` : ''}</div>`; }).join('')}</div>` : ''}` : '<div class="stx-empty">No factions yet.</div>'}`;
     body.innerHTML = html;
     { const sb1 = body.querySelector('[data-box="story"]'), fb = body.querySelector('[data-box="facts"]');
       if(sb1) stxBindChapters(sb1, chs); if(fb) stxBindChapters(fb, ffacts); }
@@ -28523,8 +28542,8 @@ async function stxRender(){
     const list = me ? stxTiesOf(ctx, ties, v.key) : [];
     const t = list.find(x => x.other === v.sel) || null;
     const facs = me ? stxFactionsOf(ctx, v.key) : [];
-    const side = (whoK, otherK, level, why, copied) => { const l = STX_LV[level];
-      return `<div class="stx-side"><div class="stx-side-h"><b>${stxE(ctx.byKey[whoK].name)}</b><span style="color:${l.color}">${stxE(l.label)}</span></div>
+    const side = (whoK, otherK, level, why, copied, more) => { const l = STX_LV[level];
+      return `<div class="stx-side"><div class="stx-side-h"><b>${stxE(ctx.byKey[whoK].name)}</b><span style="color:${l.color}">${stxE(stxFeelWords(level, more) || l.label)}</span></div>
         ${stxMeter(level)}<div class="stx-why">${why ? stxE(why) : '<span class="stx-dim">No reason written yet.</span>'}</div>
         ${copied ? `<div class="stx-copied">The same both ways.</div>` : ''}</div>`; };
     const aside = t ? `<div class="stx-k">${t.auto ? 'Faction mates' : 'Relationship'}</div>
@@ -28533,8 +28552,8 @@ async function stxRender(){
         ${t.relation || t.myRole || t.theirRole ? `<div class="stx-family"><i class="ti ti-users"></i><span><span>Family${t.relation ? ': <b>' + stxE(t.relation) + '</b>' : ''}</span>
           ${t.myRole ? `<small>${stxE(me.name)} is ${stxE(ctx.byKey[t.other].name)}'s ${stxE(t.myRole.toLowerCase())}.</small>` : ''}
           ${t.theirRole ? `<small>${stxE(ctx.byKey[t.other].name)} is ${stxE(me.name)}'s ${stxE(t.theirRole.toLowerCase())}.</small>` : ''}</span></div>` : ''}
-        ${side(v.key, t.other, t.mine, t.myWhy, t.mineCopied)}
-        ${side(t.other, v.key, t.theirs, t.theirWhy, t.theirsCopied)}
+        ${side(v.key, t.other, t.mine, t.myWhy, t.mineCopied, t.mineMore)}
+        ${side(t.other, v.key, t.theirs, t.theirWhy, t.theirsCopied, t.theirsMore)}
         ${ctx.byKey[t.other].kind === 'person' ? `<button type="button" class="stx-btn" data-web="${stxE(t.other)}">See ${stxE(ctx.byKey[t.other].name)}'s web</button>`
           : `<button type="button" class="stx-btn" data-fac="${stxE(t.other)}">Open ${stxE(ctx.byKey[t.other].name)}</button>`}`
       : `<div class="stx-k">${me ? stxE(me.name) : ''}</div>
@@ -28598,7 +28617,7 @@ async function stxHydrate(root){
         ${facts.length ? `<div class="stx-pb-h">What happened in WCA</div><div class="stx-chapbox stx-factbox" data-box="facts">${stxChapterView(facts, 0)}</div>` : ''}
         ${list.length ? `<div class="stx-pb-h">Relationships</div><div class="stx-plist">${list.slice(0, 12).map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
           return `<button type="button" class="stx-prow" onclick="stxOpen({scope:${scopeArg},mode:'web',key:'${stxE(key)}',sel:'${stxE(t.other)}'})">
-            <span class="stx-dot" style="background:${stxHex(o.color)}"></span><b>${stxE(o.name)}</b><span class="stx-chip" style="--lc:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</span>
+            <span class="stx-dot" style="background:${stxHex(o.color)}"></span><b>${stxE(o.name)}</b><span class="stx-chip" style="--lc:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole, t.mineMore))}</span>
             ${t.myWhy && !t.auto ? `<small>${stxE(t.myWhy)}</small>` : ''}</button>`; }).join('')}</div>
           <button type="button" class="stx-btn" onclick="stxOpenWeb(${scopeArg},'${stxE(key)}')">Open their web</button>` : ''}
         <div data-rvbox></div>
@@ -28688,19 +28707,24 @@ function stxLvChips(id, cur, opts){
   opts = opts || {};
   const feel = cur === 'related' ? '' : (cur || '');
   const famOn = !!opts.famOn || cur === 'related';
-  const feelHtml = STX_FEEL.map(k => { const l = STX_LV[k];
-    return `<button type="button" role="radio" aria-checked="${feel === k}" class="stx-lvb${feel === k ? ' on' : ''}" style="--lc:${l.color}" data-v="${k}" onclick="stxLvPick('${id}','${k}')">${stxE(l.label)}</button>`; }).join('');
+  const picked = [feel].concat(stxMoreArr(opts.more)).filter(Boolean);
+  const sp = stxSplitFeel(picked);
+  const feelHtml = STX_FEEL.map(k => { const l = STX_LV[k], on = picked.includes(k);
+    return `<button type="button" role="checkbox" aria-checked="${on}" class="stx-lvb feel${on ? ' on' : ''}" style="--lc:${l.color}" data-v="${k}" onclick="stxLvPick('${id}','${k}')">${stxE(l.label)}</button>`; }).join('');
   const famHtml = opts.fam ? `<span class="stx-lvsep" aria-hidden="true"></span><button type="button" role="checkbox" aria-checked="${famOn}" class="stx-lvb fam${famOn ? ' on' : ''}" style="--lc:${STX_LV.related.color}" data-fam="1" onclick="stxFamToggle()">${stxE(STX_LV.related.label)}</button>` : '';
   const facHtml = opts.faction ? `<button type="button" class="stx-lvb lock on" style="--lc:${STX_LV.faction.color}" title="They're in ${stxE(opts.faction)} together. Set in the Factions tab." aria-disabled="true">${stxE(STX_LV.faction.label)}</button>` : '';
-  return `<div class="stx-lvs" id="${id}" data-lv="${feel}" data-none="${opts.fam ? '1' : ''}" role="radiogroup">${feelHtml}${famHtml}${facHtml}</div>`;
+  return `<div class="stx-lvs" id="${id}" data-lv="${sp.main}" data-more="${sp.more.join(',')}" data-none="${opts.fam ? '1' : ''}" role="group">${feelHtml}${famHtml}${facHtml}</div>`;
 }
+// every feeling can be on at the same time: press one to add it (a check shows), press again to take it off
 function stxLvPick(id, k){
   const box = document.getElementById(id); if(!box) return;
-  // pressing the picked feeling again clears it, when Family can stand on its own
-  if(box.dataset.lv === k && box.dataset.none) k = '';
-  box.dataset.lv = k;
-  box.querySelectorAll('.stx-lvb[data-v]').forEach(b => { const on = b.dataset.v === k; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  const now = new Set([box.dataset.lv].concat(String(box.dataset.more || '').split(',')).filter(Boolean));
+  if(now.has(k)) now.delete(k); else now.add(k);
+  const sp = stxSplitFeel([...now]);
+  box.dataset.lv = sp.main; box.dataset.more = sp.more.join(',');
+  box.querySelectorAll('.stx-lvb[data-v]').forEach(b => { const on = now.has(b.dataset.v); b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
 }
+function stxLvMore(id){ const b = document.getElementById(id); return b ? String(b.dataset.more || '').split(',').filter(Boolean) : []; }
 // Family is one thing for the pair, so its chip on both sides and the family details move together
 function stxFamToggle(force){
   const c = document.getElementById('stxe-fam'); if(!c) return;
@@ -28722,7 +28746,7 @@ async function stxEdTies(body, ctx){
       <select id="stxe-who" class="stx-in" onchange="STXE.who=this.value;STXE.other=null;stxEdDraw()">${stxEdOptions(ctx, STXE.who, null, true, true)}</select>
       <div class="stx-tlist">${list.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
         return `<button type="button" class="stx-tie${STXE.other === t.other ? ' on' : ''}" onclick="STXE.other='${stxE(t.other)}';stxEdDraw()">
-          <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(stxTieLabel(t.mine, t.relation, t.theirRole))}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}${!STXE.own && t.tie && t.tie.player_edited_at ? '<span class="stx-auto stx-pl" title="A player changed this">Player edited</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
+          <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(stxTieLabel(t.mine, t.relation, t.theirRole, t.mineMore))}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}${!STXE.own && t.tie && t.tie.player_edited_at ? '<span class="stx-auto stx-pl" title="A player changed this">Player edited</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
       <button type="button" class="stx-btn" onclick="STXE.other='new';stxEdDraw()">+ Add a relationship</button>
       ${STXE.scope == null && typeof stxScanTab === 'function' ? `<button type="button" class="stx-btn ghost" style="margin-left:0" onclick="STXE.tab='scan';stxEdDraw()"><i class="ti ti-radar"></i> Scan for possible rivalries</button>` : ''}
     </section>
@@ -28751,8 +28775,8 @@ async function stxEdTies(body, ctx){
     ${t && t.auto ? `<p class="stx-dim">They're in ${stxE(t.faction)} together, so they're tied automatically. Saving this gives them their own relationship and history.</p>` : ''}
     <div class="stx-side">
       <div class="stx-side-h"><div>How ${stxE(who.name)} feels about <b class="stxe-on">${stxE(otherName)}</b></div></div>
-      ${stxLvChips('stxe-lva', myLv, { fam:true, famOn, faction:famFaction })}
-      <p class="stx-lvhint">Pick how they feel. Family can go on top of any feeling.</p>
+      ${stxLvChips('stxe-lva', myLv, { fam:true, famOn, faction:famFaction, more:stxRowMore(row, meIsA) })}
+      <p class="stx-lvhint">Pick every feeling that's true, like Friends and Rivals. Family can go on top of any of them.</p>
       <label class="stx-l" for="stxe-wa">Why <span class="stx-opt">(shows on ${stxE(who.name)}'s profile)</span></label>
       <textarea id="stxe-wa" class="stx-in" rows="2" maxlength="600" placeholder="A line or two">${stxE(myWhy)}</textarea>
     </div>
@@ -28761,7 +28785,7 @@ async function stxEdTies(body, ctx){
         <label class="stx-same"><input type="checkbox" id="stxe-same"${same ? ' checked' : ''} onchange="document.getElementById('stxe-bside').hidden=this.checked;document.getElementById('stxe-samenote').hidden=!this.checked"> The same</label></div>
       <div class="stx-dim" id="stxe-samenote"${same ? '' : ' hidden'}>Copied from ${stxE(who.name)}'s side, so both profiles show it. Untick to give them their own feeling and reason.</div>
       <div id="stxe-bside"${same ? ' hidden' : ''}>
-        ${stxLvChips('stxe-lvb', thLv, { fam:true, famOn, faction:famFaction })}
+        ${stxLvChips('stxe-lvb', thLv, { fam:true, famOn, faction:famFaction, more:stxRowMore(row, !meIsA) })}
         <label class="stx-l" for="stxe-wb">Why <span class="stx-opt">(shows on their profile)</span></label>
         <textarea id="stxe-wb" class="stx-in" rows="2" maxlength="600" placeholder="Their side of it">${stxE(thWhy)}</textarea>
       </div>
@@ -28824,6 +28848,15 @@ async function stxEdSaveTie(){
   if(same) rec = { a_level:lva, a_why:wa || null, b_level:null, b_why:null };
   else if(A === STXE.who) rec = { a_level:lva, a_why:wa || null, b_level:lvb || lva, b_why:wb || null };
   else rec = { a_level:lvb || lva, a_why:wb || null, b_level:lva, b_why:wa || null };
+  // the extra feelings (Friends and Rivals at once): only sent when there are some, or there were, so saving works before the SQL is run
+  const moreA = stxLvMore('stxe-lva'), moreB = same ? moreA : (document.getElementById('stxe-lvb').dataset.lv ? stxLvMore('stxe-lvb') : moreA);
+  const hadMore = !!(existing && (stxMoreArr(existing.a_more).length || stxMoreArr(existing.b_more).length));
+  if(moreA.length || moreB.length || hadMore){
+    const mineM = moreA, theirM = same ? [] : moreB;
+    if(same){ rec.a_more = mineM; rec.b_more = []; }
+    else if(A === STXE.who){ rec.a_more = mineM; rec.b_more = theirM; }
+    else { rec.a_more = theirM; rec.b_more = mineM; }
+  }
   const [ak, ai] = split(A), [bk, bi] = split(B);
   Object.assign(rec, { a_kind:ak, a_id:ai, b_kind:bk, b_id:bi, history:document.getElementById('stxe-hist').value.trim() || null, moments });
   // family: only sent when it's set (or being cleared), so saving works before the SQL is run
@@ -29027,6 +29060,7 @@ async function stxEdRemoveFaction(id){
    key moments or facts. SQL: SUPABASE_SETUP_player_stories.sql */
 function stxOwnErr(err){
   const t = String((err && err.message) || err || '');
+  if(/p_more/i.test(t)) return 'Picking more than one feeling is not switched on yet. Pick one for now, WCA is finishing setting it up.';
   if(/could not find the function|schema cache|function .* does not exist/i.test(t)) return 'Writing your own stories is not switched on yet. WCA has to finish setting it up.';
   return t || 'Something went wrong.';
 }
@@ -29059,8 +29093,8 @@ function stxOwnTieForm(form, ctx, list, who, t, isNew){
     ${t && t.auto ? `<p class="stx-dim">You're in ${stxE(t.faction)} together, so you're tied automatically. Saving this gives you your own relationship and history.</p>` : ''}
     <div class="stx-side">
       <div class="stx-side-h"><div>How ${stxE(who.name)} feels about <b class="stxe-on">${stxE(otherName)}</b></div></div>
-      ${stxLvChips('stxe-lva', myLv, { fam:true, famOn, faction:t ? (t.faction || '') : '' })}
-      <p class="stx-lvhint">Pick how you feel. Family can go on top of any feeling.</p>
+      ${stxLvChips('stxe-lva', myLv, { fam:true, famOn, faction:t ? (t.faction || '') : '', more:stxRowMore(row, meIsA) })}
+      <p class="stx-lvhint">Pick every feeling that's true, like Friends and Rivals. Family can go on top of any of them.</p>
       <label class="stx-l" for="stxe-wa">Why <span class="stx-opt">(shows on ${stxE(who.name)}'s profile)</span></label>
       <textarea id="stxe-wa" class="stx-in" rows="2" maxlength="600" placeholder="A line or two">${stxE(myWhy)}</textarea>
     </div>
@@ -29112,7 +29146,9 @@ async function stxOwnSaveTie(){
   const hadFam = !!(existing && (existing.relation || existing.a_role || existing.b_role));
   const { error } = await sb.rpc('story_owner_save_tie', { p_me_kind:mk, p_me_id:mi, p_other_kind:ok, p_other_id:oi, p_level:lv, p_why:val('stxe-wa'),
     p_family: famOn ? true : (hadFam ? false : null), p_relation:val('stxe-rel'), p_my_role:val('stxe-rolea'), p_their_role:val('stxe-roleb'),
-    p_history:(document.getElementById('stxe-hist') || {}).value || '' });
+    p_history:(document.getElementById('stxe-hist') || {}).value || '',
+    ...(() => { const m = stxLvMore('stxe-lva'); const had = existing && stxRowMore(existing, (existing.a_kind + ':' + existing.a_id) === STXE.who).length;
+      return m.length || had ? { p_more:m } : {}; })() });
   if(error){ stxEdMsg(stxOwnErr(error), false); return; }
   stxForget(null);
   STXE.other = otherK;
