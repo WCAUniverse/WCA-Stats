@@ -6840,6 +6840,9 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-lvl{font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:12px; paint-order:stroke; stroke:#08090e; stroke-width:4px; pointer-events:none;}
   .stx-legend{display:flex; flex-wrap:wrap; gap:8px 16px; justify-content:center; padding:6px 8px 0; font-size:13px; color:#a9a6a0;}
   .stx-legend span{display:inline-flex; align-items:center; gap:7px;}
+  .stx-tname{font-family:'Barlow Condensed', sans-serif; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; font-size:15px; opacity:.8;}
+  .stx-teamline{cursor:help;}
+  .stx-teamline:hover line{opacity:1;}
   .stx-legend i{display:inline-block; width:26px;}
   .stx-aside{border:1px solid #20212a; border-radius:14px; padding:16px; background:#0a0b10; position:sticky; top:0;}
   .stx-tietitle{font-family:'Anton', Impact, sans-serif; text-transform:uppercase; font-size:22px; line-height:1.15; margin:4px 0 8px; color:#fff;}
@@ -6947,6 +6950,14 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   .stx-lvb.feel::before{content:'+ '; font-weight:700; opacity:.7;}
   .stx-lvb.feel.on::before{content:'✓ '; opacity:1;}
   .stx-lvsep[hidden]{display:none;}
+  .stx-apl{margin:16px 0 4px; padding:14px 16px; border:1px dashed rgba(233,185,73,.45); border-radius:12px; background:rgba(233,185,73,.04);}
+  .stx-apl .stx-dim{font-size:14.5px; margin:0 0 10px;}
+  .stx-apl-f{margin:8px 0 10px;}
+  .stx-apl-m{display:flex; flex-wrap:wrap; gap:8px;}
+  .stx-apl-c{display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border:1px solid rgba(255,255,255,.14); border-radius:20px; font-size:14.5px; cursor:pointer; text-transform:none; letter-spacing:normal; margin:0;}
+  .stx-apl-c small{color:#a9a6a0; font-size:12.5px;}
+  .stx-apl-c input{accent-color:#e9b949; width:16px; height:16px; margin:0;}
+  .stx-apl-over{border-style:dashed; margin-top:4px;}
   .stx-styles{display:flex; flex-direction:column; gap:10px; margin:12px 0 4px;}
   .stx-srow2{border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:10px;}
   .stx-srow2.new{border-style:dashed; border-color:rgba(255,255,255,.18);}
@@ -28124,6 +28135,41 @@ function stxTiesOf(ctx, ties, key){
 }
 function stxFactionsOf(ctx, key){ return ctx.factions.filter(f => !f.off && f.members.includes(key)); }
 
+/* ---------- faction against faction ----------
+   How two teams stand with each other: a relationship written for the factions themselves,
+   plus every relationship between their members. One line per pair of teams, so the web
+   stays clean. The main kind is the one written for the factions, otherwise the bad one
+   most of their members share. Inactive factions are left out. */
+function stxFacEdges(ctx, ties){
+  const live = ctx.factions.filter(f => !f.off);
+  const facOf = {}; live.forEach(f => f.members.forEach(m => { (facOf[m] = facOf[m] || []).push(f.key); }));
+  const isLive = k => live.some(f => f.key === k);
+  const sideFacs = k => k.indexOf('faction:') === 0 ? (isLive(k) ? [k] : []) : (facOf[k] || []);
+  const E = {};
+  (ties || []).forEach(t => {
+    const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id;
+    const fa = sideFacs(a), fb = sideFacs(b);
+    if(!fa.length || !fb.length) return;
+    const direct = a.indexOf('faction:') === 0 && b.indexOf('faction:') === 0;
+    const lvls = [t.a_level, t.b_level || t.a_level].concat(stxRowMore(t, true), stxRowMore(t, false)).map(stxLvKey).filter(k => k !== 'related');
+    fa.forEach(x => fb.forEach(y => {
+      if(x === y) return;                                   // inside one team
+      const id = x < y ? x + '|' + y : y + '|' + x;
+      const e = E[id] || (E[id] = { a:x < y ? x : y, b:x < y ? y : x, n:0, count:{}, direct:[] });
+      e.n++;
+      lvls.forEach(l => { e.count[l] = (e.count[l] || 0) + 1; });
+      if(direct) e.direct.push(...lvls);
+    }));
+  });
+  return Object.values(E).map(e => {
+    const kinds = Object.keys(e.count).filter(k => STX_LV[k]);
+    const pickBad = list => list.filter(k => !STX_LV[k].good).sort((x, y) => STX_FEEL_ORDER.indexOf(x) - STX_FEEL_ORDER.indexOf(y))[0];
+    let main = e.direct.length ? (pickBad(e.direct) || e.direct[0]) : '';
+    if(!main){ const most = kinds.slice().sort((x, y) => e.count[y] - e.count[x] || (STX_LV[x].good ? 1 : 0) - (STX_LV[y].good ? 1 : 0)); main = pickBad(most.filter(k => e.count[k] === e.count[most[0]])) || most[0]; }
+    return { a:e.a, b:e.b, n:e.n, level:main || 'friends', more:kinds.filter(k => k !== main && k !== 'faction').slice(0, 3) };
+  });
+}
+
 /* ---------- drawing the web (SVG, so it scales to any screen) ---------- */
 function stxNodeSVG(ctx, key, x, y, r, opts){
   const n = ctx.byKey[key] || { name:'?', color:'#c9c6be' };
@@ -28155,8 +28201,8 @@ function stxLineSVG(x1, y1, x2, y2, r1, r2, level, opts){
   const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy) || 1;
   const ax = x1 + dx / len * (r1 + 4), ay = y1 + dy / len * (r1 + 4), bx = x2 - dx / len * (r2 + 4), by = y2 - dy / len * (r2 + 4);
   const thin = !!(opts && opts.thin);
-  const lw = thin ? 1.8 : 3 + ((opts && opts.sel) ? 1.5 : 0);        // every line the same thickness
-  const op = thin ? .65 : .9;
+  const lw = (opts && opts.faint) ? 3.2 : thin ? 1.8 : 3 + ((opts && opts.sel) ? 1.5 : 0);        // every line the same thickness
+  const op = (opts && opts.faint) ? .42 : thin ? .65 : .9;
   const pts = `x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}"`;
   // the line for one kind: single solid, double, or dashed, in its color
   const lineOf = (L, p) => {
@@ -28271,6 +28317,21 @@ function stxWorldPick(ctx, ties, opts, divs){
   else if(divs && divs[opts.div]) ppl = ppl.filter(p => divs[opts.div].has(p.key));
   return ppl.map(p => p.key);
 }
+// every active team in a ring, a line between two teams for how they stand with each other
+function stxFactionWebSVG(ctx, ties, sel){
+  const live = ctx.factions.filter(f => !f.off);
+  if(live.length < 2) return '';
+  const edges = stxFacEdges(ctx, ties);
+  const n = live.length, W = n > 10 ? 1100 : 900, H = Math.round(W * (n > 6 ? 0.62 : 0.56)), cx = W / 2, cy = H / 2;
+  const r = n > 12 ? 26 : 34, R = Math.min(W, H) / 2 - r - 40;
+  const pos = {};
+  live.forEach((f, i) => { const ang = -Math.PI / 2 + i * 2 * Math.PI / n; pos[f.key] = [cx + Math.cos(ang) * R * (W / H > 1.4 ? 1.35 : 1.1), cy + Math.sin(ang) * R]; });
+  const lines = edges.map(e => { if(!pos[e.a] || !pos[e.b]) return ''; const L = STX_LV[e.level] || STX_LV.friends;
+    const on = sel && (e.a === sel || e.b === sel);
+    return `<g class="stx-teamline"${sel && !on ? ' opacity=".35"' : ''}><title>${stxE(ctx.byKey[e.a].name)} and ${stxE(ctx.byKey[e.b].name)}: ${stxE(stxFeelWords(e.level, e.more) || L.label)}${e.n > 1 ? ' (' + e.n + ' relationships)' : ''}</title>${stxLineSVG(pos[e.a][0], pos[e.a][1], pos[e.b][0], pos[e.b][1], r, r, e.level, { more:e.more, sel:on })}</g>`; }).join('');
+  const nodes = live.map(f => stxNodeSVG(ctx, f.key, pos[f.key][0], pos[f.key][1], r, { sel:f.key === sel })).join('');
+  return `<svg class="stx-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="The factions">${lines}${nodes}</svg>`;
+}
 function stxWorldSVG(ctx, ties, opts, divs){
   opts = opts || { show:'ties', div:'all' };
   const live = ctx.factions.filter(f => !f.off);
@@ -28291,6 +28352,28 @@ function stxWorldSVG(ctx, ties, opts, divs){
   let lines = '';
   const written = new Set(ties.map(t => [t.a_kind + ':' + t.a_id, t.b_kind + ':' + t.b_id].sort().join('|')));
   const mates = (a, b) => live.some(f => f.members.includes(a) && f.members.includes(b));
+  // each team on screen: its middle and how far its members spread
+  const cl = {};
+  live.forEach(f => { const m = f.members.filter(k => pos[k]); if(!m.length) return;
+    const cx = m.reduce((s, k) => s + pos[k][0], 0) / m.length, cy = m.reduce((s, k) => s + pos[k][1], 0) / m.length;
+    const rad = Math.max(...m.map(k => Math.hypot(pos[k][0] - cx, pos[k][1] - cy))) + r + 14;
+    cl[f.key] = { x:cx, y:cy, r:rad, f, m }; });
+  const teamOf = {}; Object.values(cl).forEach(c => c.m.forEach(k => { (teamOf[k] = teamOf[k] || []).push(c.f.key); }));
+  // a relationship between two people on different teams is drawn as part of the team line
+  const acrossTeams = (a, b) => (teamOf[a] || []).length && (teamOf[b] || []).length && !(teamOf[a] || []).some(x => (teamOf[b] || []).includes(x));
+  let teamLines = '', teamRings = '';
+  Object.values(cl).forEach(c => { const col = stxHex(c.f.color, '#e9b949');
+    teamRings += `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${c.r.toFixed(1)}" fill="${col}" fill-opacity=".035" stroke="${col}" stroke-opacity=".28" stroke-width="1.5" stroke-dasharray="4 6"/>
+      <text x="${c.x.toFixed(1)}" y="${(c.y - c.r - 8).toFixed(1)}" text-anchor="middle" class="stx-tname" fill="${col}">${stxE(c.f.name)}</text>`; });
+  stxFacEdges(ctx, ties).forEach(e => { const A = cl[e.a], B = cl[e.b]; if(!A || !B) return;
+    const L = STX_LV[e.level] || STX_LV.friends;
+    teamLines += `<g class="stx-teamline"><title>${stxE(A.f.name)} and ${stxE(B.f.name)}: ${stxE(stxFeelWords(e.level, e.more) || L.label)}${e.n > 1 ? ' (' + e.n + ' relationships)' : ''}</title>${stxLineSVG(A.x, A.y, B.x, B.y, A.r - 4, B.r - 4, e.level, { faint:true, more:e.more })}</g>`; });
+  // a team and someone who isn't on a team: a faint line from the team to them
+  ties.forEach(t => { const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id;
+    const pair = a.indexOf('faction:') === 0 && b.indexOf('person:') === 0 ? [a, b] : b.indexOf('faction:') === 0 && a.indexOf('person:') === 0 ? [b, a] : null;
+    if(!pair || !cl[pair[0]] || !pos[pair[1]] || (teamOf[pair[1]] || []).length) return;
+    const A = cl[pair[0]], lvl = [t.a_level, t.b_level || t.a_level].map(stxLvKey).find(l => STX_LV[l] && !STX_LV[l].good) || stxLvKey(t.a_level);
+    teamLines += `<g class="stx-teamline"><title>${stxE(A.f.name)} and ${stxE(ctx.byKey[pair[1]].name)}: ${stxE(STX_LV[lvl].label)}</title>${stxLineSVG(A.x, A.y, pos[pair[1]][0], pos[pair[1]][1], A.r - 4, r, lvl, { faint:true })}</g>`; });
   live.forEach(f => { const m = f.members.filter(k => pos[k]);
     for(let i = 0; i < m.length; i++) for(let j = i + 1; j < m.length; j++){
       if(m.length > 6 && j !== i + 1) continue;
@@ -28301,9 +28384,12 @@ function stxWorldSVG(ctx, ties, opts, divs){
     // a tie where either side's feeling is bad shows the bad line; otherwise A's feeling
     const lvl = [t.a_level, t.b_level || t.a_level].find(l => STX_LV[l] && !STX_LV[l].good) || t.a_level;
     const more = [...new Set(stxRowMore(t, true).concat(stxRowMore(t, false), [t.a_level, t.b_level || t.a_level]))].filter(k => k !== lvl && STX_FEEL_ORDER.includes(k));
-    if(pos[a] && pos[b]) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true, family:fam, faction:mates(a, b), more }); });
+    if(pos[a] && pos[b] && !(acrossTeams(a, b) && !fam)) lines += stxLineSVG(pos[a][0], pos[a][1], pos[b][0], pos[b][1], r, r, lvl, { thin:true, family:fam, faction:mates(a, b), more }); });
   const nodes = keys.map(k => stxNodeSVG(ctx, k, pos[k][0], pos[k][1], r, { small:true })).join('');
-  return `<svg class="stx-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="The whole roster">${lines}${nodes}</svg>`;
+  // grow the frame so a team circle and its name never get cut off at the edge
+  let x0 = 0, y0 = 0, x1 = W, y1 = H;
+  Object.values(cl).forEach(c => { x0 = Math.min(x0, c.x - c.r - 6); x1 = Math.max(x1, c.x + c.r + 6); y0 = Math.min(y0, c.y - c.r - 30); y1 = Math.max(y1, c.y + c.r + 6); });
+  return `<svg class="stx-svg" viewBox="${x0.toFixed(0)} ${y0.toFixed(0)} ${(x1 - x0).toFixed(0)} ${(y1 - y0).toFixed(0)}" role="group" aria-label="The whole roster">${teamRings}${teamLines}${lines}${nodes}</svg>`;
 }
 // who is in which division: the rankings first, then Mens or Womens from the profile
 STX.div = null;
@@ -28574,7 +28660,10 @@ async function stxRender(){
     const chs = f ? await stxChapters(v.scope, f.key) : [];
     const ffacts = f ? await stxFacts(v.scope, f.key) : [];
     const fties = f ? stxTiesOf(ctx, ties, f.key) : [];
+    const fweb = stxFactionWebSVG(ctx, ties, v.key);
     html = `<div class="stx-head"><div class="stx-k">Factions</div>${tabs}</div>
+      ${fweb ? `<p class="stx-dim">How the teams stand with each other, from what's written for the teams and for their members. Pick a team to read its story.</p>
+        <div class="stx-stage stx-stage-wide">${stxZoomWrap('factions', fweb)}${stxLegend()}</div>` : ''}
       ${live.length > 1 || (f && f.off && live.length) ? `<div class="stx-pickrow"><label class="stx-l" for="stx-fpick">Faction</label><select id="stx-fpick" class="stx-in">${f && f.off ? '<option value="" selected disabled>Pick a faction</option>' : ''}${live.map(x => `<option value="${stxE(x.key)}"${x.key === v.key ? ' selected' : ''}>${stxE(x.name)}</option>`).join('')}</select></div>` : ''}
       ${f ? `<section class="stx-fac" style="--fc:${stxHex(f.color, '#e9b949')}">
         <div class="stx-k">Faction</div><h2 class="stx-ftitle">${stxE(f.name)}</h2>
@@ -28642,7 +28731,8 @@ async function stxRender(){
   body.querySelectorAll('.stx-zoom').forEach(z => stxZoomBind(z));
   body.querySelectorAll('.stx-node').forEach(g => {
     const go = () => { const k = g.dataset.k;
-      if(v.mode === 'world'){ v.mode = 'web'; v.key = k; v.sel = null; }
+      if(v.mode === 'faction'){ v.key = k; v.ch = 0; }
+      else if(v.mode === 'world'){ v.mode = 'web'; v.key = k; v.sel = null; }
       else if(g.classList.contains('center')) v.sel = null;
       else v.sel = (v.sel === k ? null : k);
       stxRender(); };
@@ -28988,6 +29078,7 @@ async function stxEdTies(body, ctx){
     <label class="stx-l">Key moments <span class="stx-opt">(optional)</span></label>
     <div id="stxe-moments">${moments.map(mo => stxMomentRow(mo.when, mo.text)).join('')}</div>
     <button type="button" class="stx-mini" onclick="document.getElementById('stxe-moments').insertAdjacentHTML('beforeend', stxMomentRow('',''))">+ Add a moment</button>
+    <div id="stxe-apply"></div>
     <div class="stx-acts">
       <button type="button" class="stx-btn" onclick="stxEdSaveTie()">Save</button>
       ${row ? `<button type="button" class="stx-mini stx-danger" onclick="stxEdRemoveTie(${Number(row.id)})">Remove this relationship</button>` : ''}
@@ -28995,6 +29086,73 @@ async function stxEdTies(body, ctx){
     </div>
     <p class="stx-dim stx-small">Faction mates are tied together on their own. You can still open one to write their history together.</p>`;
   if(isNew) stxEdOtherName(document.getElementById('stxe-other'));
+  else stxApplyDraw();
+}
+/* A relationship with a faction goes to each of its members too, unless you untick them.
+   Spade Family DWL against Drew Black: Ace, Jack and Crystal each get it with Drew.
+   Faction against faction: every member against every member. Members who already have
+   their own relationship keep it, unless "Change the ones they already have" is ticked. */
+async function stxApplyDraw(){
+  const box = document.getElementById('stxe-apply'); if(!box) return;
+  const ctx = await stxCtx(STXE.scope), ties = await stxTies(STXE.scope);
+  const otherK = STXE.other === 'new' ? (document.getElementById('stxe-other') || {}).value : STXE.other;
+  const facSides = [STXE.who, otherK].filter(k => k && ctx.byKey[k] && ctx.byKey[k].kind === 'faction' && ctx.byKey[k].members.length);
+  if(!otherK || !facSides.length){ box.innerHTML = ''; return; }
+  const ends = k => ctx.byKey[k].kind === 'faction' ? ctx.byKey[k].members.filter(m => ctx.byKey[m]) : [k];
+  const has = (p, q) => ties.some(t => { const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id; return (a === p && b === q) || (a === q && b === p); });
+  const nm = k => (ctx.byKey[k] || {}).name || '';
+  const list = (k, side) => { const otherEnds = ends(side === 'who' ? otherK : STXE.who);
+    return `<div class="stx-apl-f"><div class="stx-l">${stxE(nm(k))}</div><div class="stx-apl-m">${ends(k).map(m => {
+      const own = otherEnds.filter(o => o !== m && has(m, o)).length;
+      return `<label class="stx-apl-c"><input type="checkbox" class="stxe-am" data-side="${side}" value="${stxE(m)}" checked> <span>${stxE(nm(m))}</span>${own ? `<small>${own === otherEnds.length ? 'has their own already' : own + ' of their own already'}</small>` : ''}</label>`; }).join('')}</div></div>`; };
+  const fA = ctx.byKey[STXE.who].kind === 'faction', fB = ctx.byKey[otherK].kind === 'faction';
+  box.innerHTML = `<section class="stx-apl">
+    <div class="stx-h" style="margin-bottom:4px">Also give this to each member</div>
+    <p class="stx-dim">${fA && fB ? `Every ticked member of ${stxE(nm(STXE.who))} gets this relationship with every ticked member of ${stxE(nm(otherK))}.`
+      : `Every ticked member of ${stxE(nm(fA ? STXE.who : otherK))} gets this relationship with ${stxE(nm(fA ? otherK : STXE.who))} too.`} Untick anyone it isn't true for. Family, history and key moments stay with this one.</p>
+    ${fA ? list(STXE.who, 'who') : ''}${fB ? list(otherK, 'other') : ''}
+    <label class="stx-apl-c stx-apl-over"><input type="checkbox" id="stxe-apply-over"> <span>Change the ones they already have too</span><small>Otherwise members who already have their own relationship keep it.</small></label>
+  </section>`;
+}
+async function stxApplyToMembers(o){
+  const box = document.getElementById('stxe-apply'); if(!box || !box.innerHTML) return null;
+  // family only has nothing to hand on (family stays with the faction one)
+  if(o.lva === 'related') return null;
+  if(o.lvb === 'related') o.lvb = o.lva;
+  const ctx = await stxCtx(STXE.scope), ties = await stxTies(STXE.scope, true);
+  const picked = side => [...box.querySelectorAll('.stxe-am[data-side="' + side + '"]:checked')].map(i => i.value);
+  const whoEnds = ctx.byKey[o.who].kind === 'faction' ? picked('who') : [o.who];
+  const othEnds = ctx.byKey[o.other].kind === 'faction' ? picked('other') : [o.other];
+  const over = !!(document.getElementById('stxe-apply-over') || {}).checked;
+  const live = ctx.factions.filter(f => !f.off);
+  const mates = (p, q) => live.some(f => f.members.includes(p) && f.members.includes(q));
+  const split = k => { const i = k.indexOf(':'); return [k.slice(0, i), k.slice(i + 1)]; };
+  const withMore = !!(o.moreA.length || o.moreB.length);
+  let made = 0, changed = 0, kept = 0; const adds = [];
+  for(const p of whoEnds) for(const q of othEnds){
+    if(p === q || mates(p, q)) continue;
+    const ex = ties.find(t => { const a = t.a_kind + ':' + t.a_id, b = t.b_kind + ':' + t.b_id; return (a === p && b === q) || (a === q && b === p); });
+    if(ex && !over){ kept++; continue; }
+    const pIsA = ex ? (ex.a_kind + ':' + ex.a_id) === p : true;
+    let rec;
+    if(o.same) rec = { a_level:o.lva, a_why:o.wa || null, b_level:null, b_why:null };
+    else if(pIsA) rec = { a_level:o.lva, a_why:o.wa || null, b_level:o.lvb || o.lva, b_why:o.wb || null };
+    else rec = { a_level:o.lvb || o.lva, a_why:o.wb || null, b_level:o.lva, b_why:o.wa || null };
+    if(withMore || (ex && (stxMoreArr(ex.a_more).length || stxMoreArr(ex.b_more).length))){
+      if(o.same){ rec.a_more = o.moreA; rec.b_more = []; }
+      else if(pIsA){ rec.a_more = o.moreA; rec.b_more = o.moreB; }
+      else { rec.a_more = o.moreB; rec.b_more = o.moreA; }
+    }
+    if(ex){ const r = await sb.from('story_ties').update(rec).eq('id', ex.id).select('id'); if(r.error) return { error:r.error }; changed++; }
+    else { const [ak, ai] = split(p), [bk, bi] = split(q);
+      adds.push(Object.assign({ promotion_id:STXE.scope, a_kind:ak, a_id:ai, b_kind:bk, b_id:bi, moments:[] }, rec)); }
+  }
+  for(let i = 0; i < adds.length; i += 200){
+    const r = await sb.from('story_ties').insert(adds.slice(i, i + 200)).select('id');
+    if(r.error) return { error:r.error };
+    made += (r.data || []).length || adds.slice(i, i + 200).length;
+  }
+  return { made, changed, kept };
 }
 function stxMomentRow(when, text){
   return `<div class="stx-mrow"><input class="stx-in" maxlength="40" aria-label="When" placeholder="WCA 52" value="${stxE(when || '')}">
@@ -29005,6 +29163,7 @@ async function stxEdOtherName(sel){
   const ctx = await stxCtx(STXE.scope);
   const n = sel && sel.value && ctx.byKey[sel.value] ? ctx.byKey[sel.value].name : 'them';
   document.querySelectorAll('#stxe-form .stxe-on').forEach(s => { s.textContent = n; });
+  stxApplyDraw();
 }
 async function stxEdSaveTie(){
   const ctx = await stxCtx(STXE.scope), ties = await stxTies(STXE.scope);
@@ -29054,10 +29213,15 @@ async function stxEdSaveTie(){
   else res = await sb.from('story_ties').insert(Object.assign({ promotion_id:STXE.scope }, rec)).select('id');
   if(res.error){ stxEdMsg(stxTieErr(res.error, 'Those two already have a relationship. Pick it from the list.'), false); return; }
   if(!res.data || !res.data.length){ stxEdMsg('Not saved. Make sure you are signed in, then try again.', false); return; }
+  // a faction on either side: each ticked member gets it too
+  const lvbSaved = same ? lva : (lvb || lva);
+  const ap = await stxApplyToMembers({ who:STXE.who, other:otherK, same, lva, lvb:lvbSaved, wa, wb, moreA, moreB:same ? moreA : moreB });
   stxForget(STXE.scope);
   STXE.other = otherK;
   await stxEditor(STXE.host, STXE.scope, STXE.opts);
-  stxEdMsg('Saved. Both profiles show it now.', true);
+  if(ap && ap.error){ stxEdMsg('Saved this one, but not for the members: ' + stxTieErr(ap.error, 'Some of them already have a relationship.'), false); return; }
+  const bits = ap ? [ap.made ? ap.made + ' new for members' : '', ap.changed ? ap.changed + ' changed' : '', ap.kept ? ap.kept + ' kept their own' : ''].filter(Boolean) : [];
+  stxEdMsg('Saved. Both profiles show it now.' + (bits.length ? ' Members: ' + bits.join(', ') + '.' : ''), true);
 }
 async function stxEdRemoveTie(id){
   if(!confirm('Remove this relationship and its history?')) return;
