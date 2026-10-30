@@ -41,6 +41,13 @@ var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'myprom
   if(s0 && WCA_PAGES.indexOf(s0) >= 0 && want0 !== s0){ history.replaceState(null, '', '/' + want0 + location.search + h); return; }
   if(/^\/index\.html$/i.test(path)){ history.replaceState(null, '', '/' + location.search + h); return; }
   if(path.length > 1 && /\/$/.test(path)) history.replaceState(null, '', path.replace(/\/+$/, '') + location.search + h);
+  // the other pages of the site live in their own files (Fire Pro, the Promotion
+  // Editor, crew). /firepro/builder and /crew are their clean addresses. GitHub
+  // normally opens builder.html for them by itself; if it ever doesn't, this
+  // page (404.html) is what loads, so send them to the file.
+  if(/^\/firepro\/[a-z0-9-]+$/i.test(path) || /^\/(crew|edit-wrestler|ytlen|promotion-editor)$/i.test(path)){
+    location.replace(path + '.html' + location.search + h); return;
+  }
   // anything deeper than one level isn't a page on this site
   if(location.pathname.split('/').filter(Boolean).length > 1) location.replace('/');
 })();
@@ -7739,14 +7746,14 @@ details.ed-pane[hidden]{display:none !important;}
   #page-home p{text-shadow:0 1px 8px rgba(0,0,0,.8);}
 
   .hm-eyebrow{
-    font-family:var(--font-cond); font-size:12px; letter-spacing:4px;
+    font-family:var(--font-cond); font-size:14px; letter-spacing:4px;
     text-transform:uppercase; color:var(--gold); margin-bottom:10px;
   }
   .hm-h2{
     font-family:var(--font-display); font-weight:600; font-size:clamp(24px,3.6vw,38px);
     line-height:1.08; text-transform:uppercase; color:#fff; margin:0 0 10px;
   }
-  .hm-lede{font-family:var(--font-body); font-size:16px; line-height:1.7; color:#c9ccd4; margin:0; max-width:640px;}
+  .hm-lede{font-family:var(--font-body); font-size:17px; line-height:1.7; color:#c9ccd4; margin:0; max-width:640px;}
   .hm-sec{margin-top:clamp(28px,5vh,52px);}
   .hm-sec-head{text-align:center; margin-bottom:18px;}
   .hm-sec-head .hm-lede{margin:0 auto;}
@@ -7759,7 +7766,7 @@ details.ed-pane[hidden]{display:none !important;}
     box-shadow:0 0 18px rgba(var(--gold-rgb),.8);
   }
   .hm-kicker{
-    font-family:var(--font-cond); font-size:12.5px; letter-spacing:5px;
+    font-family:var(--font-cond); font-size:14px; letter-spacing:5px;
     text-transform:uppercase; color:var(--gold); margin-bottom:10px;
   }
   .hm-title{
@@ -7805,13 +7812,13 @@ details.ed-pane[hidden]{display:none !important;}
     margin-top:18px;
   }
   .hm-video-note{
-    font-family:var(--font-cond); font-size:13px; letter-spacing:1.5px;
+    font-family:var(--font-cond); font-size:14.5px; letter-spacing:1.5px;
     text-transform:uppercase; color:var(--muted);
   }
   .hm-cta{
     display:inline-flex; align-items:center; gap:10px; padding:11px 22px;
     border:1px solid var(--gold); border-radius:10px; background:rgba(var(--gold-rgb),.08);
-    color:var(--gold); font-family:var(--font-display); font-size:13.5px;
+    color:var(--gold); font-family:var(--font-display); font-size:15px;
     letter-spacing:2px; text-transform:uppercase; cursor:pointer;
     transition:background .2s, transform .2s, filter .2s; text-decoration:none;
   }
@@ -7822,7 +7829,7 @@ details.ed-pane[hidden]{display:none !important;}
   .hm-now{
     display:inline-flex; align-items:center; gap:10px; padding:8px 16px;
     border:1px solid var(--line); border-radius:999px; background:rgba(8,9,14,.7);
-    font-family:var(--font-cond); font-size:12.5px; letter-spacing:2px;
+    font-family:var(--font-cond); font-size:14px; letter-spacing:2px;
     text-transform:uppercase; color:var(--muted); cursor:pointer;
   }
   .hm-now b{color:var(--gold); font-weight:600;}
@@ -7843,14 +7850,27 @@ details.ed-pane[hidden]{display:none !important;}
     font-family:var(--font-display); font-weight:600; font-size:18px; line-height:1.15;
     text-transform:uppercase; color:#fff; margin:0 0 8px; letter-spacing:.3px;
   }
-  .hm-pillar p{font-family:var(--font-body); font-size:14.5px; line-height:1.62; color:#b9bcc5; margin:0;}
+  .hm-pillar p{font-family:var(--font-body); font-size:15.5px; line-height:1.62; color:#b9bcc5; margin:0;}
+
+  /* ── the universe: other promotions (Oct 2026) ── */
+  .hm-hub{padding:clamp(24px,3.6vw,40px) clamp(18px,4vw,48px); text-align:center;}
+  .hm-hub::before{content:""; position:absolute; left:50%; top:0; width:120px; height:2px; transform:translateX(-50%); background:#5dcaa5; box-shadow:0 0 18px rgba(93,202,165,.8);}
+  .hm-hub .hm-eyebrow{color:#5dcaa5;}
+  .hm-hubgrid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:22px auto 0; max-width:960px; text-align:left;}
+  .hm-hubpt{display:flex; gap:14px; align-items:flex-start; padding:16px 18px; border-radius:14px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.08);}
+  .hm-hubpt > i{flex:0 0 42px; height:42px; display:grid; place-items:center; border-radius:11px; font-size:22px; color:#5dcaa5; background:rgba(93,202,165,.12); border:1px solid rgba(93,202,165,.35);}
+  .hm-hubpt h3{font-family:var(--font-display); font-weight:600; font-size:18px; line-height:1.15; text-transform:uppercase; color:#fff; margin:2px 0 6px; letter-spacing:.3px;}
+  .hm-hubpt p{font-family:var(--font-body); font-size:15.5px; line-height:1.6; color:#c3c7cf; margin:0;}
+  .hm-hub-acts{margin-top:22px;}
+  .hm-cta-solid{background:var(--gold); color:#15120a;}
+  .hm-cta-solid:hover{background:var(--gold); filter:brightness(1.08);}
 
   /* ── page guide ── */
   .hm-guide{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
   .hm-group{padding:18px 18px 10px;}
   .hm-group-h{
     display:flex; align-items:center; gap:9px; margin:0 0 6px;
-    font-family:var(--font-cond); font-size:13px; letter-spacing:3px;
+    font-family:var(--font-cond); font-size:14.5px; letter-spacing:3px;
     text-transform:uppercase; color:var(--gold);
   }
   .hm-group-h i{font-size:17px;}
@@ -7873,7 +7893,7 @@ details.ed-pane[hidden]{display:none !important;}
     display:block; font-family:var(--font-display); font-size:16px; letter-spacing:.4px;
     text-transform:uppercase; color:#fff;
   }
-  .hm-link-desc{display:block; font-family:var(--font-body); font-size:13.5px; line-height:1.5; color:#a9adb7; margin-top:2px;}
+  .hm-link-desc{display:block; font-family:var(--font-body); font-size:15px; line-height:1.5; color:#a9adb7; margin-top:2px;}
   .hm-link .go{flex:0 0 auto; color:var(--muted); font-size:17px; transition:transform .15s, color .15s;}
   .hm-link:hover .go{color:var(--gold); transform:translateX(3px);}
 
@@ -7897,7 +7917,7 @@ details.ed-pane[hidden]{display:none !important;}
     font-size:23px; color:#fff; background:var(--dc);
   }
   .donate-opt b{display:block; font-family:var(--font-display); font-size:16px; letter-spacing:.4px; text-transform:uppercase;}
-  .donate-opt span{display:block; font-family:var(--font-body); font-size:12.5px; color:#a9adb7; margin-top:1px;}
+  .donate-opt span{display:block; font-family:var(--font-body); font-size:14px; color:#a9adb7; margin-top:1px;}
   .donate-opt .go{margin-left:auto; color:var(--muted); font-size:16px;}
   .donate-fine{margin-top:14px; font-family:var(--font-body); font-size:12.5px; color:var(--muted);}
   #donate-modal .modal-box{max-width:480px;}
@@ -7933,6 +7953,7 @@ details.ed-pane[hidden]{display:none !important;}
   @media(max-width:980px){ .hm-pillars{grid-template-columns:repeat(2,1fr);} }
   @media(max-width:760px){
     .hm-wrap{padding-top:14px;}
+    .hm-hubgrid{grid-template-columns:minmax(0,1fr);}
     .hm-guide,.donate-opts,
     #hm-donate-opts[data-count]{grid-template-columns:minmax(0,1fr);}
   }
@@ -7941,9 +7962,27 @@ details.ed-pane[hidden]{display:none !important;}
     .hm-pillar{display:grid; grid-template-columns:42px 1fr; column-gap:14px; padding:16px;}
     .hm-pillar i{grid-row:span 2; margin:0;}
     .hm-pillar h3{font-size:16.5px; margin-bottom:4px;}
-    .hm-pillar p{font-size:13.5px;}
+    .hm-pillar p{font-size:15px;}
+    .hm-hubgrid{grid-template-columns:minmax(0,1fr);}
+    .hm-hubpt{padding:14px;}
     .hm-cta{width:100%; justify-content:center;}
   }
+
+  /* ===== Readable text on every page (Oct 2026) =====
+     Nothing a visitor has to squint at. These lift the smallest labels
+     the phone check found (filters, dates, buttons, timeline labels). */
+  html body .rfilter{font-size:14.5px;}
+  html body .sl-cbtn, html body .sl-sharebtn{font-size:14.5px;}
+  html body .sl-date{font-size:13.5px;}
+  html body .evx-pick-l{font-size:14px;}
+  html body .cn-div{font-size:13.5px;}
+  html body .cs-plabel, html body .cs-tray-label{font-size:13px;}
+  html body .gender-pill{font-size:12.5px;}
+  html body .cs-share{font-size:14px;}
+  html body .tl-btn{font-size:14px;}
+  html body .tl-era, html body .tl-count, html body .tl-hint{font-size:13px;}
+  html body .stx-l{font-size:14px;}
+  html body .hbtn-label{font-size:14px;}
 </style>
 
 <!-- ===== TIMELINE styles ===== -->
@@ -8741,6 +8780,17 @@ details.ed-pane[hidden]{display:none !important;}
         <div class="hm-pillars" id="hm-pillars"></div>
         <div class="hm-after" style="margin-top:22px">
           <button class="hm-cta" id="hm-cta-guide" type="button"><i class="ti ti-compass"></i> <span>Find your way around</span></button>
+        </div>
+      </section>
+
+      <section class="hm-sec hm-panel hm-hub hm-rise" id="hm-hub">
+        <div class="hm-eyebrow" id="hm-hub-kicker"></div>
+        <h2 class="hm-h2" id="hm-hub-title"></h2>
+        <div class="hm-about-body" id="hm-hub-body"></div>
+        <div class="hm-hubgrid" id="hm-hub-points"></div>
+        <div class="hm-after hm-hub-acts">
+          <button class="hm-cta" type="button" onclick="goPage('promotions')"><i class="ti ti-flag-3"></i> <span>See every promotion</span></button>
+          <button class="hm-cta hm-cta-solid" type="button" onclick="goPage('mypromo')"><i class="ti ti-plus"></i> <span>Register your promotion</span></button>
         </div>
       </section>
 
@@ -9824,7 +9874,7 @@ function fpEnter(ev){
   portal.classList.add('warp');
   document.body.style.overflow = 'hidden';
   // at the bright flash, jump to the Fire Pro page (its own folder)
-  setTimeout(()=>{ window.location.href = 'firepro/index.html'; }, 1500);
+  setTimeout(()=>{ window.location.href = WCA_PATHS ? '/firepro/' : 'firepro/index.html'; }, 1500);
 }
 
 // Runs once on page load. If the visitor just came BACK from Fire Pro,
@@ -25421,7 +25471,7 @@ const HOME_DEFAULTS = {
   video_url: '',
 
   /* above the video */
-  pitch_kicker: 'Welcome to the WCA',
+  pitch_kicker: 'Welcome to the WCA Universe',
   rule_title:   "If the intro doesn't hype you up, the show isn't for you",
   /* under the video */
   rule_note:    "Hit play. You'll know.",
@@ -25429,36 +25479,55 @@ const HOME_DEFAULTS = {
   /* a blank line starts a new paragraph */
   about_body:   "The World Championship Alliance is a pro wrestling show where you, the fans, are the wrestlers. You don't need to know a single thing about wrestling to get into it. You just need to pick a side.\n\n" +
                 "Fans can bet on who they think is going to win with virtual currency, and use that currency on platforms like Twitch to cheer and boo whoever they want.\n\n" +
-                'And now this website gives all of it a home. Rankings, results, storylines, betting and your own profile, all in one interactive place.',
+                "And it doesn't stop at WCA. This website is a home for the whole community. Other promotions run their shows here too, fans vote and bet across all of them, and the characters talk to each other right on the Feed.",
 
   p1_title: 'You, the fans, are the wrestlers',
   p1_body:  'Every superstar on the roster is a character played by someone from the community. Apply and the next one could be you.',
-  p2_title: 'Bet on who wins',
-  p2_body:  "Back who you think is walking out the winner with virtual currency. It's not real money, just bragging rights.",
+  p2_title: 'Bet, vote and win',
+  p2_body:  "Back who you think is walking out the winner with virtual currency, and vote for Match of the Night to earn a little more. It's not real money, just bragging rights.",
   p3_title: 'Cheer and boo live',
   p3_body:  'Use your currency on platforms like Twitch during the show to cheer on or boo whoever you want.',
-  p4_title: 'This site is home base',
-  p4_body:  'Rankings, results, storylines and your own betting record. Everything interactive about WCA lives right here.',
+  p4_title: 'One universe, many promotions',
+  p4_body:  'WCA is home base, but other promotions live here too, with their own rosters, shows, betting and stories.',
+
+  /* the universe: other promotions living here alongside WCA */
+  hub_kicker: 'The WCA Universe',
+  hub_title:  'Run your own promotion right here',
+  hub_body:   "WCAUniverse.com is more than one show. It is a hub where wrestling promotions from across the community live side by side, cross over, and share one Feed.\n\n" +
+              'Register your promotion, and once WCA approves it you get a full home for it on the site. Use it to run your shows, keep track of your whole roster, and be a part of everything.',
+  h1_title: 'Your own page',
+  h1_body:  'A public page for your promotion with your posts, shows, roster, teams, rivalries and relationships, in your own colors. Fans can follow it and get your alerts.',
+  h2_title: 'Keep your whole roster',
+  h2_body:  'Paste your roster in as a list, then fill in every WWE 2K25 and 2K26 detail, teams and stables, and who plays each character. It doubles as your record keeper for the game.',
+  h3_title: 'Run your shows',
+  h3_body:  'Build every card with any match type, open betting in your own currency, put up Match of the Night votes, and pay your fans for voting.',
+  h4_title: 'Be part of everything',
+  h4_body:  'Post to the shared Feed as your promotion or your own press outlet, cross over with WCA and other promotions, and bring your team in to help you run it.',
 
   guide_title:   'Every page, in one line',
   g_live:        "The stream, the live chat and tonight's betting standings, all in one place.",
-  g_events:      "The next show's full card. Place your bets here before each match starts.",
+  g_events:      "The next show's full card, from WCA or any promotion. Place your bets before each match starts.",
   g_archive:     'Every show in the books with results, replays, match ratings and final betting standings.',
-  g_storylines:  "What's happening right now. Social posts, headlines, promos and backstage dirt.",
+  g_storylines:  "What's happening right now across the universe. Social posts, headlines, promos, Match of the Night votes and backstage dirt.",
   g_timeline:    'The whole WCA story from the start, show by show. The best place to catch up.',
   g_roster:      'Every superstar and stable, mapped out as a star map you can fly through.',
   g_rankings:    "The wrestlers' standings. Champions, contenders and who's next for a title shot.",
   g_leaderboard: 'How the fans are doing. The sharpest bettors and every Betting Champion.',
+  g_promotions:  'Every promotion in the universe. Pick one to see its shows, roster, posts and stories.',
+  g_rivalries:   "Who is at war, how it started and everything that has happened since.",
+  g_relationships: 'Who likes and hates who, drawn as a web for every roster.',
+  g_firepro:     'WCA Fire Pro, our Fire Pro Wrestling World fantasy booking league.',
+  g_mypromo:     'Run a promotion? Register it and manage everything about it from the Promotion Editor.',
   g_dash:        'Your own page once you sign in. Your balance, your bets, and your character if you have one.',
   g_showdown:    'WCA Showdown is its own series outside the main story where two brands go head to head.',
   g_apply:       'Want to be on the show? Send in your character and get added to the roster.',
   g_discord:     'Hang out with the community between shows.',
   g_sponsors:    'The fictional brands behind the WCA, plus real creators and promotions worth your time.',
-  g_donate:      'Help fund the website and get it a proper domain.',
+  g_donate:      'Help keep the website running and growing.',
 
   donate_title:      'Support WCA',
-  donate_body:       'WCA is built and run by one person. Donations go straight into running this website and getting it a proper home on its own domain.',
-  donate_modal_body: 'Every donation goes into running the website and getting it a proper domain. Thank you!',
+  donate_body:       'WCA is built and run by one person. Donations go straight into keeping this website running and growing for everyone in the universe.',
+  donate_modal_body: 'Every donation goes into keeping the website running. Thank you!',
   donate1_name: 'StreamElements', donate1_note: 'Tip through the stream',  donate1_url: 'https://streamelements.com/infantryink/tip',
   donate2_name: 'PayPal',         donate2_note: 'Card or PayPal balance', donate2_url: 'https://www.paypal.com/donate/?hosted_button_id=V9US8CSADWJEN',
   donate3_name: 'Cash App',       donate3_note: '$NaviZeug',              donate3_url: 'https://cash.app/$NaviZeug'
@@ -25545,6 +25614,14 @@ function paintHome(){
        </div>`).join('');
   }
 
+  setText('hm-hub-kicker', HOME.hub_kicker);
+  setText('hm-hub-title', HOME.hub_title);
+  const hb = $h('hm-hub-body');
+  if(hb) hb.innerHTML = String(HOME.hub_body || '').split(/\n\s*\n/).map(t => t.trim()).filter(Boolean).map(t => '<p>' + escH(t) + '</p>').join('');
+  const hp = $h('hm-hub-points');
+  if(hp) hp.innerHTML = [['ti-world','h1'],['ti-users','h2'],['ti-calendar-event','h3'],['ti-messages','h4']].map(([ic, k]) =>
+    `<div class="hm-hubpt"><i class="ti ${ic}"></i><div><h3>${escH(HOME[k + '_title'])}</h3><p>${escH(HOME[k + '_body'])}</p></div></div>`).join('');
+
   paintVideo();
   paintGuide();
   paintDonateOpts($h('hm-donate-opts'));
@@ -25591,10 +25668,17 @@ const GUIDE = [
     { key:'storylines', page:'storylines', icon:'ti-news',           name:'Feed' },
     { key:'timeline',   page:'timeline',   icon:'ti-timeline-event', name:'Timeline' },
     { key:'roster',     page:'roster',     icon:'ti-stars',          name:'Roster' },
-    { key:'rankings',   page:'rankings',   icon:'ti-trophy',         name:'Rankings' }
+    { key:'rankings',   page:'rankings',   icon:'ti-trophy',         name:'Rankings' },
+    { key:'rivalries',  page:'rivalries',  icon:'ti-flame',          name:'Rivalries' },
+    { key:'relationships', page:'relationships', icon:'ti-affiliate', name:'Relationships' }
+  ]},
+  { group:'The universe', icon:'ti-world', items:[
+    { key:'promotions', page:'promotions', icon:'ti-flag-3',  name:'Promotions' },
+    { key:'mypromo',    page:'mypromo',    icon:'ti-pencil',  name:'Promotion Editor' },
+    { key:'firepro',    url:'/firepro/', same:true, icon:'ti-bolt', name:'Fire Pro' }
   ]},
   { group:'Play along', icon:'ti-cash', items:[
-    { key:'leaderboard', page:'leaderboard', icon:'ti-chart-bar',        name:'Leaderboard' },
+    { key:'leaderboard', page:'leaderboard', icon:'ti-chart-bar',        name:'Betting' },
     { key:'dash',        page:'dash',        icon:'ti-layout-dashboard', name:'Your Dashboard' },
     { key:'showdown',    page:'showdown',    icon:'ti-swords',           name:'Showdown' }
   ]},
@@ -25619,6 +25703,7 @@ function paintGuide(){
         <span class="hm-link-txt"><span class="hm-link-name">${escH(it.name)}</span>
         <span class="hm-link-desc">${escH(HOME['g_'+it.key])}</span></span>
         <i class="ti ${it.url?'ti-external-link':'ti-arrow-right'} go"></i>`;
+      if(it.url && it.same) return `<a class="hm-link" href="${attrH(it.url)}">${inner.replace('ti-external-link go', 'ti-arrow-right go')}</a>`;
       if(it.url) return `<a class="hm-link" href="${attrH(it.url)}" target="_blank" rel="noopener noreferrer">${inner}</a>`;
       if(it.donate) return `<button class="hm-link" type="button" data-donate="1">${inner}</button>`;
       return `<button class="hm-link" type="button" data-page="${attrH(it.page)}">${inner}</button>`;
