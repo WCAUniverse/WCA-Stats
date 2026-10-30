@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Clean addresses (Oct 2026): wcauniverse.com/firepro/builder instead of
+   /firepro/builder.html. GitHub Pages opens builder.html for /firepro/builder
+   by itself, so no files were renamed. Opened from disk (file://) the old
+   .html names are used, so local testing still works. */
+var FP_HTTP = /^https?:$/.test(location.protocol);
+function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'index') + '.html'; }
+function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
+(function(){
+  if(!FP_HTTP) return;
+  var p = location.pathname, c = p.replace(/\/index\.html$/i, '/').replace(/\.html$/i, '');
+  if(c !== p){ try{ history.replaceState(null, '', c + location.search + location.hash); }catch(e){} }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WCA · Fire Pro</title>
 
@@ -2392,7 +2406,7 @@ function renderPlayScreen(){
     btn.style.display='none';
   }
 }
-function goPractice(){ _fpSaveState(); window.location.href='practice-draft.html'; }
+function goPractice(){ _fpSaveState(); window.location.href=fpHref('practice-draft'); }
 function openNeedPromo(msg){
   const t=document.getElementById('needpromo-text'); if(t) t.textContent=msg;
   document.getElementById('fp-needpromo').classList.add('on');
@@ -2495,12 +2509,12 @@ function fpExit(){
   // away mid-animation and cut both the visual and the sound off early.
   // 1150ms lets the flash finish first, matching how fpEnter() times its
   // own 1500ms jump against its 1.5s/1.55s animations.
-  setTimeout(()=>{ window.location.href = '../index.html'; }, 1150);
+  setTimeout(()=>{ window.location.href = fpMainHref(); }, 1150);
 }
 
 // move to the builder / archive (same Fire Pro section, keep the music going)
-function goBuilder(){ _fpSaveState(); window.location.href = 'builder.html'; }
-function goArchive(){ _fpSaveState(); window.location.href = 'archive.html'; }
+function goBuilder(){ _fpSaveState(); window.location.href = fpHref('builder'); }
+function goArchive(){ _fpSaveState(); window.location.href = fpHref('archive'); }
 
 /* ============================================================
    TUTORIAL

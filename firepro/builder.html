@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Clean addresses (Oct 2026): wcauniverse.com/firepro/builder instead of
+   /firepro/builder.html. GitHub Pages opens builder.html for /firepro/builder
+   by itself, so no files were renamed. Opened from disk (file://) the old
+   .html names are used, so local testing still works. */
+var FP_HTTP = /^https?:$/.test(location.protocol);
+function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'index') + '.html'; }
+function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
+(function(){
+  if(!FP_HTTP) return;
+  var p = location.pathname, c = p.replace(/\/index\.html$/i, '/').replace(/\.html$/i, '');
+  if(c !== p){ try{ history.replaceState(null, '', c + location.search + location.hash); }catch(e){} }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WCA · Fire Pro — Book a Show</title>
 
@@ -497,8 +511,8 @@ function PLACEHOLDER(name){
 /* =====================================================================
    NAV
    ===================================================================== */
-function goZone(){ _fpSaveState(); window.location.href='index.html'; }
-function goMain(){ _fpSaveState(); window.location.href='../index.html'; }
+function goZone(){ _fpSaveState(); window.location.href=fpHref(''); }
+function goMain(){ _fpSaveState(); window.location.href=fpMainHref(); }
 
 /* =====================================================================
    SIGN IN — handled here, not on the main site
@@ -703,7 +717,7 @@ async function loadPromotion(){
       const { data } = await sb.from('fp_bookers').select('promotion_name').eq('auth_id',USER.id).maybeSingle();
       if(!data || !data.promotion_name){
         toast('Create your promotion first — taking you there…');
-        setTimeout(()=>{ _fpSaveState(); window.location.href='index.html'; }, 1400);
+        setTimeout(()=>{ _fpSaveState(); window.location.href=fpHref(''); }, 1400);
         return false;
       }
     }catch(e){}

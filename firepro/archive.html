@@ -2,6 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Clean addresses (Oct 2026): wcauniverse.com/firepro/builder instead of
+   /firepro/builder.html. GitHub Pages opens builder.html for /firepro/builder
+   by itself, so no files were renamed. Opened from disk (file://) the old
+   .html names are used, so local testing still works. */
+var FP_HTTP = /^https?:$/.test(location.protocol);
+function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'index') + '.html'; }
+function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
+(function(){
+  if(!FP_HTTP) return;
+  var p = location.pathname, c = p.replace(/\/index\.html$/i, '/').replace(/\.html$/i, '');
+  if(c !== p){ try{ history.replaceState(null, '', c + location.search + location.hash); }catch(e){} }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WCA · Fire Pro — Event Archive</title>
 
@@ -187,8 +201,8 @@ function byId(id){ return document.getElementById(id); }
 function money(n){ n=parseInt(n,10); if(isNaN(n)) n=0; return '$'+n.toLocaleString('en-US'); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function rateLabel(pct){ if(pct==null) return '—'; return STARS ? (Math.round((pct/20)*10)/10)+'★' : pct+'%'; }
-function goZone(){ _fpSaveState(); location.href='index.html'; }
-function goBuilder(){ _fpSaveState(); location.href='builder.html'; }
+function goZone(){ _fpSaveState(); location.href=fpHref(''); }
+function goBuilder(){ _fpSaveState(); location.href=fpHref('builder'); }
 
 window.addEventListener('load', async ()=>{
   try{ const { data } = await sb.auth.getUser(); if(data && data.user) ME_ID=data.user.id; }catch(e){}
