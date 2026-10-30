@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-backdrop="space-fire" data-surface="solid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Built by tools/build-promotion-editor.mjs from index.html. Edit the
+     editor's code in index.html (or this shell), then run the tool again. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
+  font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:;
+  img-src 'self' data: blob: https:;
+  media-src 'self' blob: https:;
+  connect-src 'self' https://dmfbhszvrbaknaevdhxh.supabase.co wss://dmfbhszvrbaknaevdhxh.supabase.co https://api.github.com;
+  frame-src https://www.youtube.com https://youtube.com https://player.twitch.tv https://clips.twitch.tv;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+">
+<title>Promotion Editor | WCA Universe</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@300;400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/*__STYLES__*/
+/* ===== the editor's own page (Oct 2026): the whole width, no site menu ===== */
+body.pe{margin:0; min-height:100vh;}
+.pe-top{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:14px 22px; flex-wrap:wrap; padding:10px max(18px, env(safe-area-inset-left, 0px)); background:rgba(9,10,14,.94);
+  border-bottom:1px solid var(--line); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);}
+.pe-brand{display:flex; align-items:center; gap:10px; color:var(--txt); text-decoration:none; font-family:var(--font-display); font-size:20px; letter-spacing:1px; text-transform:uppercase;}
+.pe-brand img{height:34px; width:auto;}
+.pe-kind{font-family:var(--font-cond); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:15px; color:var(--gold); border-left:1px solid var(--line); padding-left:16px;}
+.pe-links{display:flex; gap:6px; flex-wrap:wrap; margin-left:auto;}
+.pe-links a{color:var(--txt-2); text-decoration:none; font-size:15.5px; font-weight:600; padding:7px 12px; border-radius:8px; border:1px solid transparent;}
+.pe-links a:hover{border-color:var(--line); color:var(--txt);}
+.pe-user{display:flex; align-items:center; gap:8px; font-size:15px; color:var(--txt-2);}
+.pe-user img, .pe-user .pe-av{width:32px; height:32px; border-radius:50%; object-fit:cover; background:var(--panel2); display:inline-flex; align-items:center; justify-content:center; color:var(--gold); font-weight:700;}
+.pe-main{max-width:1500px; margin:0 auto; padding:20px max(18px, env(safe-area-inset-right, 0px)) 60px max(18px, env(safe-area-inset-left, 0px));}
+.pe-main #page-mypromo{display:block !important; max-width:none;}
+.pe-main .ed{grid-template-columns:250px minmax(0,1fr); gap:24px;}
+.pe-main .ed-nav{top:84px;}
+.pe-signin{max-width:620px; margin:60px auto; text-align:center;}
+.pe-signin h1{font-family:var(--font-display); text-transform:uppercase; letter-spacing:1px; font-size:34px; margin:0 0 10px;}
+.pe-signin p{font-size:17px; color:var(--txt-2); line-height:1.6;}
+@media (max-width:900px){ .pe-main .ed{grid-template-columns:1fr;} .pe-kind{border-left:0; padding-left:0;} .pe-links{margin-left:0;} }
+</style>
+<script>
+/* ===== the editor's own setup ===== */
+var WCA_PATHS = /^https?:$/.test(location.protocol);
+var WCA_PAGES = [];
+var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };
+var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };
+var STX_SITE = location.origin && /^https?:/.test(location.origin) ? location.origin : 'https://wcauniverse.com';
+// this page's address is promotion-editor.html?id=5&s=roster
+function wcaRoute(){ return { pg:'mypromo', qs:location.search.replace(/^\?/, '').split('&').filter(function(x){ return x && !/^(code|state|error)/.test(x); }).join('&') }; }
+function wcaHref(pg, qs){ var seg = WCA_SEG_FOR[pg] || pg || ''; return (WCA_PATHS ? '' : STX_SITE) + '/' + seg + (qs ? '?' + qs : ''); }
+function wcaSetAddress(pg, qs, push){
+  if(pg !== 'mypromo') return;
+  try{ history[push ? 'pushState' : 'replaceState'](null, '', location.pathname + (qs ? '?' + qs : '')); }catch(e){}
+}
+// anything that would open another page of the site goes to the site
+function goPage(pg){ location.href = wcaHref(pg); }
+function activatePage(pg){ location.href = wcaHref(pg); }
+function pmGo(id, tab){ location.href = wcaHref('promotion', 'id=' + Number(id) + (tab ? '&tab=' + tab : '')); }
+function stxOnSite(){ return false; }
+function stxOpen(view){ var q = (typeof stxQs === 'function') ? stxQs(Object.assign({ mode:'web' }, view)) : ''; window.open(STX_SITE + '/relationships' + (q ? '?' + q : ''), '_blank', 'noopener'); }
+function frSignIn(ev){ if(ev && ev.preventDefault) ev.preventDefault(); location.href = wcaHref('dash'); }
+let sb = supabase.createClient('https://dmfbhszvrbaknaevdhxh.supabase.co', 'sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD', {
+  auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false, flowType:'pkce' }
+});
+</script>
+</head>
+<body class="pe">
+<header class="pe-top">
+  <a class="pe-brand" href="/" title="Back to WCAUniverse.com"><img src="/brand/wca-logo-sm.png" alt="" onerror="this.remove()"><span>WCA Universe</span></a>
+  <span class="pe-kind">Promotion Editor</span>
+  <nav class="pe-links" aria-label="The site"><a href="/promotions">Promotions</a><a href="/feed">Feed</a><a href="/events">Events</a></nav>
+  <div class="pe-user" id="pe-user"></div>
+</header>
+<main class="pe-main">
+  <div class="page active" id="page-mypromo"><div id="mp-body"><div class="loading">Loading…</div></div></div>
+</main>
+<div class="toast" id="wca-toast">
+  <div class="ic"><i class="ti ti-check"></i></div>
+  <div><div class="tt" id="wca-toast-t">Done</div><div class="ts" id="wca-toast-s"></div></div>
+</div>
+<!--__SCRIPTS__-->
+<script>
+/* ===== start: who is signed in, then open the editor ===== */
+(async function(){
+  var host = document.getElementById('mp-body');
+  try{
+    var r = await sb.auth.getSession();
+    var session = r && r.data && r.data.session;
+    if(session && session.user){
+      CURRENT_USER = session.user;
+      try{ var p = await sb.from('profiles').select('*').eq('id', CURRENT_USER.id).maybeSingle(); MY_PROFILE = p.data || null; }catch(e){}
+      try{ var a = await sb.rpc('is_admin'); IS_ADMIN = a.data === true; }catch(e){ IS_ADMIN = false; }
+      var name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member';
+      var av = MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url);
+      document.getElementById('pe-user').innerHTML = (av ? '<img src="' + escAttr(av) + '" alt="" referrerpolicy="no-referrer">' : '<span class="pe-av">' + esc(name.slice(0, 1).toUpperCase()) + '</span>') + '<span>' + esc(name) + '</span>';
+      await mpOpen();
+    } else {
+      host.innerHTML = '<div class="pm-card pe-signin"><h1>Promotion Editor</h1><p>Sign in on WCAUniverse.com first, then come back here to edit your promotion.</p>'
+        + '<a class="spc-post-btn" href="' + wcaHref('dash') + '" style="display:inline-block;text-decoration:none">Sign in on the site</a></div>';
+    }
+  }catch(e){
+    host.innerHTML = '<div class="pm-card pm-empty">The editor could not load: ' + esc(String(e && e.message || e)) + '. Reload the page to try again.</div>';
+  }
+  sb.auth.onAuthStateChange(function(ev){ if(ev === 'SIGNED_OUT') location.reload(); });
+})();
+</script>
+</body>
+</html>
