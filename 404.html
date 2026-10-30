@@ -6779,7 +6779,7 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
 .motn-badge{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-cond); font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:13.5px;
   color:var(--gold); border:1px solid var(--gold); border-radius:6px; padding:3px 9px; margin:4px 0;}
 .motn-picks{display:flex; flex-direction:column; gap:6px;}
-.motn-pick{display:flex; align-items:center; gap:10px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; margin:0 !important;}
+label.motn-pick, .pm-card label.motn-pick{display:flex; align-items:center; gap:12px; font-size:15px; color:var(--txt); padding:9px 11px; border:1px solid var(--line); border-radius:10px; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; margin:0 !important;}
 .motn-pick input{width:20px; height:20px; accent-color:var(--gold); flex:0 0 auto;}
 .motn-pick b{display:block; font-family:var(--font-body); font-size:16px; color:var(--txt);} .motn-pick small{display:block; font-family:var(--font-body); font-size:14px; color:var(--muted);}
 @media (prefers-reduced-motion:reduce){ .motn-bar{transition:none;} }
@@ -6805,6 +6805,10 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
 .sl-repost-by{display:flex; align-items:center; gap:6px; font-size:15px; color:var(--muted); font-weight:600; margin-bottom:2px;}
 
 /* ===== The promotion editor (Oct 2026) ===== */
+/* Match of the Night section (Oct 2026) */
+.ed-motn-sec{margin-top:18px;}
+.ed-motn-h{font-family:var(--font-cond); font-weight:700; letter-spacing:1.8px; text-transform:uppercase; font-size:15.5px; color:var(--txt-2); margin:0 0 10px;}
+.ed-motn-h span{color:var(--gold); margin-left:4px;}
 /* teams, played by (Oct 2026) */
 .ed-onsite{margin:8px 0 0; color:#5dcaa5;}
 .ed-teampicks{display:flex; gap:8px; flex-wrap:wrap;}
@@ -17963,47 +17967,83 @@ function motnBadge(kind, id){
 }
 setTimeout(() => { try{ motnLoadWinners(); }catch(e){} }, 1500);
 
-/* ---------- Edit promotion, Events: start a vote for the picked show ---------- */
-async function mpeMotnLoad(){
-  MPE.motn = null;
-  if(!MPE.cur || MPE.cur === 'new') return;
-  try{
-    const { data } = await sb.from('motn_polls').select('id').eq('promo_event_id', MPE.cur).order('created_at', { ascending:false }).limit(1);
-    if(data && data[0]) MPE.motn = await motnResults(data[0].id);
-  }catch(e){}
+/* ---------- Promotion Editor: Match of the Night, its own section ----------
+   The votes this promotion has run (open ones first, with live counts and a
+   Close the vote now button), and Start a vote on a screen of its own. */
+function mpMotnGo(sub){ PM.msub = sub || 'list'; mpTab('motn'); const h = document.querySelector('.ed-head'); if(h && h.getBoundingClientRect().top < 0) h.scrollIntoView({ behavior:'smooth', block:'start' }); }
+async function mpMotnTab(box){
+  const pid = Number(PM.curId);
+  if(PM.msub === 'new') return mpMotnNew(box);
+  box.innerHTML = `<div class="loading">Loading…</div>`;
+  const { data, error } = await sb.from('motn_polls').select('id').eq('promotion_id', pid).order('created_at', { ascending:false }).limit(30);
+  if(PM.tab !== 'motn') return;
+  if(error){ box.innerHTML = `<div class="pm-card pm-empty">${/does not exist|schema cache|relation/i.test(error.message || '') ? 'Match of the Night is not switched on yet. Please check back soon!' : esc(error.message)}</div>`; return; }
+  const rows = (await Promise.all((data || []).map(x => motnResults(x.id)))).filter(Boolean);
+  rows.sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1));
+  const open = rows.filter(r => r.status === 'open'), done = rows.filter(r => r.status !== 'open');
+  box.innerHTML = `<section class="pm-card">
+      <div class="ed-top"><div><div class="pm-h3">Match of the Night</div>
+        <p class="pm-p">Let your fans vote for the best match of a show. Everyone who votes is paid once in your money, your followers get an alert, and the winner keeps a Match of the Night badge on your Events tab.</p></div>
+        <div><button type="button" class="spc-post-btn" onclick="mpMotnGo('new')"><i class="ti ti-star"></i> Start a vote</button></div></div>
+    </section>
+    <section class="ed-motn-sec"><div class="ed-motn-h">Open now <span>${open.length}</span></div>
+      ${open.length ? `<div class="motn-strip">${open.map(r => motnCardHTML(r)).join('')}</div>` : '<div class="pm-empty pm-small">No vote is open right now. Press Start a vote.</div>'}</section>
+    ${done.length ? `<section class="ed-motn-sec"><div class="ed-motn-h">Finished <span>${done.length}</span></div><div class="motn-strip">${done.map(r => motnCardHTML(r)).join('')}</div></section>` : ''}`;
 }
-function mpeMotnHTML(ev){
-  if(!ev) return '';
-  const I = MPE.info || {}, cur = I.currency_name || 'money';
-  if(MPE.motn) return `<section class="mpe-sec"><div class="pm-h3">Match of the Night</div>${motnCardHTML(MPE.motn)}
-    ${MPE.motn.status === 'closed' ? `<p class="pm-p pm-small" style="margin-top:8px">The winner keeps a Match of the Night badge on your Events tab.</p>` : ''}</section>`;
-  if(MPE.matches.length < 2) return `<section class="mpe-sec"><div class="pm-h3">Match of the Night</div><p class="pm-p">Add at least two matches to the card, then you can put up a Match of the Night vote here.</p></section>`;
-  return `<section class="mpe-sec" data-keep="mp-motn:${Number(MPE.cur)}"><div class="pm-h3">Match of the Night</div>
-    <p class="pm-p">Let your fans vote for the best match of ${esc(ev.name)}. Everyone who votes gets paid once in ${esc(cur)}, and your followers get an alert.</p>
-    <label class="pe-l">Matches in the vote</label>
-    <div class="motn-picks">${MPE.matches.map((m, i) => `<label class="motn-pick" for="mpmo_${Number(m.id)}"><input type="checkbox" id="mpmo_${Number(m.id)}" checked>
+async function mpMotnNew(box){
+  const pid = Number(PM.curId);
+  box.innerHTML = `<div class="loading">Loading your shows…</div>`;
+  const [er, ir] = await Promise.all([
+    sb.from('promotion_events').select('id,name,status,event_date').eq('promotion_id', pid).order('event_date', { ascending:false, nullsFirst:false }).limit(60),
+    sb.rpc('promo_public', { p_promotion:pid })
+  ]);
+  if(PM.tab !== 'motn') return;
+  PM.motnShows = (er && er.data) || []; PM.motnCur = (ir && ir.data && ir.data.currency_name) || 'money';
+  box.innerHTML = `<div class="ed-crumb"><button type="button" onclick="mpMotnGo('list')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Match of the Night</button><span aria-hidden="true">/</span><span>Start a vote</span></div>
+    <section class="pm-card" data-keep="mp-motn-new:${pid}">
+      <div class="pm-h3">Start a vote</div>
+      <p class="pm-p">Pick the show, keep the matches you want in the vote, and choose how much people get for voting.</p>
+      <label for="mpmo_show">Show</label>
+      <select id="mpmo_show" onchange="mpMotnPick(this.value)"><option value="">Pick a show</option>${PM.motnShows.map(e => `<option value="${Number(e.id)}">${esc(e.name)}${e.status === 'draft' ? ' (draft)' : ''}</option>`).join('')}</select>
+      <div id="mpmo_form"></div>
+      <div class="msg" id="mpmo_msg"></div>
+    </section>`;
+  const sel = pmEl('mpmo_show'); if(sel && sel.value) mpMotnPick(sel.value);
+}
+async function mpMotnPick(id){
+  const box = pmEl('mpmo_form'); if(!box) return;
+  PM.motnMatches = [];
+  if(!id){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="loading">Loading the card…</div>`;
+  const { data } = await sb.from('promotion_matches').select('*').eq('event_id', Number(id)).order('slot');
+  PM.motnMatches = data || [];
+  if(PM.motnMatches.length < 2){ box.innerHTML = `<div class="pm-empty pm-small" style="margin-top:12px">This show needs at least two matches on its card. Add them under Events.</div>`; return; }
+  const cur = PM.motnCur || 'money';
+  box.innerHTML = `<label>Matches in the vote</label>
+    <div class="motn-picks">${PM.motnMatches.map((m, i) => `<label class="motn-pick" for="mpmo_${Number(m.id)}"><input type="checkbox" id="mpmo_${Number(m.id)}" checked>
       <span><b>${esc(peSides(m).map(peSideName).join(' vs '))}</b><small>${esc([m.match_type, m.stipulation, m.title].filter(Boolean).join(', ') || 'Match ' + (i + 1))}</small></span></label>`).join('')}</div>
     <div class="mpe-fields" style="margin-top:12px">
       <div><label for="mpmo_pay">Paid for voting <span class="pm-opt">(in ${esc(cur)})</span></label><input id="mpmo_pay" type="number" min="0" step="1" value="100"></div>
       <div><label for="mpmo_len">Voting closes after</label><select id="mpmo_len"><option value="12">12 hours</option><option value="24" selected>24 hours</option><option value="72">3 days</option><option value="0">When I close it</option></select></div>
       <div class="pe-elim"><label class="pe-chk" for="mpmo_alert"><input type="checkbox" id="mpmo_alert" checked> Send an alert to your followers</label></div>
     </div>
-    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpeMotnStart(this)"><i class="ti ti-star"></i> Start the vote</button></div>
-    <div class="msg" id="mpmo_msg"></div></section>`;
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpMotnStart(this)"><i class="ti ti-star"></i> Start the vote</button>
+      <button type="button" class="spc-mini" onclick="mpMotnGo('list')">Cancel</button></div>`;
 }
-async function mpeMotnStart(btn){
-  const opts = MPE.matches.filter(m => (pmEl('mpmo_' + m.id) || {}).checked).map((m, i) => ({
+async function mpMotnStart(btn){
+  const show = Number((pmEl('mpmo_show') || {}).value);
+  const opts = (PM.motnMatches || []).filter(m => (pmEl('mpmo_' + m.id) || {}).checked).map(m => ({
     key:String(m.id), label:peSides(m).map(peSideName).join(' vs '), sub:[m.match_type, m.stipulation, m.title].filter(Boolean).join(', ') }));
+  if(!show){ mpMsg('mpmo_msg', 'Pick a show first.', false); return; }
   if(opts.length < 2){ mpMsg('mpmo_msg', 'Keep at least two matches in the vote.', false); return; }
   const pay = Math.max(0, Math.floor(Number(pmEl('mpmo_pay').value) || 0));
   const hrs = Number(pmEl('mpmo_len').value) || 0;
   btn.disabled = true;
-  const { data, error } = await sb.rpc('motn_start', { p_promotion:MPE.pid, p_event:MPE.cur, p_options:opts, p_reward:pay, p_hours:hrs || null, p_alert:!!pmEl('mpmo_alert').checked });
+  const { error } = await sb.rpc('motn_start', { p_promotion:Number(PM.curId), p_event:show, p_options:opts, p_reward:pay, p_hours:hrs || null, p_alert:!!pmEl('mpmo_alert').checked });
   btn.disabled = false;
   if(error){ mpMsg('mpmo_msg', /motn_|does not exist|schema cache/i.test(error.message || '') ? 'Match of the Night is not switched on yet. Please check back soon!' : error.message, false); return; }
-  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-motn:' + Number(MPE.cur));
-  MPE.motn = await motnResults(data);
-  mpeDraw();
+  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-motn-new:' + Number(PM.curId));
+  mpMotnGo('list');
   wcaToast('The vote is live', 'It is on the Feed now.');
 }
 
@@ -20167,7 +20207,7 @@ function mpRegister(){
    screen, picked from the menu on the left. Done, view page goes back. */
 var MP_SECTIONS = [
   ['edit','Promotion details','ti-id'], ['look','Page colors','ti-palette'], ['roster','Roster','ti-users'], ['teams','Teams and stables','ti-users-group'], ['cats','Categories','ti-category'], ['rels','Relationships','ti-affiliate'], null,
-  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['betting','Betting','ti-cash'], ['players','Players','ti-user-star'],
+  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['motn','Match of the Night','ti-star'], ['betting','Betting','ti-cash'], ['players','Players','ti-user-star'],
   ['injuries','Injuries','ti-first-aid-kit'], ['stories','Stories','ti-book-2'], ['rivalries','Rivalries','ti-flame'], null,
   ['co','Co-owners','ti-user-shield'], ['suggest','Suggestions','ti-message-2']
 ];
@@ -20210,6 +20250,7 @@ function mpTab(k, clicked){
   if(k === 'import'){ k = 'roster'; PM.rsub = 'bulk'; }      // old address for Add many at once
   if(clicked && k === 'roster' && PM.tab === 'roster') PM.rsub = 'list';
   if(clicked && k === 'teams') PM.tsub = 'list';
+  if(clicked && k === 'motn') PM.msub = 'list';
   PM.tab = k;
   document.querySelectorAll('.ed-nav [data-k]').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   if(PM.curId != null) wcaSetAddress('mypromo', 'id=' + Number(PM.curId) + '&s=' + k, false);
@@ -20229,6 +20270,7 @@ function mpTab(k, clicked){
   if(k === 'roster') return mpRosterTab(box);
   if(k === 'cats') return mpCatsTab(box);
   if(k === 'teams') return mpTeamsTab(box);
+  if(k === 'motn') return mpMotnTab(box);
   if(k === 'rels') return mpRelsTab(box);
   if(k === 'stories') return mpStoriesTab(box);
   if(k === 'rivalries') return mpRivalriesTab(box);
@@ -31829,7 +31871,6 @@ async function mpeLoadCard(){
   ]);
   MPE.matches = ((mr && mr.data) || []).sort((a, b) => (a.slot || 0) - (b.slot || 0) || a.id - b.id);
   ((br && br.data) || []).forEach(r => { (MPE.board[r.match_id] = MPE.board[r.match_id] || {})[r.side_idx] = { total:Number(r.total), n:Number(r.bettors) }; });
-  if(typeof mpeMotnLoad === 'function') await mpeMotnLoad();
 }
 function mpeDraw(){
   const box = MPE.box; if(!box || !box.isConnected) return;
@@ -31844,7 +31885,7 @@ function mpeDraw(){
       <aside class="mpe-list">${list.length ? list.map(e => `<button type="button" class="mpe-show${e.id === MPE.cur ? ' on' : ''}" onclick="mpePick(${Number(e.id)})"><b>${esc(e.name)}</b><small>${esc(peStatusLabel(e.status))}${e.event_date ? ', ' + esc(peWhen(e.event_date)) : ''}</small></button>`).join('')
         : '<div class="pe-empty">No shows yet. Press New show to make your first one.</div>'}
         ${MPE.cur === 'new' ? '<div class="mpe-show on"><b>New show</b><small>Not saved yet</small></div>' : ''}</aside>
-      <div class="mpe-main">${MPE.cur ? mpeShowForm(ev) + (ev ? mpeCardHTML(ev) + (typeof mpeMotnHTML === 'function' ? mpeMotnHTML(ev) : '') : '') : '<div class="pe-empty">Pick a show on the left, or press New show.</div>'}</div>
+      <div class="mpe-main">${MPE.cur ? mpeShowForm(ev) + (ev ? mpeCardHTML(ev) : '') : '<div class="pe-empty">Pick a show on the left, or press New show.</div>'}</div>
     </div></div>`;
 }
 function mpeNew(){ MPE.cur = 'new'; MPE.matches = []; MPE.edit = null; mpeDraw(); const n = pmEl('mpe_name'); if(n) n.focus(); }
