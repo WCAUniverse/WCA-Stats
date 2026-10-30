@@ -6798,6 +6798,28 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
 .sl-repost-by{display:flex; align-items:center; gap:6px; font-size:15px; color:var(--muted); font-weight:600; margin-bottom:2px;}
 
 /* ===== The promotion editor (Oct 2026) ===== */
+/* teams, played by (Oct 2026) */
+.ed-onsite{margin:8px 0 0; color:#5dcaa5;}
+.ed-teampicks{display:flex; gap:8px; flex-wrap:wrap;}
+.ed-teampick{display:inline-flex !important; align-items:center; gap:8px; margin:0 !important; padding:8px 12px; border:1px solid var(--line); border-left:4px solid var(--pc); border-radius:10px; cursor:pointer;
+  text-transform:none !important; letter-spacing:0 !important; font-family:var(--font-body) !important; font-size:15.5px !important; color:var(--txt) !important;}
+.ed-teampick input{width:18px; height:18px; accent-color:var(--gold);}
+.ed-teamsnote{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin:6px 0 12px; font-size:15.5px; color:var(--txt-2);}
+.ed-teams{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:12px;}
+.ed-team{border:1px solid var(--line); border-top:4px solid var(--pc); border-radius:12px; padding:14px; background:rgba(0,0,0,.2); display:flex; flex-direction:column; gap:8px; align-items:flex-start;}
+.ed-team-top{display:flex; justify-content:space-between; gap:10px; width:100%; align-items:baseline;}
+.ed-team-top b{font-family:var(--font-display); font-size:20px; text-transform:uppercase; letter-spacing:.4px; color:var(--pc);}
+.ed-team-top span{font-size:14px; color:var(--muted); white-space:nowrap;}
+.ed-team-motto{margin:0; font-size:15px; color:var(--txt-2); font-style:italic;}
+.ed-team-mem{display:flex; gap:6px; flex-wrap:wrap;} .ed-team-mem span{font-size:14.5px; border:1px solid var(--line); border-radius:20px; padding:3px 10px;}
+.ed-team-mem em{font-size:14.5px; color:var(--muted);}
+.ed-memgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:14px; margin-top:8px;}
+.ed-mem{display:flex !important; align-items:center; gap:10px; margin:0 0 4px !important; padding:8px 10px; border:1px solid var(--line); border-radius:10px; cursor:pointer;
+  text-transform:none !important; letter-spacing:0 !important; font-family:var(--font-body) !important; font-size:15.5px !important; color:var(--txt) !important;}
+.ed-mem input{width:18px; height:18px; accent-color:var(--gold); flex:0 0 auto;}
+.ed-mem[hidden]{display:none !important;}
+.ed-rels .stx-pagewrap{margin-top:8px;}
+
 #page-mypromo{max-width:1240px; margin:0 auto;}
 .ed-head{position:relative; z-index:2; display:flex; align-items:center; gap:12px 16px; flex-wrap:wrap; padding:12px 16px; margin:0 0 16px;
   border:1px solid var(--line); border-top:3px solid var(--pc); border-radius:14px; background:rgba(14,15,20,.96); backdrop-filter:blur(8px);}
@@ -20030,9 +20052,27 @@ async function mpLoadAdminPromos(){
 }
 function mpApproved(){ const p = mpCur(); return !!(p && p.status === 'approved'); }
 
+// The editor lives on its own page now: promotion-editor.html (built from this
+// file by tools/build-promotion-editor.mjs). On the main site, My Promotion
+// just sends people there, to the same promotion and section.
+function mpEditorHref(){
+  const q = [];
+  if(PM.curId != null) q.push('id=' + Number(PM.curId));
+  if(PM.tab) q.push('s=' + encodeURIComponent(PM.tab));
+  if(PM.pendingEdit && PM.pendingEdit.id != null) q.push('post=' + Number(PM.pendingEdit.id));
+  return '/promotion-editor.html' + (q.length ? '?' + q.join('&') : '');
+}
 async function mpOpen(){
   const host = pmEl('mp-body');
   if(!host) return;
+  if(!document.body.classList.contains('pe')){
+    // keep any ?id= and ?s= the address already asked for
+    try{ const qs = wcaRoute().qs || ''; const id = (qs.match(/(?:^|&)id=(\d+)/) || [])[1], sec = (qs.match(/(?:^|&)s=([a-z]+)/) || [])[1];
+      if(id && PM.curId == null) PM.curId = Number(id); if(sec) PM.tab = sec; }catch(e){}
+    host.innerHTML = `<div class="loading">Opening the Promotion Editor…</div>`;
+    location.href = mpEditorHref();
+    return;
+  }
   if(!frSignedIn()){
     host.innerHTML = `<div class="pm-card pm-empty"><h2 class="pm-h2">My Promotion</h2>
       <p>Run your own wrestling promotion? Sign in to register it, post as it, and build its roster.</p>
@@ -20049,6 +20089,11 @@ async function mpOpen(){
     const want = (q.match(/(?:^|&)id=(\d+)/) || [])[1], sec = (q.match(/(?:^|&)s=([a-z]+)/) || [])[1];
     if(want && mpList().some(p => String(p.id) === String(want))) PM.curId = Number(want);
     if(sec && MP_SECTIONS.some(x => x && x[0] === sec)) PM.tab = sec;
+    const post = (q.match(/(?:^|&)post=(\d+)/) || [])[1];
+    if(post && !PM.pendingEdit){
+      const { data } = await sb.from('storylines').select('id,kind,title,body,payload,story_date,submission_status,promotion_id,outlet_id,seed_likes,seed_dislikes').eq('id', Number(post)).maybeSingle();
+      if(data){ PM.pendingEdit = data; if(data.promotion_id != null) PM.curId = data.promotion_id; }
+    }
   }catch(e){}
   if(PM.pendingEdit && PM.pendingEdit.promotion_id != null) PM.curId = PM.pendingEdit.promotion_id;
   if(!mpList().length){ mpRegister(); return; }
@@ -20071,10 +20116,10 @@ function mpRegister(){
    see an Edit promotion button on it, which opens this page: one section per
    screen, picked from the menu on the left. Done, view page goes back. */
 var MP_SECTIONS = [
-  ['edit','Promotion details','ti-id'], ['look','Page colors','ti-palette'], ['roster','Roster','ti-users'], ['cats','Categories','ti-category'], null,
+  ['edit','Promotion details','ti-id'], ['look','Page colors','ti-palette'], ['roster','Roster','ti-users'], ['teams','Teams and stables','ti-users-group'], ['cats','Categories','ti-category'], ['rels','Relationships','ti-affiliate'], null,
   ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['betting','Betting','ti-cash'], ['players','Players','ti-user-star'],
   ['injuries','Injuries','ti-first-aid-kit'], ['stories','Stories','ti-book-2'], ['rivalries','Rivalries','ti-flame'], null,
-  ['co','Co-owners','ti-users-group'], ['suggest','Suggestions','ti-message-2']
+  ['co','Co-owners','ti-user-shield'], ['suggest','Suggestions','ti-message-2']
 ];
 // these work before WCA approves the promotion
 var MP_OPEN_EARLY = ['edit','look','co','suggest'];
@@ -20114,6 +20159,7 @@ function mpSwitch(id){ PM.curId = id; PM.as = null; PM.rosterFor = null; PM.filt
 function mpTab(k, clicked){
   if(k === 'import'){ k = 'roster'; PM.rsub = 'bulk'; }      // old address for Add many at once
   if(clicked && k === 'roster' && PM.tab === 'roster') PM.rsub = 'list';
+  if(clicked && k === 'teams') PM.tsub = 'list';
   PM.tab = k;
   document.querySelectorAll('.ed-nav [data-k]').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   if(PM.curId != null) wcaSetAddress('mypromo', 'id=' + Number(PM.curId) + '&s=' + k, false);
@@ -20132,6 +20178,8 @@ function mpTab(k, clicked){
   if(k === 'posts') return mpPostsTab(box);
   if(k === 'roster') return mpRosterTab(box);
   if(k === 'cats') return mpCatsTab(box);
+  if(k === 'teams') return mpTeamsTab(box);
+  if(k === 'rels') return mpRelsTab(box);
   if(k === 'stories') return mpStoriesTab(box);
   if(k === 'rivalries') return mpRivalriesTab(box);
   const later = fn => typeof window[fn] === 'function' ? window[fn](box) : (box.innerHTML = '<div class="loading">Loading…</div>', setTimeout(() => { if(PM.tab === k) mpTab(k); }, 200));
@@ -20195,6 +20243,96 @@ function mpFoldTabs(box){
   folds[0].parentNode.insertBefore(bar, folds[0]);
   show(at);
 }
+
+/* ---------------- Teams and stables (Oct 2026) ----------------
+   Tag teams, stables and factions: a name, a color, a motto and who is in it
+   (promotion_factions.members holds roster ids). Shows on each member's card,
+   the Roster's Teams view, the public Factions tab and Relationships. */
+function mpTeamGo(sub){ PM.tsub = sub || 'list'; mpTab('teams'); const h = document.querySelector('.ed-head'); if(h && h.getBoundingClientRect().top < 0) h.scrollIntoView({ behavior:'smooth', block:'start' }); }
+function mpTeamCardHTML(f){
+  const mem = (f.members || []).map(id => PM.roster.find(p => String(p.id) === String(id))).filter(Boolean);
+  return `<article class="ed-team" style="--pc:${pmColor(f.color, '#e9b949')}">
+    <div class="ed-team-top"><b>${esc(f.name)}</b><span>${mem.length} ${mem.length === 1 ? 'member' : 'members'}</span></div>
+    ${f.motto ? `<p class="ed-team-motto">${esc(f.motto)}</p>` : ''}
+    <div class="ed-team-mem">${mem.length ? mem.map(p => `<span>${esc(p.name)}</span>`).join('') : '<em>Nobody in it yet</em>'}</div>
+    <button type="button" class="spc-mini" onclick="mpTeamGo('t:${Number(f.id)}')"><i class="ti ti-pencil"></i> Edit team</button>
+  </article>`;
+}
+async function mpTeamsTab(box){
+  box.innerHTML = `<div class="loading">Loading…</div>`;
+  await mpRosterLoad(true);
+  if(PM.tab !== 'teams') return;
+  if(PM.rosterMissing){ box.innerHTML = `<div class="pm-card pm-empty">Rosters are not switched on yet. Please check back soon!</div>`; return; }
+  const sub = String(PM.tsub || 'list');
+  if(sub === 'new' || sub.startsWith('t:')) return mpTeamForm(box, sub === 'new' ? null : Number(sub.slice(2)));
+  box.innerHTML = `<section class="pm-card">
+    <div class="ed-top"><div><div class="pm-h3">Teams and stables</div>
+      <p class="pm-p">Tag teams, stables and factions. Pick who is in each one, and it shows on every member's card, in the Teams view of your Roster, on your Factions tab and in Relationships.</p></div>
+      <div><button type="button" class="spc-post-btn" onclick="mpTeamGo('new')"><i class="ti ti-plus"></i> Make a team</button></div></div>
+    ${PM.facs.length ? `<div class="ed-teams">${PM.facs.map(mpTeamCardHTML).join('')}</div>` : `<div class="pm-empty pm-small">No teams yet. Press Make a team, give it a name, and tick who is in it.</div>`}
+  </section>`;
+}
+function mpTeamForm(box, id){
+  const f = id ? PM.facs.find(x => String(x.id) === String(id)) : null;
+  if(id && !f){ PM.tsub = 'list'; return mpTeamsTab(box); }
+  const mem = new Set(((f && f.members) || []).map(Number));
+  const groups = mpGroups(PM.roster.filter(p => p.gender !== 'Team'), PM.cats).filter(x => x.people.length);
+  box.innerHTML = `<div class="ed-crumb"><button type="button" onclick="mpTeamGo('list')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Teams and stables</button><span aria-hidden="true">/</span><span>${f ? esc(f.name) : 'Make a team'}</span></div>
+    <section class="pm-card" data-keep="mp-team:${Number(PM.curId)}:${f ? Number(f.id) : 'new'}">
+      <div class="pm-h3">${f ? 'Edit ' + esc(f.name) : 'Make a team'}</div>
+      <div class="pm-g2">
+        <div><label for="mpt_name">Team name</label><input id="mpt_name" maxlength="80" value="${escAttr(f ? f.name : '')}" placeholder="The Night Shift"></div>
+        <div><label for="mpt_motto">Motto or what they are about <span class="pm-opt">(optional)</span></label><input id="mpt_motto" maxlength="200" value="${escAttr(f && f.motto || '')}" placeholder="We work while you sleep"></div>
+      </div>
+      <label>Team color</label>${pmColorWidget('mpt_color', f ? f.color : '#e9b949')}
+      <div class="ed-top" style="margin-top:16px"><label style="margin:0">Who is in it <span class="pm-opt" id="mpt_count">(${mem.size} picked)</span></label>
+        <input id="mpt_find" class="ed-find" data-nokeep placeholder="Find a name" aria-label="Find a name" oninput="mpTeamFind(this.value)"></div>
+      <div class="ed-memgrid">${groups.length ? groups.map(({ cat, people }) => `<div class="ed-memgroup"><div class="pm-group-h" style="--pc:${pmColor(cat.color, '#c9c6be')}">${esc(cat.name)}</div>
+        ${people.map(p => `<label class="ed-mem" data-name="${escAttr(String(p.name).toLowerCase())}" for="mptm_${Number(p.id)}"><input type="checkbox" id="mptm_${Number(p.id)}" value="${Number(p.id)}"${mem.has(Number(p.id)) ? ' checked' : ''} onchange="mpTeamCount()"><span>${esc(p.name)}</span></label>`).join('')}</div>`).join('')
+        : '<div class="pm-empty pm-small">Add people to your roster first.</div>'}</div>
+      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpTeamSave(${f ? Number(f.id) : 'null'})">${f ? 'Save team' : 'Make the team'}</button>
+        <button type="button" class="spc-mini" onclick="mpTeamGo('list')">Back to teams</button>
+        ${f ? `<button type="button" class="spc-mini fr-danger" onclick="mpTeamDelete(${Number(f.id)},this)">Delete team</button>` : ''}</div>
+      <div class="msg" id="mpt_msg"></div>
+    </section>`;
+}
+function mpTeamCount(){ const n = document.querySelectorAll('.ed-mem input:checked').length; const c = pmEl('mpt_count'); if(c) c.textContent = '(' + n + ' picked)'; }
+function mpTeamFind(q){ q = String(q || '').trim().toLowerCase(); document.querySelectorAll('.ed-mem').forEach(l => { l.hidden = !!q && !l.dataset.name.includes(q); }); }
+async function mpTeamSave(id){
+  const name = (pmEl('mpt_name').value || '').trim();
+  if(!name){ mpMsg('mpt_msg', 'Give the team a name first.', false); return; }
+  const members = Array.from(document.querySelectorAll('.ed-mem input:checked')).map(i => Number(i.value));
+  const row = { name, motto:(pmEl('mpt_motto').value || '').trim() || null, color:pmEl('mpt_color').value || null, members };
+  const res = id ? await sb.from('promotion_factions').update(row).eq('id', id).select('id')
+    : await sb.from('promotion_factions').insert(Object.assign({ promotion_id:Number(PM.curId), sort:((PM.facs || []).length + 1) * 10 }, row)).select('id');
+  if(res.error || !res.data || !res.data.length){ mpMsg('mpt_msg', res.error ? cpErrText(res.error) : 'Not saved. Make sure you are signed in.', false); return; }
+  wcaKeepDone('mp-team:' + Number(PM.curId) + ':' + (id || 'new'));
+  if(typeof stxForget === 'function') stxForget(PM.curId);
+  mpTeamGo('list');
+  wcaToast(id ? 'Team saved' : 'Team made', name + ' has ' + members.length + (members.length === 1 ? ' member.' : ' members.'));
+}
+async function mpTeamDelete(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to delete the team'; mpMsg('mpt_msg', 'The people stay on your roster. Only the team goes.', false); return; }
+  const { error } = await sb.from('promotion_factions').delete().eq('id', id);
+  if(error){ mpMsg('mpt_msg', cpErrText(error), false); return; }
+  if(typeof stxForget === 'function') stxForget(PM.curId);
+  mpTeamGo('list');
+}
+
+/* ---------------- Relationships: the web, then Edit ---------------- */
+async function mpRelsTab(box){
+  const pid = Number(PM.curId);
+  box.innerHTML = `<section class="pm-card ed-rels">
+    <div class="ed-top"><div><div class="pm-h3">Relationships</div>
+      <p class="pm-p">Who likes and dislikes who on your roster, and your teams. This is how your Relationships page looks to everyone.</p></div>
+      <div class="ed-acts"><button type="button" class="spc-post-btn" onclick="mpRelsEdit()"><i class="ti ti-pencil"></i> Edit relationships</button>
+        <a class="spc-ghost-btn" href="/relationships?promo=${pid}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> See the public page</a></div></div>
+    <div class="stx-pagewrap"><div id="stx-mbody"><div class="loading">Loading…</div></div></div></section>`;
+  if(typeof stxRender !== 'function' || typeof STX === 'undefined'){ setTimeout(() => { if(PM.tab === 'rels') mpRelsTab(box); }, 250); return; }
+  STX.view = { scope:pid, mode:'web', key:null, sel:null, ch:0 };
+  try{ await stxRender(); }catch(e){ const b = pmEl('stx-mbody'); if(b) b.innerHTML = `<div class="pm-empty">${esc(String(e && e.message || e))}</div>`; }
+}
+function mpRelsEdit(){ if(typeof STXE !== 'undefined') STXE.tab = 'ties'; mpTab('stories', true); }
 
 /* ---------------- Categories: their own screen ---------------- */
 async function mpCatsTab(box){
@@ -20770,6 +20908,14 @@ async function mpRosterLoad(force){
   ]);
   PM.rosterMissing = !!((c.error && pmMissing(c.error)) || (r.error && pmMissing(r.error)));
   PM.cats = (c && c.data) || []; PM.roster = (r && r.data) || [];
+  // teams and stables, and who really plays who on the site
+  const [f, pl] = await Promise.all([
+    sb.from('promotion_factions').select('*').eq('promotion_id', id).order('sort').order('id'),
+    sb.rpc('promo_char_list', { p_promotion:Number(id) })
+  ]);
+  PM.facs = (f && !f.error && f.data) || [];
+  PM.players = {};
+  ((pl && !pl.error && pl.data) || []).filter(x => x.status === 'approved').forEach(x => { (PM.players[x.roster_id] = PM.players[x.roster_id] || []).push(x.player || 'A member'); });
   PM.rosterFor = id;
   const n = pmEl('mp-count-roster'); if(n) n.textContent = PM.roster.length + ' on the roster';
 }
@@ -20868,7 +21014,7 @@ function mpPersonForm(id, keep){
   box.setAttribute('data-keep', 'mp-person:' + Number(PM.curId) + ':' + (p ? p.id : 'new'));
   p = p || { category_id:(PM.cats[0] || {}).id || null, gender:'Male', alignment:'Face', details:{} };
   const d = p.details || {};
-  const field = ([k, label, , ph, opts]) => opts
+  const field = ([k, label, , ph, opts]) => k === 'team' ? '' : opts
     ? `<div><label for="mpd_${k}">${esc(label)}</label><select id="mpd_${k}"><option value="">Not set</option>${opts.map(o => `<option${d[k] === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`
     : `<div><label for="mpd_${k}">${esc(label)}</label><input id="mpd_${k}"${k === 'ovr' ? ' type="number" min="0" max="100"' : ' maxlength="600"'} value="${escAttr(d[k] || '')}" placeholder="${escAttr(ph || '')}"></div>`;
   const sec = s => PM_DETAILS.filter(x => x[2] === s).map(field).join('');
@@ -20885,6 +21031,15 @@ function mpPersonForm(id, keep){
       <div><label for="mpf_align">Alignment</label><select id="mpf_align">${['Face','Heel','Tweener'].map(v => `<option${p.alignment === v ? ' selected' : ''}>${v}</option>`).join('')}<option value=""${p.alignment ? '' : ' selected'}>None</option></select></div>
       <div><label for="mpf_title">Title they hold</label><input id="mpf_title" maxlength="100" value="${escAttr(p.title || '')}" placeholder="Optional"></div>
     </div>
+    <div class="pm-g2">
+      <div><label for="mpd_played_by">Played by <span class="pm-opt">(only you see this)</span></label><input id="mpd_played_by" maxlength="80" value="${escAttr(d.played_by || '')}" placeholder="Their name, even if they are not on the site yet"></div>
+      <div><label for="mpd_played_by_user">Their username</label><input id="mpd_played_by_user" maxlength="80" value="${escAttr(d.played_by_user || '')}" placeholder="Their WCA, Discord or Twitch name"></div>
+    </div>
+    ${p.id && PM.players && PM.players[p.id] ? `<div class="pm-small ed-onsite"><i class="ti ti-circle-check"></i> On the site, ${esc(PM.players[p.id].join(' and '))} ${PM.players[p.id].length > 1 ? 'play' : 'plays'} them. That is set under Players.</div>` : ''}
+    <label>Teams and stables</label>
+    ${(PM.facs || []).length ? `<div class="ed-teampicks">${PM.facs.map(f => { const on = p.id && (f.members || []).map(Number).includes(Number(p.id));
+      return `<label class="ed-teampick" for="mpft_${Number(f.id)}" style="--pc:${pmColor(f.color, '#e9b949')}"><input type="checkbox" id="mpft_${Number(f.id)}"${on ? ' checked' : ''}><span>${esc(f.name)}</span></label>`; }).join('')}</div>`
+      : `<div class="pm-small pm-dim">No teams yet. Make one under Teams and stables, then tick it here.</div>`}
     <label>Their color</label>${pmColorWidget('mpf_color', p.color || '', 'Same as category')}
     <details class="pm-fold" open><summary>Profile</summary>
       <div class="pm-g3">${sec('profile')}</div>
@@ -20942,7 +21097,9 @@ async function mpSavePerson(){
   if(PM.busy) return;
   const name = (pmEl('mpf_name').value || '').trim();
   if(!name){ mpMsg('mpf_msg', 'A name is the only thing you have to fill in.', false); return; }
-  const details = pmReadDetails(PM_DETAILS.map(x => x[0]).concat(['more']));
+  const details = pmReadDetails(PM_DETAILS.map(x => x[0]).concat(['more', 'played_by', 'played_by_user']));
+  // the old free text Team or stable stays as it was (teams are real teams now)
+  { const was = PM.editId ? (PM.roster.find(x => String(x.id) === String(PM.editId)) || {}).details || {} : {}; if(was.team) details.team = was.team; }
   const attrs = pmReadAttrs('mpa'); if(Object.keys(attrs).length) details.attrs = attrs;
   const traits = pmReadTraits('mpt'); if(Object.keys(traits).length) details.traits = traits;
   const catV = pmEl('mpf_cat').value;
@@ -20960,6 +21117,17 @@ async function mpSavePerson(){
   PM.busy = false;
   if(res.error){ mpMsg('mpf_msg', cpErrText(res.error), false); return; }
   const wasEdit = !!PM.editId;
+  // teams they were ticked into or out of
+  const pid = wasEdit ? Number(PM.editId) : Number(((res.data || [])[0] || {}).id);
+  if(pid){
+    const writes = [];
+    (PM.facs || []).forEach(f => { const box = pmEl('mpft_' + f.id); if(!box) return;
+      const mem = (f.members || []).map(Number), has = mem.includes(pid);
+      if(box.checked && !has) writes.push(sb.from('promotion_factions').update({ members:mem.concat([pid]) }).eq('id', f.id));
+      if(!box.checked && has) writes.push(sb.from('promotion_factions').update({ members:mem.filter(x => x !== pid) }).eq('id', f.id)); });
+    if(writes.length){ const out = await Promise.all(writes); const bad = out.find(x => x && x.error); if(bad) wcaToast('Teams not saved', cpErrText(bad.error), true);
+      if(typeof stxForget === 'function') stxForget(PM.curId); }
+  }
   wcaKeepDone('mp-person:' + Number(PM.curId) + ':' + (wasEdit ? PM.editId : 'new'));
   PM.editId = null; PM.ftab = 0;
   mpRosterGo('list');
@@ -20996,7 +21164,15 @@ function mpDrawPeople(){
   const box = pmEl('mp-plist'), gb = pmEl('mp-gchips'); if(!box) return;
   const g = PM.gfilter;
   if(gb) gb.innerHTML = `<span class="pm-dim pm-small">Show</span>` + [['all','Everyone'],['Male','Male'],['Female','Female'],['Team','Teams']].map(([k, l]) =>
-    `<button type="button" class="pm-chip${g === k ? ' on' : ''}" onclick="PM.gfilter='${k}';mpDrawPeople()">${l} <span>${k === 'all' ? PM.roster.length : PM.roster.filter(p => p.gender === k).length}</span></button>`).join('');
+    `<button type="button" class="pm-chip${g === k ? ' on' : ''}" onclick="PM.gfilter='${k}';mpDrawPeople()">${l} <span>${k === 'all' ? PM.roster.length : k === 'Team' ? (PM.facs || []).length + PM.roster.filter(p => p.gender === 'Team').length : PM.roster.filter(p => p.gender === k).length}</span></button>`).join('');
+  // Teams: the real teams first, with who is in them
+  if(g === 'Team'){
+    const list = (PM.facs || []);
+    box.innerHTML = `<div class="ed-teamsnote"><span>Teams and stables are groups of people from your roster.</span><button type="button" class="spc-post-btn" onclick="mpTeamGo('new')"><i class="ti ti-plus"></i> Make a team</button></div>`
+      + (list.length ? `<div class="ed-teams">${list.map(mpTeamCardHTML).join('')}</div>` : `<div class="pm-empty pm-small">No teams yet. Press Make a team, name it, and tick who is in it.</div>`)
+      + (PM.roster.some(p => p.gender === 'Team') ? `<div class="pm-group"><div class="pm-group-h" style="--pc:#8a8a86">Added to the roster as a team</div>${PM.roster.filter(p => p.gender === 'Team').map(p => `<div class="pm-prow"><span class="pm-pinit" style="--pc:${mpPersonColor(p)}">${esc(pmInit(p.name))}</span><span class="pm-pname"><b>${esc(p.name)}</b> <small>One roster entry. To list its members, make it a team instead.</small></span><button type="button" class="spc-mini" onclick="mpRosterGo('p:${Number(p.id)}')">Edit</button></div>`).join('')}</div>` : '');
+    return;
+  }
   const fq = String(PM.find || '').trim().toLowerCase();
   const groups = mpGroups(PM.roster.filter(p => (g === 'all' || p.gender === g) && (!fq || String(p.name || '').toLowerCase().includes(fq) || String(p.nickname || '').toLowerCase().includes(fq))), PM.cats).filter(x => x.people.length);
   if(!groups.length){ box.innerHTML = `<div class="pm-empty pm-small">${PM.roster.length ? 'Nobody matches.' : 'Nobody on your roster yet. Press Add many at once to paste your whole list, or Add one person.'}</div>`; return; }
@@ -21004,7 +21180,9 @@ function mpDrawPeople(){
     const col = pmColor(cat.color, '#c9c6be');
     return `<div class="pm-group"><div class="pm-group-h" style="--pc:${col}">${esc(cat.name)}</div>
       ${people.map((p, k) => { const pc = mpPersonColor(p), d = p.details || {};
-        const sub = [p.nickname, p.title, d.style].filter(Boolean).join(' · ');
+        const teams = (PM.facs || []).filter(f => (f.members || []).map(Number).includes(Number(p.id))).map(f => f.name);
+        const plays = (PM.players && PM.players[p.id]) ? PM.players[p.id].join(' and ') : (d.played_by ? d.played_by + (d.played_by_user ? ' (' + d.played_by_user + ')' : '') : '');
+        const sub = [p.nickname, p.title, teams.join(', '), plays ? 'Played by ' + plays : ''].filter(Boolean).join(' · ');
         return `<div class="pm-prow${String(PM.editId) === String(p.id) ? ' on' : ''}">
           <span class="pm-pinit" style="--pc:${pc}">${esc(pmInit(p.name))}</span>
           <span class="pm-pname"><b>${esc(p.name)}</b>${sub ? ` <small>${esc(sub)}</small>` : ''}</span>
@@ -21306,10 +21484,11 @@ async function pmPageOpen(){
   PM.pubRv = (qs.match(/(?:^|&)rv=(\d+)/) || [])[1] || null;   // one rivalry opened on the Rivalries tab
   if(!id){ activatePage('promotions'); wcaSetAddress('promotions', ''); return; }
   host.innerHTML = `<div class="loading">Loading…</div>`;
-  const [pr, cr, rr] = await Promise.all([
+  const [pr, cr, rr, fr] = await Promise.all([
     sb.from('promotions').select('*').eq('id', id).maybeSingle(),
     sb.from('promotion_roster_categories').select('*').eq('promotion_id', id).order('sort').order('id'),
-    sb.from('promotion_roster').select('*').eq('promotion_id', id).order('sort').order('id')
+    sb.from('promotion_roster').select('*').eq('promotion_id', id).order('sort').order('id'),
+    sb.from('promotion_factions').select('id,name,members').eq('promotion_id', id)
   ]);
   const p = pr && pr.data;
   // the promotion's own switches (Injuries is off unless they turn it on)
@@ -21337,7 +21516,7 @@ async function pmPageOpen(){
         .eq('promotion_id', id).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(120);
   }
   if(!p){ host.innerHTML = `<div class="pm-card pm-empty">That promotion isn't here. <button class="spc-mini" onclick="goPage('promotions')">See every promotion</button></div>`; return; }
-  PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:wantSel ? Number(wantSel) : null, injOn };
+  PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], facs:(fr && !fr.error && fr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:wantSel ? Number(wantSel) : null, injOn };
   const col = pmColor(p.color);
   const links = p.links || {};
   const icons = { website:'ti-world', youtube:'ti-brand-youtube', twitch:'ti-brand-twitch', x:'ti-brand-x', tiktok:'ti-brand-tiktok', instagram:'ti-brand-instagram', discord:'ti-brand-discord' };
@@ -21373,6 +21552,7 @@ async function pmPageOpen(){
       ${injOn ? `<button type="button" role="tab" class="pm-tab" data-t="injuries" onclick="pmPubTab('injuries')">Injuries</button>` : ''}
       <button type="button" role="tab" class="pm-tab" data-t="factions" onclick="pmPubTab('factions')">Factions</button>
       <button type="button" role="tab" class="pm-tab" data-t="rivalries" onclick="pmPubTab('rivalries')">Rivalries</button>
+      <button type="button" class="pm-tab" onclick="stxOpenWorld(${Number(p.id)})">Relationships</button>
     </div>
     <div id="pmpub-tab"></div>`;
   pmPubTab(tab, true);
@@ -21485,7 +21665,8 @@ function pmPersonCard(p, col, catName){
   const d = p.details || {};
   const gender = p.gender === 'Team' ? '' : p.gender;
   const facts = [['Gender', gender], ['Overall', d.ovr], ['Wrestler class', d.style], ['Weight class', d.wclass], ['Billed from', d.home],
-    ['Height', d.height], ['Weight', d.weight], ['Manager', d.manager], ['Team or stable', d.team],
+    ['Height', d.height], ['Weight', d.weight], ['Manager', d.manager],
+    ['Teams', ((PM.pub && PM.pub.facs) || []).filter(f => (f.members || []).map(Number).includes(Number(p.id))).map(f => f.name).join(', ') || d.team],
     ['Entrance music', d.music], ['Catchphrase', d.catchphrase]].filter(x => x[1]);
   const moves = [['Finishers', d.finisher], ['Signatures', d.sigs],
     ['Superstar abilities', d.abilities], ['Paybacks', d.paybacks]].filter(x => x[1]);
