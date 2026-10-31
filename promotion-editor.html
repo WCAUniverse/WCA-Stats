@@ -4472,6 +4472,14 @@ details.ed-pane[hidden]{display:none !important;}
 .pm-rk-cards{padding-top:12px;}
 .pm-rk-card{background:rgba(12,14,21,.92); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
 .pm-rk-card.champ{background:linear-gradient(160deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent 60%), rgba(12,14,21,.92);}
+/* rank numbers */
+.pm-rk-no{display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px; padding:0 6px; border-radius:8px; background:rgba(255,255,255,.07); color:var(--txt); font-family:var(--font-display); font-size:19px; line-height:1;}
+.pm-rk-no.c{background:var(--gold); color:#1a1509;}
+.pm-rk-table td.pm-rk-cno{width:58px; background:none; border-left:0; text-align:center;}
+.pm-rk-table th.pm-rk-hno{width:58px; text-align:center;}
+.pm-rk-table thead th.pm-rk-hno + th{text-align:left;}
+.pm-rk-cardtop{display:flex; align-items:center; gap:10px;}
+.pm-rk-line .pm-rk-no{flex:0 0 auto;}
 /* bigger names on the Rankings tab */
 .pm-ranks .pm-rk-name{font-size:20px; gap:12px;}
 .pm-ranks .pm-rk-name b{font-size:20px; letter-spacing:.2px;}
@@ -14326,36 +14334,47 @@ function pmRankSections(D){
       .filter(h => div == null || h.t.division_id == null || String(h.t.division_id) === String(div));
     return { kind, x, col, rec, held, pts:rec.w * pg.cp_w + rec.l * pg.cp_l + rec.nc * pg.cp_nc };
   };
-  // champions on top, then everyone else from A to Z
+  // champions on top (top title first), then the same order as WCA's own rankings:
+  // contender points (when the promotion uses them), then win percentage (no contests
+  // don't count toward it), then wins, then fewer losses, then A to Z
+  const pct = e => (e.rec.w + e.rec.l) ? e.rec.w / (e.rec.w + e.rec.l) : 0;
   const order = (a, b) => (Number(!!b.held.length) - Number(!!a.held.length))
     || (a.held.length && b.held.length ? tIdx(a) - tIdx(b) : 0)
+    || (pg.cp ? b.pts - a.pts : 0)
+    || (pct(b) - pct(a))
+    || (b.rec.w - a.rec.w)
+    || (a.rec.l - b.rec.l)
     || String(a.x.name || '').localeCompare(String(b.x.name || ''), undefined, { sensitivity:'base' });
+  // C for a champion, then 1, 2, 3 for everyone else in that list
+  const rank = list => { let n = 0; list.forEach(e => { e.rank = e.held.length ? 'C' : String(++n); }); return list; };
   const colIn = p => { const c = (D.cats || []).find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); };
   const facIn = c => (D.facs || []).filter(f => pmFacIn(c, f, D.roster));
   const secs = mpGroups(D.roster || [], D.cats || []).filter(g => g.people.length || (g.cat.id !== '' && facIn(g.cat).length))
     .map(g => ({ cat:g.cat, rows:g.people.map(p => ent('person', p, colIn(p), g.cat.id === '' ? null : g.cat.id))
       .concat(g.cat.id === '' ? [] : facIn(g.cat).map(f => ent('team', f, pmColor(f.color, '#e9b949'), g.cat.id))).sort(order) }));
+  secs.forEach(x => rank(x.rows));
   // teams and stables no team division takes in get their own list
   const placed = new Set((D.cats || []).flatMap(c => facIn(c).map(f => Number(f.id))));
   const teams = (D.facs || []).filter(f => !placed.has(Number(f.id))).map(f => ent('team', f, pmColor(f.color, '#e9b949')));
-  if(teams.length) secs.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, rows:teams.sort(order) });
+  if(teams.length) secs.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, rows:rank(teams.sort(order)) });
   return secs;
 }
 function pmRankHTML(secs, pg, click){
   const belt = e => e.held.length ? `<span class="pm-rk-belt"><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(e.held.map(h => h.t.name).join(', '))}</span>` : '';
   const ini = e => `<span class="pm-rk-ini">${esc(pmInit(e.x.name))}</span>`;
+  const rk = e => `<span class="pm-rk-no${e.rank === 'C' ? ' c' : ''}" title="${e.rank === 'C' ? 'Champion' : 'Ranked ' + e.rank}">${esc(e.rank || '')}</span>`;
   return secs.map(s => {
     const head = `<div class="pm-divh" style="--pc:${pmColor(s.cat.color, '#c9c6be')}"><b>${esc(s.cat.name)} <small>${s.rows.length}</small></b></div>`;
     let body;
     if(pg.ranks === 'cards') body = `<div class="pm-rk-cards">${s.rows.map(e => `<button type="button" class="pm-rk-card${e.held.length ? ' champ' : ''}" style="--pc:${e.col}" onclick="${click(e)}">
-        ${ini(e)}<b class="pm-rk-n">${esc(e.x.name)}</b>${belt(e)}
+        <span class="pm-rk-cardtop">${rk(e)}${ini(e)}</span><b class="pm-rk-n">${esc(e.x.name)}</b>${belt(e)}
         <span class="pm-rk-nums"><span><b>${e.rec.w}</b>Wins</span><span><b>${e.rec.l}</b>Losses</span><span><b>${e.rec.nc}</b>No contests</span>${pg.cp ? `<span class="pts"><b>${e.pts}</b>Points</span>` : ''}</span></button>`).join('')}</div>`;
     else if(pg.ranks === 'list') body = `<div class="pm-rk-list">${s.rows.map(e => `<button type="button" class="pm-rk-line${e.held.length ? ' champ' : ''}" style="--pc:${e.col}" onclick="${click(e)}">
-        <span class="pm-rk-mark" aria-hidden="true">${e.held.length ? '<i class="ti ti-trophy"></i>' : ''}</span>
+        ${rk(e)}
         <span class="pm-rk-who"><b>${esc(e.x.name)}</b>${e.held.length ? `<small>${esc(e.held.map(h => h.t.name).join(', '))}</small>` : ''}</span>
         <span class="pm-rk-rec">${e.rec.w} W · ${e.rec.l} L · ${e.rec.nc} NC${pg.cp ? ` · <em>${e.pts} pts</em>` : ''}</span></button>`).join('')}</div>`;
-    else body = `<div class="pm-rk-wrap"><table class="pm-rk-table"><thead><tr><th scope="col">Name</th><th scope="col" title="Wins">W</th><th scope="col" title="Losses">L</th><th scope="col" title="No contests">NC</th>${pg.cp ? '<th scope="col" title="Contender points">Pts</th>' : ''}</tr></thead>
-        <tbody>${s.rows.map(e => `<tr class="${e.held.length ? 'champ' : ''}" style="--pc:${e.col}"><th scope="row"><button type="button" class="pm-rk-name" onclick="${click(e)}">${ini(e)}<span><b>${esc(e.x.name)}</b>${belt(e)}</span></button></th>
+    else body = `<div class="pm-rk-wrap"><table class="pm-rk-table"><thead><tr><th scope="col" class="pm-rk-hno" title="Rank">#</th><th scope="col">Name</th><th scope="col" title="Wins">W</th><th scope="col" title="Losses">L</th><th scope="col" title="No contests">NC</th>${pg.cp ? '<th scope="col" title="Contender points">Pts</th>' : ''}</tr></thead>
+        <tbody>${s.rows.map(e => `<tr class="${e.held.length ? 'champ' : ''}" style="--pc:${e.col}"><td class="pm-rk-cno">${rk(e)}</td><th scope="row"><button type="button" class="pm-rk-name" onclick="${click(e)}">${ini(e)}<span><b>${esc(e.x.name)}</b>${belt(e)}</span></button></th>
           <td>${e.rec.w}</td><td>${e.rec.l}</td><td>${e.rec.nc}</td>${pg.cp ? `<td class="pts">${e.pts}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
     return `<section class="pm-rk-sec">${head}${body}</section>`;
   }).join('');
@@ -14604,7 +14623,7 @@ async function mpLayoutTab(box){
           <div><label for="mpl_cp_l">Points for a loss</label><input id="mpl_cp_l" type="number" min="-99" max="99" value="${P.cp_l}" oninput="mpLayoutPick()"></div>
           <div><label for="mpl_cp_nc">Points for a no contest</label><input id="mpl_cp_nc" type="number" min="-99" max="99" value="${P.cp_nc}" oninput="mpLayoutPick()"></div>
         </div>
-        <p class="pm-small pm-dim">Champions are always at the top. Everyone else is listed from A to Z.</p>
+        <p class="pm-small pm-dim">Champions are always at the top. Everyone else is ranked by win percentage, then wins. With contender points on, points come first.</p>
       </div>
       <div class="ed-sub-h"><i class="ti ti-trophy" aria-hidden="true"></i> Champions</div>
       <label class="ed-check" for="mpl_ch_on"><input type="checkbox" id="mpl_ch_on"${P.champs_on ? ' checked' : ''} onchange="mpLayoutPick()"><span>Show a Champions section, and your champions above the roster</span></label>
