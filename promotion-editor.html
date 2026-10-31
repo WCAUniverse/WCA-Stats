@@ -4256,7 +4256,9 @@ body > .wrap{min-height:calc(100vh - var(--hdr-h, 130px) - var(--foot-h, 320px))
   color:var(--gold); border:1px solid var(--gold); border-radius:6px; padding:3px 9px; margin:4px 0;}
 .motn-picks{display:flex; flex-direction:column; gap:6px;}
 label.motn-pick, .pm-card label.motn-pick{display:flex; align-items:center; gap:12px; font-size:15px; color:var(--txt); padding:9px 11px; border:1px solid var(--line); border-radius:10px; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; margin:0 !important;}
-.motn-pick input{width:20px; height:20px; accent-color:var(--gold); flex:0 0 auto;}
+.motn-pick input, .pm-card .motn-pick input, .motn-pick input[type=radio], .motn-pick input[type=checkbox]{width:20px !important; min-width:20px; height:20px !important; min-height:0 !important; padding:0 !important; margin:0 !important; accent-color:var(--gold); flex:0 0 auto;}
+.motn-pick > span{flex:1 1 auto; min-width:0;}
+.motn-given .motn-note{padding:0 16px;}
 .motn-pick b{display:block; font-family:var(--font-body); font-size:16px; color:var(--txt);} .motn-pick small{display:block; font-family:var(--font-body); font-size:14px; color:var(--muted);}
 @media (prefers-reduced-motion:reduce){ .motn-bar{transition:none;} }
 /* ===== Characters on the Feed (Oct 2026) ===== */
@@ -4282,6 +4284,12 @@ label.motn-pick, .pm-card label.motn-pick{display:flex; align-items:center; gap:
 
 /* ===== The promotion editor (Oct 2026) ===== */
 /* Match of the Night section (Oct 2026) */
+.ed-award-btns{display:flex; gap:8px; flex-wrap:wrap;}
+.ed-award-types{display:flex; flex-wrap:wrap; gap:8px;}
+.ed-award-chip{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:12px; padding:8px 10px 8px 12px; background:rgba(0,0,0,.2); font-size:15.5px;}
+.ed-award-chip i{color:var(--gold); font-size:18px;} .ed-award-chip small{color:var(--muted); font-size:13.5px;}
+.motn-note{margin:10px 0 0; font-size:16px; color:var(--txt-2); font-style:italic;}
+.motn-given .motn-win{margin-bottom:0;}
 .ed-motn-sec{margin-top:18px;}
 .ed-motn-h{font-family:var(--font-cond); font-weight:700; letter-spacing:1.8px; text-transform:uppercase; font-size:15.5px; color:var(--txt-2); margin:0 0 10px;}
 .ed-motn-h span{color:var(--gold); margin-left:4px;}
@@ -6970,6 +6978,43 @@ a.pe-who:hover{color:var(--gold);}
 .mpe-addrow{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
 .mpe-addrow select, .mpe-addrow input{flex:1 1 180px;}
 .mpb-own[hidden], #mpb_ownnote[hidden]{display:none !important;}
+.mpb-ex{margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:rgba(0,0,0,.25);}
+.mpb-ex-h{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:14px; color:var(--gold); margin-bottom:6px;}
+.mpb-ex-row{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:15px; color:var(--txt-2); margin:4px 0;}
+.mpb-ex-row > span{display:inline !important; flex:0 1 auto !important; font-weight:400; text-transform:none; letter-spacing:0;}
+.mpb-ex-row b, .mpb-ex-row span b{display:inline !important; color:var(--txt); font-size:16px; font-weight:800;}
+.mpb-ex-note, .mpb-ex-h{display:block;}
+label.pe-chk{display:flex; align-items:center; gap:8px; font-size:15px; text-transform:none; letter-spacing:0; cursor:pointer;}
+.ed-count{display:inline-block; min-width:24px; text-align:center; border-radius:20px; padding:1px 8px; margin-left:6px; font-size:13px; background:rgba(255,255,255,.08); color:var(--muted); vertical-align:middle;}
+.st-ord{border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:10px; background:var(--panel);}
+.st-ord.done{opacity:.92}
+.st-ord-top{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:16px;}
+.st-ord-top small{color:var(--muted); font-size:14px; margin-left:auto;}
+.st-price,.st-cost{font-weight:800; color:var(--pc, var(--gold));}
+.st-note{margin-top:8px; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,.05); font-size:15px; white-space:pre-wrap;}
+.st-reply{border-left:3px solid var(--pc, var(--gold));}
+.st-ord-acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center;}
+.st-ord-acts input{flex:1 1 240px; min-width:0;}
+.st-ord.mine .spc-mini{margin-top:8px}
+.st-item{display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin-top:8px;}
+.st-item.off{opacity:.6}
+.st-item-t{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:16px; min-width:0;}
+.st-item-t small{flex-basis:100%; color:var(--muted); font-size:14px;}
+.st-item-a{display:flex; gap:6px; flex-shrink:0;}
+.st-pubgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; margin-bottom:18px;}
+.st-card{display:flex; flex-direction:column; gap:8px; border:1px solid var(--line); border-top:4px solid var(--pc, var(--gold)); border-radius:14px; padding:16px; background:var(--panel);}
+.st-card.out{opacity:.65}
+.st-card-top{display:flex; flex-direction:column; gap:2px; font-size:19px;}
+.st-go textarea{background:rgba(0,0,0,.35); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:15px; resize:vertical;}
+.st-go textarea:focus{outline:2px solid var(--pc, var(--gold)); outline-offset:1px;}
+.st-go .pm-acts{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;}
+.st-card-top .st-cost{font-size:17px;}
+.st-card p{margin:0; font-size:15px; color:var(--txt); line-height:1.45;}
+.st-left{font-size:14px; color:var(--muted);}
+.st-card > button{margin-top:auto; align-self:flex-start;}
+.st-go label{display:block; font-size:15px; margin-bottom:4px;}
+.st-go textarea{width:100%; box-sizing:border-box;}
+.mpb-ex-note{font-size:14px; font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); margin-top:6px;}
 .mpb-mode{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-top:6px;}
 .mpb-opt{display:block; border:1px solid var(--line); border-radius:12px; padding:14px; cursor:pointer;}
 .mpb-opt.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
@@ -7483,10 +7528,17 @@ async function linkProvider(provider){
 }
 async function signOut(){ await sb.auth.signOut(); location.reload(); }
 function wcaMoneyCtx(){
-  const S = typeof PE !== 'undefined' ? PE.pub : null;
-  if(!S || !S.host || !S.host.isConnected || S.host.hidden || !S.host.offsetParent || !S.info) return null;
+  let S = typeof PE !== 'undefined' ? PE.pub : null, store = false;
+  const on = x => x && x.isConnected && !x.hidden && x.offsetParent;
+  if(!S || !on(S.host) || !S.info){
+    // the promotion's Store tab shows their money too
+    const T = typeof PE !== 'undefined' ? PE.store : null;
+    if(!T || !on(T.box) || !T.info) return null;
+    const p = (typeof PM !== 'undefined' && PM.pub && PM.pub.p) || {};
+    S = { host:T.box, info:T.info, promo:p, color:pmColor(p.color) }; store = true;
+  }
   const I = S.info;
-  if(I.shared_money || I.use_wca_money || I.signed_in === false || I.betting_on === false) return null;
+  if(I.shared_money || I.use_wca_money || I.signed_in === false || (!store && I.betting_on === false)) return null;
   return { S, I };
 }
 function wcaMoneyChip(){
@@ -10954,14 +11006,25 @@ function motnWhen(ts){
 function motnCardHTML(r, opts){
   opts = opts || {};
   const col = (typeof pmColor === 'function') ? pmColor(r.color, '#E9B949') : '#E9B949';
-  const closed = r.status === 'closed';
+  const closed = r.status === 'closed', pick = r.mode === 'pick', person = r.target === 'person';
+  const award = r.award || 'Match of the Night';
   const counts = r.counts || null, total = Number(r.total) || 0;
   const pct = k => counts && total ? Math.round((Number(counts[k]) || 0) / total * 100) : 0;
   const win = closed && r.winner_key ? (r.options || []).find(o => String(o.key) === String(r.winner_key)) : null;
   const from = r.promotion ? ', from ' + r.promotion : '';
+  const what = person ? 'person' : 'match';
+  const rm = r.can_manage ? `<button type="button" class="spc-mini fr-danger" onclick="motnRemove(${Number(r.id)},this)">${pick ? 'Remove this award' : 'Delete this vote'}</button>` : '';
+  if(pick) return `<article class="motn motn-given" id="motn-${Number(r.id)}" style="--pc:${col}">
+    <div class="motn-top"><span class="motn-star" aria-hidden="true">★</span>
+      <div class="motn-tt"><b>${esc(award)}</b><span>${esc(r.show_name)}${esc(from)}</span></div></div>
+    ${win ? `<div class="motn-win"><span>★ ${esc(award)}</span><b>${esc(win.label)}</b>${win.sub ? `<small>${esc(win.sub)}</small>` : ''}</div>` : ''}
+    ${r.note ? `<p class="motn-note">${esc(r.note)}</p>` : ''}
+    <div class="motn-foot"><span>Picked by ${esc(r.promotion || 'WCA')}.</span>${rm}</div>
+    <div class="msg" id="motn-msg-${Number(r.id)}"></div>
+  </article>`;
   return `<article class="motn" id="motn-${Number(r.id)}" style="--pc:${col}">
     <div class="motn-top"><span class="motn-star" aria-hidden="true">★</span>
-      <div class="motn-tt"><b>Match of the Night</b><span>${esc(r.show_name)}${esc(from)}</span></div>
+      <div class="motn-tt"><b>${esc(award)}</b><span>${esc(r.show_name)}${esc(from)}</span></div>
       ${Number(r.reward) > 0 && !closed ? `<span class="motn-pay">Vote and get ${esc(r.reward_text)}</span>` : ''}</div>
     ${win ? `<div class="motn-win"><span>★ The winner</span><b>${esc(win.label)}</b>${win.sub ? `<small>${esc(win.sub)}</small>` : ''}</div>` : ''}
     <div class="motn-list">${(r.options || []).map(o => { const mine = String(r.mine) === String(o.key), w = win && String(win.key) === String(o.key);
@@ -10971,13 +11034,22 @@ function motnCardHTML(r, opts){
         <span class="motn-pct">${counts ? pct(o.key) + '%' : ''}</span></button>`; }).join('')}</div>
     <div class="motn-foot">
       <span>${closed ? total.toLocaleString() + (total === 1 ? ' vote' : ' votes') + '. Voting has closed.'
-        : r.mine != null ? total.toLocaleString() + (total === 1 ? ' vote' : ' votes') + ' so far. Tap another match to change your vote.'
-        : 'Tap a match to vote. The results show after you vote.'}</span>
+        : r.mine != null ? total.toLocaleString() + (total === 1 ? ' vote' : ' votes') + ' so far. Tap another ' + what + ' to change your vote.'
+        : 'Tap a ' + what + ' to vote. The results show after you vote.'}</span>
       <span>${closed ? '' : esc(r.closes_at ? motnWhen(r.closes_at) : 'Open until it is closed')}</span>
       ${r.can_manage && !closed ? `<button type="button" class="spc-mini" onclick="motnClose(${Number(r.id)},this)">Close the vote now</button>` : ''}
+      ${opts.manage ? rm : ''}
     </div>
     <div class="msg" id="motn-msg-${Number(r.id)}"></div>
   </article>`;
+}
+async function motnRemove(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to remove it'; return; }
+  const { error } = await sb.rpc('award_remove', { p_poll:Number(id) });
+  if(error){ wcaToast('Could not remove it', error.message, true); return; }
+  delete MOTN.rows[id]; MOTN.winners = null; motnLoadWinners();
+  document.querySelectorAll('#motn-' + Number(id)).forEach(el => el.remove());
+  wcaToast('Removed', 'It is gone from your page and the Feed.');
 }
 function motnPaint(id){
   const r = MOTN.rows[id]; if(!r) return;
@@ -11025,49 +11097,191 @@ async function motnLoadWinners(){
   if(MOTN.winners || typeof sb === 'undefined') return MOTN.winners;
   MOTN.winners = {};
   try{
-    const { data } = await sb.from('motn_polls').select('promotion_id,winner_key').eq('status', 'closed').not('winner_key', 'is', null).limit(1000);
-    (data || []).forEach(r => { MOTN.winners[(r.promotion_id == null ? 'w:' : 'p:') + r.winner_key] = true; });
+    let res = await sb.from('motn_polls').select('promotion_id,winner_key,award,target,show_name').eq('status', 'closed').not('winner_key', 'is', null).limit(2000);
+    if(res.error) res = await sb.from('motn_polls').select('promotion_id,winner_key').eq('status', 'closed').not('winner_key', 'is', null).limit(1000);
+    (res.data || []).forEach(r => {
+      const key = r.target === 'person' ? 'r:' + String(r.winner_key).replace(/^r/, '') : (r.promotion_id == null ? 'w:' : 'p:') + r.winner_key;
+      (MOTN.winners[key] = MOTN.winners[key] || []).push({ award:r.award || 'Match of the Night', show:r.show_name || '' });
+    });
   }catch(e){}
   return MOTN.winners;
 }
 function motnBadge(kind, id){
-  return MOTN.winners && id != null && MOTN.winners[kind + ':' + id] ? `<span class="motn-badge">★ Match of the Night</span>` : '';
+  const list = MOTN.winners && id != null ? MOTN.winners[kind + ':' + id] : null;
+  if(!list || !list.length) return '';
+  return list.map(w => `<span class="motn-badge"${kind === 'r' && w.show ? ` title="${escAttr(w.show)}"` : ''}>★ ${esc(w.award)}${kind === 'r' && w.show ? ', ' + esc(w.show) : ''}</span>`).join('');
 }
+const MOTN_FIXED = { name:'Match of the Night', target:'match', fixed:true };
 function mpMotnGo(sub){ PM.msub = sub || 'list'; mpTab('motn'); const h = document.querySelector('.ed-head'); if(h && h.getBoundingClientRect().top < 0) h.scrollIntoView({ behavior:'smooth', block:'start' }); }
+async function mpAwardTypes(){
+  const pid = Number(PM.curId);
+  let list = [];
+  try{ const r = await sb.from('promotion_features').select('*').eq('promotion_id', pid).maybeSingle(); list = (r && r.data && Array.isArray(r.data.awards)) ? r.data.awards : []; }catch(e){}
+  list = list.filter(a => a && String(a.name || '').trim() && String(a.name).trim().toLowerCase() !== 'match of the night')
+    .map(a => ({ name:String(a.name).trim().slice(0, 60), target:a.target === 'person' ? 'person' : 'match' }));
+  PM.awardTypes = [MOTN_FIXED].concat(list);
+  return PM.awardTypes;
+}
+async function mpAwardTypesSave(list){
+  const awards = list.filter(a => !a.fixed).map(a => ({ name:a.name, target:a.target }));
+  const { error } = await sb.from('promotion_features').upsert({ promotion_id:Number(PM.curId), awards, updated_at:new Date().toISOString() }, { onConflict:'promotion_id' });
+  if(error){ wcaToast('Could not save your awards', /awards/i.test(error.message || '') ? 'Awards are not switched on yet. Please check back soon!' : error.message, true); return false; }
+  PM.awardTypes = [MOTN_FIXED].concat(awards);
+  return true;
+}
+function mpAwardSelect(id, onchange){
+  return `<select id="${id}" onchange="${onchange || ''}">${(PM.awardTypes || [MOTN_FIXED]).map((a, i) => `<option value="${i}">${esc(a.name)} (${a.target === 'person' ? 'for a person' : 'for a match'})</option>`).join('')}</select>`;
+}
+function mpAwardOf(id){ const i = Number((pmEl(id) || {}).value) || 0; return (PM.awardTypes || [MOTN_FIXED])[i] || MOTN_FIXED; }
 async function mpMotnTab(box){
   const pid = Number(PM.curId);
   if(PM.msub === 'new') return mpMotnNew(box);
+  if(PM.msub === 'give') return mpMotnGive(box);
   box.innerHTML = `<div class="loading">Loading…</div>`;
-  const { data, error } = await sb.from('motn_polls').select('id').eq('promotion_id', pid).order('created_at', { ascending:false }).limit(30);
+  const [pr] = await Promise.all([sb.from('motn_polls').select('id').eq('promotion_id', pid).order('created_at', { ascending:false }).limit(60), mpAwardTypes()]);
+  const { data, error } = pr;
   if(PM.tab !== 'motn') return;
-  if(error){ box.innerHTML = `<div class="pm-card pm-empty">${/does not exist|schema cache|relation/i.test(error.message || '') ? 'Match of the Night is not switched on yet. Please check back soon!' : esc(error.message)}</div>`; return; }
+  if(error){ box.innerHTML = `<div class="pm-card pm-empty">${/does not exist|schema cache|relation/i.test(error.message || '') ? 'Awards are not switched on yet. Please check back soon!' : esc(error.message)}</div>`; return; }
   const rows = (await Promise.all((data || []).map(x => motnResults(x.id)))).filter(Boolean);
-  rows.sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1));
   const open = rows.filter(r => r.status === 'open'), done = rows.filter(r => r.status !== 'open');
   box.innerHTML = `<section class="pm-card">
-      <div class="ed-top"><div><div class="pm-h3">Match of the Night</div>
-        <p class="pm-p">Let your fans vote for the best match of a show. Everyone who votes is paid once in your money, your followers get an alert, and the winner keeps a Match of the Night badge on your Events tab.</p></div>
-        <div><button type="button" class="spc-post-btn" onclick="mpMotnGo('new')"><i class="ti ti-star"></i> Start a vote</button></div></div>
+      <div class="ed-top"><div><div class="pm-h3">Awards</div>
+        <p class="pm-p">Hand out Match of the Night, or awards you make up, like Knockout of the Night. Pick the winner yourself with <b>Give an award</b>, or let your fans decide with <b>Start a vote</b>. Winners show on the Feed, your followers get an alert, and the match or person keeps a badge.</p></div>
+        <div class="ed-award-btns"><button type="button" class="spc-post-btn" onclick="mpMotnGo('give')"><i class="ti ti-award"></i> Give an award</button>
+          <button type="button" class="spc-ghost-btn" onclick="mpMotnGo('new')"><i class="ti ti-star"></i> Start a vote</button></div></div>
     </section>
-    <section class="ed-motn-sec"><div class="ed-motn-h">Open now <span>${open.length}</span></div>
-      ${open.length ? `<div class="motn-strip">${open.map(r => motnCardHTML(r)).join('')}</div>` : '<div class="pm-empty pm-small">No vote is open right now. Press Start a vote.</div>'}</section>
-    ${done.length ? `<section class="ed-motn-sec"><div class="ed-motn-h">Finished <span>${done.length}</span></div><div class="motn-strip">${done.map(r => motnCardHTML(r)).join('')}</div></section>` : ''}`;
+    <section class="pm-card" style="margin-top:14px" data-keep="mp-award-types:${pid}">
+      <div class="pm-h3">Your awards</div>
+      <p class="pm-p">Match of the Night is always here. Add your own, and choose if it goes to a match or to a person.</p>
+      <div class="ed-award-types">${PM.awardTypes.map((a, i) => `<span class="ed-award-chip"><i class="ti ti-award" aria-hidden="true"></i><b>${esc(a.name)}</b><small>${a.target === 'person' ? 'For a person' : 'For a match'}</small>
+          ${a.fixed ? '' : `<button type="button" class="spc-mini" onclick="mpAwardTypeRemove(${i},this)" aria-label="Remove ${escAttr(a.name)}">Remove</button>`}</span>`).join('')}</div>
+      <div class="mpe-fields" style="margin-top:12px">
+        <div><label for="mpat_name">New award</label><input id="mpat_name" maxlength="60" placeholder="For example Knockout of the Night"></div>
+        <div><label for="mpat_target">It goes to</label><select id="mpat_target"><option value="match">A match</option><option value="person">A person</option></select></div>
+        <div style="align-self:end"><button type="button" class="spc-ghost-btn" onclick="mpAwardTypeAdd()"><i class="ti ti-plus"></i> Add award</button></div>
+      </div>
+      <div class="msg" id="mpat_msg"></div>
+    </section>
+    <section class="ed-motn-sec"><div class="ed-motn-h">Votes open now <span>${open.length}</span></div>
+      ${open.length ? `<div class="motn-strip">${open.map(r => motnCardHTML(r, { manage:true })).join('')}</div>` : '<div class="pm-empty pm-small">No vote is open right now.</div>'}</section>
+    ${done.length ? `<section class="ed-motn-sec"><div class="ed-motn-h">Given <span>${done.length}</span></div><div class="motn-strip">${done.map(r => motnCardHTML(r, { manage:true })).join('')}</div></section>` : ''}`;
+}
+async function mpAwardTypeAdd(){
+  const name = (pmEl('mpat_name').value || '').trim().replace(/\s+/g, ' ');
+  if(!name){ mpMsg('mpat_msg', 'Name the award first, like Knockout of the Night.', false); return; }
+  if(PM.awardTypes.some(a => a.name.toLowerCase() === name.toLowerCase())){ mpMsg('mpat_msg', 'You already have ' + name + '.', false); return; }
+  if(PM.awardTypes.length >= 21){ mpMsg('mpat_msg', 'You can have up to 20 awards of your own.', false); return; }
+  if(!(await mpAwardTypesSave(PM.awardTypes.concat([{ name:name.slice(0, 60), target:pmEl('mpat_target').value === 'person' ? 'person' : 'match' }])))) return;
+  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-award-types:' + Number(PM.curId));
+  await mpMotnTab(pmEl('mp-tab'));
+  wcaToast('Award added', name + ' is ready to give.');
+}
+async function mpAwardTypeRemove(i, btn){
+  const a = PM.awardTypes[i]; if(!a || a.fixed) return;
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again'; return; }
+  if(!(await mpAwardTypesSave(PM.awardTypes.filter((x, k) => k !== i)))) return;
+  await mpMotnTab(pmEl('mp-tab'));
+  wcaToast('Removed', a.name + ' is off your list. Winners you already gave keep it.');
+}
+async function mpAwardShows(){
+  const pid = Number(PM.curId);
+  const [er, ir] = await Promise.all([
+    sb.from('promotion_events').select('id,name,status,event_date').eq('promotion_id', pid).order('event_date', { ascending:false, nullsFirst:false }).limit(60),
+    sb.rpc('promo_public', { p_promotion:pid }), mpAwardTypes(), mpRosterLoad()
+  ]);
+  PM.motnShows = (er && er.data) || []; PM.motnCur = (ir && ir.data && ir.data.currency_name) || 'money';
+}
+function mpAwardCrumb(t){ return `<div class="ed-crumb"><button type="button" onclick="mpMotnGo('list')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Awards</button><span aria-hidden="true">/</span><span>${esc(t)}</span></div>`; }
+function mpAwardShowSelect(id, onchange){
+  return `<select id="${id}" onchange="${onchange}"><option value="">Pick a show</option>${(PM.motnShows || []).map(e => `<option value="${Number(e.id)}">${esc(e.name)}${e.status === 'draft' ? ' (draft)' : ''}</option>`).join('')}</select>`;
+}
+function mpAwardPeople(matches){
+  const seen = new Map();
+  (matches || []).forEach(m => peSides(m).forEach(s => (s.members || []).forEach(x => { if(x && x.id != null && !seen.has(Number(x.id))) seen.set(Number(x.id), x.name); })));
+  return [...seen.entries()].map(([id, name]) => { const p = (PM.roster || []).find(r => Number(r.id) === id); return { key:'r' + id, label:(p && p.name) || name, sub:p ? pmDivNames(PM.cats, p) : '' }; });
+}
+function mpAwardMatchOpt(m, i){ return { key:String(m.id), label:peSides(m).map(peSideName).join(' vs '), sub:[m.match_type, m.stipulation, m.title].filter(Boolean).join(', ') || 'Match ' + (i + 1) }; }
+async function mpAwardCard(showId){
+  PM.motnMatches = [];
+  if(!showId) return [];
+  const { data } = await sb.from('promotion_matches').select('*').eq('event_id', Number(showId)).order('slot');
+  PM.motnMatches = data || [];
+  return PM.motnMatches;
+}
+async function mpMotnGive(box){
+  const pid = Number(PM.curId);
+  box.innerHTML = `<div class="loading">Loading your shows…</div>`;
+  await mpAwardShows();
+  if(PM.tab !== 'motn') return;
+  box.innerHTML = mpAwardCrumb('Give an award') + `
+    <section class="pm-card" data-keep="mp-award-give:${pid}">
+      <div class="pm-h3">Give an award</div>
+      <p class="pm-p">You already know who earned it, so no vote. Pick the award, the show and the winner. It goes on the Feed and on your page right away.</p>
+      <div class="mpe-fields">
+        <div><label for="mpag_award">Award</label>${mpAwardSelect('mpag_award', 'mpAwardGivePick()')}</div>
+        <div><label for="mpag_show">Show</label>${mpAwardShowSelect('mpag_show', 'mpAwardGivePick()')}</div>
+      </div>
+      <div id="mpag_form"></div>
+      <div class="msg" id="mpag_msg"></div>
+    </section>`;
+  mpAwardGivePick();
+}
+async function mpAwardGivePick(){
+  const box = pmEl('mpag_form'); if(!box) return;
+  const a = mpAwardOf('mpag_award'), show = (pmEl('mpag_show') || {}).value;
+  if(!show){ box.innerHTML = `<div class="pm-empty pm-small" style="margin-top:12px">Pick a show.</div>`; return; }
+  box.innerHTML = `<div class="loading">Loading the card…</div>`;
+  const ms = await mpAwardCard(show);
+  let choices;
+  if(a.target === 'person'){
+    const onCard = mpAwardPeople(ms), have = new Set(onCard.map(o => o.key));
+    const rest = (PM.roster || []).filter(p => !have.has('r' + p.id)).sort((x, y) => String(x.name).localeCompare(String(y.name)));
+    PM.awardChoices = onCard.concat(rest.map(p => ({ key:'r' + p.id, label:p.name, sub:pmDivNames(PM.cats, p) })));
+    choices = `<label>Who wins it</label>
+      ${onCard.length ? `<div class="motn-picks">${onCard.map(o => `<label class="motn-pick" for="mpag_${escAttr(o.key)}"><input type="radio" name="mpag_pick" id="mpag_${escAttr(o.key)}" value="${escAttr(o.key)}"><span><b>${esc(o.label)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span></label>`).join('')}</div>` : ''}
+      ${rest.length ? `<label for="mpag_other">${onCard.length ? 'Or someone else from your roster' : 'Pick from your roster'}</label><select id="mpag_other" onchange="document.querySelectorAll('input[name=mpag_pick]').forEach(x=>x.checked=false)"><option value="">Nobody else</option>${rest.map(p => `<option value="r${Number(p.id)}">${esc(p.name)}</option>`).join('')}</select>` : ''}`;
+  } else {
+    if(!ms.length){ box.innerHTML = `<div class="pm-empty pm-small" style="margin-top:12px">This show has no matches on its card yet. Add them under Events.</div>`; return; }
+    PM.awardChoices = ms.map(mpAwardMatchOpt);
+    choices = `<label>Which match wins it</label>
+      <div class="motn-picks">${PM.awardChoices.map(o => `<label class="motn-pick" for="mpag_${escAttr(o.key)}"><input type="radio" name="mpag_pick" id="mpag_${escAttr(o.key)}" value="${escAttr(o.key)}"><span><b>${esc(o.label)}</b><small>${esc(o.sub)}</small></span></label>`).join('')}</div>`;
+  }
+  box.innerHTML = choices + `
+    <label for="mpag_note">Why they won <span class="pm-opt">(optional, shows on the Feed)</span></label>
+    <input id="mpag_note" maxlength="300" placeholder="${a.target === 'person' ? 'For example Knocked out Jax in 40 seconds' : 'For example Five stars, the crowd never sat down'}">
+    <label class="pe-chk" for="mpag_alert" style="margin-top:10px"><input type="checkbox" id="mpag_alert" checked> Send an alert to your followers</label>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpAwardGiveGo(this)"><i class="ti ti-award"></i> Give the award</button>
+      <button type="button" class="spc-mini" onclick="mpMotnGo('list')">Cancel</button></div>`;
+}
+async function mpAwardGiveGo(btn){
+  const a = mpAwardOf('mpag_award'), show = Number((pmEl('mpag_show') || {}).value);
+  const picked = (document.querySelector('input[name="mpag_pick"]:checked') || {}).value || (pmEl('mpag_other') || {}).value || '';
+  const o = (PM.awardChoices || []).find(x => x.key === picked);
+  if(!show){ mpMsg('mpag_msg', 'Pick a show first.', false); return; }
+  if(!o){ mpMsg('mpag_msg', a.target === 'person' ? 'Pick who wins it.' : 'Pick the match that wins it.', false); return; }
+  btn.disabled = true;
+  const { error } = await sb.rpc('award_give', { p_promotion:Number(PM.curId), p_event:show, p_award:a.name, p_target:a.target,
+    p_key:o.key, p_label:o.label, p_sub:o.sub || '', p_note:(pmEl('mpag_note').value || '').trim() || null, p_alert:!!pmEl('mpag_alert').checked });
+  btn.disabled = false;
+  if(error){ mpMsg('mpag_msg', /award_give|does not exist|schema cache/i.test(error.message || '') ? 'Awards are not switched on yet. Please check back soon!' : error.message, false); return; }
+  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-award-give:' + Number(PM.curId));
+  MOTN.winners = null; motnLoadWinners();
+  mpMotnGo('list');
+  wcaToast(a.name + ' given', o.label + ' has it. It is on the Feed now.');
 }
 async function mpMotnNew(box){
   const pid = Number(PM.curId);
   box.innerHTML = `<div class="loading">Loading your shows…</div>`;
-  const [er, ir] = await Promise.all([
-    sb.from('promotion_events').select('id,name,status,event_date').eq('promotion_id', pid).order('event_date', { ascending:false, nullsFirst:false }).limit(60),
-    sb.rpc('promo_public', { p_promotion:pid })
-  ]);
+  await mpAwardShows();
   if(PM.tab !== 'motn') return;
-  PM.motnShows = (er && er.data) || []; PM.motnCur = (ir && ir.data && ir.data.currency_name) || 'money';
-  box.innerHTML = `<div class="ed-crumb"><button type="button" onclick="mpMotnGo('list')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Match of the Night</button><span aria-hidden="true">/</span><span>Start a vote</span></div>
+  box.innerHTML = mpAwardCrumb('Start a vote') + `
     <section class="pm-card" data-keep="mp-motn-new:${pid}">
       <div class="pm-h3">Start a vote</div>
-      <p class="pm-p">Pick the show, keep the matches you want in the vote, and choose how much people get for voting.</p>
-      <label for="mpmo_show">Show</label>
-      <select id="mpmo_show" onchange="mpMotnPick(this.value)"><option value="">Pick a show</option>${PM.motnShows.map(e => `<option value="${Number(e.id)}">${esc(e.name)}${e.status === 'draft' ? ' (draft)' : ''}</option>`).join('')}</select>
+      <p class="pm-p">Pick the award and the show, keep the choices you want in the vote, and choose how much people get for voting.</p>
+      <div class="mpe-fields">
+        <div><label for="mpmo_award">Award</label>${mpAwardSelect('mpmo_award', 'mpMotnPick(pmEl(\'mpmo_show\').value)')}</div>
+        <div><label for="mpmo_show">Show</label>${mpAwardShowSelect('mpmo_show', 'mpMotnPick(this.value)')}</div>
+      </div>
       <div id="mpmo_form"></div>
       <div class="msg" id="mpmo_msg"></div>
     </section>`;
@@ -11075,16 +11289,16 @@ async function mpMotnNew(box){
 }
 async function mpMotnPick(id){
   const box = pmEl('mpmo_form'); if(!box) return;
-  PM.motnMatches = [];
   if(!id){ box.innerHTML = ''; return; }
+  const a = mpAwardOf('mpmo_award');
   box.innerHTML = `<div class="loading">Loading the card…</div>`;
-  const { data } = await sb.from('promotion_matches').select('*').eq('event_id', Number(id)).order('slot');
-  PM.motnMatches = data || [];
-  if(PM.motnMatches.length < 2){ box.innerHTML = `<div class="pm-empty pm-small" style="margin-top:12px">This show needs at least two matches on its card. Add them under Events.</div>`; return; }
+  const ms = await mpAwardCard(id);
+  PM.awardChoices = a.target === 'person' ? mpAwardPeople(ms) : ms.map(mpAwardMatchOpt);
+  if(PM.awardChoices.length < 2){ box.innerHTML = `<div class="pm-empty pm-small" style="margin-top:12px">${a.target === 'person' ? 'A vote needs at least two people on this show\'s card. Add the matches under Events, or use Give an award.' : 'This show needs at least two matches on its card. Add them under Events.'}</div>`; return; }
   const cur = PM.motnCur || 'money';
-  box.innerHTML = `<label>Matches in the vote</label>
-    <div class="motn-picks">${PM.motnMatches.map((m, i) => `<label class="motn-pick" for="mpmo_${Number(m.id)}"><input type="checkbox" id="mpmo_${Number(m.id)}" checked>
-      <span><b>${esc(peSides(m).map(peSideName).join(' vs '))}</b><small>${esc([m.match_type, m.stipulation, m.title].filter(Boolean).join(', ') || 'Match ' + (i + 1))}</small></span></label>`).join('')}</div>
+  box.innerHTML = `<label>${a.target === 'person' ? 'People in the vote' : 'Matches in the vote'}</label>
+    <div class="motn-picks">${PM.awardChoices.map(o => `<label class="motn-pick" for="mpmo_${escAttr(o.key)}"><input type="checkbox" id="mpmo_${escAttr(o.key)}" checked>
+      <span><b>${esc(o.label)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span></label>`).join('')}</div>
     <div class="mpe-fields" style="margin-top:12px">
       <div><label for="mpmo_pay">Paid for voting <span class="pm-opt">(in ${esc(cur)})</span></label><input id="mpmo_pay" type="number" min="0" step="1" value="100"></div>
       <div><label for="mpmo_len">Voting closes after</label><select id="mpmo_len"><option value="12">12 hours</option><option value="24" selected>24 hours</option><option value="72">3 days</option><option value="0">When I close it</option></select></div>
@@ -11094,20 +11308,22 @@ async function mpMotnPick(id){
       <button type="button" class="spc-mini" onclick="mpMotnGo('list')">Cancel</button></div>`;
 }
 async function mpMotnStart(btn){
-  const show = Number((pmEl('mpmo_show') || {}).value);
-  const opts = (PM.motnMatches || []).filter(m => (pmEl('mpmo_' + m.id) || {}).checked).map(m => ({
-    key:String(m.id), label:peSides(m).map(peSideName).join(' vs '), sub:[m.match_type, m.stipulation, m.title].filter(Boolean).join(', ') }));
+  const show = Number((pmEl('mpmo_show') || {}).value), a = mpAwardOf('mpmo_award');
+  const opts = (PM.awardChoices || []).filter(o => (pmEl('mpmo_' + o.key) || {}).checked).map(o => ({ key:o.key, label:o.label, sub:o.sub || '' }));
   if(!show){ mpMsg('mpmo_msg', 'Pick a show first.', false); return; }
-  if(opts.length < 2){ mpMsg('mpmo_msg', 'Keep at least two matches in the vote.', false); return; }
+  if(opts.length < 2){ mpMsg('mpmo_msg', 'Keep at least two choices in the vote.', false); return; }
   const pay = Math.max(0, Math.floor(Number(pmEl('mpmo_pay').value) || 0));
   const hrs = Number(pmEl('mpmo_len').value) || 0;
   btn.disabled = true;
-  const { error } = await sb.rpc('motn_start', { p_promotion:Number(PM.curId), p_event:show, p_options:opts, p_reward:pay, p_hours:hrs || null, p_alert:!!pmEl('mpmo_alert').checked });
+  let res = await sb.rpc('award_start', { p_promotion:Number(PM.curId), p_event:show, p_award:a.name, p_target:a.target, p_options:opts, p_reward:pay, p_hours:hrs || null, p_alert:!!pmEl('mpmo_alert').checked });
+  // before the Awards SQL is run: Match of the Night still works the old way
+  if(res.error && /award_start/.test(res.error.message || '') && a.fixed)
+    res = await sb.rpc('motn_start', { p_promotion:Number(PM.curId), p_event:show, p_options:opts, p_reward:pay, p_hours:hrs || null, p_alert:!!pmEl('mpmo_alert').checked });
   btn.disabled = false;
-  if(error){ mpMsg('mpmo_msg', /motn_|does not exist|schema cache/i.test(error.message || '') ? 'Match of the Night is not switched on yet. Please check back soon!' : error.message, false); return; }
+  if(res.error){ mpMsg('mpmo_msg', /award_|motn_|does not exist|schema cache/i.test(res.error.message || '') ? 'Awards are not switched on yet. Please check back soon!' : res.error.message, false); return; }
   if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-motn-new:' + Number(PM.curId));
   mpMotnGo('list');
-  wcaToast('The vote is live', 'It is on the Feed now.');
+  wcaToast('The vote is live', a.name + ' is on the Feed now.');
 }
 var SL_CR = {};
 var SL_CHAR_OPEN = {};
@@ -12867,7 +13083,7 @@ function rpcSectionHTML(p){
       <div class="rpc-acts">
         ${p && p.id && (typeof mpRole !== 'function' || mpCur() && ['owner','coowner','admin'].includes(mpRole(mpCur()) || 'owner')) ? `<input type="file" id="rpc_file" accept="image/png,image/jpeg,image/webp" hidden onchange="rpcFile(this.files[0]);this.value=''">
         <button type="button" class="spc-post-btn" onclick="pmEl('rpc_file').click()"><i class="ti ti-upload" aria-hidden="true"></i> ${saved ? 'Upload a new picture' : 'Upload a picture'}</button>
-        ${port ? `<button type="button" class="spc-ghost-btn" onclick="rpcLoad('${escAttr(port)}',true)"><i class="ti ti-crop" aria-hidden="true"></i> Recrop</button>` : ''}
+        ${port || ava ? `<button type="button" class="spc-ghost-btn" onclick="rpcLoad('${escAttr(port || ava)}',true)" title="Open the picture they have now and move the frames"><i class="ti ti-crop" aria-hidden="true"></i> Recrop current photo</button>` : ''}
         ${saved ? `<button type="button" class="spc-mini fr-danger" onclick="rpcRemove(this)">Remove picture</button>` : ''}
         <p class="pm-small pm-dim">One picture makes both: the full body for their card, and the face for lists, rankings and the Feed. PNG, JPG or WebP.</p>`
         : `<p class="pm-small pm-dim">Add them to the roster first, then come back to add their picture.</p>`}
@@ -13233,7 +13449,7 @@ function mpRegister(){
 }
 var MP_SECTIONS = [
   ['edit','Promotion details','ti-id'], ['look','Page colors','ti-palette'], ['layout','Page layout','ti-layout-dashboard'], ['roster','Roster','ti-users'], ['teams','Teams and stables','ti-users-group'], ['cats','Divisions','ti-category'], ['titles','Championships','ti-trophy'], ['rels','Relationships','ti-affiliate'], null,
-  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['motn','Match of the Night','ti-star'], ['betting','Betting','ti-cash'], ['players','Players','ti-user-star'],
+  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['motn','Awards','ti-award'], ['betting','Betting','ti-cash'], ['store','Redemption Store','ti-shopping-bag'], ['players','Players','ti-user-star'],
   ['injuries','Injuries','ti-first-aid-kit'], ['stories','Stories','ti-book-2'], ['rivalries','Rivalries','ti-flame'], null,
   ['co','Co-owners','ti-user-shield'], ['suggest','Suggestions','ti-message-2']
 ];
@@ -13275,6 +13491,7 @@ function mpTab(k, clicked){
   if(clicked && k === 'roster' && PM.tab === 'roster') PM.rsub = 'list';
   if(clicked && k === 'teams') PM.tsub = 'list';
   if(clicked && k === 'motn') PM.msub = 'list';
+  if(clicked && k === 'store') PM.ssub = 'list';
   PM.tab = k;
   document.querySelectorAll('.ed-nav [data-k]').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   if(PM.curId != null) wcaSetAddress('mypromo', 'id=' + Number(PM.curId) + '&s=' + k, false);
@@ -13303,6 +13520,7 @@ function mpTab(k, clicked){
   const later = fn => typeof window[fn] === 'function' ? window[fn](box) : (box.innerHTML = '<div class="loading">Loading…</div>', setTimeout(() => { if(PM.tab === k) mpTab(k); }, 200));
   if(k === 'events') return typeof mpEventsTab === 'function' ? mpEventsTab(box) : later('mpEventsTab');
   if(k === 'betting') return typeof mpBettingTab === 'function' ? mpBettingTab(box) : later('mpBettingTab');
+  if(k === 'store') return typeof mpStoreTab === 'function' ? mpStoreTab(box) : later('mpStoreTab');
   if(k === 'players') return typeof mpPlayersTab === 'function' ? mpPlayersTab(box) : later('mpPlayersTab');
   if(k === 'injuries') return typeof mpInjuriesTab === 'function' ? mpInjuriesTab(box) : later('mpInjuriesTab');
 }
@@ -17516,6 +17734,10 @@ function peFollowsPost(p){
   const s = typeof slSrc === 'function' ? slSrc(p) : null;
   return !!(s && s.type === 'promotion' && PE.follows.has(Number(s.id)));
 }
+function peSyncWcaMoney(data){
+  if(!data || data.money_mode !== 'wca' || data.balance == null) return;
+  try{ if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE){ MY_PROFILE.balance = Number(data.balance); renderUserChip(); } }catch(e){}
+}
 const MPE = { pid:null, events:[], cur:null, matches:[], info:null, roster:[], board:{}, edit:null, draft:null, sure:{} };
 const PE_TYPE_GROUPS = [
   ['One on one and more', ['Singles','Triple Threat','Fatal 4-Way','Five-Way','Six-Pack Challenge','Eight-Way']],
@@ -17876,9 +18098,19 @@ function mpbDraw(){
     <div class="pm-lbl">How bets pay out</div>
     <div class="mpb-mode">
       <label class="mpb-opt${E.payout_mode !== 'odds' ? ' on' : ''}"><b><input type="radio" name="mpb_mode" value="pool"${E.payout_mode !== 'odds' ? ' checked' : ''} onchange="mpbMode()"> Shared pot, like WCA</b>
-        <p>Everything bet on a match goes into one pot. When you set the winner, everyone who picked right splits the whole pot, by how much each put in. The payout moves as fans bet, and you never run out of money to pay with.</p></label>
+        <p>Everything bet on a match goes into one pot. When you set the winner, the fans who picked right split the whole pot, by how much each of them put in. Losing bets are what pays the winners, so you never run out of money to pay with. The payout keeps moving until betting locks.</p>
+        <div class="mpb-ex"><div class="mpb-ex-h">Example: Dante vs Jax</div>
+          <div class="mpb-ex-row"><span>Ana bets <b>100</b> on Dante</span><span>Ben bets <b>300</b> on Dante</span><span>Cal bets <b>400</b> on Jax</span></div>
+          <div class="mpb-ex-row"><span>The pot is <b>800</b>. Dante wins.</span></div>
+          <div class="mpb-ex-row"><span>Ana put in a quarter of the Dante money, so she gets a quarter of the pot: <b>200</b></span><span>Ben put in three quarters: <b>600</b></span><span>Cal gets <b>0</b></span></div>
+          <div class="mpb-ex-note">Every one of them could have changed their bet until you locked betting. If nobody picked the winner, everyone gets their bet back.</div></div></label>
       <label class="mpb-opt${E.payout_mode === 'odds' ? ' on' : ''}"><b><input type="radio" name="mpb_mode" value="odds"${E.payout_mode === 'odds' ? ' checked' : ''} onchange="mpbMode()"> Fixed odds you set</b>
-        <p>You set the odds for each side when you build the match, like 2 for a bet that doubles or 4 for a big upset. A winning bet pays the bet times the odds, no matter how many people bet. You set the odds on each match in Events.</p></label>
+        <p>You set the odds for each side when you build the match in Events. A winning bet pays the bet times the odds, no matter how many people bet. Use small odds for the favorite and big odds for an upset. Fans know exactly what they win before they bet.</p>
+        <div class="mpb-ex"><div class="mpb-ex-h">Example: Dante (odds 1.5) vs Jax (odds 4)</div>
+          <div class="mpb-ex-row"><span>Ana bets <b>100</b> on Dante</span><span>Cal bets <b>100</b> on Jax</span></div>
+          <div class="mpb-ex-row"><span>If Dante wins, Ana gets 100 × 1.5 = <b>150</b>. Cal gets <b>0</b>.</span></div>
+          <div class="mpb-ex-row"><span>If Jax wins, Cal gets 100 × 4 = <b>400</b>. Ana gets <b>0</b>.</span></div>
+          <div class="mpb-ex-note">Odds of 2 double the bet. Odds have to be above 1. Winners are paid even if few people bet against them, so high odds hand out more money.</div></div></label>
     </div>
     <p class="pm-p pm-small" style="margin-top:8px">You can switch any time. Switch between shows, not while bets are open, so everyone gets paid the way they expected.</p>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSave()">Save money settings</button></div>
@@ -17943,6 +18175,211 @@ async function mpbGive(sign){
   const n = data && data.people != null ? data.people : 0;
   await mpBettingTab(MPB.box);
   mpMsg('mpb_gmsg', (sign > 0 ? 'Gave ' : 'Took back ') + peMoney(MPB.econ, amt) + (to ? '.' : (sign > 0 ? ' to ' : ' from ') + n + (n === 1 ? ' fan.' : ' fans.')), true);
+}
+const MPS = { pid:null, items:[], orders:[], info:null };
+function stMoney(info, n){ return info && info.shared_money ? '$' + peNum(n) : peMoney(info || {}, n); }
+function stLeft(it){
+  const bits = [];
+  if(it.stock != null) bits.push(Number(it.stock) <= 0 ? 'Sold out' : Number(it.stock) + ' left');
+  if(it.per_person != null) bits.push(Number(it.per_person) === 1 ? 'One per fan' : 'Up to ' + Number(it.per_person) + ' per fan');
+  return bits.join(' · ');
+}
+function stAgo(ts){ return typeof pmAgo === 'function' ? pmAgo(ts) : new Date(ts).toLocaleString(); }
+const ST_STATUS = { waiting:'Waiting', done:'Done', declined:'Declined, money back', cancelled:'Cancelled, money back' };
+function mpStoreGo(sub){ PM.ssub = sub || 'list'; mpTab('store'); const h = document.querySelector('.ed-head'); if(h && h.getBoundingClientRect().top < 0) h.scrollIntoView({ behavior:'smooth', block:'start' }); }
+async function mpStoreTab(box){
+  MPS.pid = Number(PM.curId); MPS.box = box;
+  box.innerHTML = '<div class="loading">Loading your store…</div>';
+  const [ir, or, pr] = await Promise.all([
+    sb.from('promotion_store_items').select('*').eq('promotion_id', MPS.pid).order('sort').order('id'),
+    sb.rpc('store_orders', { p_promotion:MPS.pid }),
+    sb.rpc('promo_public', { p_promotion:MPS.pid })
+  ]);
+  if(PM.tab !== 'store') return;
+  if(ir.error){ box.innerHTML = `<div class="pm-card pm-empty">${/does not exist|schema cache|relation/i.test(ir.error.message || '') ? 'The Redemption Store is not switched on yet. Please check back soon!' : esc(ir.error.message)}</div>`; return; }
+  MPS.items = ir.data || []; MPS.orders = (or && !or.error && or.data) || []; MPS.info = (pr && pr.data) || {};
+  const sub = String(PM.ssub || 'list');
+  if(sub.startsWith('item:')) return mpStoreItemForm(box, sub === 'item:new' ? null : Number(sub.slice(5)));
+  mpStoreDraw();
+}
+function mpStoreDraw(){
+  const box = MPS.box; if(!box || !box.isConnected) return;
+  const I = MPS.info || {}, wait = MPS.orders.filter(o => o.status === 'waiting'), past = MPS.orders.filter(o => o.status !== 'waiting');
+  const cur = I.shared_money ? 'WCA money' : (I.currency_name || 'your money');
+  box.innerHTML = `<section class="pm-card">
+      <div class="ed-top"><div><div class="pm-h3">Redemption Store</div>
+        <p class="pm-p">Set up things your followers can redeem for their characters, like a title match or a character update, and what each one costs in ${esc(cur)}. The price comes off their balance right away. When it happens, mark it done. If you decline it, they get their money back.</p></div>
+        <div><button type="button" class="spc-post-btn" onclick="mpStoreGo('item:new')"><i class="ti ti-plus"></i> Add an item</button></div></div>
+    </section>
+    <section class="pm-card" style="margin-top:14px">
+      <div class="pm-h3">Waiting for you <span class="ed-count">${wait.length}</span></div>
+      ${wait.length ? wait.map(o => `<div class="st-ord" id="st_o_${Number(o.id)}">
+          <div class="st-ord-top"><b>${esc(o.fan)}</b> redeemed <b>${esc(o.item_name)}</b><span class="st-price">${esc(stMoney(I, o.price))}</span><small>${esc(stAgo(o.created_at))}</small></div>
+          ${o.note ? `<div class="st-note">${esc(o.note)}</div>` : ''}
+          <div class="st-ord-acts"><input id="st_r_${Number(o.id)}" maxlength="500" placeholder="A note back to them (optional)">
+            <button type="button" class="spc-post-btn" onclick="mpStoreDecide(${Number(o.id)},'done',this)"><i class="ti ti-check"></i> Mark done</button>
+            <button type="button" class="spc-mini fr-danger" onclick="mpStoreDecide(${Number(o.id)},'declined',this)">Decline and give the money back</button></div>
+          <div class="msg" id="st_m_${Number(o.id)}"></div></div>`).join('') : '<div class="pm-empty pm-small">Nothing is waiting. New redemptions show up here, and you get an alert for each one.</div>'}
+    </section>
+    <section class="pm-card" style="margin-top:14px">
+      <div class="pm-h3">Items for sale <span class="ed-count">${MPS.items.length}</span></div>
+      ${MPS.items.length ? MPS.items.map((it, i) => `<div class="st-item${it.active ? '' : ' off'}">
+          <div class="st-item-t"><b>${esc(it.name)}</b><span class="st-price">${esc(stMoney(I, it.price))}</span>${it.active ? '' : '<span class="pm-pill">Hidden</span>'}
+            <small>${esc([stLeft(it), it.needs_note ? 'Asks for a note' : ''].filter(Boolean).join(' · ') || 'No limit')}</small></div>
+          <div class="st-item-a">
+            <button type="button" class="spc-mini" aria-label="Move up" onclick="mpStoreMove(${i},-1)"${i === 0 ? ' disabled' : ''}>▲</button>
+            <button type="button" class="spc-mini" aria-label="Move down" onclick="mpStoreMove(${i},1)"${i === MPS.items.length - 1 ? ' disabled' : ''}>▼</button>
+            <button type="button" class="spc-mini" onclick="mpStoreGo('item:${Number(it.id)}')">Edit</button></div></div>`).join('')
+        : '<div class="pm-empty pm-small">Your store is empty. Press Add an item to make your first one. The Store tab shows on your page once something is for sale.</div>'}
+    </section>
+    ${past.length ? `<section class="pm-card" style="margin-top:14px"><details><summary class="pm-h3" style="cursor:pointer">Finished <span class="ed-count">${past.length}</span></summary>
+      ${past.slice(0, 60).map(o => `<div class="st-ord done"><div class="st-ord-top"><b>${esc(o.fan)}</b> · ${esc(o.item_name)}<span class="st-price">${esc(stMoney(I, o.price))}</span><span class="pm-pill ${o.status === 'done' ? 'ok' : ''}">${esc(ST_STATUS[o.status] || o.status)}</span><small>${esc(stAgo(o.created_at))}</small></div>
+        ${o.note ? `<div class="st-note">${esc(o.note)}</div>` : ''}${o.reply ? `<div class="st-note st-reply">You said: ${esc(o.reply)}</div>` : ''}</div>`).join('')}</details></section>` : ''}`;
+}
+async function mpStoreDecide(id, status, btn){
+  if(status === 'declined' && !btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to decline'; return; }
+  btn.disabled = true;
+  const { error } = await sb.rpc('store_decide', { p_order:id, p_status:status, p_reply:(pmEl('st_r_' + id) || {}).value || null });
+  if(error){ btn.disabled = false; mpMsg('st_m_' + id, error.message, false); return; }
+  await mpStoreTab(MPS.box);
+  wcaToast(status === 'done' ? 'Marked done' : 'Declined', status === 'done' ? 'They get an alert that it is done.' : 'Their money is back, and they get an alert.');
+}
+async function mpStoreMove(i, d){
+  const a = MPS.items.slice(), j = i + d; if(j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]];
+  await mpResort('promotion_store_items', a);
+  MPS.items = a; mpStoreDraw();
+}
+function mpStoreItemForm(box, id){
+  const it = id ? MPS.items.find(x => Number(x.id) === id) : null;
+  const I = MPS.info || {}, cur = I.shared_money ? 'WCA money' : (I.currency_name || 'your money');
+  box.innerHTML = `<div class="ed-crumb"><button type="button" onclick="mpStoreGo('list')"><i class="ti ti-arrow-left" aria-hidden="true"></i> Redemption Store</button><span aria-hidden="true">/</span><span>${it ? esc(it.name) : 'Add an item'}</span></div>
+    <div class="ed-two"><section class="pm-card" data-keep="mp-store-item:${MPS.pid}:${it ? it.id : 'new'}">
+      <div class="pm-h3">${it ? 'Edit ' + esc(it.name) : 'Add an item'}</div>
+      <label for="sti_name">Name</label><input id="sti_name" maxlength="80" value="${escAttr(it ? it.name : '')}" placeholder="For example Title match" oninput="mpStorePrev()">
+      <label for="sti_about">What they get <span class="pm-opt">(optional)</span></label>
+      <textarea id="sti_about" rows="3" maxlength="1000" placeholder="For example A shot at any championship on the next show, booked by us" oninput="mpStorePrev()">${esc(it && it.about || '')}</textarea>
+      <div class="mpe-fields">
+        <div><label for="sti_price">Price <span class="pm-opt">(in ${esc(cur)})</span></label><input id="sti_price" type="number" min="0" step="1" value="${it ? Number(it.price) : 500}" oninput="mpStorePrev()"></div>
+        <div><label for="sti_stock">How many to sell <span class="pm-opt">(blank for no limit)</span></label><input id="sti_stock" type="number" min="0" step="1" value="${it && it.stock != null ? Number(it.stock) : ''}" oninput="mpStorePrev()"></div>
+        <div><label for="sti_per">How many one fan can get <span class="pm-opt">(blank for no limit)</span></label><input id="sti_per" type="number" min="1" step="1" value="${it && it.per_person != null ? Number(it.per_person) : ''}" oninput="mpStorePrev()"></div>
+      </div>
+      <label class="pe-chk" for="sti_note" style="margin-top:10px"><input type="checkbox" id="sti_note"${it && it.needs_note ? ' checked' : ''} onchange="mpStorePrev()"> They have to write a note when they redeem it</label>
+      <label for="sti_prompt">What the note should say <span class="pm-opt">(shown to them)</span></label>
+      <input id="sti_prompt" maxlength="200" value="${escAttr(it && it.note_prompt || '')}" placeholder="For example Which character, and which title?">
+      <label class="pe-chk" for="sti_on" style="margin-top:10px"><input type="checkbox" id="sti_on"${!it || it.active ? ' checked' : ''} onchange="mpStorePrev()"> For sale now <span class="pm-opt">(untick to hide it without deleting it)</span></label>
+      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpStoreItemSave(${it ? Number(it.id) : 'null'},this)">${it ? 'Save item' : 'Add to the store'}</button>
+        ${it ? `<button type="button" class="spc-mini fr-danger" onclick="mpStoreItemDelete(${Number(it.id)},this)">Delete item</button>` : ''}
+        <button type="button" class="spc-mini" onclick="mpStoreGo('list')">Cancel</button></div>
+      <div class="msg" id="sti_msg"></div>
+    </section>
+    <section class="pm-card"><div class="pm-h3">How fans see it</div><div id="sti_prev"></div></section></div>`;
+  mpStorePrev();
+}
+function mpStoreFormRow(){
+  const n = id => { const v = String((pmEl(id) || {}).value || '').trim(); return v === '' ? null : Math.max(0, Math.floor(Number(v) || 0)); };
+  return { name:(pmEl('sti_name').value || '').trim(), about:(pmEl('sti_about').value || '').trim() || null, price:n('sti_price') || 0,
+    stock:n('sti_stock'), per_person:(n('sti_per') || null), needs_note:!!pmEl('sti_note').checked,
+    note_prompt:(pmEl('sti_prompt').value || '').trim() || null, active:!!pmEl('sti_on').checked };
+}
+function mpStorePrev(){
+  const box = pmEl('sti_prev'); if(!box) return;
+  const it = mpStoreFormRow(), p = mpCur() || {};
+  box.innerHTML = `<div class="pe st-pubgrid" style="--pc:${pmColor(p.color)}">${stCardHTML(Object.assign({ id:0 }, it, { name:it.name || 'Your item' }), MPS.info || {}, true)}</div>
+    ${it.active ? '' : '<p class="pm-small pm-dim">Hidden: fans won\'t see it until you tick For sale now.</p>'}`;
+}
+async function mpStoreItemSave(id, btn){
+  const row = mpStoreFormRow();
+  if(!row.name){ mpMsg('sti_msg', 'Give the item a name first.', false); return; }
+  if(row.needs_note && !row.note_prompt) row.note_prompt = 'Tell us what you want.';
+  row.updated_at = new Date().toISOString();
+  btn.disabled = true;
+  const q = id ? sb.from('promotion_store_items').update(row).eq('id', id)
+               : sb.from('promotion_store_items').insert(Object.assign({ promotion_id:MPS.pid, sort:(MPS.items.length + 1) * 10 }, row));
+  const { error } = await q;
+  btn.disabled = false;
+  if(error){ mpMsg('sti_msg', cpErrText(error), false); return; }
+  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-store-item:' + MPS.pid + ':' + (id || 'new'));
+  mpStoreGo('list');
+  wcaToast(id ? 'Saved' : 'Added', row.name + (row.active ? ' is in your store.' : ' is saved, hidden for now.'));
+}
+async function mpStoreItemDelete(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to delete it'; return; }
+  const { error } = await sb.from('promotion_store_items').delete().eq('id', id);
+  if(error){ mpMsg('sti_msg', cpErrText(error), false); return; }
+  mpStoreGo('list');
+  wcaToast('Deleted', 'Redemptions already made stay in your list.');
+}
+function stCardHTML(it, I, preview){
+  const out = it.stock != null && Number(it.stock) <= 0;
+  const open = PE.store && Number(PE.store.open) === Number(it.id);
+  return `<article class="st-card${out ? ' out' : ''}" id="st_c_${Number(it.id)}">
+    <div class="st-card-top"><b>${esc(it.name)}</b><span class="st-cost">${esc(stMoney(I, it.price))}</span></div>
+    ${it.about ? `<p>${esc(it.about)}</p>` : ''}
+    ${stLeft(it) ? `<div class="st-left">${esc(stLeft(it))}</div>` : ''}
+    ${preview ? `<button type="button" class="spc-post-btn" disabled>Redeem</button>`
+      : out ? `<button type="button" class="spc-ghost-btn" disabled>Sold out</button>`
+      : open ? `<div class="st-go">${it.needs_note ? `<label for="st_n_${Number(it.id)}">${esc(it.note_prompt || 'Tell us what you want.')}</label><textarea id="st_n_${Number(it.id)}" rows="2" maxlength="1000"></textarea>` : ''}
+          <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="stRedeem(${Number(it.id)},this)">Redeem for ${esc(stMoney(I, it.price))}</button>
+          <button type="button" class="spc-mini" onclick="PE.store.open=null;stDraw()">Cancel</button></div>
+          <div class="msg" id="st_x_${Number(it.id)}"></div></div>`
+      : `<button type="button" class="spc-post-btn" onclick="stOpen(${Number(it.id)})">Redeem</button>`}
+  </article>`;
+}
+async function stRenderPublic(box, pid){
+  PE.store = { box, pid:Number(pid), open:null, items:[], mine:[], info:{} };
+  box.innerHTML = '<div class="loading">Loading the store…</div>';
+  const signed = typeof frSignedIn === 'function' && frSignedIn();
+  const [ir, pr, mr] = await Promise.all([
+    sb.from('promotion_store_items').select('*').eq('promotion_id', Number(pid)).eq('active', true).order('sort').order('id'),
+    sb.rpc('promo_public', { p_promotion:Number(pid) }),
+    signed ? sb.from('promotion_store_orders').select('*').eq('promotion_id', Number(pid)).eq('user_id', CURRENT_USER.id).order('created_at', { ascending:false }).limit(30) : Promise.resolve({ data:[] })
+  ]);
+  if(!PE.store || PE.store.box !== box) return;
+  PE.store.items = (ir && ir.data) || []; PE.store.info = (pr && pr.data) || {}; PE.store.mine = (mr && mr.data) || [];
+  stDraw();
+  setTimeout(renderUserChip, 0);
+}
+function stDraw(){
+  const S = PE.store; if(!S || !S.box || !S.box.isConnected) return;
+  const I = S.info || {}, name = (PM.pub && PM.pub.p && PM.pub.p.name) || 'this promotion';
+  const head = !I.signed_in ? `<div class="pe-wallet"><div><div class="pe-wk">Redemption Store</div><p>Followers of ${esc(name)} redeem these with ${I.shared_money ? 'their WCA money' : esc(I.currency_name || 'the promotion\'s money')}. Sign in and follow them to redeem.</p></div><button type="button" class="spc-post-btn" onclick="frSignIn(event)">Sign in</button></div>`
+    : I.is_owner ? `<div class="pe-wallet"><div><div class="pe-wk">This is your store</div><p>Fans see it like this. Set it up and handle redemptions in Edit promotion, Redemption Store.</p></div></div>`
+    : !I.following ? `<div class="pe-wallet"><div><div class="pe-wk">Redemption Store</div><p>The store is for ${esc(name)}'s followers. Press FOLLOW at the top of the page to redeem.</p></div></div>`
+    : `<div class="pe-wallet"><div><div class="pe-wk">${I.shared_money ? 'Your WCA money' : 'Your ' + esc(I.currency_name || 'Dollars')}</div><b class="pe-bal">${esc(stMoney(I, I.has_wallet ? I.balance : I.start_amount))}</b>
+        <p>The price comes off right away. If ${esc(name)} declines it, or you cancel before they get to it, you get it back.</p></div></div>`;
+  S.box.innerHTML = head + (S.items.length ? `<div class="st-pubgrid">${S.items.map(it => stCardHTML(it, I)).join('')}</div>` : '<div class="pe-empty">Nothing in the store yet.</div>')
+    + (S.mine.length ? `<section class="pe-top"><div class="pe-h">Your redemptions</div>${S.mine.map(o => `<div class="st-ord mine"><div class="st-ord-top"><b>${esc(o.item_name)}</b><span class="st-price">${esc(stMoney(I, o.price))}</span><span class="pm-pill ${o.status === 'done' ? 'ok' : ''}">${esc(ST_STATUS[o.status] || o.status)}</span><small>${esc(stAgo(o.created_at))}</small></div>
+        ${o.note ? `<div class="st-note">${esc(o.note)}</div>` : ''}${o.reply ? `<div class="st-note st-reply">${esc(name)}: ${esc(o.reply)}</div>` : ''}
+        ${o.status === 'waiting' ? `<button type="button" class="spc-mini" onclick="stCancel(${Number(o.id)},this)">Cancel and get it back</button>` : ''}</div>`).join('')}</section>` : '');
+}
+function stOpen(id){
+  const S = PE.store, I = S.info || {};
+  if(!I.signed_in){ if(typeof frSignIn === 'function') frSignIn(); return; }
+  if(I.is_owner){ wcaToast('This is your store', 'You can\'t redeem from your own store.', true); return; }
+  if(!I.following){ wcaToast('Follow them first', 'The store is for followers. Press FOLLOW at the top of the page.', true); return; }
+  S.open = id; stDraw();
+  const n = pmEl('st_n_' + id); if(n) n.focus();
+}
+async function stRedeem(id, btn){
+  const S = PE.store, it = S.items.find(x => Number(x.id) === Number(id)); if(!it) return;
+  const note = ((pmEl('st_n_' + id) || {}).value || '').trim();
+  if(it.needs_note && !note){ mpMsg('st_x_' + id, it.note_prompt || 'Write a note first.', false); return; }
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to spend ' + stMoney(S.info, it.price); return; }
+  btn.disabled = true;
+  const { data, error } = await sb.rpc('store_redeem', { p_item:Number(id), p_note:note || null });
+  if(error){ btn.disabled = false; btn.dataset.sure = ''; btn.textContent = 'Redeem for ' + stMoney(S.info, it.price); mpMsg('st_x_' + id, (error.message || '').replace(/^.*?:\s*/, ''), false); return; }
+  if(data && data.money_mode === 'wca' && typeof peSyncWcaMoney === 'function') peSyncWcaMoney(data);
+  wcaToast('Redeemed!', it.name + ' is waiting for ' + ((PM.pub && PM.pub.p && PM.pub.p.name) || 'the promotion') + '. You get an alert when it is done.');
+  await stRenderPublic(S.box, S.pid);
+}
+async function stCancel(id, btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to cancel'; return; }
+  const { data, error } = await sb.rpc('store_cancel', { p_order:Number(id) });
+  if(error){ wcaToast('Could not cancel it', error.message, true); return; }
+  if(data && data.money_mode === 'wca' && typeof MY_PROFILE !== 'undefined' && MY_PROFILE){ MY_PROFILE.balance = Number(MY_PROFILE.balance || 0) + Number(data.refunded || 0); try{ renderUserChip(); }catch(e){} }
+  wcaToast('Cancelled', 'The money is back in your balance.');
+  await stRenderPublic(PE.store.box, PE.store.pid);
 }
 </script>
 <script>
