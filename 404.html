@@ -6989,7 +6989,18 @@ details.ed-pane[hidden]{display:none !important;}
   .pm-hist th,.pm-hist td{padding:8px 5px;} .pm-hist{font-size:15px;} .pm-thist{padding:14px 12px;}
 }
 /* editor: championships */
-.pm-cat-fill{font-size:15px; color:var(--txt-2); margin-top:4px;} .pm-cat-fill i{color:var(--pc);}
+.pm-cat-fill{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px;}
+.pm-card .pm-cat-fill label{margin:0 !important;}
+.pm-cat-fill select{width:auto !important; flex:1 1 220px; max-width:340px; padding:7px 10px !important; font-size:15px !important;}
+.ed-divpicks{display:flex; flex-wrap:wrap; gap:8px;}
+.ed-divsel{position:relative;}
+.ed-divsel > summary{list-style:none; display:inline-flex; align-items:center; gap:6px; max-width:240px; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--txt); font-size:14.5px; cursor:pointer;}
+.ed-divsel > summary::-webkit-details-marker{display:none;}
+.ed-divsel > summary span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ed-divsel[open] > summary{border-color:var(--gold);}
+.ed-divsel-in{position:absolute; right:0; top:calc(100% + 6px); z-index:20; width:min(340px, 80vw); padding:12px; border:1px solid var(--gold); border-radius:12px; background:#111318; box-shadow:0 14px 40px rgba(0,0,0,.55);}
+.ed-divsel-in .ed-divpicks{flex-direction:column; align-items:stretch;}
+@media (max-width:700px){ .ed-divsel > summary{max-width:150px;} .ed-divsel-in{right:auto; left:0;} }
 .ed-divpick{width:auto !important; max-width:190px; padding:6px 8px !important; font-size:14.5px !important; margin:0 !important;}
 @media (max-width:700px){ .ed-divpick{max-width:130px;} }
 .ed-pl-two{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin-top:12px;}
@@ -10184,7 +10195,7 @@ function esc(s){if(Array.isArray(s))s=s.join(', ');if(s!=null&&typeof s!=='strin
 // Like esc() but ALSO escapes single quotes and backticks. Use this for any value
 // placed inside an HTML attribute, especially inline event handlers, so a value
 // containing a quote can never "break out" and run as code.
-function escAttr(s){if(Array.isArray(s))s=s.join(', ');return (s||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));}
+function escAttr(s){if(Array.isArray(s))s=s.join(', ');return (s==null?'':String(s)).replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));}
 
 // Body formatting via a SAFE whitelist of HTML tags. Everything is escaped first
 // (so no injection is possible), then ONLY these approved tags are turned back into
@@ -20926,8 +20937,8 @@ function bkCard(pre, ctx){
       <div class="bk-in">
         <label for="${pre}_text">Names, one per line</label>
         <textarea id="${pre}_text" class="bk-text" rows="11" spellcheck="false" placeholder="Dante Reyes&#10;Luna Vex&#10;Jax Rowe&#10;Mara Quinn" oninput="bkInput('${pre}')"></textarea>
-        <label for="${pre}_cat">Put them in</label>
-        <select id="${pre}_cat">${ctx.catOptions((ctx.cats()[0] || {}).id || '')}</select>
+        <label>Put them in <span class="pm-opt">(tick every division, or none)</span></label>
+        <div id="${pre}_catbox">${typeof pmDivPicks === 'function' ? pmDivPicks(pre + '_divs', ctx.cats(), {}) : `<select id="${pre}_cat">${ctx.catOptions((ctx.cats()[0] || {}).id || '')}</select>`}</div>
       </div>
       <div class="bk-out" id="${pre}_out"></div>
     </div>
@@ -20936,7 +20947,10 @@ function bkCard(pre, ctx){
 // call after the card is on the page
 function bkStart(pre){ bkInput(pre); }
 function bkCats(pre){
-  const B = BK[pre], sel = pmEl(pre + '_cat'); if(!B || !sel) return;
+  const B = BK[pre]; if(!B) return;
+  const box = pmEl(pre + '_catbox');
+  if(box && typeof pmDivPicks === 'function'){ const t = pmReadDivPicks(pre + '_divs'); box.innerHTML = pmDivPicks(pre + '_divs', B.ctx.cats(), { category_id:t[0] || null, details:{ more_divs:t.slice(1) } }); return; }
+  const sel = pmEl(pre + '_cat'); if(!sel) return;
   const cur = sel.value; sel.innerHTML = B.ctx.catOptions(cur);
 }
 function bkInput(pre){
@@ -20991,9 +21005,10 @@ async function bkAdd(pre){
   const C = B.ctx, room = Math.max(0, 400 - C.roster().length);
   const going = B.rows.filter(r => !r.skip).slice(0, room);
   if(!going.length) return;
-  const catV = (pmEl(pre + '_cat') || {}).value, cat = catV ? Number(catV) : null;
+  const picks = pmEl(pre + '_divs') ? pmReadDivPicks(pre + '_divs') : (() => { const v = (pmEl(pre + '_cat') || {}).value; return v ? [Number(v)] : []; })();
+  const ds = pmDivSave(picks, {}), cat = ds.category_id;
   let sort = Math.max(0, ...C.roster().filter(p => String(p.category_id) === String(cat)).map(p => p.sort || 0));
-  const rows = going.map(r => ({ promotion_id:Number(C.pid()), category_id:cat, name:r.name, gender:bkG(pre, r.k), details:{}, sort:(sort += 10) }));
+  const rows = going.map(r => ({ promotion_id:Number(C.pid()), category_id:cat, name:r.name, gender:bkG(pre, r.k), details:Object.assign({}, ds.details), sort:(sort += 10) }));
   B.busy = true; const btn = pmEl(pre + '_go'); if(btn){ btn.disabled = true; btn.textContent = 'Adding…'; }
   const added = []; let err = null;
   for(let i = 0; i < rows.length; i += 100){
@@ -21241,7 +21256,7 @@ async function mpHistLoad(){
   }catch(e){ PM.hist = []; }
 }
 function mpCatOf(id){ return PM.cats.find(c => String(c.id) === String(id)) || null; }
-function mpPersonColor(p){ return pmColor(p.color, pmColor((mpCatOf(p.category_id) || {}).color, '#c9c6be')); }
+function mpPersonColor(p){ return pmColor(p.color, pmColor((pmFirstCat(PM.cats, p) || {}).color, '#c9c6be')); }
 function mpDrawCats(){
   const box = pmEl('mp-catlist'); if(!box) return;
   box.innerHTML = PM.cats.length ? PM.cats.map((c, i) => {
@@ -21252,7 +21267,8 @@ function mpDrawCats(){
         <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMoveCat(${i},1)"${i === PM.cats.length - 1 ? ' disabled' : ''}>▼</button>
         <button type="button" class="spc-mini" onclick="mpCatForm(${Number(c.id)})">Edit</button></div>
       <div class="pm-cat-about">${c.about ? esc(c.about) : '<span class="pm-dim">No description yet.</span>'}</div>
-      <div class="pm-cat-fill"><i class="ti ti-users" aria-hidden="true"></i> ${esc((PM_FILLS.find(x => x[0] === pmFillOf(c)) || PM_FILLS[0])[1])}</div>
+      <div class="pm-cat-fill"><label for="mpcf_${Number(c.id)}">Who is in it</label>
+        <select id="mpcf_${Number(c.id)}" onchange="mpQuickFill(${Number(c.id)},this.value)">${PM_FILLS.map(([k, l]) => `<option value="${k}"${pmFillOf(c) === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
       ${(() => { const ts = (PM.titles || []).filter(t => String(t.division_id) === String(c.id));
         return `<div class="pm-cat-ch">${ts.length ? ts.map(t => { const r = pmChampOf(PM.reigns, t.id); return `<span><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(t.name)}: <em>${esc(r ? r.holder_name : 'Vacant')}</em></span>`; }).join('') : '<span class="pm-dim">No championship</span>'}</div>`; })()}
     </div>`;
@@ -21347,15 +21363,15 @@ function mpPersonForm(id, keep){
   const box = pmEl('mp-pform'); if(!box) return;
   let p = id ? PM.roster.find(x => String(x.id) === String(id)) : null;
   if(keep && box.querySelector('#mpf_name')){
-    // only the category list changed: keep what is typed
-    const sel = pmEl('mpf_cat'); if(!sel) return;
-    const cur = sel.value;
-    sel.innerHTML = mpCatOptions(cur);
+    // only the division list changed: keep what is typed and ticked
+    const box2 = pmEl('mpf_divbox'); if(!box2) return;
+    const ticked = pmReadDivPicks('mpf_divs');
+    box2.innerHTML = pmDivPicks('mpf_divs', PM.cats, Object.assign({}, p || {}, { category_id:ticked[0] || null, details:Object.assign({}, (p && p.details) || {}, { more_divs:ticked.slice(1) }) }));
     return;
   }
   PM.editId = p ? p.id : null;
   box.setAttribute('data-keep', 'mp-person:' + Number(PM.curId) + ':' + (p ? p.id : 'new'));
-  p = p || { category_id:(PM.cats[0] || {}).id || null, gender:'Male', alignment:'Face', details:{} };
+  p = p || { category_id:null, gender:'Male', alignment:'Face', details:{} };
   const d = p.details || {};
   const field = ([k, label, , ph, opts]) => k === 'team' ? '' : opts
     ? `<div><label for="mpd_${k}">${esc(label)}</label><select id="mpd_${k}"><option value="">Not set</option>${opts.map(o => `<option${d[k] === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`
@@ -21369,8 +21385,7 @@ function mpPersonForm(id, keep){
     <div class="pm-g2">
       <div><label for="mpf_name">Name</label><input id="mpf_name" maxlength="80" value="${escAttr(p.name || '')}" placeholder="Their ring name"></div>
       <div><label for="mpf_nick">Nickname</label><input id="mpf_nick" maxlength="80" value="${escAttr(p.nickname || '')}" placeholder="Optional"></div>
-      <div><label for="mpf_cat">Main division</label><select id="mpf_cat" onchange="mpMoreDivs()">${mpCatOptions(p.category_id)}</select></div>
-      <div><label for="mpf_gender">Gender</label><select id="mpf_gender">${PM_GENDER.map(([v, l]) => `<option value="${v}"${p.gender === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div><label for="mpf_gender">Gender</label><select id="mpf_gender" onchange="mpfDivRefresh()">${PM_GENDER.map(([v, l]) => `<option value="${v}"${p.gender === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
       <div><label for="mpf_align">Alignment</label><select id="mpf_align">${['Face','Heel','Tweener'].map(v => `<option${p.alignment === v ? ' selected' : ''}>${v}</option>`).join('')}<option value=""${p.alignment ? '' : ' selected'}>None</option></select></div>
       <div><label for="mpf_title">Title they hold</label><input id="mpf_title" maxlength="100" value="${escAttr(p.title || '')}" placeholder="Optional. Real championships go under Championships"></div>
     </div>
@@ -21379,8 +21394,8 @@ function mpPersonForm(id, keep){
       <div><label for="mpd_played_by_user">Their username</label><input id="mpd_played_by_user" maxlength="80" value="${escAttr(d.played_by_user || '')}" placeholder="Their WCA, Discord or Twitch name"></div>
     </div>
     ${p.id && PM.players && PM.players[p.id] ? `<div class="pm-small ed-onsite"><i class="ti ti-circle-check"></i> On the site, ${esc(PM.players[p.id].join(' and '))} ${PM.players[p.id].length > 1 ? 'play' : 'plays'} them. That is set under Players.</div>` : ''}
-    <label>Also in these divisions <span class="pm-opt">(optional, they show in each one)</span></label>
-    <div class="ed-teampicks" id="mpf_more">${mpMoreDivsHTML(p)}</div>
+    <label>Divisions <span class="pm-opt">(tick every one they are in)</span></label>
+    <div id="mpf_divbox">${pmDivPicks('mpf_divs', PM.cats, p)}</div>
     <label>Teams and stables</label>
     ${(PM.facs || []).length ? `<div class="ed-teampicks">${PM.facs.map(f => { const on = p.id && (f.members || []).map(Number).includes(Number(p.id));
       return `<label class="ed-teampick" for="mpft_${Number(f.id)}" style="--pc:${pmColor(f.color, '#e9b949')}"><input type="checkbox" id="mpft_${Number(f.id)}"${on ? ' checked' : ''}><span>${esc(f.name)}</span></label>`; }).join('')}</div>`
@@ -21465,13 +21480,11 @@ async function mpSavePerson(){
   { const was = PM.editId ? (PM.roster.find(x => String(x.id) === String(PM.editId)) || {}).details || {} : {}; if(was.team) details.team = was.team; }
   const attrs = pmReadAttrs('mpa'); if(Object.keys(attrs).length) details.attrs = attrs;
   const traits = pmReadTraits('mpt'); if(Object.keys(traits).length) details.traits = traits;
-  const catV = pmEl('mpf_cat').value;
-  const more = [...document.querySelectorAll('#mpf_more input:checked:not([data-auto])')].map(x => Number(x.value)).filter(x => x && String(x) !== String(catV));
-  if(more.length) details.more_divs = more;
+  const ds = pmDivSave(pmReadDivPicks('mpf_divs'), details);
   const row = { name, nickname:(pmEl('mpf_nick').value || '').trim() || null,
-    category_id: catV ? Number(catV) : null, gender: pmEl('mpf_gender').value || 'Male',
+    category_id: ds.category_id, gender: pmEl('mpf_gender').value || 'Male',
     alignment: pmEl('mpf_align').value || null, title:(pmEl('mpf_title').value || '').trim() || null,
-    color: pmEl('mpf_color').value || null, bio:(pmEl('mpf_bio').value || '').trim() || null, details };
+    color: pmEl('mpf_color').value || null, bio:(pmEl('mpf_bio').value || '').trim() || null, details:ds.details };
   PM.busy = true;
   let res;
   if(PM.editId) res = await sb.from('promotion_roster').update(row).eq('id', PM.editId).select('id');
@@ -21510,6 +21523,40 @@ async function mpRemovePerson(id){
   wcaToast(p.name + ' removed', 'Changed your mind? Use Bring back under Recent changes.');
 }
 // the Division drop down on each row of the roster list: moves them right away
+// gender changed in the person form: the automatic divisions follow it
+function mpfDivRefresh(){
+  const box = pmEl('mpf_divbox'); if(!box) return;
+  const t = pmReadDivPicks('mpf_divs'), g = (pmEl('mpf_gender') || {}).value || 'Male';
+  box.innerHTML = pmDivPicks('mpf_divs', PM.cats, { id:PM.editId || 0, gender:g, category_id:t[0] || null, details:{ more_divs:t.slice(1) } });
+}
+// ticking a division on a roster row saves right away
+// Who is in it, changed straight from a division's card
+async function mpQuickFill(id, v){
+  const c = mpCatOf(id); if(!c) return;
+  const { error } = await sb.from('promotion_roster_categories').update({ fills:v }).eq('id', id);
+  if(error){ wcaToast('Could not save that', /fills/i.test(error.message || '') ? 'Automatic divisions are not switched on yet. Please check back soon!' : cpErrText(error), true); mpDrawCats(); return; }
+  c.fills = v;
+  mpDrawCats(); mpDrawPeople();
+  const n = PM.roster.filter(p => pmInCat(p, c)).length + (PM.facs || []).filter(f => pmFacIn(c, f, PM.roster)).length;
+  wcaToast('Saved', c.name + ': ' + (PM_FILLS.find(x => x[0] === v) || PM_FILLS[0])[1].toLowerCase() + '. ' + n + (n === 1 ? ' is' : ' are') + ' in it now.');
+}
+async function mpRowDivs(id, box){
+  const p = PM.roster.find(x => String(x.id) === String(id)); if(!p) return;
+  const wrap = box.closest('.ed-divpicks');
+  const ids = [...wrap.querySelectorAll('input:checked:not([data-auto])')].map(x => Number(x.value)).filter(Boolean);
+  const ds = pmDivSave(ids, p.details);
+  const upd = { category_id:ds.category_id, details:ds.details };
+  if(String(ds.category_id) !== String(p.category_id)) upd.sort = Math.max(0, ...PM.roster.filter(x => String(x.category_id) === String(ds.category_id)).map(x => x.sort || 0)) + 10;
+  const { error } = await sb.from('promotion_roster').update(upd).eq('id', p.id);
+  if(error){ wcaToast('Could not save that', cpErrText(error), true); mpDrawPeople(); return; }
+  Object.assign(p, upd);
+  PM.roster.sort((a, b) => (a.sort || 0) - (b.sort || 0) || a.id - b.id);
+  const open = 'mprd_' + Number(p.id);
+  mpDrawPeople(); mpDrawCats();
+  // keep their list open where they were working
+  const again = [...document.querySelectorAll('#mp-plist .ed-divpicks')].find(x => x.id.indexOf(open + '_') === 0);
+  if(again){ const d = again.closest('details'); if(d) d.open = true; }
+}
 async function mpSetDiv(id, v){
   const p = PM.roster.find(x => String(x.id) === String(id)); if(!p) return;
   const cat = v ? Number(v) : null;
@@ -21548,6 +21595,28 @@ function pmDivNames(cats, p){
   const main = String(p.category_id == null ? '' : p.category_id);
   return (cats || []).filter(c => pmInCat(p, c)).sort((a, b) => (String(b.id) === main) - (String(a.id) === main)).map(c => c.name).join(' · ');
 }
+/* ---------- Divisions: tick every one someone is in ----------
+   The first ticked division (in division order) is their main one: it sets
+   their color and where they sit on the roster. The rest go in details.more_divs.
+   Divisions that take people in by themselves show ticked and locked. */
+function pmDivPicks(pre, cats, p, onchange){
+  p = p || {};
+  if(!(cats || []).length) return `<span class="pm-small pm-dim">No divisions yet. Make them under Divisions.</span>`;
+  return `<div class="ed-divpicks" id="${pre}">${cats.map(c => { const auto = pmAutoIn(c, p), on = pmInDiv(p, c.id) || auto;
+    return `<label class="ed-teampick" for="${pre}_${Number(c.id)}" style="--pc:${pmColor(c.color, '#c9c6be')}"${auto ? ' title="This division takes them in by itself"' : ''}>
+      <input type="checkbox" id="${pre}_${Number(c.id)}" value="${Number(c.id)}"${on ? ' checked' : ''}${auto ? ' disabled data-auto="1"' : ''}${onchange ? ` onchange="${onchange}"` : ''}><span>${esc(c.name)}${auto ? ' (automatic)' : ''}</span></label>`; }).join('')}</div>`;
+}
+// the divisions ticked by hand, in division order
+function pmReadDivPicks(pre){ return [...document.querySelectorAll('#' + pre + ' input:checked:not([data-auto])')].map(x => Number(x.value)).filter(Boolean); }
+// what to save: { category_id, more_divs } (more_divs left out when empty)
+function pmDivSave(ids, details){
+  const d = Object.assign({}, details || {});
+  delete d.more_divs;
+  if(ids.length > 1) d.more_divs = ids.slice(1);
+  return { category_id:ids.length ? ids[0] : null, details:d };
+}
+// their color: their own, or the first division they are in
+function pmFirstCat(cats, p){ return (cats || []).find(c => String(c.id) === String(p.category_id)) || (cats || []).find(c => pmInCat(p, c)) || null; }
 // Who a division takes in by itself (promotion_roster_categories.fills, WCA_division_auto_fill.sql)
 var PM_FILLS = [['manual','Pick people by hand'],['male','All the men'],['female','All the women'],['all','Everyone, men and women (intergender)'],
   ['teams','All teams'],['teams_male','Teams of men'],['teams_female','Teams of women']];
@@ -21605,11 +21674,12 @@ function mpDrawPeople(){
         const teams = (PM.facs || []).filter(f => (f.members || []).map(Number).includes(Number(p.id))).map(f => f.name);
         const plays = (PM.players && PM.players[p.id]) ? PM.players[p.id].join(' and ') : (d.played_by ? d.played_by + (d.played_by_user ? ' (' + d.played_by_user + ')' : '') : '');
         const extra = cat.id !== '' && p.category_id != null && String(p.category_id) !== String(cat.id) && !!mpCatOf(p.category_id);   // here as one of their other divisions
-        const sub = [extra ? 'Main division: ' + ((mpCatOf(p.category_id) || {}).name || 'none') : '', p.nickname, p.title, teams.join(', '), plays ? 'Played by ' + plays : ''].filter(Boolean).join(' · ');
+        const sub = [p.nickname, p.title, teams.join(', '), plays ? 'Played by ' + plays : ''].filter(Boolean).join(' · ');
         return `<div class="pm-prow${String(PM.editId) === String(p.id) ? ' on' : ''}">
           <span class="pm-pinit" style="--pc:${pc}">${esc(pmInit(p.name))}</span>
           <span class="pm-pname"><b>${esc(p.name)}</b>${sub ? ` <small>${esc(sub)}</small>` : ''}</span>
-          ${extra ? '' : `<select class="ed-divpick" aria-label="Division for ${escAttr(p.name)}" onchange="mpSetDiv(${Number(p.id)},this.value)">${mpCatOptions(p.category_id)}</select>`}
+          <details class="ed-divsel"><summary aria-label="Divisions for ${escAttr(p.name)}"><span>${esc(pmDivNames(PM.cats, p) || 'No division')}</span><i class="ti ti-chevron-down" aria-hidden="true"></i></summary>
+            <div class="ed-divsel-in">${pmDivPicks('mprd_' + Number(p.id) + '_' + (cat.id === '' ? 'x' : Number(cat.id)), PM.cats, p, `mpRowDivs(${Number(p.id)},this)`)}</div></details>
           ${p.gender === 'Team' ? '<span class="bk-team">Team</span>' : bkToggle('mpg_' + Number(p.id), p.gender, `b=>bkSaveG('mpbk',${Number(p.id)},b)`)}
           ${extra ? '' : `<button type="button" class="spc-mini" aria-label="Move up" onclick="mpMovePerson(${Number(p.id)},-1)"${k === 0 ? ' disabled' : ''}>▲</button>
           <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMovePerson(${Number(p.id)},1)"${k === people.length - 1 ? ' disabled' : ''}>▼</button>`}
@@ -22309,7 +22379,7 @@ function pmRosterTab(box){
   P.openSel = false;
   if(!P.recs) pmPubRecs(P).then(() => { if(PM.pub === P) pmRecFill(); });
 }
-function pmPubColor(p){ const P = PM.pub; const c = P.cats.find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); }
+function pmPubColor(p){ const P = PM.pub; const c = pmFirstCat(P.cats, p); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); }
 function pmDivHead(P, cat, n){
   const ts = (P.titles || []).filter(t => cat.id !== '' && String(t.division_id) === String(cat.id));
   return `<div class="pm-divh" style="--pc:${pmColor(cat.color, '#c9c6be')}"><b>${esc(cat.name)} <small>${n}</small></b>
