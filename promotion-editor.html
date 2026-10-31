@@ -4465,6 +4465,22 @@ details.ed-pane[hidden]{display:none !important;}
   .pm-hist th,.pm-hist td{padding:8px 5px;} .pm-hist{font-size:15px;} .pm-thist{padding:14px 12px;}
 }
 /* editor: championships */
+.ed-pl-two{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin-top:12px;}
+.ed-pl-box{border:1px solid var(--line); border-radius:12px; padding:4px 14px 12px; background:rgba(0,0,0,.18); min-width:0;}
+.ed-pl-box .ed-sub-h{margin-top:12px;}
+.ed-pl-box select[size]{width:100%; min-height:170px; font-size:16px; padding:4px;}
+.ed-pl-box select[size] option{padding:6px 8px; border-radius:6px;}
+.ed-pl-list{display:flex; flex-direction:column;}
+.ed-pl-row{display:grid; grid-template-columns:minmax(150px,240px) minmax(0,1fr); gap:10px; align-items:center; padding:10px 6px; border-bottom:1px solid rgba(255,255,255,.06);}
+.ed-pl-row.on{background:rgba(233,185,73,.07); border-radius:8px;}
+.ed-pl-name{background:none; border:0; padding:0; color:var(--txt); font-weight:700; font-size:16.5px; text-align:left; cursor:pointer; font-family:var(--font-body);}
+.ed-pl-name:hover{color:var(--gold);}
+.ed-pl-who{display:flex; flex-wrap:wrap; gap:6px; font-size:15.5px;}
+.ed-pl-chip{display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px; border:1px solid var(--line); border-radius:20px; padding:4px 6px 4px 12px; color:var(--txt);}
+.ed-pl-chip.ok{border-color:#5dcaa5;} .ed-pl-chip.ok > i{color:#5dcaa5;}
+.ed-pl-chip.wait > i{color:var(--gold);} .ed-pl-chip.ph{border-style:dashed;} .ed-pl-chip.ph > i{color:var(--muted);}
+.ed-pl-join{border-color:#5dcaa5 !important; color:#5dcaa5 !important;}
+@media (max-width:820px){ .ed-pl-two,.ed-pl-row{grid-template-columns:1fr;} }
 .ed-tlist{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:10px;}
 .ed-titem{display:flex; gap:12px; align-items:center; border:1px solid var(--line); border-left:4px solid var(--pc); border-radius:12px; padding:10px 12px; background:rgba(0,0,0,.18);}
 .ed-titem.on{border-color:var(--gold); border-left-color:var(--pc); box-shadow:0 0 0 1px var(--gold) inset;}
@@ -17624,51 +17640,124 @@ async function piDelete(btn){
   if(error){ mpMsg('pi_msg', peErr(error), false); return; }
   delete PI.pub[PI.pid]; PI.edit = null; await mpInjuriesTab(PI.box);
 }
-const MPL = { pid:null, rows:[], fans:[], roster:[] };
+const MPL = { pid:null, rows:[], members:[], roster:[], char:'', find:'' };
 async function mpPlayersTab(box){
   box.innerHTML = '<div class="loading">Loading…</div>';
   MPL.pid = Number(PM.curId); MPL.box = box;
-  const [lr, fr, rr] = await Promise.all([
+  const [lr, mr, rr] = await Promise.all([
     sb.rpc('promo_char_list', { p_promotion:MPL.pid }),
-    sb.rpc('promo_fans', { p_promotion:MPL.pid }),
-    sb.from('promotion_roster').select('id,name').eq('promotion_id', MPL.pid).order('name')
+    sb.rpc('promo_member_list', { p_promotion:MPL.pid }),
+    sb.from('promotion_roster').select('id,name,gender,details').eq('promotion_id', MPL.pid).order('name')
   ]);
-  if(lr.error){ box.innerHTML = `<div class="pm-card pm-empty">${esc(/does not exist|schema cache|could not find/i.test(String(lr.error.message)) ? 'Players are not switched on yet. Run SUPABASE_SETUP_promotion_characters_injuries.sql in Supabase.' : peErr(lr.error))}</div>`; return; }
-  MPL.rows = lr.data || []; MPL.fans = ((fr && fr.data) || []).filter(f => f.following); MPL.roster = (rr && rr.data) || [];
+  if(lr.error){ box.innerHTML = `<div class="pm-card pm-empty">${esc(/does not exist|schema cache|could not find/i.test(String(lr.error.message)) ? 'Players are not switched on yet. Please check back soon!' : peErr(lr.error))}</div>`; return; }
+  MPL.missing = !!(mr && mr.error);
+  MPL.rows = lr.data || []; MPL.members = (mr && !mr.error && mr.data) || []; MPL.roster = (rr && rr.data) || [];
+  if(MPL.char && !MPL.roster.some(p => String(p.id) === String(MPL.char))) MPL.char = '';
   mplDraw();
+}
+function mplPlaceholder(p){ const d = (p && p.details) || {}; return { name:String(d.played_by || '').trim(), user:String(d.played_by_user || '').trim() }; }
+function mplJoined(ph){
+  const want = [ph.name, ph.user.replace(/^@/, '')].map(x => x.toLowerCase()).filter(Boolean);
+  if(!want.length) return null;
+  return MPL.members.find(m => want.includes(String(m.name || '').toLowerCase()) || want.includes(String(m.username || '').replace(/^@/, '').toLowerCase())) || null;
 }
 function mplDraw(){
   const box = MPL.box; if(!box || !box.isConnected) return;
-  const st = { pending:'Waiting for WCA', approved:'Plays them', rejected:'Not approved' };
-  box.innerHTML = `<div class="pe"><section class="pm-card">
+  const cur = MPL.roster.find(p => String(p.id) === String(MPL.char)), ph = mplPlaceholder(cur);
+  const rowsFor = id => MPL.rows.filter(r => String(r.roster_id) === String(id) && r.status !== 'rejected');
+  box.innerHTML = `<div class="pe ed-players"><section class="pm-card" data-keep="mp-players:${MPL.pid}">
     <div class="pm-h3">Players</div>
-    <p class="pm-p" style="font-size:15px">Give one of your characters to a real person. Pick the character and one of your followers, and WCA checks it. Once it's approved, they can post on the Feed as that character from the Superstar Portal, about your shows, WCA or anyone in the universe. Their posts go live right away. You can take the character back any time.</p>
-    ${MPL.fans.length ? `<div class="mpe-fields">
-      <div><label for="mpl_char">Character</label><select id="mpl_char"><option value="">Pick a character</option>${MPL.roster.map(p => `<option value="${Number(p.id)}">${esc(p.name)}</option>`).join('')}</select></div>
-      <div><label for="mpl_who">Who plays them</label><select id="mpl_who"><option value="">Pick a follower</option>${MPL.fans.map(f => `<option value="${escAttr(f.user_id)}">${esc(f.name)}</option>`).join('')}</select></div>
-      <div style="grid-column:1/-1"><label for="mpl_note">Note to WCA <span class="pm-opt">(optional, like where they stream)</span></label><input id="mpl_note" maxlength="300"></div>
+    <p class="pm-p">Give any character on your roster to a real person. It works right away, no request needed. They post as that character from the Superstar Portal, and you can take it back any time.</p>
+    <label for="mpl_char">Character</label>
+    <select id="mpl_char" onchange="MPL.char=this.value;mplDraw()"><option value="">Pick a character</option>${MPL.roster.map(p => `<option value="${Number(p.id)}"${String(p.id) === String(MPL.char) ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+    <div class="ed-pl-two">
+      <div class="ed-pl-box">
+        <div class="ed-sub-h"><i class="ti ti-user-check" aria-hidden="true"></i> On the site</div>
+        ${MPL.missing ? '<div class="pm-small pm-dim">The member list is not switched on yet. Please check back soon!</div>' : `
+        <label for="mpl_find">Find a member</label>
+        <input id="mpl_find" placeholder="Type a name or username" value="${escAttr(MPL.find)}" oninput="MPL.find=this.value;mplFill()" autocomplete="off">
+        <label for="mpl_who">Member</label>
+        <select id="mpl_who" size="6" aria-label="Members on the site"></select>
+        <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mplGive()"><i class="ti ti-check" aria-hidden="true"></i> Give them the character</button></div>`}
+      </div>
+      <div class="ed-pl-box">
+        <div class="ed-sub-h"><i class="ti ti-user-question" aria-hidden="true"></i> Not on the site yet</div>
+        <p class="pm-small pm-dim">Type who owns the character. It holds their place until they join, then pick them under On the site.</p>
+        <label for="mpl_phname">Their name</label>
+        <input id="mpl_phname" maxlength="80" value="${escAttr(ph.name)}" placeholder="Like Chris"${cur ? '' : ' disabled'}>
+        <label for="mpl_phuser">Their username</label>
+        <input id="mpl_phuser" maxlength="80" value="${escAttr(ph.user)}" placeholder="Their Discord, Twitch or WCA name"${cur ? '' : ' disabled'}>
+        <div class="pm-acts"><button type="button" class="spc-ghost-btn" onclick="mplSavePh()"${cur ? '' : ' disabled'}>Save placeholder</button></div>
+      </div>
     </div>
-    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mplSend()">Send to WCA</button></div>`
-    : '<div class="pe-empty">Nobody follows you yet. The person has to press FOLLOW on your page first, then they show up here.</div>'}
     <div class="msg" id="mpl_msg"></div>
-    ${MPL.rows.length ? `<div class="pi-sec">Your players</div>${MPL.rows.map(r => `<div class="pi-row"><div class="pi-rw"><b>${esc(r.character_name)}</b>, played by <b>${esc(r.player)}</b>
-        <span class="pl-pill ${r.status}" style="margin-left:6px">${esc(st[r.status] || r.status)}</span>
-        ${r.status === 'rejected' && r.review_note ? `<div class="pm-small" style="color:#ff8a96;margin-top:4px">WCA's note: ${esc(r.review_note)}</div>` : ''}</div>
-      <button type="button" class="spc-mini" onclick="mplRemove(${Number(r.id)},this)">${r.status === 'pending' ? 'Cancel the request' : r.status === 'approved' ? 'Take the character back' : 'Remove'}</button></div>`).join('')}` : ''}
+  </section>
+  <section class="pm-card">
+    <div class="pm-h3">Who plays who</div>
+    ${MPL.roster.length ? `<div class="ed-pl-list">${MPL.roster.map(p => {
+      const rs = rowsFor(p.id), h = mplPlaceholder(p), joined = (h.name || h.user) ? mplJoined(h) : null;
+      const bits = rs.map(r => `<span class="ed-pl-chip ${r.status === 'approved' ? 'ok' : 'wait'}"><i class="ti ${r.status === 'approved' ? 'ti-circle-check' : 'ti-hourglass'}" aria-hidden="true"></i> ${esc(r.player)}${r.status === 'approved' ? '' : ', waiting for WCA'}
+          <button type="button" class="spc-mini" onclick="mplRemove(${Number(r.id)},this)">${r.status === 'approved' ? 'Take back' : 'Cancel'}</button></span>`);
+      if(h.name || h.user) bits.push(`<span class="ed-pl-chip ph"><i class="ti ti-user-question" aria-hidden="true"></i> Not on the site yet: ${esc(h.name || h.user)}${h.name && h.user ? ` (${esc(h.user)})` : ''}
+          ${joined ? `<button type="button" class="spc-mini ed-pl-join" onclick="mplGive(${Number(p.id)},'${escAttr(joined.user_id)}')">They joined! Give it to ${esc(joined.name)}</button>` : ''}
+          <button type="button" class="spc-mini" onclick="mplClearPh(${Number(p.id)})">Clear</button></span>`);
+      return `<div class="ed-pl-row${String(p.id) === String(MPL.char) ? ' on' : ''}"><button type="button" class="ed-pl-name" onclick="mplPick(${Number(p.id)})">${esc(p.name)}</button>
+        <div class="ed-pl-who">${bits.length ? bits.join('') : '<span class="pm-dim">Nobody yet</span>'}</div></div>`; }).join('')}</div>`
+      : '<div class="pe-empty">Add people to your roster first, then give them to players here.</div>'}
   </section></div>`;
+  mplFill();
 }
-async function mplSend(){
-  const rid = pmEl('mpl_char').value, uid = pmEl('mpl_who').value;
-  if(!rid || !uid){ mpMsg('mpl_msg', 'Pick a character and who plays them.', false); return; }
-  const { error } = await sb.rpc('promo_char_request', { p_roster:Number(rid), p_user:uid, p_note:pmEl('mpl_note').value || null });
+function mplFill(){
+  const sel = pmEl('mpl_who'); if(!sel) return;
+  const q = String(MPL.find || '').trim().toLowerCase().replace(/^@/, '');
+  const list = MPL.members.filter(m => !q || String(m.name || '').toLowerCase().includes(q) || String(m.username || '').toLowerCase().includes(q)).slice(0, 200);
+  const was = sel.value;
+  sel.innerHTML = list.length ? list.map(m => `<option value="${escAttr(m.user_id)}"${m.user_id === was ? ' selected' : ''}>${esc(m.name)}${m.username && m.username !== m.name ? ' (' + esc(m.username) + ')' : ''}</option>`).join('')
+    : `<option value="" disabled>Nobody matches. Not on the site yet? Use the box on the right.</option>`;
+}
+function mplPick(id){
+  MPL.char = String(id); mplDraw();
+  const s = pmEl('mpl_char'); if(s){ s.scrollIntoView({ behavior:'smooth', block:'center' }); s.focus(); }
+}
+async function mplGive(rid, uid){
+  rid = rid || (pmEl('mpl_char') || {}).value; uid = uid || (pmEl('mpl_who') || {}).value;
+  if(!rid){ mpMsg('mpl_msg', 'Pick a character first.', false); return; }
+  if(!uid){ mpMsg('mpl_msg', 'Pick who plays them from the member list.', false); return; }
+  const { error } = await sb.rpc('promo_char_assign', { p_roster:Number(rid), p_user:uid });
   if(error){ mpMsg('mpl_msg', peErr(error), false); return; }
+  const c = (MPL.roster.find(p => String(p.id) === String(rid)) || {}).name || 'The character', m = (MPL.members.find(x => x.user_id === uid) || {}).name || 'they';
+  wcaKeepDone('mp-players:' + MPL.pid);
+  MPL.char = String(rid); MPL.find = '';
+  if(typeof PM !== 'undefined') PM.rosterFor = null;    // the roster screen shows who plays who
   await mpPlayersTab(MPL.box);
-  mpMsg('mpl_msg', 'Sent to WCA. You both get a notification when it is approved.', true);
+  mpMsg('mpl_msg', `Done. ${m} plays ${c} now, and they got a notification.`, true);
+}
+async function mplSavePh(){
+  const p = MPL.roster.find(x => String(x.id) === String(MPL.char)); if(!p){ mpMsg('mpl_msg', 'Pick a character first.', false); return; }
+  const name = (pmEl('mpl_phname').value || '').trim(), user = (pmEl('mpl_phuser').value || '').trim();
+  if(!name && !user){ mpMsg('mpl_msg', 'Type their name or username.', false); return; }
+  const details = Object.assign({}, p.details || {}); delete details.played_by; delete details.played_by_user;
+  if(name) details.played_by = name; if(user) details.played_by_user = user;
+  const { error } = await sb.from('promotion_roster').update({ details }).eq('id', p.id);
+  if(error){ mpMsg('mpl_msg', peErr(error), false); return; }
+  wcaKeepDone('mp-players:' + MPL.pid);
+  if(typeof PM !== 'undefined') PM.rosterFor = null;
+  await mpPlayersTab(MPL.box);
+  mpMsg('mpl_msg', `Saved. ${name || user} holds ${p.name} until they join the site.`, true);
+}
+async function mplClearPh(id){
+  const p = MPL.roster.find(x => String(x.id) === String(id)); if(!p) return;
+  const details = Object.assign({}, p.details || {}); delete details.played_by; delete details.played_by_user;
+  const { error } = await sb.from('promotion_roster').update({ details }).eq('id', p.id);
+  if(error){ mpMsg('mpl_msg', peErr(error), false); return; }
+  if(typeof PM !== 'undefined') PM.rosterFor = null;
+  await mpPlayersTab(MPL.box);
 }
 async function mplRemove(id, btn){
   if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to confirm'; return; }
   const { error } = await sb.rpc('promo_char_remove', { p_id:id });
   if(error){ mpMsg('mpl_msg', peErr(error), false); return; }
+  if(typeof PM !== 'undefined') PM.rosterFor = null;
   await mpPlayersTab(MPL.box);
 }
 async function spLoadPromoChars(actingId){
