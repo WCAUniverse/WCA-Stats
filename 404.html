@@ -7164,6 +7164,26 @@ details.ed-pane[hidden]{display:none !important;}
 .ed-divpick{width:auto !important; max-width:190px; padding:6px 8px !important; font-size:14.5px !important; margin:0 !important;}
 @media (max-width:700px){ .ed-divpick{max-width:130px;} }
 /* ===== PROMOTION APPLICATIONS (Oct 2026) ===== */
+/* step 1 on the Apply page: who you are applying to */
+.apx-step{text-align:center; background:rgba(8,8,12,.8); border:1px solid var(--gold-dim, rgba(233,185,73,.4)); border-radius:16px; padding:24px 22px 22px; margin:0 auto 22px;}
+.apx-step-n{display:inline-block; font-family:var(--font-cond); font-size:14px; letter-spacing:2.4px; text-transform:uppercase; color:#111; background:var(--gold); border-radius:20px; padding:3px 14px; margin-bottom:10px;}
+.apx-step .apx-h{font-family:var(--font-display); font-size:clamp(24px,3vw,32px); letter-spacing:1px; text-transform:none; color:#fff; margin:0 0 8px;}
+.apx-p{font-family:var(--font-body); font-size:17.5px; line-height:1.55; color:var(--txt-2); max-width:640px; margin:0 auto 18px;}
+.apx-step .apx-list{max-width:900px; margin:0 auto; text-align:left;}
+.apx-card{position:relative; padding:16px 44px 16px 16px !important;}
+.apx-card b{font-size:21px !important;}
+.apx-card small{font-size:15px !important;}
+.apx-go{position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--pc); font-size:22px;}
+.apx-picked{display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:14px 18px; margin:0 auto 18px; border-radius:14px; border:1px solid var(--pc); border-left:6px solid var(--pc);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 18%,transparent),transparent 70%),rgba(8,8,12,.85);}
+.apx-picked-t small{display:block; font-family:var(--font-cond); font-size:14px; letter-spacing:2px; text-transform:uppercase; color:var(--txt-2);}
+.apx-picked-t b{display:block; font-family:var(--font-display); font-size:clamp(22px,2.6vw,28px); font-weight:400; letter-spacing:.8px; color:#fff;}
+.apx-picked-a{margin-left:auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.apx-picked .apx-see{display:inline; margin:0; font-size:16px;}
+.apx-change{display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid var(--pc); color:var(--pc); border-radius:30px; padding:9px 18px; font-family:var(--font-body); font-size:16px; font-weight:600; cursor:pointer;}
+.apx-change:hover{background:var(--pc); color:#111;}
+.apx-intro{background:rgba(8,8,12,.78); border:1px solid var(--line); border-left:4px solid var(--pc); border-radius:12px; padding:14px 18px; font-size:17.5px !important;}
+@media (max-width:560px){ .apx-picked-a{margin-left:0; width:100%; justify-content:space-between;} .apx-step{padding:20px 14px;} }
 .apx-h{font-family:var(--font-cond); font-size:15px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin:4px 0 10px;}
 .apx-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; margin-bottom:22px;}
 .apx-card{display:flex; align-items:center; gap:12px; text-align:left; padding:12px 14px; border-radius:12px; border:1px solid var(--line); border-left:4px solid var(--pc); background:var(--panel); color:var(--txt); font:inherit; cursor:pointer;}
@@ -9078,47 +9098,54 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
    instead of hugging the left edge, and the smaller non-bold text is a
    size up so it reads comfortably. Phones keep the same single column. */
 #page-apply > .section-title,
-#page-apply > .sl-intro,
-#page-apply > .cs-sharerow,
-#page-apply > .apply-rules,
-#page-apply > .apply-platform,
+#page-apply #apply-to,
+#page-apply #apply-promo,
+#page-apply .sl-intro,
+#page-apply .cs-sharerow,
+#page-apply .apply-rules,
+#page-apply .apply-platform,
 #page-apply #apply-gate,
 #page-apply #apply-body{max-width:1080px; margin-left:auto; margin-right:auto;}
-#page-apply > .sl-intro{font-size:16.5px; line-height:1.65;}
-#page-apply > .cs-sharerow{justify-content:flex-start;}
+/* the intro: centred, a size up, on its own dark panel so the backdrop never washes it out */
+#page-apply .sl-intro{max-width:860px; text-align:center; font-size:19px; line-height:1.65; color:var(--txt);
+  background:rgba(8,8,12,.78); border:1px solid var(--line); border-radius:14px; padding:18px 24px; margin-bottom:12px;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);}
+#page-apply .sl-intro b{color:var(--gold);}
+#page-apply .cs-sharerow{justify-content:center !important; margin-bottom:18px;}
+#page-apply .cs-share{font-size:15px;}
 #page-apply .apply-form{max-width:none;}
-#page-apply .apply-rule{font-size:15px; line-height:1.55; padding:16px 18px;}
+#page-apply .apply-rule{font-size:17px; line-height:1.55; padding:18px 20px; color:var(--txt); background:rgba(8,8,12,.82);}
 #page-apply .apply-rule i{font-size:24px;}
-#page-apply .apply-platform{font-size:15px; line-height:1.6; padding:18px 20px;}
+#page-apply .apply-platform{font-size:17px; line-height:1.6; padding:20px 22px; color:var(--txt); background:linear-gradient(rgba(var(--gold-rgb),.08),rgba(var(--gold-rgb),.08)),rgba(8,8,12,.85);}
 #page-apply .apply-gatebox{max-width:640px; margin:0 auto;}
-#page-apply .apply-gatebox p{font-size:15.5px; line-height:1.6;}
+#page-apply .apply-gatebox p{font-size:17px; line-height:1.6; color:var(--txt-2);}
 #page-apply .apply-signins{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
-#page-apply .apply-signins .hbtn{min-width:140px; justify-content:center; font-size:15px;}
-#page-apply .apply-mine{font-size:15px;}
+#page-apply .apply-signins .hbtn{min-width:150px; justify-content:center; font-size:16.5px;}
+#page-apply .apply-mine{font-size:16.5px;}
 #page-apply .af-head{padding:18px 22px;}
-#page-apply .af-head .af-title{font-size:19px;}
+#page-apply .af-head .af-title{font-size:21px;}
 #page-apply .af-content{padding:2px 22px 22px;}
 #page-apply .af-field{margin-bottom:18px;}
-#page-apply .af-field label{font-size:16.5px;}
-#page-apply .af-field .af-help{font-size:14px; line-height:1.5; margin:0 0 8px; color:#a6a9b2;}
+#page-apply .af-field label{font-size:18px;}
+#page-apply .af-field .af-help{font-size:16px !important; line-height:1.5; margin:0 0 8px; color:#c3c6cf;}
 #page-apply .af-field input[type=text],
 #page-apply .af-field input[type=number],
 #page-apply .af-field textarea,
-#page-apply .af-field select{font-size:16px; padding:12px 14px;}
+#page-apply .af-field select{font-size:17px; padding:13px 15px;}
 #page-apply .af-field textarea{min-height:90px;}
-#page-apply .af-counter{font-size:13px;}
-#page-apply .af-seg button{font-size:15px; padding:11px;}
-#page-apply .af-toggle button{font-size:16.5px; padding:16px;}
+#page-apply .af-counter{font-size:14.5px;}
+#page-apply .af-seg button{font-size:16.5px; padding:12px; color:var(--txt-2);}
+#page-apply .af-toggle button{font-size:18px; padding:17px;}
 #page-apply .af-grid2{gap:16px;}
-#page-apply .af-note{font-size:14px;}
+#page-apply .af-note{font-size:16px;}
 #page-apply .apply-success{margin:0 auto;}
 #page-apply .af-draftbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 14px; padding:10px 14px;
   border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.02);
-  font-family:var(--font-body); font-size:13.5px; color:var(--muted);}
+  font-family:var(--font-body); font-size:15.5px; color:var(--txt-2); background:rgba(8,8,12,.7);}
 #page-apply .af-draftbar #af-draftstate{flex:1; min-width:200px;}
 #page-apply .af-draftbar i{color:var(--win);}
 #page-apply .af-draftclear{background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px;
-  padding:6px 12px; cursor:pointer; font-family:var(--font-cond); font-size:13px; letter-spacing:1px; text-transform:uppercase;}
+  padding:7px 14px; cursor:pointer; font-family:var(--font-cond); font-size:14.5px; letter-spacing:1px; text-transform:uppercase;}
 #page-apply .af-draftclear:hover{color:var(--loss); border-color:var(--loss);}
 /* personality pairs: one slider per pair, like the game's */
 #page-apply .af-trait{background:var(--bg); border:1px solid var(--line); border-radius:11px; padding:12px 16px 10px; margin-bottom:10px;}
@@ -9704,15 +9731,15 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <div id="apply-to"></div>
     <div id="apply-promo" hidden></div>
     <div id="apply-wca">
-    <p class="sl-intro">Apply to become an official WCA wrestler. Sign-ups are reviewed personally —
-      submit a serious pro-wrestling character (representing you or fully original) and it gets created
+    <p class="sl-intro">Apply to become an official WCA wrestler. Every application is reviewed personally.
+      Submit a serious pro wrestling character, one that represents you or is fully original, and it gets created
       or imported into WWE 2K25, balanced to a hard cap of <b>85 overall</b>, then added to the roster.</p>
     <div class="cs-sharerow" style="justify-content:flex-start">
       <button class="cs-share" type="button" id="apply-share-btn"><i class="ti ti-share-3"></i> Share this page</button>
     </div>
 
     <div class="apply-rules">
-      <div class="apply-rule"><i class="ti ti-shield-check"></i> <span><b>Taken seriously.</b> Characters must read as legit pro wrestlers. Influences are welcome with a clear wrestling spin — no joke gimmicks.</span></div>
+      <div class="apply-rule"><i class="ti ti-shield-check"></i> <span><b>Taken seriously.</b> Characters must read as legit pro wrestlers. Influences are welcome with a clear wrestling spin, but no joke gimmicks.</span></div>
       <div class="apply-rule"><i class="ti ti-gauge"></i> <span><b>85 OVR cap.</b> Every wrestler is balanced to 85 overall or lower. The detail you give helps keep that fair.</span></div>
       <div class="apply-rule"><i class="ti ti-checklist"></i> <span><b>How it works.</b> You apply → I review → I create/import & balance the CAW → you debut on the roster.</span></div>
     </div>
@@ -9720,7 +9747,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <div class="apply-platform">
       <i class="ti ti-device-desktop"></i>
       <div>
-        <b>WCA runs on PC.</b> WWE 2K25/2K26 has no full cross-platform sharing — a CAW made on <b>Xbox Series X|S or PS5 can't be imported to PC</b>. So if your existing character is on a current-gen console, your share code won't work for us. No problem: just fill out the application as a <b>new creation</b> with as much detail as you can, and I'll rebuild it from scratch on PC. Only CAWs already on <b>PC</b> can be imported directly.
+        <b>WCA runs on PC.</b> WWE 2K25 and 2K26 have no full cross platform sharing. A CAW made on <b>Xbox Series X|S or PS5 can't be imported to PC</b>. So if your existing character is on a current-gen console, your share code won't work for us. No problem: just fill out the application as a <b>new creation</b> with as much detail as you can, and I'll rebuild it from scratch on PC. Only CAWs already on <b>PC</b> can be imported directly.
       </div>
     </div>
 
@@ -35354,7 +35381,7 @@ async function apfDecide(id, ok, btn){
 }
 
 /* ---------- the Apply page: who to apply to ---------- */
-const APX = { forms:null, at:0, to:null };
+const APX = { forms:null, at:0, to:undefined };   // to: undefined until they pick, then 'wca' or a promotion id
 async function apxLoadForms(){
   if(APX.forms && Date.now() - APX.at < 60000) return APX.forms;
   try{ const { data, error } = await sb.rpc('apply_forms_open'); APX.forms = error ? [] : (data || []); }catch(e){ APX.forms = []; }
@@ -35366,33 +35393,50 @@ async function apxInit(){
   if(!pick || !wca || !box) return false;
   const forms = await apxLoadForms();
   const qs = (typeof wcaRoute === 'function' && wcaRoute().qs) || '';
-  const want = (qs.match(/(?:^|&)to=(\d+)/) || [])[1];
-  if(want != null) APX.to = forms.some(f => String(f.promotion_id) === want) ? Number(want) : null;
-  if(!forms.length){ pick.innerHTML = ''; APX.to = null; }
-  else pick.innerHTML = `<div class="apx-h">Who do you want to apply to?</div>
-    <div class="apx-list" role="radiogroup" aria-label="Who to apply to">
-      <button type="button" role="radio" aria-checked="${APX.to == null}" class="apx-card${APX.to == null ? ' on' : ''}" style="--pc:#e9b949" onclick="apxPick(null)">
-        <span class="apx-logo apx-wca">WCA</span><span><b>WCA</b><small>The World Championship Alliance</small></span></button>
-      ${forms.map(f => `<button type="button" role="radio" aria-checked="${APX.to === Number(f.promotion_id)}" class="apx-card${APX.to === Number(f.promotion_id) ? ' on' : ''}" style="--pc:${pmColor(f.color)}" onclick="apxPick(${Number(f.promotion_id)})">
-        ${pmLogo({ name:f.name, color:f.color, logo_url:f.logo_url }, 'apx-logo')}<span><b>${esc(f.name)}</b><small>Taking applications</small></span></button>`).join('')}
-    </div>`;
-  wca.hidden = APX.to != null; box.hidden = APX.to == null;
-  if(APX.to == null){ box.innerHTML = ''; return false; }
-  await apxDrawPromo(forms.find(f => Number(f.promotion_id) === APX.to));
+  const want = (qs.match(/(?:^|&)to=(wca|\d+)/) || [])[1];
+  if(want === 'wca') APX.to = 'wca';
+  else if(want != null) APX.to = forms.some(f => String(f.promotion_id) === want) ? Number(want) : undefined;
+  if(typeof APX.to === 'number' && !forms.some(f => Number(f.promotion_id) === APX.to)) APX.to = undefined;
+  const f = typeof APX.to === 'number' ? forms.find(x => Number(x.promotion_id) === APX.to) : null;
+  if(APX.to === undefined){
+    // step 1: pick who to apply to. Nothing else shows until they do.
+    pick.innerHTML = `<section class="apx-step">
+      <div class="apx-step-n">Step 1</div>
+      <h2 class="apx-h">Who do you want to apply to?</h2>
+      <p class="apx-p">${forms.length ? 'Pick WCA or one of the promotions taking applications. Each one has its own questions, and your character goes on that roster.' : 'Pick WCA to start your application. Promotions taking applications show up here too.'}</p>
+      <div class="apx-list" role="radiogroup" aria-label="Who to apply to">
+        <button type="button" role="radio" aria-checked="false" class="apx-card" style="--pc:#e9b949" onclick="apxPick('wca')">
+          <span class="apx-logo apx-wca">WCA</span><span><b>WCA</b><small>The World Championship Alliance</small></span><i class="ti ti-arrow-right apx-go" aria-hidden="true"></i></button>
+        ${forms.map(x => `<button type="button" role="radio" aria-checked="false" class="apx-card" style="--pc:${pmColor(x.color)}" onclick="apxPick(${Number(x.promotion_id)})">
+          ${pmLogo({ name:x.name, color:x.color, logo_url:x.logo_url }, 'apx-logo')}<span><b>${esc(x.name)}</b><small>Taking applications</small></span><i class="ti ti-arrow-right apx-go" aria-hidden="true"></i></button>`).join('')}
+      </div></section>`;
+    wca.hidden = true; box.hidden = true;
+    return true;
+  }
+  // picked: a clear banner saying who this application goes to, with Change
+  const nm = f ? f.name : 'WCA', col = f ? pmColor(f.color) : '#e9b949';
+  pick.innerHTML = `<div class="apx-picked" style="--pc:${col}">
+    ${f ? pmLogo({ name:f.name, color:f.color, logo_url:f.logo_url }, 'apx-logo') : '<span class="apx-logo apx-wca">WCA</span>'}
+    <div class="apx-picked-t"><small>You are applying to</small><b>${esc(nm)}</b></div>
+    <div class="apx-picked-a">${f ? `<a class="apx-see" href="${escAttr(wcaHref('promotion', 'id=' + Number(f.promotion_id)))}" onclick="pmGo(${Number(f.promotion_id)});return false;">See their page</a>` : ''}
+      <button type="button" class="apx-change" onclick="apxPick(undefined)"><i class="ti ti-arrows-exchange" aria-hidden="true"></i> Change</button></div>
+  </div>`;
+  wca.hidden = !!f; box.hidden = !f;
+  if(!f){ box.innerHTML = ''; return false; }
+  await apxDrawPromo(f);
   return true;
 }
 function apxPick(pid){
   if(APX.to === pid) return;
   APX.to = pid;
-  wcaSetAddress('apply', pid == null ? '' : 'to=' + Number(pid), false);
+  wcaSetAddress('apply', pid === undefined ? '' : 'to=' + (pid === 'wca' ? 'wca' : Number(pid)), false);
   loadApply();
+  const t = document.getElementById('page-apply'); if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 async function apxDrawPromo(f){
   const box = document.getElementById('apply-promo'); if(!box || !f) return;
   const pid = Number(f.promotion_id), col = pmColor(f.color);
-  const head = `<div class="apf-pub-head apx-head" style="--pc:${col}">${pmLogo({ name:f.name, color:f.color, logo_url:f.logo_url }, 'apf-pub-logo')}<div><small>Applying to</small><b>${esc(f.name)}</b></div>
-      <a class="apx-see" href="${escAttr(wcaHref('promotion', 'id=' + pid))}" onclick="pmGo(${pid});return false;">See their page <i class="ti ti-arrow-right"></i></a></div>
-    ${f.intro ? `<p class="apf-intro">${esc(f.intro)}</p>` : ''}`;
+  const head = f.intro ? `<p class="apf-intro apx-intro" style="--pc:${col}">${esc(f.intro)}</p>` : '';
   if(!CURRENT_USER){
     box.innerHTML = head + `<div class="apply-gatebox"><div class="ag-ico"><i class="ti ti-user-circle"></i></div><h3>Sign in to apply</h3>
       <p>Your application is tied to your account, so ${esc(f.name)} can answer you. Sign in with any of these, it only takes a second.</p>
