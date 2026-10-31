@@ -21227,7 +21227,7 @@ function mpPersonColor(p){ return pmColor(p.color, pmColor((mpCatOf(p.category_i
 function mpDrawCats(){
   const box = pmEl('mp-catlist'); if(!box) return;
   box.innerHTML = PM.cats.length ? PM.cats.map((c, i) => {
-    const col = pmColor(c.color, '#c9c6be'), n = PM.roster.filter(p => String(p.category_id) === String(c.id)).length;
+    const col = pmColor(c.color, '#c9c6be'), n = PM.roster.filter(p => pmInDiv(p, c.id)).length;
     return `<div class="pm-cat" style="--pc:${col}">
       <div class="pm-cat-top"><b>${esc(c.name)}</b><span>${n} on roster</span>
         <button type="button" class="spc-mini" aria-label="Move up" onclick="mpMoveCat(${i},-1)"${i === 0 ? ' disabled' : ''}>▲</button>
@@ -21324,7 +21324,7 @@ function mpPersonForm(id, keep){
     <div class="pm-g2">
       <div><label for="mpf_name">Name</label><input id="mpf_name" maxlength="80" value="${escAttr(p.name || '')}" placeholder="Their ring name"></div>
       <div><label for="mpf_nick">Nickname</label><input id="mpf_nick" maxlength="80" value="${escAttr(p.nickname || '')}" placeholder="Optional"></div>
-      <div><label for="mpf_cat">Division</label><select id="mpf_cat">${mpCatOptions(p.category_id)}</select></div>
+      <div><label for="mpf_cat">Main division</label><select id="mpf_cat" onchange="mpMoreDivs()">${mpCatOptions(p.category_id)}</select></div>
       <div><label for="mpf_gender">Gender</label><select id="mpf_gender">${PM_GENDER.map(([v, l]) => `<option value="${v}"${p.gender === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>
       <div><label for="mpf_align">Alignment</label><select id="mpf_align">${['Face','Heel','Tweener'].map(v => `<option${p.alignment === v ? ' selected' : ''}>${v}</option>`).join('')}<option value=""${p.alignment ? '' : ' selected'}>None</option></select></div>
       <div><label for="mpf_title">Title they hold</label><input id="mpf_title" maxlength="100" value="${escAttr(p.title || '')}" placeholder="Optional. Real championships go under Championships"></div>
@@ -21334,6 +21334,8 @@ function mpPersonForm(id, keep){
       <div><label for="mpd_played_by_user">Their username</label><input id="mpd_played_by_user" maxlength="80" value="${escAttr(d.played_by_user || '')}" placeholder="Their WCA, Discord or Twitch name"></div>
     </div>
     ${p.id && PM.players && PM.players[p.id] ? `<div class="pm-small ed-onsite"><i class="ti ti-circle-check"></i> On the site, ${esc(PM.players[p.id].join(' and '))} ${PM.players[p.id].length > 1 ? 'play' : 'plays'} them. That is set under Players.</div>` : ''}
+    <label>Also in these divisions <span class="pm-opt">(optional, they show in each one)</span></label>
+    <div class="ed-teampicks" id="mpf_more">${mpMoreDivsHTML(p)}</div>
     <label>Teams and stables</label>
     ${(PM.facs || []).length ? `<div class="ed-teampicks">${PM.facs.map(f => { const on = p.id && (f.members || []).map(Number).includes(Number(p.id));
       return `<label class="ed-teampick" for="mpft_${Number(f.id)}" style="--pc:${pmColor(f.color, '#e9b949')}"><input type="checkbox" id="mpft_${Number(f.id)}"${on ? ' checked' : ''}><span>${esc(f.name)}</span></label>`; }).join('')}</div>`
@@ -21366,6 +21368,19 @@ function mpPersonForm(id, keep){
     </div>
     <div class="msg" id="mpf_msg"></div>`;
   mpFoldTabs(box);
+}
+function mpMoreDivsHTML(p, main){
+  main = main != null ? String(main) : String(p.category_id == null ? '' : p.category_id);
+  const has = pmDivIds(p);
+  const list = PM.cats.filter(c => String(c.id) !== main);
+  return list.length ? list.map(c => `<label class="ed-teampick" for="mpfd_${Number(c.id)}" style="--pc:${pmColor(c.color, '#c9c6be')}"><input type="checkbox" id="mpfd_${Number(c.id)}" value="${Number(c.id)}"${has.includes(String(c.id)) ? ' checked' : ''}><span>${esc(c.name)}</span></label>`).join('')
+    : `<span class="pm-small pm-dim">Make more divisions under Divisions to put someone in more than one.</span>`;
+}
+// the main division changed: keep the other ticks, drop the box for the new main one
+function mpMoreDivs(){
+  const box = pmEl('mpf_more'), sel = pmEl('mpf_cat'); if(!box || !sel) return;
+  const ticked = [...box.querySelectorAll('input:checked')].map(x => x.value);
+  box.innerHTML = mpMoreDivsHTML({ category_id:sel.value, details:{ more_divs:ticked } }, sel.value);
 }
 function mpCatOptions(sel){
   return PM.cats.map(c => `<option value="${Number(c.id)}"${String(c.id) === String(sel) ? ' selected' : ''}>${esc(c.name)}</option>`).join('')
@@ -21405,6 +21420,8 @@ async function mpSavePerson(){
   const attrs = pmReadAttrs('mpa'); if(Object.keys(attrs).length) details.attrs = attrs;
   const traits = pmReadTraits('mpt'); if(Object.keys(traits).length) details.traits = traits;
   const catV = pmEl('mpf_cat').value;
+  const more = [...document.querySelectorAll('#mpf_more input:checked')].map(x => Number(x.value)).filter(x => x && String(x) !== String(catV));
+  if(more.length) details.more_divs = more;
   const row = { name, nickname:(pmEl('mpf_nick').value || '').trim() || null,
     category_id: catV ? Number(catV) : null, gender: pmEl('mpf_gender').value || 'Male',
     alignment: pmEl('mpf_align').value || null, title:(pmEl('mpf_title').value || '').trim() || null,
@@ -21456,9 +21473,20 @@ async function mpMovePerson(id, d){
   PM.roster.sort((a, b) => (a.sort || 0) - (b.sort || 0) || a.id - b.id);
   mpDrawPeople();
 }
+// every division someone is in: their main one first, then the others they are ticked into
+function pmDivIds(p){
+  const out = []; if(!p) return out;
+  if(p.category_id != null && p.category_id !== '') out.push(String(p.category_id));
+  const more = (p.details && Array.isArray(p.details.more_divs)) ? p.details.more_divs : [];
+  more.forEach(x => { x = String(x); if(x && !out.includes(x)) out.push(x); });
+  return out;
+}
+function pmInDiv(p, id){ return id != null && id !== '' && pmDivIds(p).includes(String(id)); }
+function pmDivNames(cats, p){ return pmDivIds(p).map(id => ((cats || []).find(c => String(c.id) === id) || {}).name).filter(Boolean).join(' · '); }
 function mpGroups(roster, cats){
-  const groups = cats.map(c => ({ cat:c, people:roster.filter(p => String(p.category_id) === String(c.id)) }));
-  const loose = roster.filter(p => !p.category_id || !cats.some(c => String(c.id) === String(p.category_id)));
+  // someone can be in more than one division: their main one, plus details.more_divs
+  const groups = cats.map(c => ({ cat:c, people:roster.filter(p => pmInDiv(p, c.id)) }));
+  const loose = roster.filter(p => !cats.some(c => pmInDiv(p, c.id)));
   if(loose.length) groups.push({ cat:{ id:'', name:'No division', color:'#8a8a86' }, people:loose });
   return groups;
 }
@@ -21484,13 +21512,14 @@ function mpDrawPeople(){
       ${people.map((p, k) => { const pc = mpPersonColor(p), d = p.details || {};
         const teams = (PM.facs || []).filter(f => (f.members || []).map(Number).includes(Number(p.id))).map(f => f.name);
         const plays = (PM.players && PM.players[p.id]) ? PM.players[p.id].join(' and ') : (d.played_by ? d.played_by + (d.played_by_user ? ' (' + d.played_by_user + ')' : '') : '');
-        const sub = [p.nickname, p.title, teams.join(', '), plays ? 'Played by ' + plays : ''].filter(Boolean).join(' · ');
+        const extra = String(p.category_id) !== String(cat.id);   // here as one of their other divisions
+        const sub = [extra ? 'Main division: ' + ((mpCatOf(p.category_id) || {}).name || 'none') : '', p.nickname, p.title, teams.join(', '), plays ? 'Played by ' + plays : ''].filter(Boolean).join(' · ');
         return `<div class="pm-prow${String(PM.editId) === String(p.id) ? ' on' : ''}">
           <span class="pm-pinit" style="--pc:${pc}">${esc(pmInit(p.name))}</span>
           <span class="pm-pname"><b>${esc(p.name)}</b>${sub ? ` <small>${esc(sub)}</small>` : ''}</span>
           ${p.gender === 'Team' ? '<span class="bk-team">Team</span>' : bkToggle('mpg_' + Number(p.id), p.gender, `b=>bkSaveG('mpbk',${Number(p.id)},b)`)}
-          <button type="button" class="spc-mini" aria-label="Move up" onclick="mpMovePerson(${Number(p.id)},-1)"${k === 0 ? ' disabled' : ''}>▲</button>
-          <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMovePerson(${Number(p.id)},1)"${k === people.length - 1 ? ' disabled' : ''}>▼</button>
+          ${extra ? '' : `<button type="button" class="spc-mini" aria-label="Move up" onclick="mpMovePerson(${Number(p.id)},-1)"${k === 0 ? ' disabled' : ''}>▲</button>
+          <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMovePerson(${Number(p.id)},1)"${k === people.length - 1 ? ' disabled' : ''}>▼</button>`}
           <button type="button" class="spc-mini" onclick="mpRosterGo('p:${Number(p.id)}')">Edit</button>
           <button type="button" class="spc-mini fr-danger" onclick="mpRemovePerson(${Number(p.id)})">Remove</button>
         </div>`; }).join('')}
@@ -22056,8 +22085,10 @@ function pmRecOf(recs, kind, x){
 function pmRankSections(D){
   const pg = D.page || PM_PAGE_DEF;
   const tIdx = e => Math.min(...e.held.map(h => (D.titles || []).indexOf(h.t)));
-  const ent = (kind, x, col) => {
-    const rec = pmRecOf(D.recs, kind, x), held = pmHeld(D.titles, D.reigns, kind, x.id, x.name);
+  // in a division's list, only that division's titles (or titles open to anyone) count
+  const ent = (kind, x, col, div) => {
+    const rec = pmRecOf(D.recs, kind, x), held = pmHeld(D.titles, D.reigns, kind, x.id, x.name)
+      .filter(h => div == null || h.t.division_id == null || String(h.t.division_id) === String(div));
     return { kind, x, col, rec, held, pts:rec.w * pg.cp_w + rec.l * pg.cp_l + rec.nc * pg.cp_nc };
   };
   // champions on top, then everyone else from A to Z
@@ -22066,7 +22097,7 @@ function pmRankSections(D){
     || String(a.x.name || '').localeCompare(String(b.x.name || ''), undefined, { sensitivity:'base' });
   const colIn = p => { const c = (D.cats || []).find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); };
   const secs = mpGroups(D.roster || [], D.cats || []).filter(g => g.people.length)
-    .map(g => ({ cat:g.cat, rows:g.people.map(p => ent('person', p, colIn(p))).sort(order) }));
+    .map(g => ({ cat:g.cat, rows:g.people.map(p => ent('person', p, colIn(p), g.cat.id === '' ? null : g.cat.id)).sort(order) }));
   const teams = (D.facs || []).map(f => ent('team', f, pmColor(f.color, '#e9b949')));
   if(teams.length) secs.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, rows:teams.sort(order) });
   return secs;
@@ -22188,14 +22219,14 @@ function pmPubList(){
   const P = PM.pub; if(!P) return;
   const cb = pmEl('pmpub-cats'), gb = pmEl('pmpub-g'), box = pmEl('pmpub-list');
   if(cb) cb.innerHTML = [{ id:'all', name:'Everyone', color:'#e9b949' }].concat(P.cats).map(c => {
-    const n = c.id === 'all' ? P.roster.length : P.roster.filter(p => String(p.category_id) === String(c.id)).length;
+    const n = c.id === 'all' ? P.roster.length : P.roster.filter(p => pmInDiv(p, c.id)).length;
     return `<button type="button" class="pm-chip pm-chip-c${String(P.cat) === String(c.id) ? ' on' : ''}" style="--pc:${pmColor(c.color, '#c9c6be')}" onclick="PM.pub.cat='${c.id}';pmPubList()">${esc(c.name)} <span>${n}</span></button>`; }).join('');
   if(gb) gb.innerHTML = [['all','All'],['Male','Male'],['Female','Female'],['Team','Teams']].map(([k, l]) =>
     `<button type="button" class="pm-chip pm-chip-sm${P.g === k ? ' on' : ''}" onclick="PM.pub.g='${k}';pmPubList()">${l} <span>${k === 'all' ? P.roster.length : P.roster.filter(p => p.gender === k).length}</span></button>`).join('');
   const q = (P.q || '').trim().toLowerCase();
   const people = P.roster.filter(p => (P.g === 'all' || p.gender === P.g) && (!q || p.name.toLowerCase().includes(q) || String(p.nickname || '').toLowerCase().includes(q)));
   const groups = mpGroups(people, P.cats).filter(g => P.cat === 'all' || String(g.cat.id) === String(P.cat)).filter(g => g.people.length);
-  P.order = [].concat(...groups.map(g => g.people.map(p => Number(p.id))));
+  P.order = [...new Set([].concat(...groups.map(g => g.people.map(p => Number(p.id)))))];
   if(!box) return;
   const L = P.page.roster;
   const belt = p => pmHeld(P.titles, P.reigns, 'person', p.id, p.name).length ? '<i class="ti ti-trophy pm-belt" title="Champion" aria-label="Champion"></i>' : '';
@@ -22238,7 +22269,7 @@ function pmNavHTML(P){
 function pmPubSel(scroll){
   const P = PM.pub; const box = pmEl('pmpub-sel'); if(!P || !box) return;
   const p = P.roster.find(x => String(x.id) === String(P.sel)); if(!p){ box.innerHTML = ''; return; }
-  box.innerHTML = pmPersonCard(p, pmPubColor(p), (P.cats.find(c => String(c.id) === String(p.category_id)) || {}).name || '') + pmNavHTML(P);
+  box.innerHTML = pmPersonCard(p, pmPubColor(p), pmDivNames(P.cats, p)) + pmNavHTML(P);
   if(typeof stxHydrate === 'function') stxHydrate(box);
   if(typeof piRosterNote === 'function') piRosterNote(box, P.p.id, p.id);   // hurt? a short note at the top
   pmRecFill();
@@ -22271,7 +22302,7 @@ function pmStageDraw(first){
       <button type="button" class="spc-mini" onclick="pmPubStep(1)"${i < 0 || i >= P.order.length - 1 ? ' disabled' : ''}>Next <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
       <button type="button" class="spc-post-btn pm-stage-x" id="pm-stage-x" onclick="pmStageClose()"><i class="ti ti-x" aria-hidden="true"></i> Close</button>
     </div>
-    <div class="pm-big" id="pm-stage-card">${pmPersonCard(p, pmPubColor(p), (P.cats.find(c => String(c.id) === String(p.category_id)) || {}).name || '')}</div></div>`;
+    <div class="pm-big" id="pm-stage-card">${pmPersonCard(p, pmPubColor(p), pmDivNames(P.cats, p))}</div></div>`;
   const card = pmEl('pm-stage-card');
   if(typeof stxHydrate === 'function') stxHydrate(card);
   if(typeof piRosterNote === 'function') piRosterNote(card, P.p.id, p.id);
