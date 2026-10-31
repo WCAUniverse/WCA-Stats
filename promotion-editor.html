@@ -6739,6 +6739,12 @@ html.cp-pulse .sd-pts.on.full{animation:sd-pts-pulse 1.8s ease-in-out infinite}
 .pe input:not([type=checkbox]):not([type=radio]), .pe select, .pe textarea{background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:9px 11px; border-radius:8px; font-size:15px; font-family:var(--font-body); box-sizing:border-box;}
 .pe input:focus, .pe select:focus, .pe textarea:focus{outline:none; border-color:var(--gold);}
 .pe-switch{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 18px;}
+.pe-none{display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:34px 18px; border:1px dashed var(--line); border-radius:14px; background:var(--panel);}
+.pe-none > i{font-size:34px; color:var(--pc, var(--gold));}
+.pe-none b{font-family:var(--font-display); font-weight:400; text-transform:uppercase; letter-spacing:.6px; font-size:24px; color:#fff;}
+.pe-none span{font-size:16px; color:var(--txt-2);}
+.pe-none a{margin-top:6px; font-size:16px; color:var(--gold);}
+.user-chip .ubal.ubal-promo{color:var(--pc, var(--gold));}
 .pe-switch[hidden]{display:none;}
 #page-events > .pe-switch, #page-archive > .pe-switch, #page-showdown > .pe-switch, #page-timeline > .pe-switch{margin-top:18px;}
 .pe-switch{flex-direction:column; align-items:stretch;}
@@ -6864,6 +6870,7 @@ a.pe-who:hover{color:var(--gold);}
 .mpe-chip button{border:0; background:transparent; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;}
 .mpe-addrow{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
 .mpe-addrow select, .mpe-addrow input{flex:1 1 180px;}
+.mpb-own[hidden], #mpb_ownnote[hidden]{display:none !important;}
 .mpb-mode{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-top:6px;}
 .mpb-opt{display:block; border:1px solid var(--line); border-radius:12px; padding:14px; cursor:pointer;}
 .mpb-opt.on{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
@@ -7376,6 +7383,19 @@ async function linkProvider(provider){
   }
 }
 async function signOut(){ await sb.auth.signOut(); location.reload(); }
+function wcaMoneyCtx(){
+  const S = typeof PE !== 'undefined' ? PE.pub : null;
+  if(!S || !S.host || !S.host.isConnected || S.host.hidden || !S.host.offsetParent || !S.info) return null;
+  const I = S.info;
+  if(I.shared_money || I.use_wca_money || I.signed_in === false || I.betting_on === false) return null;
+  return { S, I };
+}
+function wcaMoneyChip(){
+  const c = wcaMoneyCtx();
+  if(!c) return `<span class="ubal" title="Your WCA money">${fmtMoney(MY_PROFILE.balance)}</span>`;
+  const amt = c.I.has_wallet ? c.I.balance : c.I.start_amount, cur = c.I.currency_name || 'Dollars';
+  return `<span class="ubal ubal-promo" style="--pc:${escAttr(c.S.color || '#e9b949')}" title="Your ${escAttr(cur)} for ${escAttr(c.S.promo.name || 'this promotion')}">${esc(peMoney(c.I, amt))}</span>`;
+}
 function renderUserChip(){
   const box = document.getElementById('userbox');
   if(!MY_PROFILE){ return; }
@@ -7391,7 +7411,7 @@ function renderUserChip(){
       <div class="uchip-main navdrop-trigger" onclick="toggleUserMenu(event)" title="My account" style="display:flex;align-items:center;gap:10px;cursor:pointer">
         ${ava}
         <div class="ucol">
-          <span class="ubal">${fmtMoney(MY_PROFILE.balance)}</span>
+          ${wcaMoneyChip()}
           <span class="uname">${esc(name)}</span>
         </div>
       </div>
@@ -17401,22 +17421,31 @@ async function mpBettingTab(box){
 }
 function mpbDraw(){
   const box = MPB.box; if(!box || !box.isConnected) return;
-  const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion';
+  const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion', shared = E.money_mode === 'wca';
+  const money = shared ? { currency_name:'WCA money', currency_symbol:'$' } : E;
   const fanName = id => (MPB.fans.find(f => f.user_id === id) || {}).name || 'A fan';
   box.setAttribute('data-keep', 'mp-bet:' + Number(MPB.pid));
   box.innerHTML = `<div class="pe">
   <section class="pm-card">
     <div class="pm-h3">Your money</div>
-    <p class="pm-p">${esc(name)} has its own money, separate from WCA's. Fans bet it on your shows only. ${MPB.saved ? '' : '<b>It starts off like WCA</b>: a starting balance and pooled payouts. You can change any of it here.'}</p>
+    <div class="pm-lbl">Which money do fans bet with?</div>
+    <div class="mpb-mode">
+      <label class="mpb-opt mpb-money${shared ? '' : ' on'}"><b><input type="radio" name="mpb_money" value="own"${shared ? '' : ' checked'} onchange="mpbMoney()"> Our own money</b>
+        <p>${esc(name)} gets its own money with its own name. Every fan gets a starting balance, it is only used on your shows, and you can give bonuses.</p></label>
+      <label class="mpb-opt mpb-money${shared ? ' on' : ''}"><b><input type="radio" name="mpb_money" value="wca"${shared ? ' checked' : ''} onchange="mpbMoney()"> WCA money</b>
+        <p>Fans bet the same WCA balance they use everywhere on the site, so there is only one number to keep track of. Bonuses stay with WCA.</p></label>
+    </div>
+    <p class="pm-p pm-small" style="margin-top:8px">Bets already placed are paid back in the money they were placed with, so you can switch any time.</p>
+    <div id="mpb_ownnote"><p class="pm-p">${esc(name)} has its own money, separate from WCA's. Fans bet it on your shows only. ${MPB.saved ? '' : '<b>It starts off like WCA</b>: a starting balance and pooled payouts. You can change any of it here.'}</p></div>
     <div class="mpe-fields">
-      <div><label for="mpb_name">What it's called</label><input id="mpb_name" maxlength="40" value="${escAttr(E.currency_name)}" placeholder="Northside Bucks" oninput="mpbPreview()"></div>
-      <div><label for="mpb_sym">Symbol <span class="pm-opt">(like $, or leave it blank)</span></label><input id="mpb_sym" maxlength="4" value="${escAttr(E.currency_symbol)}" oninput="mpbPreview()"></div>
-      <div><label for="mpb_start">Starting balance</label><input id="mpb_start" type="number" min="0" step="1" value="${Number(E.start_amount)}" oninput="mpbPreview()"></div>
+      <div class="mpb-own"><label for="mpb_name">What it's called</label><input id="mpb_name" maxlength="40" value="${escAttr(E.currency_name)}" placeholder="Northside Bucks" oninput="mpbPreview()"></div>
+      <div class="mpb-own"><label for="mpb_sym">Symbol <span class="pm-opt">(like $, or leave it blank)</span></label><input id="mpb_sym" maxlength="4" value="${escAttr(E.currency_symbol)}" oninput="mpbPreview()"></div>
+      <div class="mpb-own"><label for="mpb_start">Starting balance</label><input id="mpb_start" type="number" min="0" step="1" value="${Number(E.start_amount)}" oninput="mpbPreview()"></div>
       <div><label for="mpb_min">Smallest bet</label><input id="mpb_min" type="number" min="1" step="1" value="${Number(E.min_bet) || 1}"></div>
       <div><label for="mpb_max">Biggest bet <span class="pm-opt">(blank for no limit)</span></label><input id="mpb_max" type="number" min="1" step="1" value="${E.max_bet != null ? Number(E.max_bet) : ''}"></div>
       <div style="align-self:end;padding-bottom:8px"><label class="mpb-check"><input id="mpb_on" type="checkbox"${E.betting_on !== false ? ' checked' : ''}> Betting is on</label></div>
     </div>
-    <p class="pm-p" id="mpb_prev" style="margin-top:10px"></p>
+    <p class="pm-p mpb-own" id="mpb_prev" style="margin-top:10px"></p>
     <div class="pm-lbl">How bets pay out</div>
     <div class="mpb-mode">
       <label class="mpb-opt${E.payout_mode !== 'odds' ? ' on' : ''}"><b><input type="radio" name="mpb_mode" value="pool"${E.payout_mode !== 'odds' ? ' checked' : ''} onchange="mpbMode()"> Shared pot, like WCA</b>
@@ -17428,7 +17457,8 @@ function mpbDraw(){
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSave()">Save money settings</button></div>
     <div class="msg" id="mpb_msg"></div>
   </section>
-  <section class="pm-card" style="margin-top:16px">
+  ${shared ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Give a bonus</div>
+    <p class="pm-p">Your fans bet with WCA money, so bonuses come from WCA. Switch to your own money above if you want to hand out bonuses.</p></section>` : `<section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Hand out money whenever you like: to everyone who follows ${esc(name)} or has a balance with you, or to one fan. They get a notification. Use Take back to fix a mistake.</p>
     <div class="mpe-fields">
@@ -17438,16 +17468,21 @@ function mpbDraw(){
     </div>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbGive(1)">Give</button><button type="button" class="spc-mini" onclick="mpbGive(-1)">Take back</button></div>
     <div class="msg" id="mpb_gmsg"></div>
-  </section>
+  </section>`}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
-    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(E, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
+    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
       : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
   </section>
   ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
     <table class="mpb-table"><thead><tr><th>When</th><th>To</th><th>Amount</th><th>Note</th></tr></thead><tbody>${MPB.grants.map(g => `<tr><td>${esc(new Date(g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</td><td>${g.user_id ? esc(fanName(g.user_id)) : 'Everyone (' + Number(g.people) + ')'}</td><td>${esc((g.amount < 0 ? 'Took back ' : '') + peMoney(E, Math.abs(g.amount)))}</td><td>${esc(g.note || '')}</td></tr>`).join('')}</tbody></table></section>` : ''}
   </div>`;
-  mpbPreview();
+  mpbPreview(); mpbMoney();
+}
+function mpbMoney(){
+  const w = ((document.querySelector('input[name="mpb_money"]:checked') || {}).value || 'own') === 'wca';
+  document.querySelectorAll('.mpb-money').forEach(l => l.classList.toggle('on', !!l.querySelector('input:checked')));
+  document.querySelectorAll('.mpb-own, #mpb_ownnote').forEach(el => { el.hidden = w; });
 }
 function mpbMode(){ document.querySelectorAll('.mpb-opt').forEach(l => l.classList.toggle('on', !!l.querySelector('input:checked'))); }
 function mpbPreview(){
@@ -17456,18 +17491,20 @@ function mpbPreview(){
   p.innerHTML = `Fans see it like this: <b>${esc(peMoney(info, Number(pmEl('mpb_start').value) || 0))}</b> to start, and <b>${esc(peMoney(info, 2500))}</b> after a good night.`;
 }
 async function mpbSave(){
-  const name = (pmEl('mpb_name').value || '').trim();
+  const money = (document.querySelector('input[name="mpb_money"]:checked') || {}).value === 'wca' ? 'wca' : 'own';
+  const name = (pmEl('mpb_name').value || '').trim() || (money === 'wca' ? 'Dollars' : '');
   if(!name){ mpMsg('mpb_msg', 'Give your money a name, like Dollars or Northside Bucks.', false); return; }
   const num = (id, d) => { const v = pmEl(id).value; return v === '' ? d : Math.max(0, Math.floor(Number(v) || 0)); };
   const mode = (document.querySelector('input[name="mpb_mode"]:checked') || {}).value || 'pool';
   const row = { promotion_id:MPB.pid, currency_name:name.slice(0, 40), currency_symbol:pmEl('mpb_sym').value.trim().slice(0, 4), start_amount:num('mpb_start', 1000),
     min_bet:Math.max(1, num('mpb_min', 1)), max_bet:pmEl('mpb_max').value === '' ? null : Math.max(1, num('mpb_max', 1)), betting_on:pmEl('mpb_on').checked, payout_mode:mode };
+  if(money === 'wca' || MPB.econ.money_mode) row.money_mode = money;
   if(row.max_bet != null && row.max_bet < row.min_bet){ mpMsg('mpb_msg', 'The biggest bet has to be at least the smallest bet.', false); return; }
   const { error } = await sb.from('promotion_economy').upsert(row, { onConflict:'promotion_id' });
-  if(error){ mpMsg('mpb_msg', peErr(error), false); return; }
+  if(error){ mpMsg('mpb_msg', /money_mode/i.test(error.message || '') ? 'WCA money for promotions is not switched on yet. Please check back soon!' : peErr(error), false); return; }
   wcaKeepDone('mp-bet:' + Number(MPB.pid));
   MPB.econ = row; MPB.saved = true;
-  mpbDraw(); mpMsg('mpb_msg', 'Saved. ' + (mode === 'odds' ? 'Set the odds on each match in Events before you open betting.' : 'Bets pay out from a shared pot.'), true);
+  mpbDraw(); mpMsg('mpb_msg', 'Saved. ' + (money === 'wca' ? 'Fans bet with their WCA money now. ' : '') + (mode === 'odds' ? 'Set the odds on each match in Events before you open betting.' : 'Bets pay out from a shared pot.'), true);
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
