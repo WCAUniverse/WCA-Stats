@@ -6989,6 +6989,9 @@ details.ed-pane[hidden]{display:none !important;}
   .pm-hist th,.pm-hist td{padding:8px 5px;} .pm-hist{font-size:15px;} .pm-thist{padding:14px 12px;}
 }
 /* editor: championships */
+.pm-cat-fill{font-size:15px; color:var(--txt-2); margin-top:4px;} .pm-cat-fill i{color:var(--pc);}
+.ed-divpick{width:auto !important; max-width:190px; padding:6px 8px !important; font-size:14.5px !important; margin:0 !important;}
+@media (max-width:700px){ .ed-divpick{max-width:130px;} }
 .ed-pl-two{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; margin-top:12px;}
 .ed-pl-box{border:1px solid var(--line); border-radius:12px; padding:4px 14px 12px; background:rgba(0,0,0,.18); min-width:0;}
 .ed-pl-box .ed-sub-h{margin-top:12px;}
@@ -21242,13 +21245,14 @@ function mpPersonColor(p){ return pmColor(p.color, pmColor((mpCatOf(p.category_i
 function mpDrawCats(){
   const box = pmEl('mp-catlist'); if(!box) return;
   box.innerHTML = PM.cats.length ? PM.cats.map((c, i) => {
-    const col = pmColor(c.color, '#c9c6be'), n = PM.roster.filter(p => pmInDiv(p, c.id)).length;
+    const col = pmColor(c.color, '#c9c6be'), n = PM.roster.filter(p => pmInCat(p, c)).length + (PM.facs || []).filter(f => pmFacIn(c, f, PM.roster)).length;
     return `<div class="pm-cat" style="--pc:${col}">
       <div class="pm-cat-top"><b>${esc(c.name)}</b><span>${n} on roster</span>
         <button type="button" class="spc-mini" aria-label="Move up" onclick="mpMoveCat(${i},-1)"${i === 0 ? ' disabled' : ''}>▲</button>
         <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMoveCat(${i},1)"${i === PM.cats.length - 1 ? ' disabled' : ''}>▼</button>
         <button type="button" class="spc-mini" onclick="mpCatForm(${Number(c.id)})">Edit</button></div>
       <div class="pm-cat-about">${c.about ? esc(c.about) : '<span class="pm-dim">No description yet.</span>'}</div>
+      <div class="pm-cat-fill"><i class="ti ti-users" aria-hidden="true"></i> ${esc((PM_FILLS.find(x => x[0] === pmFillOf(c)) || PM_FILLS[0])[1])}</div>
       ${(() => { const ts = (PM.titles || []).filter(t => String(t.division_id) === String(c.id));
         return `<div class="pm-cat-ch">${ts.length ? ts.map(t => { const r = pmChampOf(PM.reigns, t.id); return `<span><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(t.name)}: <em>${esc(r ? r.holder_name : 'Vacant')}</em></span>`; }).join('') : '<span class="pm-dim">No championship</span>'}</div>`; })()}
     </div>`;
@@ -21261,9 +21265,12 @@ function mpCatForm(id){
   const box = pmEl('mp-catform'); if(!box) return;
   box.setAttribute('data-keep', 'mp-cat:' + Number(PM.curId) + ':' + (c ? c.id : 'new'));
   box.innerHTML = `<label for="mpc_name">${c ? 'Edit division' : 'New division'}</label>
-    <input id="mpc_name" maxlength="60" value="${escAttr(c ? c.name : '')}" placeholder="For example Cruiserweights or Coastal Cup">
+    <input id="mpc_name" maxlength="60" value="${escAttr(c ? c.name : '')}" placeholder="For example Cruiserweights or Coastal Cup"${c ? '' : ' oninput="mpcGuessFill()"'}>
     <label for="mpc_about">How it works</label>
     <textarea id="mpc_about" rows="3" maxlength="1500" placeholder="Weight limit, tournament rules, what the winner gets">${esc(c && c.about || '')}</textarea>
+    <label for="mpc_fills">Who is in it</label>
+    <select id="mpc_fills" onchange="this.dataset.picked='1';mpcFillNote()">${PM_FILLS.map(([k, l]) => `<option value="${k}"${pmFillOf(c) === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
+    <p class="pm-small pm-dim" id="mpc_fillnote"></p>
     <label>Color</label>${pmColorWidget('mpc_color', c ? c.color : '#f28c38')}
     <div class="pm-acts">
       <button type="button" class="spc-ghost-btn" onclick="mpSaveCat()">${c ? 'Save division' : 'Add division'}</button>
@@ -21271,12 +21278,35 @@ function mpCatForm(id){
              <button type="button" class="spc-mini fr-danger" onclick="mpDeleteCat(${Number(c.id)})">Delete division</button>` : ''}
     </div>
     <div class="msg" id="mpc_msg"></div>`;
+  mpcFillNote();
+}
+// a new division: guess who is in it from its name, until they pick
+function mpcGuessFill(){
+  const sel = pmEl('mpc_fills'), n = String((pmEl('mpc_name') || {}).value || '').toLowerCase();
+  if(!sel || sel.dataset.picked) return;
+  const team = /tag|team|stable|trio|faction/.test(n), wom = /women|woman|female|ladies|knockout|diva/.test(n), men = /\bmen|\bman\b|male|\bmens\b/.test(n.replace(/women|woman|female/g, ''));
+  sel.value = team ? (wom ? 'teams_female' : men ? 'teams_male' : 'teams') : wom ? 'female' : men ? 'male' : /intergender|open|world|everyone|mixed/.test(n) ? 'all' : 'manual';
+  mpcFillNote();
+}
+function mpcFillNote(){
+  const sel = pmEl('mpc_fills'), out = pmEl('mpc_fillnote'); if(!sel || !out) return;
+  const v = sel.value, men = PM.roster.filter(p => p.gender === 'Male').length, wom = PM.roster.filter(p => p.gender === 'Female').length;
+  const teams = PM.roster.filter(p => p.gender === 'Team').length + (PM.facs || []).length;
+  out.textContent = ({ manual:'Only the people you put in it, from each person or with the Division drop down on the roster list.',
+    male:'Every man on your roster is in it, now and when you add more. That is ' + men + ' right now.',
+    female:'Every woman on your roster is in it, now and when you add more. That is ' + wom + ' right now.',
+    all:'Every man and woman on your roster is in it. Teams stay out. That is ' + (men + wom) + ' right now.',
+    teams:'Every team is in it: your Teams and stables, and teams added to the roster as one entry. That is ' + teams + ' right now.',
+    teams_male:'Teams and stables made only of men. A team added to the roster as one entry goes in All teams instead.',
+    teams_female:'Teams and stables made only of women. A team added to the roster as one entry goes in All teams instead.' })[v] || '';
 }
 function mpMsg(id, text, ok){ const m = pmEl(id); if(!m) return; m.className = 'msg show ' + (ok ? 'ok' : 'err'); m.style.display = 'block'; m.textContent = text; }
 async function mpSaveCat(){
   const name = (pmEl('mpc_name').value || '').trim();
   if(!name){ mpMsg('mpc_msg', 'Give the division a name first.', false); return; }
   const row = { name, about:(pmEl('mpc_about').value || '').trim() || null, color:pmEl('mpc_color').value || null };
+  const fills = (pmEl('mpc_fills') || {}).value || 'manual';
+  if(fills !== 'manual' || (PM.cats || []).some(c => c.fills)) row.fills = fills;
   const q = PM.catEditId
     ? sb.from('promotion_roster_categories').update(row).eq('id', PM.catEditId)
     : sb.from('promotion_roster_categories').insert(Object.assign({ promotion_id:Number(PM.curId), sort:(PM.cats.length + 1) * 10 }, row));
@@ -21388,7 +21418,8 @@ function mpMoreDivsHTML(p, main){
   main = main != null ? String(main) : String(p.category_id == null ? '' : p.category_id);
   const has = pmDivIds(p);
   const list = PM.cats.filter(c => String(c.id) !== main);
-  return list.length ? list.map(c => `<label class="ed-teampick" for="mpfd_${Number(c.id)}" style="--pc:${pmColor(c.color, '#c9c6be')}"><input type="checkbox" id="mpfd_${Number(c.id)}" value="${Number(c.id)}"${has.includes(String(c.id)) ? ' checked' : ''}><span>${esc(c.name)}</span></label>`).join('')
+  return list.length ? list.map(c => { const auto = p.id != null && pmAutoIn(c, p);
+    return `<label class="ed-teampick" for="mpfd_${Number(c.id)}" style="--pc:${pmColor(c.color, '#c9c6be')}"${auto ? ' title="This division takes them in by itself"' : ''}><input type="checkbox" id="mpfd_${Number(c.id)}" value="${Number(c.id)}"${has.includes(String(c.id)) || auto ? ' checked' : ''}${auto ? ' disabled data-auto="1"' : ''}><span>${esc(c.name)}${auto ? ' (automatic)' : ''}</span></label>`; }).join('')
     : `<span class="pm-small pm-dim">Make more divisions under Divisions to put someone in more than one.</span>`;
 }
 // the main division changed: keep the other ticks, drop the box for the new main one
@@ -21435,7 +21466,7 @@ async function mpSavePerson(){
   const attrs = pmReadAttrs('mpa'); if(Object.keys(attrs).length) details.attrs = attrs;
   const traits = pmReadTraits('mpt'); if(Object.keys(traits).length) details.traits = traits;
   const catV = pmEl('mpf_cat').value;
-  const more = [...document.querySelectorAll('#mpf_more input:checked')].map(x => Number(x.value)).filter(x => x && String(x) !== String(catV));
+  const more = [...document.querySelectorAll('#mpf_more input:checked:not([data-auto])')].map(x => Number(x.value)).filter(x => x && String(x) !== String(catV));
   if(more.length) details.more_divs = more;
   const row = { name, nickname:(pmEl('mpf_nick').value || '').trim() || null,
     category_id: catV ? Number(catV) : null, gender: pmEl('mpf_gender').value || 'Male',
@@ -21478,6 +21509,22 @@ async function mpRemovePerson(id){
   if(PM.tab === 'roster') await mpRosterTab(pmEl('mp-tab'));
   wcaToast(p.name + ' removed', 'Changed your mind? Use Bring back under Recent changes.');
 }
+// the Division drop down on each row of the roster list: moves them right away
+async function mpSetDiv(id, v){
+  const p = PM.roster.find(x => String(x.id) === String(id)); if(!p) return;
+  const cat = v ? Number(v) : null;
+  const same = PM.roster.filter(x => String(x.category_id) === String(cat));
+  const sort = Math.max(0, ...same.map(x => x.sort || 0)) + 10;
+  // their main division can't also be one of their "also in" divisions
+  const d = Object.assign({}, p.details || {});
+  if(Array.isArray(d.more_divs)){ d.more_divs = d.more_divs.filter(x => String(x) !== String(cat)); if(!d.more_divs.length) delete d.more_divs; }
+  const { error } = await sb.from('promotion_roster').update({ category_id:cat, sort, details:d }).eq('id', p.id);
+  if(error){ wcaToast('Could not move them', cpErrText(error), true); mpDrawPeople(); return; }
+  p.category_id = cat; p.sort = sort; p.details = d;
+  PM.roster.sort((a, b) => (a.sort || 0) - (b.sort || 0) || a.id - b.id);
+  mpDrawPeople(); mpDrawCats();
+  wcaToast('Moved', p.name + (cat ? ' is in ' + ((mpCatOf(cat) || {}).name || 'that division') : ' has no division') + ' now.');
+}
 async function mpMovePerson(id, d){
   const p = PM.roster.find(x => String(x.id) === String(id)); if(!p) return;
   const list = PM.roster.filter(x => String(x.category_id) === String(p.category_id));
@@ -21497,11 +21544,41 @@ function pmDivIds(p){
   return out;
 }
 function pmInDiv(p, id){ return id != null && id !== '' && pmDivIds(p).includes(String(id)); }
-function pmDivNames(cats, p){ return pmDivIds(p).map(id => ((cats || []).find(c => String(c.id) === id) || {}).name).filter(Boolean).join(' · '); }
+function pmDivNames(cats, p){
+  const main = String(p.category_id == null ? '' : p.category_id);
+  return (cats || []).filter(c => pmInCat(p, c)).sort((a, b) => (String(b.id) === main) - (String(a.id) === main)).map(c => c.name).join(' · ');
+}
+// Who a division takes in by itself (promotion_roster_categories.fills, WCA_division_auto_fill.sql)
+var PM_FILLS = [['manual','Pick people by hand'],['male','All the men'],['female','All the women'],['all','Everyone, men and women (intergender)'],
+  ['teams','All teams'],['teams_male','Teams of men'],['teams_female','Teams of women']];
+function pmFillOf(c){ const f = c && c.fills; return PM_FILLS.some(x => x[0] === f) ? f : 'manual'; }
+function pmAutoIn(c, p){
+  const f = pmFillOf(c), g = p && p.gender;
+  if(f === 'male') return g === 'Male';
+  if(f === 'female') return g === 'Female';
+  if(f === 'all') return g === 'Male' || g === 'Female';
+  if(f === 'teams') return g === 'Team';     // a team added as one roster entry: its members are not known
+  return false;
+}
+// a team or stable: men only, women only, or mixed, from who is in it
+function pmTeamSex(f, roster){
+  const g = ((f && f.members) || []).map(id => ((roster || []).find(r => Number(r.id) === Number(id)) || {}).gender).filter(x => x === 'Male' || x === 'Female');
+  if(!g.length) return '';
+  return g.every(x => x === 'Male') ? 'Male' : g.every(x => x === 'Female') ? 'Female' : 'Mixed';
+}
+function pmFacIn(c, f, roster){
+  const m = pmFillOf(c);
+  if(m === 'teams') return true;
+  if(m === 'teams_male') return pmTeamSex(f, roster) === 'Male';
+  if(m === 'teams_female') return pmTeamSex(f, roster) === 'Female';
+  return false;
+}
+function pmInCat(p, c){ return !!c && (pmInDiv(p, c.id) || pmAutoIn(c, p)); }
+
 function mpGroups(roster, cats){
   // someone can be in more than one division: their main one, plus details.more_divs
-  const groups = cats.map(c => ({ cat:c, people:roster.filter(p => pmInDiv(p, c.id)) }));
-  const loose = roster.filter(p => !cats.some(c => pmInDiv(p, c.id)));
+  const groups = cats.map(c => ({ cat:c, people:roster.filter(p => pmInCat(p, c)) }));
+  const loose = roster.filter(p => !cats.some(c => pmInCat(p, c)));
   if(loose.length) groups.push({ cat:{ id:'', name:'No division', color:'#8a8a86' }, people:loose });
   return groups;
 }
@@ -21527,11 +21604,12 @@ function mpDrawPeople(){
       ${people.map((p, k) => { const pc = mpPersonColor(p), d = p.details || {};
         const teams = (PM.facs || []).filter(f => (f.members || []).map(Number).includes(Number(p.id))).map(f => f.name);
         const plays = (PM.players && PM.players[p.id]) ? PM.players[p.id].join(' and ') : (d.played_by ? d.played_by + (d.played_by_user ? ' (' + d.played_by_user + ')' : '') : '');
-        const extra = String(p.category_id) !== String(cat.id);   // here as one of their other divisions
+        const extra = cat.id !== '' && p.category_id != null && String(p.category_id) !== String(cat.id) && !!mpCatOf(p.category_id);   // here as one of their other divisions
         const sub = [extra ? 'Main division: ' + ((mpCatOf(p.category_id) || {}).name || 'none') : '', p.nickname, p.title, teams.join(', '), plays ? 'Played by ' + plays : ''].filter(Boolean).join(' · ');
         return `<div class="pm-prow${String(PM.editId) === String(p.id) ? ' on' : ''}">
           <span class="pm-pinit" style="--pc:${pc}">${esc(pmInit(p.name))}</span>
           <span class="pm-pname"><b>${esc(p.name)}</b>${sub ? ` <small>${esc(sub)}</small>` : ''}</span>
+          ${extra ? '' : `<select class="ed-divpick" aria-label="Division for ${escAttr(p.name)}" onchange="mpSetDiv(${Number(p.id)},this.value)">${mpCatOptions(p.category_id)}</select>`}
           ${p.gender === 'Team' ? '<span class="bk-team">Team</span>' : bkToggle('mpg_' + Number(p.id), p.gender, `b=>bkSaveG('mpbk',${Number(p.id)},b)`)}
           ${extra ? '' : `<button type="button" class="spc-mini" aria-label="Move up" onclick="mpMovePerson(${Number(p.id)},-1)"${k === 0 ? ' disabled' : ''}>▲</button>
           <button type="button" class="spc-mini" aria-label="Move down" onclick="mpMovePerson(${Number(p.id)},1)"${k === people.length - 1 ? ' disabled' : ''}>▼</button>`}
@@ -22115,9 +22193,13 @@ function pmRankSections(D){
     || (a.held.length && b.held.length ? tIdx(a) - tIdx(b) : 0)
     || String(a.x.name || '').localeCompare(String(b.x.name || ''), undefined, { sensitivity:'base' });
   const colIn = p => { const c = (D.cats || []).find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); };
-  const secs = mpGroups(D.roster || [], D.cats || []).filter(g => g.people.length)
-    .map(g => ({ cat:g.cat, rows:g.people.map(p => ent('person', p, colIn(p), g.cat.id === '' ? null : g.cat.id)).sort(order) }));
-  const teams = (D.facs || []).map(f => ent('team', f, pmColor(f.color, '#e9b949')));
+  const facIn = c => (D.facs || []).filter(f => pmFacIn(c, f, D.roster));
+  const secs = mpGroups(D.roster || [], D.cats || []).filter(g => g.people.length || (g.cat.id !== '' && facIn(g.cat).length))
+    .map(g => ({ cat:g.cat, rows:g.people.map(p => ent('person', p, colIn(p), g.cat.id === '' ? null : g.cat.id))
+      .concat(g.cat.id === '' ? [] : facIn(g.cat).map(f => ent('team', f, pmColor(f.color, '#e9b949'), g.cat.id))).sort(order) }));
+  // teams and stables no team division takes in get their own list
+  const placed = new Set((D.cats || []).flatMap(c => facIn(c).map(f => Number(f.id))));
+  const teams = (D.facs || []).filter(f => !placed.has(Number(f.id))).map(f => ent('team', f, pmColor(f.color, '#e9b949')));
   if(teams.length) secs.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, rows:teams.sort(order) });
   return secs;
 }
@@ -22238,7 +22320,7 @@ function pmPubList(){
   const P = PM.pub; if(!P) return;
   const cb = pmEl('pmpub-cats'), gb = pmEl('pmpub-g'), box = pmEl('pmpub-list');
   if(cb) cb.innerHTML = [{ id:'all', name:'Everyone', color:'#e9b949' }].concat(P.cats).map(c => {
-    const n = c.id === 'all' ? P.roster.length : P.roster.filter(p => pmInDiv(p, c.id)).length;
+    const n = c.id === 'all' ? P.roster.length : P.roster.filter(p => pmInCat(p, c)).length;
     return `<button type="button" class="pm-chip pm-chip-c${String(P.cat) === String(c.id) ? ' on' : ''}" style="--pc:${pmColor(c.color, '#c9c6be')}" onclick="PM.pub.cat='${c.id}';pmPubList()">${esc(c.name)} <span>${n}</span></button>`; }).join('');
   if(gb) gb.innerHTML = [['all','All'],['Male','Male'],['Female','Female'],['Team','Teams']].map(([k, l]) =>
     `<button type="button" class="pm-chip pm-chip-sm${P.g === k ? ' on' : ''}" onclick="PM.pub.g='${k}';pmPubList()">${l} <span>${k === 'all' ? P.roster.length : P.roster.filter(p => p.gender === k).length}</span></button>`).join('');
