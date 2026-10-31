@@ -21855,14 +21855,18 @@ async function pmPageOpen(){
   let sr = null;
   if(p){
     const ors = [`promotion_id.eq.${Number(id)}`];
-    if(p.owner_id) ors.push(`and(promotion_id.is.null,submitted_by.eq.${p.owner_id})`);
+    // the owner's own posts with no source, but never a post made as a WCA character
+    // (it has a wrestler_id) and never one from before the promotion existed
+    if(p.owner_id) ors.push(`and(promotion_id.is.null,submitted_by.eq.${p.owner_id},wrestler_id.is.null${p.created_at ? `,created_at.gte.${new Date(p.created_at).toISOString()}` : ''})`);
     ors.push(`payload->promo_char->>promotion_id.eq.${Number(id)}`);   // their characters' posts
-    sr = await sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes,promotion_id,outlet_id,submitted_by')
+    sr = await sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes,promotion_id,outlet_id,submitted_by,wrestler_id')
       .or(ors.join(',')).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(120);
     if(sr && sr.error)   // fall back to the promotion's own posts rather than showing none
       sr = await sb.from('storylines').select('id,kind,title,body,payload,story_date,created_at,seed_likes,seed_dislikes,promotion_id,outlet_id')
         .eq('promotion_id', id).eq('is_published', true).order('story_date', { ascending:false }).order('created_at', { ascending:false }).limit(120);
   }
+  // a post made as a WCA character belongs to the WCA Feed, not a promotion page
+  if(sr && sr.data) sr.data = sr.data.filter(r => r.wrestler_id == null || Number(r.promotion_id) === Number(id));
   if(!p){ host.innerHTML = `<div class="pm-card pm-empty">That promotion isn't here. <button class="spc-mini" onclick="goPage('promotions')">See every promotion</button></div>`; return; }
   pmStageClose();
   PM.pub = { p, cats:(cr && cr.data) || [], roster:(rr && rr.data) || [], facs:(fr && !fr.error && fr.data) || [], posts:(sr && sr.data) || [], tab, cat:'all', g:'all', q:'', sel:wantSel ? Number(wantSel) : null, openSel:!!wantSel, injOn,
