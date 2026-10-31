@@ -4836,6 +4836,19 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
   .rm-msgs{height:52vh;}
   .mpq-row{flex-direction:column; align-items:stretch;} .mpq-a{justify-content:flex-start;}
 }
+/* ===== PAGE COLORS: gradients, and the editor in the promotion's colors (Oct 2026) ===== */
+#page-mypromo.mp-tinted #mp-body{position:relative; z-index:1;}
+#page-mypromo.mp-tinted #mp-body::before{content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; background:var(--mp-tint, none); transition:background .3s ease;}
+.ed-grad{margin:14px 0 4px; padding:16px; border:1px solid var(--gold); border-radius:12px; background:rgba(var(--gold-rgb),.05);}
+.ed-grad[hidden],.ed-grad-use[hidden]{display:none;}
+.ed-grad-use{margin:10px 0 0;}
+.ed-grad .br-seg button.on{border-color:var(--gold); color:var(--gold);}
+.ed-grad-c{margin-top:6px;}
+.pm-anylbl{font-size:14px; font-weight:600; color:var(--txt-2); text-transform:none; letter-spacing:0;}
+.pm-anycolor input[type=color]{width:44px !important; height:34px !important; padding:2px !important;}
+.pm-anycolor input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
+.pm-anycolor input[type=color]::-webkit-color-swatch{border:none; border-radius:4px;}
+.pm-anycolor input[type=color]::-moz-color-swatch{border:none; border-radius:4px;}
 /* ===== BRANDS AND THE BRAND DRAFT (Oct 2026) ===== */
 /* brand form, crop tool and general managers */
 .br-sec{margin-top:16px; padding:14px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.16);}
@@ -7705,6 +7718,9 @@ function wcaSortEvents(list, ascending){
 function wcaSortEventsNewestFirst(list){ return wcaSortEvents(list, false); }
 function CF2d(){ return (window.WCA_FF && WCA_FF.displayStack) || "'Oswald',sans-serif"; }
 function CF2w(want){ return (window.WCA_FF && WCA_FF.displaySolo) ? '400' : String(want); }
+function mix(c, target, amt){
+  return { r:c.r+(target-c.r)*amt, g:c.g+(target-c.g)*amt, b:c.b+(target-c.b)*amt };
+}
 function dots(n){
   n = Math.max(0, Math.min(3, Number(n)||0));
   const label = n+' of 3 contender points';
@@ -13501,8 +13517,8 @@ async function cpShowPromotion(id){ pmGo(id); }
 const PM_ATTRS = ['Arm Power','Leg Power','Grapple Offense','Running Offense','Aerial Offense','Aerial Defense',
   'Aerial Range','Power Submission Offense','Technical Submission Offense','Aerial Reversal','Strike Reversal',
   'Grapple Reversal','Pin Escape','Strength','Stamina','Agility','Movement Speed','Recovery','Special','Finisher'];
-const PM_SWATCHES = [['#e2574c','Red'],['#f28c38','Orange'],['#e9b949','Gold'],['#5dcaa5','Teal'],
-  ['#4fa3f7','Blue'],['#8f7cff','Purple'],['#ff6fb5','Pink'],['#c9c6be','Silver']];
+const PM_SWATCHES = [['#e2574c','Red'],['#b5121b','Crimson'],['#f28c38','Orange'],['#e9b949','Gold'],['#c6f432','Lime'],['#3fc46a','Green'],['#5dcaa5','Teal'],['#21d4fd','Cyan'],
+  ['#4fa3f7','Blue'],['#2346b8','Navy'],['#8f7cff','Purple'],['#c13cff','Violet'],['#ff2fd6','Magenta'],['#ff6fb5','Pink'],['#c9c6be','Silver'],['#ffffff','White']];
 const PM_WCLASS = ['Cruiserweight','Light Heavyweight','Heavyweight','Super Heavyweight'];
 const PM_STYLE  = ['Giant','High Flyer','Powerhouse','Striker','Technician'];
 const PM_GENDER = [['Male','Male'],['Female','Female'],['Team','Team or group']];
@@ -13796,7 +13812,7 @@ function pmColorWidget(key, value, sameLabel){
   return `<div class="pm-colors" data-key="${key}">
     ${sameLabel ? `<button type="button" class="pm-same${v ? '' : ' on'}" onclick="pmSetColor('${key}','')">${esc(sameLabel)}</button>` : ''}
     ${PM_SWATCHES.map(([hex, label]) => `<button type="button" class="pm-sw${v === hex ? ' on' : ''}" data-hex="${hex}" title="${label}" aria-label="${label}" style="background:${hex}" onclick="pmSetColor('${key}','${hex}')"></button>`).join('')}
-    <span class="pm-anycolor">
+    <span class="pm-anycolor"><span class="pm-anylbl">Any color</span>
       <input type="color" id="${key}_pick" value="${v || '#e9b949'}" aria-label="Pick any color" title="Pick any color" oninput="pmSetColor('${key}',this.value,'pick')">
       <input type="text" id="${key}_hex" class="pm-hex" value="${v}" maxlength="7" placeholder="#e2574c" aria-label="Color code" oninput="pmHexTyped('${key}',this.value)">
     </span>
@@ -14016,6 +14032,7 @@ function mpRender(){
       <div class="ed-main" id="mp-tab"></div>
     </div>`;
   mpTab(PM.tab);
+  mpTintLoad();
 }
 function mpSwitch(id){ PM.curId = id; PM.as = null; PM.rosterFor = null; PM.filter = 'all'; PM.editId = null; PM.rsub = 'list'; PM.find = ''; mpRender(); }
 function mpTab(k, clicked){
@@ -14027,6 +14044,7 @@ function mpTab(k, clicked){
   if(clicked && k === 'stories' && typeof MSL !== 'undefined') MSL.edit = null;
   if(clicked && k === 'brands' && typeof MBR !== 'undefined'){ MBR.sub = 'brands'; MBR.edit = null; }
   if(k !== 'room' && typeof rmStop === 'function') rmStop();
+  if(k !== 'look' && PM.tab === 'look' && PM.themes && PM.curId != null && PM.themes[Number(PM.curId)] !== undefined) mpTint(PM.themes[Number(PM.curId)]);
   PM.tab = k;
   document.querySelectorAll('.ed-nav [data-k]').forEach(b => { const on = b.dataset.k === k; b.classList.toggle('on', on); if(on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   if(PM.curId != null) wcaSetAddress('mypromo', 'id=' + Number(PM.curId) + '&s=' + k, false);
@@ -14213,9 +14231,66 @@ async function mpCatsTab(box){
 var MP_BGS = [
   ['space','Deep space','The WCA look'], ['brand','Your main color','A glow in your color'], ['midnight','Midnight','Dark blue'],
   ['ember','Ember','Orange fire'], ['crimson','Crimson','Deep red'], ['royal','Royal','Purple'], ['forest','Forest','Green'],
-  ['steel','Steel','Cold gray'], ['plain','Plain black','Nothing behind it']
+  ['steel','Steel','Cold gray'], ['plain','Plain black','Nothing behind it'],
+  ['sunset','Sunset','Orange, pink, purple'], ['ocean','Ocean','Cyan into blue'], ['neon','Neon','Magenta and cyan'], ['aurora','Aurora','Green, blue, purple'],
+  ['inferno','Inferno','Yellow, orange, red'], ['toxic','Toxic','Lime into green'], ['goldrush','Gold rush','Gold into bronze'], ['ice','Ice','Pale blue into blue'],
+  ['bloodmoon','Blood moon','Red into black'], ['vapor','Vapor','Four colors'], ['custom','Your own','Pick 1 to 4 colors']
 ];
-function mpThemeOf(t){ t = (t && typeof t === 'object') ? t : {}; return { bg:MP_BGS.some(b => b[0] === t.bg) ? t.bg : 'space', c2:PM_HEX.test(t.c2 || '') ? t.c2 : '' }; }
+var MP_GRADS = {
+  sunset:{ colors:['#ff7a3d','#ff3d7f','#7b3dff'], style:'linear', dir:135 }, ocean:{ colors:['#00b4d8','#0057b8'], style:'linear', dir:135 },
+  neon:{ colors:['#ff2fd6','#21d4fd'], style:'linear', dir:90 }, aurora:{ colors:['#3dffb0','#2fa8ff','#a35cff'], style:'linear', dir:135 },
+  inferno:{ colors:['#ffcc00','#ff5a00','#c1121f'], style:'linear', dir:180 }, toxic:{ colors:['#c6f432','#00a86b'], style:'linear', dir:135 },
+  goldrush:{ colors:['#f5c542','#8a5a00'], style:'linear', dir:135 }, ice:{ colors:['#bdf3ff','#4a90e2'], style:'linear', dir:180 },
+  bloodmoon:{ colors:['#ff3b3b','#3b0a0a'], style:'radial' }, vapor:{ colors:['#ff71ce','#01cdfe','#05ffa1','#b967ff'], style:'radial' }
+};
+var MP_GDIRS = [[180,'Top to bottom'], [90,'Left to right'], [135,'Corner to corner'], [45,'The other corner']];
+var MP_GSTR = [['soft','Soft'], ['medium','Medium'], ['bold','Bold']];
+function mpGradOf(g, pc){
+  g = (g && typeof g === 'object') ? g : {};
+  const cs = (Array.isArray(g.colors) ? g.colors : []).filter(c => PM_HEX.test(c || '')).slice(0, 4);
+  return { colors:cs.length ? cs : [pc || '#e9b949', '#4fa3f7'], style:g.style === 'radial' ? 'radial' : 'linear',
+    dir:[180, 90, 135, 45].includes(Number(g.dir)) ? Number(g.dir) : 135, str:['soft','medium','bold'].includes(g.str) ? g.str : 'medium' };
+}
+function mpThemeOf(t){ t = (t && typeof t === 'object') ? t : {}; const bg = MP_BGS.some(b => b[0] === t.bg) ? t.bg : 'space';
+  const o = { bg, c2:PM_HEX.test(t.c2 || '') ? t.c2 : '' }; if(bg === 'custom') o.grad = mpGradOf(t.grad); return o; }
+function pmGradFor(th){ if(!th) return null; if(th.bg === 'custom') return mpGradOf(th.grad); return MP_GRADS[th.bg] ? Object.assign({ str:'medium' }, MP_GRADS[th.bg]) : null; }
+function pmBgCss(g, mode){
+  const A = mode === 'swatch' ? 72 : ({ soft:22, medium:34, bold:50 }[g.str] || 34) * (mode === 'tint' ? .8 : 1);
+  const mix = (c, a) => `color-mix(in srgb, ${c} ${Math.round(Math.min(a, 95))}%, transparent)`;
+  const cs = g.colors || [];
+  if(!cs.length) return mode === 'tint' ? 'none' : '#0a0a0c';
+  let layer;
+  if(g.style === 'radial'){
+    const at = cs.length === 1 ? ['30% 0%'] : cs.length === 2 ? ['12% 0%', '88% 100%'] : ['12% 0%', '88% 0%', '50% 100%', '88% 100%'];
+    if(cs.length === 4) at.splice(2, 2, '12% 100%', '88% 100%');
+    const size = mode === 'swatch' ? '140px 80px' : '1100px 620px';
+    layer = cs.map((c, i) => `radial-gradient(${size} at ${at[i]}, ${mix(c, A * 1.3)}, transparent 70%)`).join(', ');
+  } else {
+    const stops = cs.length === 1 ? [mix(cs[0], A) + ' 0%', 'transparent 100%'] : cs.map((c, i) => `${mix(c, A)} ${Math.round(i * 100 / (cs.length - 1))}%`);
+    layer = `linear-gradient(${g.dir || 180}deg, ${stops.join(', ')})`;
+  }
+  return mode === 'tint' ? layer : layer + ', rgba(6,7,12,.9)';
+}
+var MP_OLD_TINT = { midnight:{ colors:['#1c3366'], style:'linear', dir:180 }, ember:{ colors:['#f26e28'], style:'radial' }, crimson:{ colors:['#e23c46'], style:'radial' },
+  royal:{ colors:['#8f7cff'], style:'radial' }, forest:{ colors:['#46aa69'], style:'radial' }, steel:{ colors:['#78828f'], style:'linear', dir:180 } };
+function mpTint(th){
+  const pg = pmEl('page-mypromo'), p = mpCur(); if(!pg || !p) return;
+  th = th || { bg:'space' };
+  const pc = pmColor(p.color), c2 = PM_HEX.test(th.c2 || '') ? th.c2 : '';
+  const g = pmGradFor(th) || (MP_OLD_TINT[th.bg] ? Object.assign({ str:'medium' }, MP_OLD_TINT[th.bg]) : { colors:c2 ? [pc, c2] : [pc], style:'radial', str:th.bg === 'brand' ? 'medium' : 'soft' });
+  pg.style.setProperty('--mp-tint', pmBgCss(g, 'tint'));
+  pg.classList.add('mp-tinted');
+}
+async function mpTintLoad(){
+  const p = mpCur(); if(!p) return;
+  PM.themes = PM.themes || {};
+  const id = Number(p.id);
+  if(!(id in PM.themes)){
+    PM.themes[id] = null; mpTint(null);
+    try{ const r = await sb.from('promotion_features').select('theme').eq('promotion_id', id).maybeSingle(); PM.themes[id] = mpThemeOf(r && r.data && r.data.theme); }catch(e){ PM.themes[id] = mpThemeOf({}); }
+  }
+  if(mpCur() && Number(mpCur().id) === id && !(PM.tab === 'look' && pmEl('mpl_prev'))) mpTint(PM.themes[id]);
+}
 async function mpLookTab(box){
   const p = mpCur(); if(!p) return;
   box.innerHTML = `<div class="loading">Loading…</div>`;
@@ -14223,6 +14298,10 @@ async function mpLookTab(box){
   try{ const r = await sb.from('promotion_features').select('*').eq('promotion_id', Number(p.id)).maybeSingle(); if(r.error) missing = pmMissing(r.error); th = (r.data && r.data.theme) || {}; }catch(e){}
   if(PM.tab !== 'look') return;
   PM.look = mpThemeOf(th);
+  PM.grad = mpGradOf(PM.look.grad || (MP_GRADS[PM.look.bg]) || { colors:[pmColor(p.color), PM.look.c2 || '#4fa3f7'] }, pmColor(p.color));
+  PM.gradN = PM.grad.colors.length;
+  const gx = ['#e9b949', '#4fa3f7', '#8f7cff', '#ff6fb5']; while(PM.grad.colors.length < 4) PM.grad.colors.push(gx[PM.grad.colors.length]);
+  try{ const d = JSON.parse(localStorage.getItem('wca-look-grad:' + Number(p.id)) || 'null'); if(d && d.g){ PM.grad = Object.assign(PM.grad, d.g); PM.gradN = d.n || PM.gradN; } }catch(e){}
   box.innerHTML = `<div class="ed-two">
     <section class="pm-card" data-keep="mp-look:${Number(p.id)}">
       <div class="pm-h3">Page colors</div>
@@ -14230,34 +14309,71 @@ async function mpLookTab(box){
       <label>Background</label>
       <div class="ed-bgs" role="radiogroup" aria-label="Background">${MP_BGS.map(([k, l, s]) => `<label class="ed-bg ed-bg-${k}${PM.look.bg === k ? ' on' : ''}" style="--pc:${pmColor(p.color)}">
           <input type="radio" name="mpl_bg" id="mpl_bg_${k}" value="${k}"${PM.look.bg === k ? ' checked' : ''} onchange="mpLookPick()">
-          <span class="ed-bg-sw" aria-hidden="true"></span><b>${esc(l)}</b><small>${esc(s)}</small></label>`).join('')}</div>
+          <span class="ed-bg-sw" aria-hidden="true"${MP_GRADS[k] ? ` style="background:${pmBgCss(MP_GRADS[k], 'swatch')}"` : k === 'custom' ? ' id="mpl_csw"' : ''}></span><b>${esc(l)}</b><small>${esc(s)}</small></label>`).join('')}</div>
+      <div class="ed-grad-use" id="mpl_guse" hidden><button type="button" class="spc-ghost-btn" onclick="mpGradFromPreset()"><i class="ti ti-adjustments"></i> Change these colors</button></div>
+      <div class="ed-grad" id="mpl_grad" data-nokeep hidden></div>
       <label>Second color <span class="pm-opt">(tabs, numbers and highlights)</span></label>${pmColorWidget('mpl_c2', PM.look.c2, 'Same as main color')}
       <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpLookSave()">Save page colors</button></div>
       <div class="msg" id="mpl_msg">${missing ? '' : ''}</div>
     </section>
     <section class="pm-card"><div class="pm-h3">How it looks</div><div id="mpl_prev"></div></section></div>`;
   const h = pmEl('mpl_c2'); if(h) h.addEventListener('input', mpLookPick);
-  mpLookPick();
+  mpGradDraw(); mpLookPick();
+}
+function mpLookTheme(){
+  const r = document.querySelector('input[name="mpl_bg"]:checked');
+  const th = { bg:r ? r.value : 'space' }; const c2 = (pmEl('mpl_c2') || {}).value || ''; if(PM_HEX.test(c2)) th.c2 = c2.toLowerCase();
+  if(th.bg === 'custom') th.grad = { colors:PM.grad.colors.slice(0, PM.gradN), style:PM.grad.style, dir:PM.grad.dir, str:PM.grad.str };
+  return th;
+}
+function mpGradKeep(){ const p = mpCur(); if(!p) return; try{ localStorage.setItem('wca-look-grad:' + Number(p.id), JSON.stringify({ g:PM.grad, n:PM.gradN })); }catch(e){} }
+function mpGradDraw(){
+  const box = pmEl('mpl_grad'); if(!box) return;
+  const g = PM.grad, seg = (list, cur, fn) => list.map(([v, l]) => `<button type="button" class="${String(cur) === String(v) ? 'on' : ''}" aria-pressed="${String(cur) === String(v)}" onclick="${fn}(${typeof v === 'number' ? v : `'${v}'`})">${esc(l)}</button>`).join('');
+  box.innerHTML = `<div class="pm-h3"><i class="ti ti-color-swatch" aria-hidden="true"></i> Your own gradient</div>
+    <label>How many colors</label><div class="br-seg">${seg([[1,'1 color'],[2,'2 colors'],[3,'3 colors'],[4,'4 colors']], PM.gradN, 'mpGradN')}</div>
+    ${[0, 1, 2, 3].slice(0, PM.gradN).map(i => `<div class="ed-grad-c"><label>Color ${i + 1}</label>${pmColorWidget('mpl_g' + i, g.colors[i])}</div>`).join('')}
+    <label>Style</label><div class="br-seg">${seg([['linear','Straight blend'],['radial','Glow from the corners']], g.style, 'mpGradStyle')}</div>
+    ${g.style === 'linear' && PM.gradN > 0 ? `<label>Direction</label><div class="br-seg">${seg(MP_GDIRS, g.dir, 'mpGradDir')}</div>` : ''}
+    <label>How strong</label><div class="br-seg">${seg(MP_GSTR, g.str, 'mpGradStr')}</div>
+    <p class="pm-small pm-dim">Bold is the most color. Soft keeps text the easiest to read.</p>`;
+  for(let i = 0; i < PM.gradN; i++){ const el = pmEl('mpl_g' + i); if(el) el.addEventListener('input', () => { if(PM_HEX.test(el.value)){ PM.grad.colors[i] = el.value; mpGradKeep(); mpLookPick(); } }); }
+}
+function mpGradN(n){ PM.gradN = n; mpGradKeep(); mpGradDraw(); mpLookPick(); }
+function mpGradStyle(v){ PM.grad.style = v; mpGradKeep(); mpGradDraw(); mpLookPick(); }
+function mpGradDir(v){ PM.grad.dir = v; mpGradKeep(); mpGradDraw(); mpLookPick(); }
+function mpGradStr(v){ PM.grad.str = v; mpGradKeep(); mpGradDraw(); mpLookPick(); }
+function mpGradFromPreset(){
+  const r = document.querySelector('input[name="mpl_bg"]:checked'), g = r && MP_GRADS[r.value]; if(!g) return;
+  PM.grad.colors = g.colors.slice(); PM.gradN = g.colors.length; PM.grad.style = g.style; if(g.dir) PM.grad.dir = g.dir;
+  const gx = ['#e9b949', '#4fa3f7', '#8f7cff', '#ff6fb5']; while(PM.grad.colors.length < 4) PM.grad.colors.push(gx[PM.grad.colors.length]);
+  const c = pmEl('mpl_bg_custom'); if(c) c.checked = true;
+  mpGradKeep(); mpGradDraw(); mpLookPick();
+  const b = pmEl('mpl_grad'); if(b) b.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 function mpLookPick(){
   const p = mpCur(); if(!p) return;
-  const r = document.querySelector('input[name="mpl_bg"]:checked');
-  const bg = r ? r.value : 'space', c2 = (pmEl('mpl_c2') || {}).value || '';
+  const th = mpLookTheme(), bg = th.bg, c2 = th.c2 || '';
   document.querySelectorAll('.ed-bg').forEach(l => l.classList.toggle('on', !!l.querySelector('input:checked')));
+  const gb = pmEl('mpl_grad'); if(gb) gb.hidden = bg !== 'custom';
+  const gu = pmEl('mpl_guse'); if(gu) gu.hidden = !MP_GRADS[bg];
+  const csw = pmEl('mpl_csw'); if(csw) csw.style.background = pmBgCss(Object.assign({}, PM.grad, { colors:PM.grad.colors.slice(0, PM.gradN) }), 'swatch');
+  mpTint(th);
   const box = pmEl('mpl_prev'); if(!box) return;
-  const col = pmColor(p.color), two = pmColor(c2, col);
-  box.innerHTML = `<div class="ed-prev pm-themed" data-bg="${bg}" style="--pc:${col};--pc2:${two}">
+  const col = pmColor(p.color), two = pmColor(c2, col), gr = pmGradFor(th);
+  box.innerHTML = `<div class="ed-prev pm-themed" data-bg="${bg}" style="--pc:${col};--pc2:${two}${gr ? ';background:' + pmBgCss(gr, 'page') : ''}">
     <div class="ed-prev-top">${pmLogo(p, 'ed-prev-logo')}<div><div class="pm-kick">Promotion in the WCA Universe</div><b>${esc(p.name)}</b></div></div>
     <div class="ed-prev-tabs"><span class="on">Posts</span><span>Events</span><span>Roster</span></div>
     <div class="ed-prev-stats"><span><b>24</b>On the roster</span><span><b>3</b>Divisions</span></div></div>`;
 }
 async function mpLookSave(){
   const p = mpCur(); if(!p) return;
-  const r = document.querySelector('input[name="mpl_bg"]:checked');
-  const theme = { bg:r ? r.value : 'space' }; const c2 = (pmEl('mpl_c2') || {}).value || ''; if(PM_HEX.test(c2)) theme.c2 = c2.toLowerCase();
+  const theme = mpLookTheme();
   const { error } = await sb.from('promotion_features').upsert({ promotion_id:Number(p.id), theme, updated_at:new Date().toISOString() }, { onConflict:'promotion_id' });
   if(error){ mpMsg('mpl_msg', /theme/i.test(error.message || '') ? 'Page colors are not switched on yet. Please check back soon!' : cpErrText(error), false); return; }
   wcaKeepDone('mp-look:' + Number(p.id));
+  try{ localStorage.removeItem('wca-look-grad:' + Number(p.id)); }catch(e){}
+  PM.themes = PM.themes || {}; PM.themes[Number(p.id)] = mpThemeOf(theme);
   mpMsg('mpl_msg', 'Saved. Your page has the new colors.', true);
 }
 function mpCoTab(box){
