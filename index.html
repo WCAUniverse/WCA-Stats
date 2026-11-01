@@ -7373,6 +7373,10 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .pm-anycolor input[type=color]::-webkit-color-swatch-wrapper{padding:0;}
 .pm-anycolor input[type=color]::-webkit-color-swatch{border:none; border-radius:4px;}
 .pm-anycolor input[type=color]::-moz-color-swatch{border:none; border-radius:4px;}
+/* a character with no picture yet: initials, kept inside the circle */
+.sl-ini{overflow:hidden !important; display:inline-flex !important; align-items:center; justify-content:center; border-radius:50%;
+  background:var(--gold-deep); border:1px solid var(--gold-dim); color:var(--gold); font-family:var(--font-display); font-size:22px; line-height:1; letter-spacing:.5px; text-transform:uppercase;}
+.sl-reply .sl-ini{font-size:16px;} .sl-qav-init.sl-ini{font-size:11px;} .sl-by-av-init.sl-ini{font-size:14px;}
 /* ===== BRANDS AND THE BRAND DRAFT (Oct 2026) ===== */
 /* brand form, crop tool and general managers */
 .br-sec{margin-top:16px; padding:14px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.16);}
@@ -17234,18 +17238,18 @@ function slAvatar(name, cls){
   const src = w ? (w.avatar_url || w.image_url) : null;
   const c = cls || 'sl-av';
   const ic = c + '-init';
-  const ph = `<div class="${ic}">${wcaPlaceholder(w || {name:name}, {mode:'icon'})}</div>`;
+  const ph = slIni(name, c);
   if(src){
     return `<img class="${c}" src="${esc(src)}" alt="${esc(name)}"
       onerror="slNoPhoto(this,'${escAttr(name)}','${esc(ic)}')">`;
   }
   return ph;
 }
-// The feed always prints the poster's name beside the avatar, so the
-// placeholder stays a plain silhouette, no name, no initials.
+// No picture yet: the character's initials, inside the circle, until one is added.
+function slIniText(name){ return String(name || '').split(/\s+/).map(w => (w.match(/[\p{L}\p{N}]/u) || [''])[0]).join('').slice(0, 2).toUpperCase() || '?'; }
+function slIni(name, cls){ return `<div class="${cls || 'sl-av'}-init sl-ini" aria-hidden="true">${esc(slIniText(name))}</div>`; }
 function slNoPhoto(img, name, ic){
-  const w = ((typeof wrestlerByName === 'function') ? wrestlerByName(name) : null) || { name:name };
-  if(img) img.outerHTML = `<div class="${ic}">${wcaPlaceholder(w,{mode:'icon'})}</div>`;
+  if(img) img.outerHTML = `<div class="${ic} sl-ini" aria-hidden="true">${esc(slIniText(name))}</div>`;
 }
 // A handle: use payload.handle, else derive from the name.
 function slHandle(p){
@@ -17305,7 +17309,7 @@ async function slPnLoad(pid){
 }
 function slPnWait(p, name, kind, inner, cls){
   const src = slSrc(p);
-  return `<${kind === 'av' ? 'div' : 'span'} data-pn="${Number(src.id)}" data-pn-kind="${kind}" data-pn-name="${escAttr(name)}" data-pn-org="${escAttr(src.name || '')}" data-pn-col="${escAttr(slSrcColor(src))}"${cls ? ` data-pn-cls="${escAttr(cls)}" class="${escAttr(cls)}-init"` : ''}>${inner}</${kind === 'av' ? 'div' : 'span'}>`;
+  return `<${kind === 'av' ? 'div' : 'span'} data-pn="${Number(src.id)}" data-pn-kind="${kind}" data-pn-name="${escAttr(name)}" data-pn-org="${escAttr(src.name || '')}" data-pn-col="${escAttr(slSrcColor(src))}"${cls ? ` data-pn-cls="${escAttr(cls)}" class="${escAttr(cls)}-init sl-ini"` : ''}>${inner}</${kind === 'av' ? 'div' : 'span'}>`;
 }
 function slName(p, name, ck){
   ck = ck || '';
@@ -17355,7 +17359,8 @@ function slPcAvatar(rid, name, cls){
   const c = cls || 'sl-av', u = SL_PC_AVA[rid];
   if(u) return `<img class="${c}" src="${escAttr(u)}" alt="${escAttr(name)}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`;
   if(u === undefined){ SL_PC_WANT.add(Number(rid)); clearTimeout(SL_PC_T); SL_PC_T = setTimeout(slPcLoad, 60); }
-  return `<div class="${c}-init" data-pc-ava="${Number(rid)}" data-pc-cls="${escAttr(c)}" data-pc-name="${escAttr(name)}">${wcaPlaceholder({name:name||''}, {mode:'icon'})}</div>`;
+  if(u === '') return slIni(name, c);
+  return `<div class="${c}-init sl-ini" data-pc-ava="${Number(rid)}" data-pc-cls="${escAttr(c)}" data-pc-name="${escAttr(name)}">${esc(slIniText(name))}</div>`;
 }
 async function slPcLoad(){
   const ids = [...SL_PC_WANT].filter(id => SL_PC_AVA[id] === undefined && id > 0); SL_PC_WANT = new Set();
@@ -17381,8 +17386,8 @@ function slSrcAvatar(p, name, cls){
   if(src.logo && (!name || slSame(name, src.name))) return `<img class="${c}" src="${escAttr(src.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`;
   const r = slPnGet(p, name);
   if(r) return slPcAvatar(r.id, name, cls);
-  if(r === undefined) return slPnWait(p, name, 'av', wcaPlaceholder({name:name||''}, {mode:'icon'}), c);
-  return `<div class="${c}-init">${wcaPlaceholder({name:name||''}, {mode:'icon'})}</div>`;
+  if(r === undefined) return slPnWait(p, name, 'av', esc(slIniText(name)), c);
+  return slIni(name, c);
 }
 
 // ---- shared pieces of the redesigned posts ----
