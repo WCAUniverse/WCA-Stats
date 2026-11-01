@@ -10220,15 +10220,64 @@ function slSrc(p){
   return (s && typeof s === 'object' && s.name) ? s : null;
 }
 function slOrg(p){ const s = slSrc(p); return s ? s.name : 'WCA'; }
-function slName(p, name){
-  const pc = p && p.payload && p.payload.promo_char;
-  if(pc && pc.roster_id && String(name || '').trim().toLowerCase() === String(pc.name || '').trim().toLowerCase()){
-    const href = wcaHref('promotion', 'id=' + Number(pc.promotion_id) + '&tab=roster&p=' + Number(pc.roster_id));
-    const col = /^#[0-9a-f]{3,8}$/i.test(String(pc.color || '')) ? pc.color : '';
-    return `<a class="sl-pchar" href="${escAttr(href)}" onclick="return typeof peGoPerson==='function'?peGoPerson(${Number(pc.promotion_id)},${Number(pc.roster_id)}):true">${esc(name)}</a>`
-      + `<a class="sl-pchar-tag" href="${escAttr(wcaHref('promotion', 'id=' + Number(pc.promotion_id)))}" onclick="pmGo(${Number(pc.promotion_id)});return false;"${col ? ` style="--pc:${col}"` : ''}>${esc(pc.promotion || 'Promotion')}</a>`;
-  }
-  return slSrc(p) ? esc(name) : xlinkName(name);
+function slPcLink(pc, name, ck){
+  const href = wcaHref('promotion', 'id=' + Number(pc.promotion_id) + '&tab=roster&p=' + Number(pc.roster_id));
+  const col = /^#[0-9a-f]{3,8}$/i.test(String(pc.color || '')) ? pc.color : '';
+  return `<a class="sl-pchar" href="${escAttr(href)}" onclick="return typeof peGoPerson==='function'?peGoPerson(${Number(pc.promotion_id)},${Number(pc.roster_id)}):true">${esc(name)}</a>${ck || ''}`
+    + `<a class="sl-pchar-tag" href="${escAttr(wcaHref('promotion', 'id=' + Number(pc.promotion_id)))}" onclick="pmGo(${Number(pc.promotion_id)});return false;"${col ? ` style="--pc:${col}"` : ''}>${esc(pc.promotion || 'Promotion')}</a>`;
+}
+function slSame(a, b){ return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase(); }
+function slPcOf(p, name){ const pc = p && p.payload && p.payload.promo_char; return pc && pc.roster_id && slSame(name, pc.name) ? pc : null; }
+const SL_PN = {};
+function slPnKey(n){ return String(n || '').trim().toLowerCase(); }
+function slPnGet(p, name){
+  const src = slSrc(p); if(!src || src.type !== 'promotion' || src.id == null || !String(name || '').trim()) return null;
+  const m = SL_PN[Number(src.id)];
+  if(m instanceof Map) return m.get(slPnKey(name)) || null;
+  slPnLoad(Number(src.id)); return undefined;
+}
+function slPnPc(p, r){ const src = slSrc(p); return { roster_id:r.id, promotion_id:Number(src.id), name:r.name, promotion:src.name, color:src.color }; }
+const SL_CHECK = ' <i class="ti ti-rosette-discount-check-filled sl-verify" title="Verified"></i>';
+async function slPnLoad(pid){
+  if(SL_PN[pid] || typeof sb === 'undefined' || !sb) return;
+  SL_PN[pid] = 'loading';
+  const m = new Map();
+  try{
+    const { data } = await sb.from('promotion_roster').select('id,name,details').eq('promotion_id', pid).limit(1000);
+    (data || []).forEach(r => { const d = r.details || {}, u = String(d.avatar_url || d.portrait_url || '');
+      const x = { id:Number(r.id), name:r.name, avatar:/^https:\/\//i.test(u) ? u : '' }; m.set(slPnKey(r.name), x); if(SL_PC_AVA[x.id] === undefined) SL_PC_AVA[x.id] = x.avatar; });
+  }catch(e){}
+  SL_PN[pid] = m;
+  document.querySelectorAll(`[data-pn="${pid}"]`).forEach(el => {
+    const r = m.get(slPnKey(el.dataset.pnName)), k = el.dataset.pnKind;
+    if(!r){ if(k !== 'av') el.removeAttribute('data-pn'); return; }
+    const src = { promotion_id:pid, roster_id:r.id, name:r.name, promotion:el.dataset.pnOrg || 'Promotion', color:el.dataset.pnCol || '' };
+    if(k === 'ck') el.outerHTML = SL_CHECK;
+    else if(k === 'nm') el.outerHTML = slPcLink(src, el.dataset.pnName);
+    else if(k === 'av' && r.avatar){ const im = document.createElement('img'); im.className = el.dataset.pnCls; im.src = r.avatar; im.alt = r.name; im.referrerPolicy = 'no-referrer'; im.onerror = () => { im.style.visibility = 'hidden'; }; el.replaceWith(im); }
+  });
+}
+function slPnWait(p, name, kind, inner, cls){
+  const src = slSrc(p);
+  return `<${kind === 'av' ? 'div' : 'span'} data-pn="${Number(src.id)}" data-pn-kind="${kind}" data-pn-name="${escAttr(name)}" data-pn-org="${escAttr(src.name || '')}" data-pn-col="${escAttr(slSrcColor(src))}"${cls ? ` data-pn-cls="${escAttr(cls)}" class="${escAttr(cls)}-init"` : ''}>${inner}</${kind === 'av' ? 'div' : 'span'}>`;
+}
+function slName(p, name, ck){
+  ck = ck || '';
+  const pc = slPcOf(p, name);
+  if(pc) return slPcLink(pc, name, ck);
+  if(!slSrc(p)) return xlinkName(name) + ck;
+  const r = slPnGet(p, name);
+  if(r) return slPcLink(slPnPc(p, r), name, ck);
+  if(r === undefined) return slPnWait(p, name, 'nm', esc(name)) + ck;
+  return esc(name) + ck;
+}
+function slVerify(p, name){
+  const src = slSrc(p);
+  if(!src || slPcOf(p, name)) return SL_CHECK;
+  if(src.type !== 'promotion') return '';
+  if(slSame(name, src.name)) return SL_CHECK;
+  const r = slPnGet(p, name);
+  return r ? SL_CHECK : r === undefined ? slPnWait(p, name, 'ck', '') : '';
 }
 function slSrcColor(src){
   const c = String((src && src.color) || '');
@@ -10272,12 +10321,15 @@ async function slPcLoad(){
   });
 }
 function slSrcAvatar(p, name, cls){
-  const pc = p && p.payload && p.payload.promo_char;
-  if(pc && pc.roster_id && String(name || '').trim().toLowerCase() === String(pc.name || '').trim().toLowerCase()) return slPcAvatar(Number(pc.roster_id), name, cls);
+  const pc = slPcOf(p, name);
+  if(pc) return slPcAvatar(Number(pc.roster_id), name, cls);
   const src = slSrc(p);
   if(!src) return slAvatar(name, cls);
   const c = cls || 'sl-av';
-  if(src.logo && (!name || name === src.name)) return `<img class="${c}" src="${escAttr(src.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`;
+  if(src.logo && (!name || slSame(name, src.name))) return `<img class="${c}" src="${escAttr(src.logo)}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`;
+  const r = slPnGet(p, name);
+  if(r) return slPcAvatar(r.id, name, cls);
+  if(r === undefined) return slPnWait(p, name, 'av', wcaPlaceholder({name:name||''}, {mode:'icon'}), c);
   return `<div class="${c}-init">${wcaPlaceholder({name:name||''}, {mode:'icon'})}</div>`;
 }
 function slPin(p){ return p.pinned ? `<span class="sl-pin"><i class="ti ti-pin"></i> Pinned</span>` : ''; }
@@ -10357,7 +10409,7 @@ function slRenderSocial(p){
     <div class="sl-head">
       ${slSrcAvatar(p, author)}
       <div class="sl-who">
-        <div class="sl-name">${slName(p, author)}${src?'':' <i class="ti ti-rosette-discount-check-filled sl-verify" title="Verified"></i>'}</div>
+        <div class="sl-name">${slName(p, author, slVerify(p, author))}</div>
         <div class="sl-handle">${slHandle(p)} · <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
       </div>
     </div>
@@ -11893,7 +11945,7 @@ function slCharReplyHTML(p, r){
   const admin = typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true;
   const editing = SL_CHAR_OPEN['e' + r.id];
   return `<div class="sl-reply sl-creply" id="sl-creply-${Number(r.id)}">
-    ${slAvatar(r.char_name)}
+    ${r.roster_id ? slPcAvatar(Number(r.roster_id), r.char_name) : slAvatar(r.char_name)}
     <div class="sl-rbody">
       <div class="sl-name">${esc(r.char_name)} <span class="sl-rhandle">${esc(r.handle || slHandleOf(r.char_name))}</span>${r.edited_at ? ' <span class="sl-redited">edited</span>' : ''}</div>
       ${editing ? `<div class="sl-charbox" data-keep="creply-edit:${Number(r.id)}"><textarea id="sl-cre-${Number(r.id)}" maxlength="1000" rows="3">${esc(r.body)}</textarea>
@@ -12006,7 +12058,7 @@ function slQuotedHTML(id){
   const head = o.title || '';
   const text = String(o.body || pl.intro || '').replace(/<[^>]+>/g, ' ').replace(/[*_~#>`]/g, '').replace(/\s+/g, ' ').trim();
   return `<button type="button" class="sl-quoted" onclick="slFocusSharedPost(${Number(o.id)})">
-    <span class="sl-quoted-top">${slAvatar(who, 'sl-qav')}<b>${esc(who)}</b><small>${esc((typeof CP_KIND_LABEL !== 'undefined' && CP_KIND_LABEL[o.kind]) || o.kind)}</small></span>
+    <span class="sl-quoted-top">${pl.promo_char && pl.promo_char.roster_id ? slPcAvatar(Number(pl.promo_char.roster_id), who, 'sl-qav') : slSrcAvatar(o, who, 'sl-qav')}<b>${esc(who)}</b><small>${esc((typeof CP_KIND_LABEL !== 'undefined' && CP_KIND_LABEL[o.kind]) || o.kind)}</small></span>
     ${head ? `<span class="sl-quoted-h">${esc(head)}</span>` : ''}
     ${text ? `<span class="sl-quoted-t">${esc(text.slice(0, 260))}${text.length > 260 ? '…' : ''}</span>` : ''}</button>`;
 }
@@ -21340,13 +21392,13 @@ function slCoverHTML(s, names, preview){
     ${preview ? '' : '<span class="sl-cover-go">Start reading <i class="ti ti-arrow-right" aria-hidden="true"></i></span>'}
   </${preview ? 'div' : 'button'}>`;
 }
-function slParas(t){ return String(t || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map(x => `<p>${esc(x).replace(/\n/g, '<br>')}</p>`).join(''); }
+function slbParas(t){ return String(t || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map(x => `<p>${esc(x).replace(/\n/g, '<br>')}</p>`).join(''); }
 function slChapterHTML(c, i, n){
   return `<article class="sl-ch" id="sl-ch-${i}">
     <div class="sl-ch-n">Chapter ${i + 1}${n ? ' of ' + n : ''}${c.status === 'ongoing' ? ' <span class="sl-st ongoing">Happening now</span>' : ''}</div>
     ${c.title ? `<h3 class="sl-ch-t">${esc(c.title)}</h3>` : ''}
     ${c.place || c.when ? `<div class="sl-ch-where">${c.place ? `<span><i class="ti ti-map-pin" aria-hidden="true"></i> ${esc(c.place)}</span>` : ''}${c.when ? `<span><i class="ti ti-calendar" aria-hidden="true"></i> ${esc(c.when)}</span>` : ''}</div>` : ''}
-    <div class="sl-ch-b">${slParas(c.body)}</div>
+    <div class="sl-ch-b">${slbParas(c.body)}</div>
   </article>`;
 }
 async function pmStoriesTab(box){
@@ -21368,7 +21420,7 @@ async function pmStoriesTab(box){
   if(P.tab !== 'stories') return;
   slDraw();
 }
-function slName(P, key){
+function slbName(P, key){
   const [k, id] = String(key).split(':');
   if(k === 'faction'){ const f = (P.facs || []).find(x => Number(x.id) === Number(id)); return f ? f.name : null; }
   const p = P.roster.find(x => Number(x.id) === Number(id)); return p ? p.name : null;
@@ -21380,9 +21432,9 @@ function slFace(P, key){
 }
 function slPeople(P){
   const S = P.sl, keys = new Map();
-  S.chs.forEach(c => { const k = c.owner_kind + ':' + c.owner_id; if(slName(P, k)) keys.set(k, (keys.get(k) || 0) + 1); });
-  S.lines.forEach(s => slMembersOf(s).forEach(k => { if(slName(P, k) && !keys.has(k)) keys.set(k, 0); }));
-  return [...keys.entries()].map(([key, n]) => ({ key, n, name:slName(P, key), lines:S.lines.filter(s => slMembersOf(s).includes(key)).length })).sort((a, b) => a.name.localeCompare(b.name));
+  S.chs.forEach(c => { const k = c.owner_kind + ':' + c.owner_id; if(slbName(P, k)) keys.set(k, (keys.get(k) || 0) + 1); });
+  S.lines.forEach(s => slMembersOf(s).forEach(k => { if(slbName(P, k) && !keys.has(k)) keys.set(k, 0); }));
+  return [...keys.entries()].map(([key, n]) => ({ key, n, name:slbName(P, key), lines:S.lines.filter(s => slMembersOf(s).includes(key)).length })).sort((a, b) => a.name.localeCompare(b.name));
 }
 function slOpen(key){ const P = PM.pub; if(!P || !P.sl) return; P.sl.open = key; P.sl.page = 0; slDraw(); const t = document.getElementById('pmpub-tab'); if(t) t.scrollIntoView({ behavior:'smooth', block:'start' });
   wcaSetAddress('promotion', 'id=' + Number(P.p.id) + '&tab=stories&read=' + encodeURIComponent(key), false); }
@@ -21406,7 +21458,7 @@ function slDraw(){
   const shown = S.filt === 'all' ? S.lines : S.lines.filter(s => s.status === S.filt);
   const n = k => S.lines.filter(s => s.status === k).length;
   box.innerHTML = tabs + `<div class="sl-filt" role="group" aria-label="Show">${[['ongoing', 'Happening now', n('ongoing')], ['past', 'Finished', n('past')], ['all', 'Every storyline', S.lines.length]].map(([k, l, c]) => `<button type="button" class="pe-bchip${S.filt === k ? ' on' : ''}" aria-pressed="${S.filt === k}" onclick="PM.pub.sl.filt='${k}';slDraw()">${l} <span>${c}</span></button>`).join('')}</div>
-    ${shown.length ? `<div class="sl-covers">${shown.map(s => slCoverHTML(s, slMembersOf(s).map(k => slName(P, k)).filter(Boolean))).join('')}</div>`
+    ${shown.length ? `<div class="sl-covers">${shown.map(s => slCoverHTML(s, slMembersOf(s).map(k => slbName(P, k)).filter(Boolean))).join('')}</div>`
       : `<div class="pm-empty">${S.lines.length ? (S.filt === 'ongoing' ? 'Nothing is running right now. See Finished for the stories so far.' : 'Nothing here yet.') : 'No storylines are written yet. Check back soon!'}</div>`}
     ${S.rv.length ? `<section class="sl-rv"><div class="sl-h">Rivalries going on now</div><div class="sl-rvl">${S.rv.slice(0, 6).map(r => `<button type="button" class="sl-rvb" onclick="PM.pubRv=${Number(r.id)};pmPubTab('rivalries',true)"><b>${esc(r.title || r.name || 'Rivalry')}</b>${typeof rvHeat === 'function' ? `<small style="color:${rvHeat(r.heat).color}">${esc(rvHeat(r.heat).label)}</small>` : ''}</button>`).join('')}</div></section>` : ''}`;
 }
@@ -21416,18 +21468,18 @@ function slReader(box){
   if(key.startsWith('s:')){
     const s = S.lines.find(x => String(x.id) === key.slice(2)); if(!s){ S.open = null; return slDraw(); }
     title = s.title; chs = slChaptersOf(s); color = pmColor(s.color, '#e9b949');
-    const who = slMembersOf(s).filter(k => slName(P, k));
+    const who = slMembersOf(s).filter(k => slbName(P, k));
     head = `<span class="sl-st ${s.status}">${esc(SL_ST[s.status])}</span>${s.brand && typeof brChip === 'function' ? ' ' + brChip(s.brand) : ''}`;
     sub = s.summary ? `<p class="sl-r-sum">${esc(s.summary)}</p>` : '';
-    if(who.length) extra = `<div class="sl-r-who"><span>In this story</span>${who.map(k => `<button type="button" class="sl-chipp" onclick="slOpen('${k}')">${slFace(P, k)}${esc(slName(P, k))}</button>`).join('')}</div>`;
+    if(who.length) extra = `<div class="sl-r-who"><span>In this story</span>${who.map(k => `<button type="button" class="sl-chipp" onclick="slOpen('${k}')">${slFace(P, k)}${esc(slbName(P, k))}</button>`).join('')}</div>`;
   } else {
-    title = slName(P, key) || 'Character'; const [k, id] = key.split(':');
+    title = slbName(P, key) || 'Character'; const [k, id] = key.split(':');
     chs = S.chs.filter(c => c.owner_kind === k && String(c.owner_id) === String(id)).map(c => ({ title:c.title, body:c.body }));
     const p = k === 'person' ? P.roster.find(x => Number(x.id) === Number(id)) : null;
     color = p ? pmPubColor(p) : '#e9b949';
     head = `${slFace(P, key)}<span class="sl-st past">${k === 'faction' ? 'Their team\'s story' : 'Their story'}</span>`;
     const lines = S.lines.filter(s => slMembersOf(s).includes(key));
-    if(lines.length) extra = `<div class="sl-r-lines"><div class="sl-h">Storylines ${esc(title)} is in</div><div class="sl-covers sl-covers-s">${lines.map(s => slCoverHTML(s, slMembersOf(s).map(x => slName(P, x)).filter(Boolean))).join('')}</div></div>`;
+    if(lines.length) extra = `<div class="sl-r-lines"><div class="sl-h">Storylines ${esc(title)} is in</div><div class="sl-covers sl-covers-s">${lines.map(s => slCoverHTML(s, slMembersOf(s).map(x => slbName(P, x)).filter(Boolean))).join('')}</div></div>`;
   }
   const n = chs.length, pg = Math.max(0, Math.min(S.page || 0, n - 1));
   const toc = n > 1 ? `<nav class="sl-toc" aria-label="Chapters"><div class="sl-h">Chapters</div>${chs.map((c, i) => `<button type="button" class="${!S.all && i === pg ? 'on' : ''}" onclick="slPage(${i})"><span>${i + 1}</span>${esc(c.title || 'Chapter ' + (i + 1))}${c.status === 'ongoing' ? ' <i class="sl-dot" title="Happening now"></i>' : ''}</button>`).join('')}
