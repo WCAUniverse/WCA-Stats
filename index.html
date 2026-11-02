@@ -34093,6 +34093,45 @@ try{ if(rvOnSite() && wcaRoute().pg === 'rivalries' && document.getElementById('
 .pe-side .pe-sm{font-size:14.5px; color:var(--txt-2); overflow-wrap:anywhere;}
 .pe-side .pe-wtag{display:inline-block; font-family:var(--font-cond); font-weight:700; letter-spacing:1.3px; text-transform:uppercase; font-size:14px; color:#5dcaa5;}
 .pe-side .pe-pool{font-size:14px; color:var(--muted);}
+/* ---- the match card with pictures (Nov 2026) ---- */
+.pe-side.pe-side-card{align-items:center; text-align:center; padding:14px 12px 12px;}
+.pe-side-card .pe-sn{font-size:20px;}
+.pe-side-card .pe-sm{font-size:15px;}
+.pe-side-card .pe-pool{font-size:15px;}
+.pe-side-card .pe-wtag{align-self:center;}
+.pe-mprow{margin-bottom:8px;}
+.pe-mprow .mp{--mp-size:118px;}
+.pe-ph{position:relative;}
+.pe-ph .wca-ph{opacity:.55;}
+.pe-ph-init{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:3;
+  font-family:var(--font-display); font-size:40px; letter-spacing:2px; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.9);}
+.pe-amp{font-family:var(--font-cond); color:var(--muted); font-size:15px; margin:2px 0;}
+.pe-stand{display:flex; flex-direction:column; align-items:center; gap:2px; margin-top:4px;}
+.pe-stand .frec{margin:4px 0 6px;}
+.pe-rk{display:inline-flex; align-items:center; gap:5px; font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:14px;
+  color:var(--txt); padding:2px 10px; border-radius:20px; border:1px solid var(--line); background:rgba(255,255,255,.04);}
+.pe-rk.champ{color:var(--gold); border-color:var(--gold-dim); background:rgba(var(--gold-rgb),.10);}
+.pe-mtop{display:flex; flex-direction:column; align-items:center; gap:8px; margin:2px 0 12px;}
+.pe-titleline{display:flex; align-items:center; justify-content:center; gap:10px; font-family:var(--font-cond); font-weight:700; letter-spacing:1.4px; text-transform:uppercase; font-size:16px; color:var(--gold); text-align:center;}
+.pe-titleline img{height:44px; width:auto; max-width:120px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));}
+.pe-titleline i{font-size:22px;}
+.pe-divpill{display:inline-flex; align-items:center; gap:6px; padding:3px 12px; border-radius:20px; font-family:var(--font-cond); font-size:14px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--txt,#fff); background:color-mix(in srgb, var(--dc) 14%, transparent); border:1px solid color-mix(in srgb, var(--dc) 60%, transparent);}
+.pe-divpill i{color:var(--dc); font-size:14px;}
+/* show header: status and date, the name in the middle, where to watch */
+.pe-evhead{display:grid; grid-template-columns:1fr minmax(0,auto) 1fr; align-items:center; gap:14px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid var(--line);}
+.pe-evh-l{display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+.pe-evh-c{text-align:center; min-width:0;}
+.pe-evh-c .pe-evname{margin:0; font-size:clamp(26px,3.2vw,36px); letter-spacing:1px; overflow-wrap:anywhere;}
+.pe-evno{font-family:var(--font-cond); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:14px; color:var(--muted); margin-top:4px;}
+.pe-evh-r{display:flex; justify-content:flex-end;}
+.pe-evh-r .pe-evlinks{margin:0; justify-content:flex-end;}
+@media(max-width:760px){
+  .pe-evhead{grid-template-columns:1fr; text-align:center;}
+  .pe-evh-l,.pe-evh-r,.pe-evh-r .pe-evlinks{justify-content:center;}
+  .pe-evh-c{order:-1;}
+  .pe-mprow .mp{--mp-size:96px;}
+}
 .pe-vs{align-self:center; font-family:var(--font-display); color:var(--pc, var(--gold)); font-size:18px;}
 a.pe-who{color:inherit; text-decoration:none; border-bottom:1px dotted rgba(255,255,255,.3);}
 a.pe-who:hover{color:var(--gold);}
@@ -34377,6 +34416,101 @@ async function peLoadPublic(S){
     }
   }
   try{ const t = await sb.rpc('promo_leaderboard', { p_promotion:pid, p_limit:10 }); S.top = (t && t.data) || []; }catch(e){ S.top = []; }
+  try{ await peCardData(S); }catch(e){ S.cd = null; }   // without it the card falls back to names only
+}
+/* ---------- the match card: pictures, rankings, records, division (Nov 2026) ----------
+   Same idea as WCA's own event card. Pictures come from the promotion's roster
+   (full body, else the face), rankings and records from the same numbers the
+   promotion's Rankings tab uses, champions from its Champions. */
+const peNorm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+async function peCardData(S){
+  const pid = S.pid;
+  let D;
+  if(PM.pub && PM.pub.p && Number(PM.pub.p.id) === pid){
+    const P = PM.pub; D = { cats:P.cats || [], roster:P.roster || [], facs:P.facs || [], titles:P.titles || [], reigns:P.reigns || [], page:P.page || PM_PAGE_DEF };
+    try{ D.recs = await pmPubRecs(P); }catch(e){ D.recs = null; }
+  } else {
+    const q = b => b.then(r => (r && !r.error && r.data) || [], () => []);
+    const [cats, roster, facs, titles, reigns] = await Promise.all([
+      q(sb.from('promotion_roster_categories').select('*').eq('promotion_id', pid).order('sort').order('id')),
+      q(sb.from('promotion_roster').select('*').eq('promotion_id', pid).order('sort').order('id')),
+      q(sb.from('promotion_factions').select('id,name,members,color,sort').eq('promotion_id', pid).order('sort').order('id')),
+      q(sb.from('promotion_titles').select('*').eq('promotion_id', pid).order('sort').order('id')),
+      q(sb.from('promotion_title_reigns').select('*').eq('promotion_id', pid))
+    ]);
+    let page = {};
+    try{ const f = await sb.from('promotion_features').select('page').eq('promotion_id', pid).maybeSingle(); page = (f && f.data && f.data.page) || {}; }catch(e){}
+    D = { cats, roster, facs, titles, reigns, page:pmPageOf(page) };
+    try{ D.recs = await pmRecsLoad(pid); }catch(e){ D.recs = null; }
+  }
+  D.recs = D.recs || { p:{}, t:{} };
+  D.byId = {}; D.byName = {}; D.rank = {}; D.teamRank = {};
+  D.roster.forEach(p => { D.byId[String(p.id)] = p; D.byName[peNorm(p.name)] = p; });
+  try{
+    pmRankSections(D).forEach(sec => sec.rows.forEach(e => {
+      const ent = { rank:e.rank, held:e.held, rec:e.rec, cat:sec.cat };
+      if(e.kind === 'person'){ if(!D.rank[String(e.x.id)]) D.rank[String(e.x.id)] = ent; }
+      else if(!D.teamRank[peNorm(e.x.name)]) D.teamRank[peNorm(e.x.name)] = ent;
+    }));
+  }catch(e){}
+  S.cd = D;
+}
+function pePerson(D, x){ return (x && x.id != null && D.byId[String(x.id)]) || (x && D.byName[peNorm(x.name)]) || null; }
+// the division a match counts toward: its title's division, else the one every person in it shares
+function peMatchDiv(S, m){
+  const D = S.cd; if(!D) return null;
+  if(m.title){
+    const t = D.titles.find(x => peNorm(x.name) === peNorm(m.title));
+    if(t && t.division_id != null){ const c = D.cats.find(c => String(c.id) === String(t.division_id)); if(c) return c; }
+  }
+  const ids = new Set();
+  peSides(m).forEach(s => (s.members || []).forEach(x => { const p = pePerson(D, x); if(p && p.category_id != null) ids.add(String(p.category_id)); }));
+  if(ids.size !== 1) return null;
+  return D.cats.find(c => String(c.id) === [...ids][0]) || null;
+}
+function peDivLabel(c){ const n = String(c.name || '').trim(); return /division$/i.test(n) ? n : n + ' Division'; }
+// one square: their picture, else the stand in picture with their initials on it
+function peBox(D, x){
+  const p = pePerson(D, x), name = (p && p.name) || x.name || '';
+  const src = p ? (pmPicShow(p, 'portrait') || pmPicShow(p, 'avatar')) : '';
+  const r = p ? D.rank[String(p.id)] : null;
+  const belts = r ? r.held.map(h => pmBeltUrl(h.t)).filter(Boolean) : [];
+  const champ = !!(r && r.held.length);
+  const ph = `<div class="mp-init pe-ph">${wcaPlaceholder({ name, gender:p && p.gender }, { mode:'icon' })}<span class="pe-ph-init">${esc(pmInit(name))}</span></div>`;
+  const inner = src
+    ? `<img class="mp-photo" src="${escAttr(src)}" alt="${escAttr(name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML=this.nextElementSibling.innerHTML" ><template>${ph}</template>`
+    : ph;
+  return `<div class="mp-wrap"><div class="mp${champ ? ' is-champ' : ''}" title="${escAttr(name)}">${inner}</div>${belts.length ? `<div class="mp-belts">${belts.map(u => `<img src="${escAttr(u)}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('')}</div>` : ''}</div>`;
+}
+// ranking and record under a name
+function peStand(D, r){
+  if(!r) return '';
+  const showRank = D.page && D.page.ranks_on !== false;
+  const tag = r.held.length
+    ? `<span class="pe-rk champ"><i class="ti ti-trophy" aria-hidden="true"></i> Champion</span>`
+    : (showRank && r.rank ? `<span class="pe-rk">#${esc(r.rank)} ${esc(r.cat && r.cat.name || '')}</span>` : '');
+  const rec = r.rec && (r.rec.w + r.rec.l + r.rec.nc)
+    ? `<span class="frec-line"><span class="w"><b>${r.rec.w}</b>W</span><span class="sep">·</span><span class="l"><b>${r.rec.l}</b>L</span>${r.rec.nc ? `<span class="sep">·</span><span class="nw"><b>${r.rec.nc}</b>NC</span>` : ''}</span>`
+    : '<span class="frec-new">No record yet</span>';
+  return `<div class="pe-stand">${tag}<div class="frec">${rec}</div></div>`;
+}
+function peNameLink(S, x){
+  return x.id != null
+    ? `<a class="pe-who" href="${escAttr(pePersonHref(S.pid, x.id))}" onclick="return peGoPerson(${Number(S.pid)},${Number(x.id)})">${esc(x.name)}</a>`
+    : esc(x.name);
+}
+// one side of the card, the way fans see it
+function peCardSide(S, side){
+  const D = S.cd; if(!D) return peSideInner(S.pid, side);
+  const team = String((side && side.name) || '').trim();
+  const ppl = ((side && side.members) || []).filter(x => x && x.name);
+  const pics = ppl.length ? `<div class="mp-row pe-mprow">${ppl.map(x => peBox(D, x)).join('')}</div>` : '';
+  if(team){
+    const tr = D.teamRank[peNorm(team)];
+    return `${pics}<div class="pe-sn">${esc(team)}</div>${ppl.length ? `<div class="pe-sm">${ppl.map(x => peNameLink(S, x)).join(' &amp; ')}</div>` : ''}${peStand(D, tr)}`;
+  }
+  if(!ppl.length) return '<div class="pe-sn">TBA</div>';
+  return pics + ppl.map(x => { const p = pePerson(D, x); return `<div class="pe-sn">${peNameLink(S, x)}</div>${peStand(D, p ? D.rank[String(p.id)] : null)}`; }).join('<div class="pe-amp">&amp;</div>');
 }
 async function peReloadPublic(){
   const S = PE.pub; if(!S || !S.host.isConnected) return;
@@ -34433,11 +34567,13 @@ function peEventHTML(S, e){
   if(e.watch_url && e.status !== 'done') links.push(`<a class="spc-post-btn" href="${escAttr(e.watch_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> ${e.status === 'live' ? 'Watch live' : 'Where to watch'}</a>`);
   if(e.replay_url && e.status === 'done') links.push(`<a class="spc-ghost-btn" href="${escAttr(e.replay_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> Watch the replay</a>`);
   return `<article class="pe-ev${String(S.focusEv) === String(e.id) ? ' focus' : ''}" id="pe-ev-${Number(e.id)}">
-    <div class="pe-evtop"><span class="pe-evstat ${st}">${st === 'live' ? 'Live now' : st === 'done' ? 'Results' : 'Upcoming'}</span>${(() => { const b = (S.brands || []).find(x => String(x.id) === String(e.brand_id)); return b ? brChip(b, 'pe-evbrand') : ''; })()}
-      <span class="pe-evdate">${esc(peWhen(e.event_date))}</span></div>
-    <h3 class="pe-evname">${esc(e.name)}${e.show_number != null ? ` <span class="pe-dim" style="color:var(--muted);font-size:.6em">Show ${Number(e.show_number)}</span>` : ''}</h3>
+    <header class="pe-evhead">
+      <div class="pe-evh-l"><span class="pe-evstat ${st}">${st === 'live' ? 'Live now' : st === 'done' ? 'Results' : 'Upcoming'}</span>${(() => { const b = (S.brands || []).find(x => String(x.id) === String(e.brand_id)); return b ? brChip(b, 'pe-evbrand') : ''; })()}
+        <span class="pe-evdate">${esc(peWhen(e.event_date))}</span></div>
+      <div class="pe-evh-c"><h3 class="pe-evname">${esc(e.name)}</h3>${e.show_number != null ? `<div class="pe-evno">Show ${Number(e.show_number)}</div>` : ''}</div>
+      <div class="pe-evh-r">${links.length ? `<div class="pe-evlinks">${links.join('')}</div>` : ''}</div>
+    </header>
     ${e.about ? `<div class="pe-evabout">${esc(e.about)}</div>` : ''}
-    ${links.length ? `<div class="pe-evlinks">${links.join('')}</div>` : ''}
     ${ms.length ? `<ol class="pe-card">${ms.map((m, i) => peMatchHTML(S, e, m, i, ms.length)).join('')}</ol>` : '<div class="pe-empty" style="margin-top:10px">The card is coming soon.</div>'}
   </article>`;
 }
@@ -34451,7 +34587,7 @@ function peMatchHTML(S, e, m, i, n){
     const pool = board[k];
     const extra = m.bet_status !== 'closed' && (pool || I.payout_mode === 'odds') ? `<div class="pe-pool">${I.payout_mode === 'odds' && odds[k] ? 'Pays ' + esc(String(odds[k])) + ' times the bet' : ''}${pool ? (I.payout_mode === 'odds' && odds[k] ? ', ' : '') + esc(peMoney(I, pool.total)) + ' from ' + pool.n + (pool.n === 1 ? ' fan' : ' fans') : ''}</div>` : '';
     const btn = canBet ? `<button type="button" class="pe-betbtn${S.open[m.id] === k ? ' on' : ''}" onclick="peBetPick(${Number(m.id)},${k})">${mine && mine.side_idx === k ? 'Change my bet' : 'Bet on ' + esc(peSideName(s))}</button>` : '';
-    return `${k ? '<span class="pe-vs">VS</span>' : ''}<div class="pe-side${done && m.winner_idx === k ? ' win' : done && m.winner_idx != null ? ' lose' : ''}">${peSideInner(S.pid, s)}${done && m.winner_idx === k ? '<span class="pe-wtag">Winner</span>' : ''}${extra}${btn}</div>`;
+    return `${k ? '<span class="pe-vs">VS</span>' : ''}<div class="pe-side${S.cd ? ' pe-side-card' : ''}${done && m.winner_idx === k ? ' win' : done && m.winner_idx != null ? ' lose' : ''}">${peCardSide(S, s)}${done && m.winner_idx === k ? '<span class="pe-wtag">Winner</span>' : ''}${extra}${btn}</div>`;
   }).join('');
   let mineHTML = '';
   if(mine){
@@ -34478,8 +34614,9 @@ function peMatchHTML(S, e, m, i, n){
   }
   const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="pe-mine"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
   return `<li class="pe-m" id="pe-m-${Number(m.id)}">
-    <div class="pe-mhead"><span class="pe-mno">${esc(label)}</span>${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title ? `<span class="pe-tag title"><i class="ti ti-trophy"></i> ${esc(m.title)}</span>` : ''}
+    <div class="pe-mhead"><span class="pe-mno">${esc(label)}</span>${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title && !S.cd ? `<span class="pe-tag title"><i class="ti ti-trophy"></i> ${esc(m.title)}</span>` : ''}
       ${m.bet_status !== 'closed' ? `<span class="pe-bs ${m.bet_status}">${esc(PE_BS[m.bet_status] || '')}${tot && m.bet_status !== 'settled' ? ', ' + esc(peMoney(I, tot)) + ' in the pot' : ''}</span>` : ''}</div>
+    ${peMatchTop(S, m)}
     <div class="pe-sides">${sideHTML || '<div class="pe-side"><div class="pe-sn">TBA</div></div>'}</div>
     ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
     ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
@@ -34522,6 +34659,16 @@ async function peBetHide(mid, hide){
   if(error){ wcaToast('Not changed', peErr(error), true); return; }
   wcaToast(hide ? 'Pick hidden' : 'Pick showing', hide ? 'Fans see how much you bet, not who on. It shows once the match has a winner.' : 'Everyone can see who you picked again.');
   await peReloadPublic();
+}
+// the division pill and the title on the line, like WCA's card
+function peMatchTop(S, m){
+  if(!S.cd) return '';
+  const dv = peMatchDiv(S, m);
+  const t = m.title ? (S.cd.titles || []).find(x => peNorm(x.name) === peNorm(m.title)) : null;
+  const belt = t && pmBeltUrl(t);
+  const title = m.title ? `<div class="pe-titleline">${belt ? `<img src="${escAttr(belt)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<i class="ti ti-trophy" aria-hidden="true"></i>'}<span>${esc(m.title)}</span></div>` : '';
+  const div = dv ? `<div class="pe-divline"><span class="pe-divpill" style="--dc:${pmColor(dv.color, '#e9b949')}"><i class="ti ti-category" aria-hidden="true"></i>${esc(peDivLabel(dv))}</span></div>` : '';
+  return title || div ? `<div class="pe-mtop">${title}${div}</div>` : '';
 }
 function peBetPick(mid, k){
   const S = PE.pub; S.open[mid] = S.open[mid] === k ? null : k; S.msg[mid] = null;
