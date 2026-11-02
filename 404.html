@@ -12185,7 +12185,16 @@ const ROSTER_COLS_DRAFT = ROSTER_COLS_BASE + ',is_draft,created_from';
 let ROSTER_HAS_DRAFT = true;
 let ROSTER_HAS_GAME = true;      // wrestlers.game: WWE 2K25 details (SUPABASE_SETUP_promotion_rosters.sql)
 
-async function loadRoster(){
+// One roster load at a time. Several pages ask for the roster at start up; when
+// two loads overlapped, both pushed into RANK_BY_NAME and every division showed
+// twice on the record card (Mens, Mens, Undisputed, Undisputed).
+let LOAD_ROSTER_P = null;
+function loadRoster(){
+  if(LOAD_ROSTER_P) return LOAD_ROSTER_P;
+  LOAD_ROSTER_P = loadRosterNow().finally(()=>{ LOAD_ROSTER_P = null; });
+  return LOAD_ROSTER_P;
+}
+async function loadRosterNow(){
   await loadInactiveSets();
   const grid=document.getElementById('roster-grid');
   let {data,error}=await sb.from('wrestlers')
@@ -12214,8 +12223,9 @@ async function loadRoster(){
   window._roster    = window._rosterAll.filter(wrestlerIsListed);
 
   // build rank + division membership from the division rankings view
-  RANK_BY_NAME = {};
-  DIV_MEMBERS = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
+  // filled in locally, then swapped in whole, so a half built list is never read
+  const rankByName = {};
+  const divMembers = {Mens:new Set(), Womens:new Set(), Undisputed:new Set()};
   for(const d of ['Mens','Womens','Undisputed']){
     const {data:rowsRaw}=await sb.from('v_division_rankings').select('*').eq('division',d);
     const rows=(rowsRaw||[]).filter(p=>!isUnlistedName(p.name));
@@ -12226,18 +12236,22 @@ async function loadRoster(){
     const ordered = [...champs, ...rest];
     let slotN = 0;
     ordered.forEach((p,i)=>{
-      DIV_MEMBERS[d].add(p.name);
+      divMembers[d].add(p.name);
       const inactive = !p.is_champion && isInactiveWrestler(p.name);
       // `slot` is the number the Rankings page prints (champion sits above #1,
       // inactive competitors get no number). The record fields feed the
       // record card above each competitor's match history.
-      (RANK_BY_NAME[p.name]=RANK_BY_NAME[p.name]||[]).push({division:d, rank:i+1, champ:!!p.is_champion,
+      const mine = (rankByName[p.name]=rankByName[p.name]||[]);
+      if(mine.some(x=>x.division===d)) return;   // one record per division
+      mine.push({division:d, rank:i+1, champ:!!p.is_champion,
         slot: (p.is_champion || inactive) ? 0 : (++slotN), inactive,
         wins:+p.wins||0, losses:+p.losses||0, draws:+p.draws||0, no_wins:+p.no_wins||0,
         win_pct:+p.win_pct||0, contender_points:+p.contender_points||0,
         ready:!!p.is_ready_contender, last5:p.seed_last5||''});
     });
   }
+  RANK_BY_NAME = rankByName;
+  DIV_MEMBERS = divMembers;
 
   // factions: members A–Z within each team, teams A–Z.
   // Source: v_faction_rankings (team name + members_txt) — same data the Rankings page uses.
@@ -12767,7 +12781,8 @@ const RC_STATE = {};   // hostId -> { name, list, idx }
 function rcNorm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
 function rcRecordsFor(name){
   const order = { Mens:0, Womens:1, Undisputed:2 };
-  const list = (RANK_BY_NAME[name]||[]).slice()
+  const seenDiv = new Set();
+  const list = (RANK_BY_NAME[name]||[]).filter(r=>!seenDiv.has(r.division) && seenDiv.add(r.division))
     .sort((a,b)=>((order[a.division]??9)-(order[b.division]??9)))
     .map(r=>Object.assign({ kind:'div', label:r.division+' Division', short:r.division }, r));
   // their stable's record, if they're in one
@@ -12780,6 +12795,7 @@ function rcRecordsFor(name){
     });
     if(!inIt) return;
     const fk = rcNorm(f.name);
+    if(list.some(x=>x.kind==='faction' && rcNorm(x.label)===fk)) return;   // one chip per stable
     const champ = (typeof CHAMP_DIVS_BY_NAME!=='undefined' && (CHAMP_DIVS_BY_NAME[fk]||[]).includes('Faction'));
     list.push({ kind:'faction', label:f.name, short:f.name, division:'Faction', champ,
       slot:0, inactive:false,
