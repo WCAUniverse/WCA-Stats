@@ -3,13 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <script>
+// Press twice to confirm: the first press explains, the second press does it.
+function wcaTwice(msg){
+  const T = wcaTwice, now = Date.now();
+  if(T.k === msg && now - T.t < 5000){
+    if(now - T.t < 350) return false;   // a double click is not a decision
+    T.k = null; clearTimeout(T.to); if(T.el) T.el.remove();
+    return true;
+  }
+  T.k = msg; T.t = now;
+  if(!T.el){
+    T.el = document.createElement('div');
+    T.el.setAttribute('role', 'alert');
+    T.el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;width:min(460px,calc(100vw - 24px));box-sizing:border-box;padding:14px 18px;border-radius:12px;background:#15151a;border:1px solid #E9B949;color:#f2f2f0;font:15px/1.45 Barlow,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.6);white-space:pre-wrap';
+  }
+  T.el.textContent = msg;
+  const b = document.createElement('b');
+  b.textContent = 'Press the button again to confirm.';
+  b.style.cssText = 'display:block;margin-top:8px;color:#E9B949';
+  T.el.appendChild(b);
+  document.body.appendChild(T.el);
+  clearTimeout(T.to);
+  T.to = setTimeout(()=>{ T.el.remove(); T.k = null; }, 5000);
+  return false;
+}
 /* Clean addresses (Oct 2026): wcauniverse.com/firepro/builder instead of
    /firepro/builder.html. GitHub Pages opens builder.html for /firepro/builder
    by itself, so no files were renamed. Opened from disk (file://) the old
    .html names are used, so local testing still works. */
 var FP_HTTP = /^https?:$/.test(location.protocol);
 function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'index') + '.html'; }
-function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
 (function(){
   if(!FP_HTTP) return;
   var p = location.pathname, c = p.replace(/\/index\.html$/i, '/').replace(/\.html$/i, '');
@@ -17,7 +40,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>WCA · Fire Pro — Live Draft</title>
+<title>WCA · Fire Pro, Live Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -73,7 +96,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     box-shadow:0 3px 22px -6px #000;
   }
   .topbar .draft-badge{
-    font-family:'Press Start 2P',monospace; font-size:11px; color:#fff;
+    font-family:'Press Start 2P',monospace; font-size:12px; color:#fff;
     background:linear-gradient(180deg,#2a0a0a,#120406); border:2px solid var(--red2);
     border-radius:5px; padding:8px 12px; letter-spacing:1px;
     text-shadow:1px 1px 0 #b3001b, 0 0 12px rgba(255,59,59,.6);
@@ -82,12 +105,12 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .topbar h1{font-size:15px;color:#fff;margin:0;text-shadow:2px 2px 0 #3a0008;letter-spacing:2px;}
   .topbar .spacer{flex:1;}
   .topbar .cfgline{
-    font-family:'Press Start 2P',monospace;font-size:9px;color:#0a0506;letter-spacing:1px;
+    font-family:'Press Start 2P',monospace;font-size:10px;color:#0a0506;letter-spacing:1px;
     background:var(--gold2); border:2px solid #fff; border-radius:5px; padding:7px 11px;
     box-shadow:0 0 12px -3px var(--gold2);
   }
 
-  .btn{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;
+  .btn{font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;
        background:linear-gradient(180deg,#2a0a0a,#120406);color:var(--gold2);border:2px solid var(--red2);
        border-radius:6px;padding:11px 14px;transition:.12s;text-transform:uppercase;
        text-shadow:1px 1px 0 #b3001b; box-shadow:0 0 12px -3px var(--red2), inset 0 0 14px -9px var(--gold2);}
@@ -97,10 +120,10 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .btn.primary:hover{border-color:#fff;}
   .btn.gold{background:linear-gradient(180deg,#ffe27a,#ffd23f);border-color:#fff;color:#1a0d0e;text-shadow:none;}
   .btn.gold:hover{background:#fff;}
-  .btn.sm{padding:8px 11px;font-size:9px;}
+  .btn.sm{padding:8px 11px;font-size:10px;}
   .btn.done{background:linear-gradient(180deg,#2a1c0a,#160f04);border-color:var(--gold2);color:var(--gold2);}
   .btn.done:hover{background:linear-gradient(180deg,#3a2810,#1c1406);border-color:#fff;color:#fff;}
-  .donetag{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--gold2);color:#1a0d0e;border-radius:4px;padding:2px 5px;vertical-align:middle;letter-spacing:0;}
+  .donetag{font-family:'Press Start 2P',monospace;font-size:9px;background:var(--gold2);color:#1a0d0e;border-radius:4px;padding:2px 5px;vertical-align:middle;letter-spacing:0;}
   .ord .o.done{opacity:.5;}
   .ord .o.done .bal{text-decoration:line-through;}
   .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4);}
@@ -121,7 +144,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   }
   .panel.lit{ border-color:var(--red2); box-shadow:inset 0 0 30px -14px var(--red2), 0 0 22px -6px rgba(255,59,59,.35); }
   .panel-h{
-    font-family:'Press Start 2P',monospace; font-size:9px; color:var(--gold2); letter-spacing:1px;
+    font-family:'Press Start 2P',monospace; font-size:10px; color:var(--gold2); letter-spacing:1px;
     margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line);
     display:flex; align-items:center; gap:8px; text-shadow:1px 1px 0 #3a0008;
   }
@@ -130,17 +153,15 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   /* ===== LOBBY (centered arcade setup) ===== */
   #lobby{display:flex; justify-content:center; padding-top:18px;}
   .lobby-wrap{width:100%; max-width:1000px;}
-  .lobby-wrap .panel-h{font-size:11px;}
-  label{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
+  .lobby-wrap .panel-h{font-size:12px;}
+  label{font-family:'Press Start 2P',monospace;font-size:9.5px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
   input,select{font-family:'Barlow',sans-serif;font-size:15px;background:#0c0506;color:var(--txt);
     border:2px solid var(--line);border-radius:7px;padding:9px 11px;width:100%; outline:none;}
   input:focus,select:focus{border-color:var(--gold2);}
   .row{display:flex;gap:12px;flex-wrap:wrap;}
   .row > *{flex:1;min-width:130px;}
-  .seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:9px;margin-top:8px;}
   .seat{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);
         border-radius:9px;padding:8px 10px;}
-  .seat .num{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);width:26px;text-align:center;flex:0 0 auto;}
   .seat input{flex:1;}
   .seat .btn{flex:0 0 auto;}
   .intro{font-size:14px;line-height:1.55;color:#cdbfa6;margin:0 0 14px;}
@@ -169,14 +190,14 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     box-shadow:0 0 24px -8px var(--gold2), inset 0 0 30px -16px var(--gold2);
   }
   .oc-tag{
-    font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:1px; color:#0a0506;
+    font-family:'Press Start 2P',monospace; font-size:10px; letter-spacing:1px; color:#0a0506;
     background:linear-gradient(90deg,#ffd23f,#ff8a3b); padding:7px 12px;
     display:flex; align-items:center; gap:7px;
   }
   .oc-tag.ai{ background:linear-gradient(90deg,#ff6a5a,#b3001b); color:#fff; text-shadow:1px 1px 0 #3a0008; }
   .oc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
   .oc-cell{background:#160a0b;padding:9px 12px;display:flex;flex-direction:column;gap:3px;}
-  .oc-k{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;}
+  .oc-k{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
   .oc-v{font-family:'Oswald',sans-serif;font-weight:700;font-size:26px;color:var(--gold2);line-height:1;}
   .oc-v i{font-size:13px;color:var(--muted);font-style:normal;font-weight:500;}
   .oc-seat{display:flex;align-items:center;gap:11px;padding:11px 12px;border-top:1px solid var(--line);}
@@ -189,9 +210,9 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .oc-seatmeta{min-width:0;}
   .oc-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:21px;color:#fff;line-height:1.1;letter-spacing:.5px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .oc-bud{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--good);margin-top:4px;}
-  .oc-bud span{color:var(--muted);font-size:7px;}
-  .you{font-family:'Press Start 2P',monospace;font-size:7px;color:#0a0506;background:var(--green);
+  .oc-bud{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--good);margin-top:4px;}
+  .oc-bud span{color:var(--muted);font-size:9px;}
+  .you{font-family:'Press Start 2P',monospace;font-size:9px;color:#0a0506;background:var(--green);
     border-radius:3px;padding:2px 4px;vertical-align:middle;margin-left:4px;}
 
   /* draft order list */
@@ -200,22 +221,14 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     background:rgba(255,255,255,.02);border:1px solid transparent;}
   .ord .o.on{background:linear-gradient(90deg,#2e1718,rgba(46,23,24,.2));border-color:var(--gold2);
     box-shadow:0 0 14px -5px var(--gold2);}
-  .ord .o .b{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);width:16px;text-align:center;flex:0 0 auto;}
+  .ord .o .b{font-family:'Press Start 2P',monospace;font-size:9.5px;color:var(--muted);width:16px;text-align:center;flex:0 0 auto;}
   .ord .o.on .b{color:var(--gold2);}
-  .ord .o .onm{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;color:var(--txt);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px;}
-  .ord .o.human .onm{color:#d8f5e2;}
-  .ord .o .bot{font-style:normal;}
-  .ord .o .cnt{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);
-    background:#0c0506;border:1px solid var(--line);border-radius:4px;padding:3px 5px;flex:0 0 auto;}
-  .ord .o.on .cnt{color:var(--gold2);border-color:var(--gold);}
-  .ord .o .bal{font-family:'Barlow',sans-serif;font-weight:600;font-size:12px;color:var(--gold2);white-space:nowrap;flex:0 0 auto;min-width:74px;text-align:right;}
-  .ord .o .arrow{color:var(--gold2);font-size:11px;flex:0 0 auto;animation:nudge .8s ease-in-out infinite;}
+  .ord .o .bal{font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;color:var(--gold2);white-space:nowrap;flex:0 0 auto;min-width:74px;text-align:right;}
   @keyframes nudge{50%{transform:translateX(-3px);}}
 
   /* draft progress */
   .ordprog{margin-top:11px;flex:0 0 auto;}
-  .ordprog .lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:block;text-align:center;}
+  .ordprog .lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:block;text-align:center;}
   .ordprog .bar{height:8px;background:#1a0c0d;border:1px solid var(--line);border-radius:5px;overflow:hidden;}
   .ordprog .fill{height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--gold2));transition:width .35s ease;box-shadow:0 0 10px var(--gold2);}
 
@@ -223,11 +236,11 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .chat .clog{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 0;min-height:0;}
   .cmsg{font-size:14px;line-height:1.4;animation:cmIn .2s ease;}
   @keyframes cmIn{from{opacity:0;transform:translateY(4px);}}
-  .cmsg .nm{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.5px;margin-right:6px;}
+  .cmsg .nm{font-family:'Press Start 2P',monospace;font-size:9.5px;letter-spacing:.5px;margin-right:6px;}
   .cmsg.human .nm{color:var(--green);}
   .cmsg.ai .nm{color:var(--airose);}
   .cmsg.ai .body{color:#ffd9cf;}
-  .cmsg.sys{color:var(--muted);font-style:italic;font-size:12.5px;padding-left:4px;border-left:2px solid #2a1516;}
+  .cmsg.sys{color:var(--muted);font-style:italic;font-size:13px;padding-left:4px;border-left:2px solid #2a1516;}
   .cmsg .body{color:var(--txt);}
   .chat .crow{display:flex;gap:8px;margin-top:10px;flex:0 0 auto;}
   .chat .crow input{flex:1;}
@@ -244,33 +257,33 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     background:linear-gradient(115deg,transparent 55%,rgba(255,59,59,.18) 100%),
       linear-gradient(0deg,rgba(10,5,6,.7),transparent 40%);pointer-events:none;}
   .hero-grade{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2;}
-  .gbadge{font-family:'Press Start 2P',monospace;font-size:8px;color:#0a0506;background:var(--gold2);
+  .gbadge{font-family:'Press Start 2P',monospace;font-size:9.5px;color:#0a0506;background:var(--gold2);
     border:2px solid #fff;border-radius:5px;padding:5px 7px;box-shadow:0 0 12px -3px var(--gold2);line-height:1.3;text-align:center;}
-  .gbadge small{display:block;font-size:6px;color:#4a2a00;}
+  .gbadge small{display:block;font-size:9px;color:#4a2a00;}
   .hero-meta{flex:1;min-width:0;padding:18px 20px;display:flex;flex-direction:column;}
   .hero-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(26px,3.2vw,42px);color:#fff;line-height:1.02;
     text-transform:uppercase;text-shadow:3px 3px 0 #b3001b,0 0 24px rgba(255,59,59,.5);letter-spacing:.5px;}
   .hero-nick{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:18px;color:var(--gold2);margin:7px 0 14px;letter-spacing:.5px;}
   .hero-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
-  .chip{font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:1px;color:var(--gold2);
+  .chip{font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;color:var(--gold2);
     background:#180c0d;border:1px solid var(--line);border-radius:5px;padding:6px 8px;}
   .chip.red{color:#fff;background:linear-gradient(180deg,#b3001b,#6e0010);border-color:#ff7a6a;}
   .hero-info{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:15px;align-content:start;}
-  .hero-info .k{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
+  .hero-info .k{font-family:'Press Start 2P',monospace;font-size:9.5px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
   .hero-info .v{color:var(--txt);word-break:break-word;font-weight:500;}
 
   /* cost bar + confirm */
   .cost-zone{flex:0 0 auto;padding:14px 20px 16px;border-top:2px solid var(--line);background:rgba(8,4,5,.6);}
   .cost-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
-  .cost-lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
+  .cost-lbl{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;}
   .cost-val{font-family:'Oswald',sans-serif;font-weight:700;font-size:28px;color:var(--good);line-height:1;}
   .cost-val.bad{color:#ff7a6a;}
   .cost-bar{height:12px;background:#1a0c0d;border:1px solid var(--line);border-radius:7px;overflow:hidden;}
   .cost-fill{height:100%;width:0;background:linear-gradient(90deg,#1e8a55,#3ECF8E);box-shadow:0 0 12px #3ECF8E;transition:width .3s ease;}
   .cost-fill.bad{background:linear-gradient(90deg,#a82f2f,#ff5a4a);box-shadow:0 0 12px #ff5a4a;}
-  .cost-note{font-size:12px;color:var(--muted);margin-top:6px;}
+  .cost-note{font-size:13px;color:var(--muted);margin-top:6px;}
   .confirm-row{display:flex;gap:10px;margin-top:14px;}
-  .confirm-row .btn{flex:1;font-size:12px;padding:16px;}
+  .confirm-row .btn{flex:1;font-size:13px;padding:16px;}
 
   .cs-empty{font-family:'Press Start 2P',monospace;font-size:13px;color:#7a5a5a;text-align:center;line-height:2.1;
     display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;}
@@ -281,15 +294,15 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   /* ===== RIGHT roster ===== */
   .rosfilters{flex:0 0 auto;}
   .filterbar{display:flex;gap:6px;margin-bottom:7px;}
-  .filterbar button{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);
+  .filterbar button{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold2);
     background:linear-gradient(180deg,#2a0a0a,#120406);border:2px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer;transition:.1s;}
   .filterbar button:hover{border-color:var(--gold2);color:#fff;}
-  .filterbar .lbl{flex:1;text-align:center;align-self:center;font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;
+  .filterbar .lbl{flex:1;text-align:center;align-self:center;font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;
     letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     background:linear-gradient(180deg,#3a0d0d,#1a0606);border:1px solid var(--line);border-radius:6px;padding:9px 8px;}
   .rsearch input{margin-bottom:8px;}
   .rcols{display:flex;align-items:center;gap:8px;padding:4px 11px;flex:0 0 auto;
-    font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--line);margin-bottom:6px;}
+    font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--line);margin-bottom:6px;}
   .rcols .c-tag{width:42px;flex:0 0 auto;}
   .rcols .c-nm{flex:1;}
   .rcols .c-rg{width:46px;flex:0 0 auto;text-align:center;}
@@ -301,13 +314,13 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .ritem.sel{border-color:var(--gold2);background:linear-gradient(90deg,#3a1a14,#2a1516);box-shadow:0 0 14px -4px var(--gold2);}
   .ritem.taken{opacity:.3;pointer-events:none;}
   .ritem.taken .rn{text-decoration:line-through;}
-  .rtag{width:42px;flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.5px;text-align:center;
+  .rtag{width:42px;flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:.5px;text-align:center;
     color:var(--gold2);background:#0c0506;border:1px solid var(--line);border-radius:4px;padding:5px 2px;overflow:hidden;}
   .ritem .rn{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:17px;letter-spacing:.3px;min-width:0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ritem .rg{width:46px;flex:0 0 auto;text-align:center;font-family:'Press Start 2P',monospace;font-size:8px;color:#ffae6a;}
+  .ritem .rg{width:46px;flex:0 0 auto;text-align:center;font-family:'Press Start 2P',monospace;font-size:9.5px;color:#ffae6a;}
   .ritem .rc{width:78px;flex:0 0 auto;text-align:right;font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;color:var(--gold2);white-space:nowrap;}
-  .rcount{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;text-align:center;padding-top:8px;}
+  .rcount{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-align:center;padding-top:8px;}
 
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);opacity:0;
     background:#1a0d0e;border:2px solid var(--gold2);color:var(--txt);padding:12px 18px;border-radius:9px;
@@ -323,14 +336,10 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:12px;}
   .res-card{background:linear-gradient(180deg,rgba(26,11,12,.96),rgba(12,6,7,.97));border:2px solid var(--line);border-radius:11px;padding:15px;
     box-shadow:inset 0 0 30px -18px var(--red2);}
-  .res-card h3{font-size:12px;margin:0 0 5px;}
+  .res-card h3{font-size:13px;margin:0 0 5px;}
   .res-card .tot{font-family:'Barlow',sans-serif;font-size:13px;color:var(--gold2);margin-bottom:11px;}
   .res-card .rosrow{display:flex;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;padding:6px 0;border-bottom:1px solid #251515;}
   .res-card .rosrow .c{margin-left:auto;color:var(--gold2);font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;}
-
-  .spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.35);border-top-color:#0a0506;
-    border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
-  .oc-tag.ai .spinner{border:2px solid rgba(255,255,255,.4);border-top-color:#fff;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
   /* ===== MUSIC PLAYER (identical to hub) ===== */
@@ -344,17 +353,17 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     font-family:'Press Start 2P',monospace;
   }
   #fp-player.show{display:flex;}
-  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; line-height:1; color:#0a0506;
+  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:12px; line-height:1; color:#0a0506;
     background:#ffd23f; border:2px solid #fff; border-radius:4px; padding:9px 11px; text-transform:uppercase;
     box-shadow:0 0 10px -2px #ffd23f; transition:.12s; white-space:nowrap;}
   .fp-pbtn:hover{background:#fff; box-shadow:0 0 14px 0 #ffd23f;}
   .fp-pbtn:active{transform:translateY(1px);}
   #fp-play{min-width:42px;}
   #fp-now{flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-    font-size:9px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
+    font-size:10px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
   #fp-now b{color:#fff;}
   .fp-volwrap{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
-  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:10px; color:#ffd23f;
+  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; color:#ffd23f;
     background:transparent; border:2px solid #ffd23f; border-radius:4px; padding:8px 9px; transition:.12s; white-space:nowrap;}
   #fp-mute:hover{background:rgba(255,210,63,.15);}
   #fp-mute.muted{color:#0a0506; background:#ffd23f;}
@@ -364,21 +373,21 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     border-radius:50%; background:#fff; border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
   #fp-vol::-moz-range-thumb{width:15px; height:15px; border-radius:50%; background:#fff;
     border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
-  #fp-vol-pct{font-size:8px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
+  #fp-vol-pct{font-size:9.5px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
   @media(max-width:600px){
     #fp-player{gap:8px; padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap;}
-    .fp-pbtn{font-size:9px; padding:8px 8px;}
-    #fp-now{flex-basis:100%; order:-1; font-size:8px; text-align:center;}
+    .fp-pbtn{font-size:10px; padding:8px 8px;}
+    #fp-now{flex-basis:100%; order:-1; font-size:9.5px; text-align:center;}
     #fp-vol{width:78px;}
-    #fp-mute{font-size:8px; padding:7px 7px;}
+    #fp-mute{font-size:9.5px; padding:7px 7px;}
   }
 
   /* ===== LIVE DRAFT ADDITIONS ===== */
-  .live-badge{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;
+  .live-badge{font-family:'Press Start 2P',monospace;font-size:9.5px;letter-spacing:1px;
     color:#fff;background:var(--red);border:1px solid #ff7a6a;border-radius:5px;padding:4px 8px;
     animation:livepulse 1.4s ease-in-out infinite;}
   @keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,.6);}50%{box-shadow:0 0 10px 2px rgba(226,75,74,.5);}}
-  .spec-badge{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;
+  .spec-badge{font-family:'Press Start 2P',monospace;font-size:9.5px;letter-spacing:1px;
     color:#0a0506;background:var(--gold2);border-radius:5px;padding:4px 8px;}
   /* auth bar in topbar */
   .authwrap{display:flex;align-items:center;gap:10px;font-size:13px;}
@@ -390,16 +399,15 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .seatcard .av{width:42px;height:42px;border-radius:8px;background:#0c0506 center/cover;border:1px solid var(--line);flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:14px;color:var(--gold2);}
   .seatcard .nm{flex:1;font-weight:600;font-size:15px;}
-  .seatcard .ord{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold2);}
+  .seatcard .ord{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);}
   .seatcard.me{border-color:var(--green);}
-  .seatcard .youtag{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);}
-  .statusline{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold2);letter-spacing:1px;
+  .seatcard .youtag{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--green);}
+  .statusline{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);letter-spacing:1px;
     margin:4px 0 14px;text-align:center;}
   .joinrow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
   .joinrow > div{flex:1;min-width:160px;}
-  .waitmsg{text-align:center;padding:30px 16px;font-family:'Press Start 2P',monospace;font-size:11px;
+  .waitmsg{text-align:center;padding:30px 16px;font-family:'Press Start 2P',monospace;font-size:12px;
     color:#7a5a5a;line-height:2;}
-  .queued-tag{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold2);margin-left:6px;}
 </style>
 </head>
 <body>
@@ -425,7 +433,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     <div class="panel lobby-wrap">
       <div class="panel-h">LIVE LEAGUE DRAFT</div>
       <div class="statusline" id="lobStatus">LOOKING FOR AN ACTIVE DRAFT…</div>
-      <p class="intro" id="lobIntro">Sign in to claim a seat — Discord, Google or Twitch, one tap. The draft is run by the league admin — once it starts, your turn will light up here and you pick live against everyone else.</p>
+      <p class="intro" id="lobIntro">Sign in to claim a seat, Discord, Google or Twitch, one tap. The draft is run by the league admin, once it starts, your turn will light up here and you pick live against everyone else.</p>
 
       <!-- not signed in -->
       <div id="lobSignedOut" class="hidden">
@@ -532,7 +540,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   <div id="resultsView" class="hidden">
     <div class="res-wrap">
       <div class="panel">
-        <div class="panel-h">DRAFT COMPLETE — EVERYONE'S STABLE</div>
+        <div class="panel-h">DRAFT COMPLETE, EVERYONE'S STABLE</div>
         <p class="muted" style="font-size:14px;margin:0 0 12px">Every roster below is now saved to the league. The admin can review them anytime in the Fire Pro admin.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
           <button class="btn gold" onclick="dlAll()" id="dlAllBtn">📸 DOWNLOAD ALL (PNG)</button>
@@ -735,7 +743,7 @@ function showLobby(){
     renderSeatList();
     renderReadyBtn();
     byId('waitForStart').innerHTML = orderLocked()
-      ? 'ORDER LOCKED — WAITING FOR<br>THE ADMIN TO START…'
+      ? 'ORDER LOCKED, WAITING FOR<br>THE ADMIN TO START…'
       : 'YOU’RE IN!<br>WAITING FOR THE ADMIN<br>TO LOCK THE ORDER & START…';
     return;
   }
@@ -747,7 +755,7 @@ function showLobby(){
 
 function renderSeatList(){
   const host=byId('seatList'); if(!host) return;
-  if(!SEATS.length){ host.innerHTML='<div class="muted" style="font-size:14px">No one has claimed a seat yet — be the first.</div>'; return; }
+  if(!SEATS.length){ host.innerHTML='<div class="muted" style="font-size:14px">No one has claimed a seat yet, be the first.</div>'; return; }
   host.innerHTML = SEATS.map((s,i)=>{
     const initial=(s.promotion_name||'?').trim().charAt(0).toUpperCase();
     const av = s.avatar_url ? ' style="background-image:url(\''+esc(s.avatar_url)+'\')"' : '';
@@ -756,7 +764,7 @@ function renderSeatList(){
       '<div class="av"'+av+'>'+(s.avatar_url?'':esc(initial))+'</div>'+
       '<div class="nm">'+esc(s.promotion_name||'(unnamed)')+(isMe?' <span class="youtag">YOU</span>':'')+
         (s.ready?' <span class="donetag" style="background:#7fe0a0">✓ READY</span>':'')+'</div>'+
-      '<div class="ord">'+(s.draft_order!=null?('#'+s.draft_order):'—')+'</div>'+
+      '<div class="ord">'+(s.draft_order!=null?('#'+s.draft_order):'')+'</div>'+
       '</div>';
   }).join('');
 }
@@ -767,7 +775,7 @@ function renderReadyBtn(){
   const seat=mySeat(); if(!seat){ b.style.display='none'; return; }
   b.style.display='';
   const r=!!seat.ready;
-  b.textContent = r ? '✓ READY — TAP TO UNREADY' : "✋ I'M READY";
+  b.textContent = r ? '✓ READY, TAP TO UNREADY' : "✋ I'M READY";
   b.classList.toggle('gold', !r);
   b.classList.toggle('done', r);
 }
@@ -779,7 +787,7 @@ async function toggleReady(){
     const { error } = await sb.rpc('fp_set_ready',{ p_season:SEASON.id, p_ready:next });
     if(error) throw error;
     await refreshAll(); routeView();
-    toast(next ? "You're checked in — the admin can see you're ready." : 'Ready status cleared.');
+    toast(next ? "You're checked in, the admin can see you're ready." : 'Ready status cleared.');
   }catch(e){
     const msg=(e.message||e)+'';
     toast(msg.includes('NO_SEAT') ? 'No seat found for you this season.' : 'Could not update: '+msg, true);
@@ -794,7 +802,7 @@ function renderLobChat(){
   log.innerHTML = CHAT.slice().reverse().map(c=>{
     if(c.kind==='sys') return '<div class="cmsg sys"><span class="body">'+esc(c.body)+'</span></div>';
     return '<div class="cmsg human"><span class="nm">'+esc(c.from_name)+':</span><span class="body">'+esc(c.body)+'</span></div>';
-  }).join('') || '<div class="cmsg sys"><span class="body">Say hi — everyone in the lobby sees this chat.</span></div>';
+  }).join('') || '<div class="cmsg sys"><span class="body">Say hi, everyone in the lobby sees this chat.</span></div>';
   if(nearBottom) log.scrollTop=log.scrollHeight;
 }
 async function lobChatSend(){
@@ -807,12 +815,12 @@ async function lobChatSend(){
       season_id:SEASON.id, auth_id:ME.id, from_name:nm.slice(0,28), kind:'human', body:v.slice(0,200)
     });
     if(error) throw error;
-  }catch(e){ toast('Chat failed: '+(e.message||e)+' — run 2_firepro_season_lobby.sql.',true); }
+  }catch(e){ toast('Chat failed: '+(e.message||e)+', run 2_firepro_season_lobby.sql.',true); }
 }
 
 async function claimSeat(){
   if(!ME){ goSignIn(); return; }
-  if(orderLocked()){ toast('This draft is already locked — you can spectate.',true); routeView(); return; }
+  if(orderLocked()){ toast('This draft is already locked, you can spectate.',true); routeView(); return; }
   const nm=(byId('joinName').value||'').trim();
   if(!nm){ byId('joinMsg').textContent='Enter a name first.'; return; }
   if(mySeat()){ toast('You already have a seat.'); routeView(); return; }
@@ -823,11 +831,11 @@ async function claimSeat(){
     const { error } = await sb.rpc('fp_join_season', { p_promotion: nm });
     if(error) throw error;
     await refreshAll(); routeView();
-    toast('Seat claimed — you’re in the draft.');
+    toast('Seat claimed, you’re in the draft.');
   }catch(e){
     const msg=(e.message||e)+'';
     byId('joinMsg').textContent =
-      msg.includes('ELIMINATED') ? 'You were eliminated this season — no rejoining.' :
+      msg.includes('ELIMINATED') ? 'You were eliminated this season, no rejoining.' :
       msg.includes('NO_ACTIVE_SEASON') ? 'There’s no active season to join yet.' :
       msg.includes('NOT_SIGNED_IN') ? 'Please sign in first.' :
       'Could not claim a seat: '+msg;
@@ -880,7 +888,7 @@ function renderNow(){
   const curRound = STATE.current_round||1;
   const roundTail = curRound>floor ? ' <i>(opt)</i>' : '<i>/'+floor+'</i>';
   box.innerHTML=
-    '<div class="oc-tag'+(mine?'':' ai')+'">'+(mine?'● YOUR PICK':'● PICKING NOW')+'<span style="margin-left:auto" id="clk">—</span></div>'+
+    '<div class="oc-tag'+(mine?'':' ai')+'">'+(mine?'● YOUR PICK':'● PICKING NOW')+'<span style="margin-left:auto" id="clk"></span></div>'+
     '<div class="oc-grid">'+
       '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+curRound+roundTail+'</span></div>'+
       '<div class="oc-cell"><span class="oc-k">PICK</span><span class="oc-v">'+(STATE.current_pick||1)+'</span></div>'+
@@ -894,7 +902,7 @@ function renderNow(){
     '</div>';
   startClock();
   updateDoneBtn();
-  if(isMyTurn() && !MY_TURN_LAST){ toast('You’re on the clock — make your pick!'); }
+  if(isMyTurn() && !MY_TURN_LAST){ toast('You’re on the clock, make your pick!'); }
   MY_TURN_LAST = isMyTurn();
 }
 function startClock(){
@@ -931,7 +939,7 @@ function renderOrder(){
     const made=realPicks().length;
     const past=(STATE&&STATE.current_round>floor);
     pb.querySelector('.fill').style.width=(total?Math.min(100,Math.round(made/total*100)):0)+'%';
-    pb.querySelector('.lbl').textContent = past ? ('OPTIONAL — '+made+' PICKS') : (made+' / '+total+' MANDATORY');
+    pb.querySelector('.lbl').textContent = past ? ('OPTIONAL, '+made+' PICKS') : (made+' / '+total+' MANDATORY');
   }
 }
 
@@ -944,8 +952,8 @@ function renderCenter(){
   const optionalMine = isMyTurn() && STATE && (STATE.current_round||1) > floor;
   if(!SEL){
     host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
-      (optionalMine?'OPTIONAL ROUND — PICK ANOTHER<br>WRESTLER, OR HIT <b>I’M DONE</b><br>TO LOCK YOUR STABLE'
-       :isMyTurn()?'YOU’RE ON THE CLOCK —<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
+      (optionalMine?'OPTIONAL ROUND, PICK ANOTHER<br>WRESTLER, OR HIT <b>I’M DONE</b><br>TO LOCK YOUR STABLE'
+       :isMyTurn()?'YOU’RE ON THE CLOCK,<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
                  :'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
     if(optionalMine){ cr.style.display='flex'; byId('confirmBtn').style.display='none'; updateDoneBtn(); }
     else { cr.style.display='none'; }
@@ -958,13 +966,13 @@ function renderCenter(){
   const ff=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
   const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
   const rows=[
-    ['FRANCHISE', w.origin||'—'],
-    ['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')||'—'],
-    ['COUNTRY', w.country||'—'],
-    ['DOB', w.dob||'—'],
-    ['FINISHER', w.finisher||'—'],
-    ['SIGNATURE', sigs[0]||'—'],
-    ['SIGNATURE 2', sigs[1]||'—'],
+    ['FRANCHISE', w.origin||''],
+    ['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')||''],
+    ['COUNTRY', w.country||''],
+    ['DOB', w.dob||''],
+    ['FINISHER', w.finisher||''],
+    ['SIGNATURE', sigs[0]||''],
+    ['SIGNATURE 2', sigs[1]||''],
   ];
   const myBudget = isMyTurn() ? budgetLeft(ME.id) : (mySeat()?budgetLeft(ME.id):(SEASON.bankroll||0));
   const afford = w._cost<=myBudget;
@@ -991,7 +999,7 @@ function renderCenter(){
     '<div class="cost-zone">'+
       '<div class="cost-row"><span class="cost-lbl">DRAFT COST</span><span class="cost-val'+(afford?'':' bad')+'">'+money(w._cost)+'</span></div>'+
       '<div class="cost-bar"><div class="cost-fill'+(afford?'':' bad')+'" style="width:'+fillPct+'%"></div></div>'+
-      '<div class="cost-note">'+(afford?(money(myBudget-w._cost)+' would remain in your budget'):'Over budget — you can’t afford this pick')+'</div>'+
+      '<div class="cost-note">'+(afford?(money(myBudget-w._cost)+' would remain in your budget'):'Over budget, you can’t afford this pick')+'</div>'+
     '</div>';
   cr.style.display='flex';
   const btn=byId('confirmBtn');
@@ -1026,7 +1034,7 @@ async function confirmPick(){
         { onConflict:'season_id,auth_id' }
       );
       if(error) throw error;
-      toast('Pick queued — waiting for the admin to lock it in.');
+      toast('Pick queued, waiting for the admin to lock it in.');
     } else {
       // live mode: the existing RPC records the pick AND advances the clock.
       // ── fp_make_pick(p_season, p_wrestler, p_for) — matched to the admin's usage. ──
@@ -1056,12 +1064,12 @@ async function doPass(){
   if((STATE.current_round||1) <= floor){
     toast('You must draft through the mandatory rounds first (round '+floor+').',true); return;
   }
-  if(!confirm('End your draft? You’re done for good and won’t pick again this draft — but continuing is optional, you can keep building your stable if you’d like. Your unspent money stays in your wallet for the season.')) return;
+  if(!wcaTwice('End your draft? You’re done for good and won’t pick again this draft, but continuing is optional, you can keep building your stable if you’d like. Your unspent money stays in your wallet for the season.')) return;
   byId('doneBtn').disabled=true;
   try{
     const { error } = await sb.rpc('fp_draft_pass',{ p_season:SEASON.id, p_for:ME.id });
     if(error) throw error;
-    toast('You’re done drafting — good luck this season!');
+    toast('You’re done drafting, good luck this season!');
     SEL=null;
   }catch(e){
     const msg=(e.message||e)+'';
@@ -1096,15 +1104,15 @@ function renderFeed(){
       return '<div class="cmsg human"><span class="nm">'+esc(c.from_name)+':</span><span class="body">'+esc(c.body)+'</span></div>';
     }
     const p=it.p;
-    const nm=esc(seatName[p.auth_id]||'—');
+    const nm=esc(seatName[p.auth_id]||'');
     if(p.wrestler_id==null){
       // skip / kick marker — show the reason note
-      return '<div class="cmsg sys" style="color:#ff9a8a"><span class="body">⏭ <b>'+nm+'</b> — '+esc(p.note||'skipped')+'.</span></div>';
+      return '<div class="cmsg sys" style="color:#ff9a8a"><span class="body">⏭ <b>'+nm+'</b>, '+esc(p.note||'skipped')+'.</span></div>';
     }
     const w=WMAP[p.wrestler_id]||{name:'#'+p.wrestler_id,_cost:0};
     return '<div class="cmsg sys"><span class="body"><b>'+nm+'</b> drafted '+
       esc(w.name)+' for '+money(w._cost||0)+(p.is_auto?' (auto)':'')+'.</span></div>';
-  }).join('') || '<div class="cmsg sys"><span class="body">No picks yet — the draft is about to begin.</span></div>';
+  }).join('') || '<div class="cmsg sys"><span class="body">No picks yet, the draft is about to begin.</span></div>';
   log.scrollTop=0;
 }
 function chatPush(kind,name,body){
@@ -1121,7 +1129,7 @@ async function chatSend(){
   if(!ME){
     // not signed in → local echo only (nothing blocks the draft)
     chatPush('human', me, v);
-    toast('Sign in to chat with everyone — this message is only on your screen.',true);
+    toast('Sign in to chat with everyone, this message is only on your screen.',true);
     return;
   }
   try{
@@ -1132,7 +1140,7 @@ async function chatSend(){
     // realtime pushes it back into the feed for everyone (including us)
   }catch(e){
     chatPush('human', me, v); // graceful fallback: local echo
-    toast('Shared chat unavailable ('+(e.message||e)+') — shown locally only.',true);
+    toast('Shared chat unavailable ('+(e.message||e)+'), shown locally only.',true);
   }
 }
 
@@ -1167,7 +1175,7 @@ function rosFiltered(){
 function promoChip(w){
   if(w.promotion_id==null) return 'FA';
   const nm=((PROMOS.find(p=>p.id===w.promotion_id)||{}).name||'').trim();
-  if(!nm) return '—';
+  if(!nm) return '';
   const words=nm.split(/\s+/);
   if(words.length>1) return words.map(x=>x.charAt(0)).join('').slice(0,4).toUpperCase();
   return nm.slice(0,4).toUpperCase();
@@ -1362,7 +1370,7 @@ function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo
 function headerBar(ctx,W,title){
   ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,90);
   ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
-  ctx.fillText('WCA FIRE PRO — PRACTICE DRAFT', 24, 40);
+  ctx.fillText('WCA FIRE PRO, PRACTICE DRAFT', 24, 40);
   ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
   ctx.fillText(title||('Snake/Linear · '+CFG.rounds+' rounds · '+money(CFG.budget)+' each'), 24, 66);
 }

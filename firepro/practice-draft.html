@@ -3,13 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <script>
+// Press twice to confirm: the first press explains, the second press does it.
+function wcaTwice(msg){
+  const T = wcaTwice, now = Date.now();
+  if(T.k === msg && now - T.t < 5000){
+    if(now - T.t < 350) return false;   // a double click is not a decision
+    T.k = null; clearTimeout(T.to); if(T.el) T.el.remove();
+    return true;
+  }
+  T.k = msg; T.t = now;
+  if(!T.el){
+    T.el = document.createElement('div');
+    T.el.setAttribute('role', 'alert');
+    T.el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;width:min(460px,calc(100vw - 24px));box-sizing:border-box;padding:14px 18px;border-radius:12px;background:#15151a;border:1px solid #E9B949;color:#f2f2f0;font:15px/1.45 Barlow,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.6);white-space:pre-wrap';
+  }
+  T.el.textContent = msg;
+  const b = document.createElement('b');
+  b.textContent = 'Press the button again to confirm.';
+  b.style.cssText = 'display:block;margin-top:8px;color:#E9B949';
+  T.el.appendChild(b);
+  document.body.appendChild(T.el);
+  clearTimeout(T.to);
+  T.to = setTimeout(()=>{ T.el.remove(); T.k = null; }, 5000);
+  return false;
+}
 /* Clean addresses (Oct 2026): wcauniverse.com/firepro/builder instead of
    /firepro/builder.html. GitHub Pages opens builder.html for /firepro/builder
    by itself, so no files were renamed. Opened from disk (file://) the old
    .html names are used, so local testing still works. */
 var FP_HTTP = /^https?:$/.test(location.protocol);
 function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'index') + '.html'; }
-function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
 (function(){
   if(!FP_HTTP) return;
   var p = location.pathname, c = p.replace(/\/index\.html$/i, '/').replace(/\.html$/i, '');
@@ -17,7 +40,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>WCA · Fire Pro — Practice Draft</title>
+<title>WCA · Fire Pro, Practice Draft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -73,7 +96,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     box-shadow:0 3px 22px -6px #000;
   }
   .topbar .draft-badge{
-    font-family:'Press Start 2P',monospace; font-size:11px; color:#fff;
+    font-family:'Press Start 2P',monospace; font-size:12px; color:#fff;
     background:linear-gradient(180deg,#2a0a0a,#120406); border:2px solid var(--red2);
     border-radius:5px; padding:8px 12px; letter-spacing:1px;
     text-shadow:1px 1px 0 #b3001b, 0 0 12px rgba(255,59,59,.6);
@@ -82,12 +105,12 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .topbar h1{font-size:15px;color:#fff;margin:0;text-shadow:2px 2px 0 #3a0008;letter-spacing:2px;}
   .topbar .spacer{flex:1;}
   .topbar .cfgline{
-    font-family:'Press Start 2P',monospace;font-size:9px;color:#0a0506;letter-spacing:1px;
+    font-family:'Press Start 2P',monospace;font-size:10px;color:#0a0506;letter-spacing:1px;
     background:var(--gold2); border:2px solid #fff; border-radius:5px; padding:7px 11px;
     box-shadow:0 0 12px -3px var(--gold2);
   }
 
-  .btn{font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;
+  .btn{font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;
        background:linear-gradient(180deg,#2a0a0a,#120406);color:var(--gold2);border:2px solid var(--red2);
        border-radius:6px;padding:11px 14px;transition:.12s;text-transform:uppercase;
        text-shadow:1px 1px 0 #b3001b; box-shadow:0 0 12px -3px var(--red2), inset 0 0 14px -9px var(--gold2);}
@@ -97,10 +120,10 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .btn.primary:hover{border-color:#fff;}
   .btn.gold{background:linear-gradient(180deg,#ffe27a,#ffd23f);border-color:#fff;color:#1a0d0e;text-shadow:none;}
   .btn.gold:hover{background:#fff;}
-  .btn.sm{padding:8px 11px;font-size:9px;}
+  .btn.sm{padding:8px 11px;font-size:10px;}
   .btn.done{background:linear-gradient(180deg,#2a1c0a,#160f04);border-color:var(--gold2);color:var(--gold2);}
   .btn.done:hover{background:linear-gradient(180deg,#3a2810,#1c1406);border-color:#fff;color:#fff;}
-  .donetag{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--gold2);color:#1a0d0e;
+  .donetag{font-family:'Press Start 2P',monospace;font-size:9px;background:var(--gold2);color:#1a0d0e;
            border-radius:4px;padding:2px 5px;vertical-align:middle;letter-spacing:0;}
   .o.done{opacity:.5;}
   .o.done .bal{text-decoration:line-through;}
@@ -122,7 +145,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   }
   .panel.lit{ border-color:var(--red2); box-shadow:inset 0 0 30px -14px var(--red2), 0 0 22px -6px rgba(255,59,59,.35); }
   .panel-h{
-    font-family:'Press Start 2P',monospace; font-size:9px; color:var(--gold2); letter-spacing:1px;
+    font-family:'Press Start 2P',monospace; font-size:10px; color:var(--gold2); letter-spacing:1px;
     margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line);
     display:flex; align-items:center; gap:8px; text-shadow:1px 1px 0 #3a0008;
   }
@@ -131,8 +154,8 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   /* ===== LOBBY (centered arcade setup) ===== */
   #lobby{display:flex; justify-content:center; padding-top:18px;}
   .lobby-wrap{width:100%; max-width:1000px;}
-  .lobby-wrap .panel-h{font-size:11px;}
-  label{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
+  .lobby-wrap .panel-h{font-size:12px;}
+  label{font-family:'Press Start 2P',monospace;font-size:9.5px;color:var(--gold2);letter-spacing:1px;display:block;margin:10px 0 6px;}
   input,select{font-family:'Barlow',sans-serif;font-size:15px;background:#0c0506;color:var(--txt);
     border:2px solid var(--line);border-radius:7px;padding:9px 11px;width:100%; outline:none;}
   input:focus,select:focus{border-color:var(--gold2);}
@@ -141,7 +164,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:9px;margin-top:8px;}
   .seat{display:flex;align-items:center;gap:10px;background:var(--panel2);border:2px solid var(--line);
         border-radius:9px;padding:8px 10px;}
-  .seat .num{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);width:26px;text-align:center;flex:0 0 auto;}
+  .seat .num{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold2);width:26px;text-align:center;flex:0 0 auto;}
   .seat input{flex:1;}
   .seat .btn{flex:0 0 auto;}
   .intro{font-size:14px;line-height:1.55;color:#cdbfa6;margin:0 0 14px;}
@@ -170,14 +193,14 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     box-shadow:0 0 24px -8px var(--gold2), inset 0 0 30px -16px var(--gold2);
   }
   .oc-tag{
-    font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:1px; color:#0a0506;
+    font-family:'Press Start 2P',monospace; font-size:10px; letter-spacing:1px; color:#0a0506;
     background:linear-gradient(90deg,#ffd23f,#ff8a3b); padding:7px 12px;
     display:flex; align-items:center; gap:7px;
   }
   .oc-tag.ai{ background:linear-gradient(90deg,#ff6a5a,#b3001b); color:#fff; text-shadow:1px 1px 0 #3a0008; }
   .oc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
   .oc-cell{background:#160a0b;padding:9px 12px;display:flex;flex-direction:column;gap:3px;}
-  .oc-k{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;}
+  .oc-k{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
   .oc-v{font-family:'Oswald',sans-serif;font-weight:700;font-size:26px;color:var(--gold2);line-height:1;}
   .oc-v i{font-size:13px;color:var(--muted);font-style:normal;font-weight:500;}
   .oc-seat{display:flex;align-items:center;gap:11px;padding:11px 12px;border-top:1px solid var(--line);}
@@ -190,9 +213,9 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .oc-seatmeta{min-width:0;}
   .oc-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:21px;color:#fff;line-height:1.1;letter-spacing:.5px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .oc-bud{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--good);margin-top:4px;}
-  .oc-bud span{color:var(--muted);font-size:7px;}
-  .you{font-family:'Press Start 2P',monospace;font-size:7px;color:#0a0506;background:var(--green);
+  .oc-bud{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--good);margin-top:4px;}
+  .oc-bud span{color:var(--muted);font-size:9px;}
+  .you{font-family:'Press Start 2P',monospace;font-size:9px;color:#0a0506;background:var(--green);
     border-radius:3px;padding:2px 4px;vertical-align:middle;margin-left:4px;}
 
   /* draft order list */
@@ -201,22 +224,22 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     background:rgba(255,255,255,.02);border:1px solid transparent;}
   .ord .o.on{background:linear-gradient(90deg,#2e1718,rgba(46,23,24,.2));border-color:var(--gold2);
     box-shadow:0 0 14px -5px var(--gold2);}
-  .ord .o .b{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);width:16px;text-align:center;flex:0 0 auto;}
+  .ord .o .b{font-family:'Press Start 2P',monospace;font-size:9.5px;color:var(--muted);width:16px;text-align:center;flex:0 0 auto;}
   .ord .o.on .b{color:var(--gold2);}
   .ord .o .onm{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;color:var(--txt);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px;}
   .ord .o.human .onm{color:#d8f5e2;}
   .ord .o .bot{font-style:normal;}
-  .ord .o .cnt{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--muted);
+  .ord .o .cnt{font-family:'Press Start 2P',monospace;font-size:9.5px;color:var(--muted);
     background:#0c0506;border:1px solid var(--line);border-radius:4px;padding:3px 5px;flex:0 0 auto;}
   .ord .o.on .cnt{color:var(--gold2);border-color:var(--gold);}
-  .ord .o .bal{font-family:'Barlow',sans-serif;font-weight:600;font-size:12px;color:var(--gold2);white-space:nowrap;flex:0 0 auto;min-width:74px;text-align:right;}
-  .ord .o .arrow{color:var(--gold2);font-size:11px;flex:0 0 auto;animation:nudge .8s ease-in-out infinite;}
+  .ord .o .bal{font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;color:var(--gold2);white-space:nowrap;flex:0 0 auto;min-width:74px;text-align:right;}
+  .ord .o .arrow{color:var(--gold2);font-size:12px;flex:0 0 auto;animation:nudge .8s ease-in-out infinite;}
   @keyframes nudge{50%{transform:translateX(-3px);}}
 
   /* draft progress */
   .ordprog{margin-top:11px;flex:0 0 auto;}
-  .ordprog .lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:block;text-align:center;}
+  .ordprog .lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:block;text-align:center;}
   .ordprog .bar{height:8px;background:#1a0c0d;border:1px solid var(--line);border-radius:5px;overflow:hidden;}
   .ordprog .fill{height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--gold2));transition:width .35s ease;box-shadow:0 0 10px var(--gold2);}
 
@@ -224,11 +247,11 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .chat .clog{flex:1 1 auto;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 0;min-height:0;}
   .cmsg{font-size:14px;line-height:1.4;animation:cmIn .2s ease;}
   @keyframes cmIn{from{opacity:0;transform:translateY(4px);}}
-  .cmsg .nm{font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.5px;margin-right:6px;}
+  .cmsg .nm{font-family:'Press Start 2P',monospace;font-size:9.5px;letter-spacing:.5px;margin-right:6px;}
   .cmsg.human .nm{color:var(--green);}
   .cmsg.ai .nm{color:var(--airose);}
   .cmsg.ai .body{color:#ffd9cf;}
-  .cmsg.sys{color:var(--muted);font-style:italic;font-size:12.5px;padding-left:4px;border-left:2px solid #2a1516;}
+  .cmsg.sys{color:var(--muted);font-style:italic;font-size:13px;padding-left:4px;border-left:2px solid #2a1516;}
   .cmsg .body{color:var(--txt);}
   .chat .crow{display:flex;gap:8px;margin-top:10px;flex:0 0 auto;}
   .chat .crow input{flex:1;}
@@ -245,33 +268,33 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     background:linear-gradient(115deg,transparent 55%,rgba(255,59,59,.18) 100%),
       linear-gradient(0deg,rgba(10,5,6,.7),transparent 40%);pointer-events:none;}
   .hero-grade{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2;}
-  .gbadge{font-family:'Press Start 2P',monospace;font-size:8px;color:#0a0506;background:var(--gold2);
+  .gbadge{font-family:'Press Start 2P',monospace;font-size:9.5px;color:#0a0506;background:var(--gold2);
     border:2px solid #fff;border-radius:5px;padding:5px 7px;box-shadow:0 0 12px -3px var(--gold2);line-height:1.3;text-align:center;}
-  .gbadge small{display:block;font-size:6px;color:#4a2a00;}
+  .gbadge small{display:block;font-size:9px;color:#4a2a00;}
   .hero-meta{flex:1;min-width:0;padding:18px 20px;display:flex;flex-direction:column;}
   .hero-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(26px,3.2vw,42px);color:#fff;line-height:1.02;
     text-transform:uppercase;text-shadow:3px 3px 0 #b3001b,0 0 24px rgba(255,59,59,.5);letter-spacing:.5px;}
   .hero-nick{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:18px;color:var(--gold2);margin:7px 0 14px;letter-spacing:.5px;}
   .hero-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
-  .chip{font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:1px;color:var(--gold2);
+  .chip{font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;color:var(--gold2);
     background:#180c0d;border:1px solid var(--line);border-radius:5px;padding:6px 8px;}
   .chip.red{color:#fff;background:linear-gradient(180deg,#b3001b,#6e0010);border-color:#ff7a6a;}
   .hero-info{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:15px;align-content:start;}
-  .hero-info .k{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
+  .hero-info .k{font-family:'Press Start 2P',monospace;font-size:9.5px;color:#ff8a3b;letter-spacing:1px;align-self:center;white-space:nowrap;}
   .hero-info .v{color:var(--txt);word-break:break-word;font-weight:500;}
 
   /* cost bar + confirm */
   .cost-zone{flex:0 0 auto;padding:14px 20px 16px;border-top:2px solid var(--line);background:rgba(8,4,5,.6);}
   .cost-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
-  .cost-lbl{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
+  .cost-lbl{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;}
   .cost-val{font-family:'Oswald',sans-serif;font-weight:700;font-size:28px;color:var(--good);line-height:1;}
   .cost-val.bad{color:#ff7a6a;}
   .cost-bar{height:12px;background:#1a0c0d;border:1px solid var(--line);border-radius:7px;overflow:hidden;}
   .cost-fill{height:100%;width:0;background:linear-gradient(90deg,#1e8a55,#3ECF8E);box-shadow:0 0 12px #3ECF8E;transition:width .3s ease;}
   .cost-fill.bad{background:linear-gradient(90deg,#a82f2f,#ff5a4a);box-shadow:0 0 12px #ff5a4a;}
-  .cost-note{font-size:12px;color:var(--muted);margin-top:6px;}
+  .cost-note{font-size:13px;color:var(--muted);margin-top:6px;}
   .confirm-row{display:flex;gap:10px;margin-top:14px;}
-  .confirm-row .btn{flex:1;font-size:12px;padding:16px;}
+  .confirm-row .btn{flex:1;font-size:13px;padding:16px;}
 
   .cs-empty{font-family:'Press Start 2P',monospace;font-size:13px;color:#7a5a5a;text-align:center;line-height:2.1;
     display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;gap:14px;}
@@ -282,15 +305,15 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   /* ===== RIGHT roster ===== */
   .rosfilters{flex:0 0 auto;}
   .filterbar{display:flex;gap:6px;margin-bottom:7px;}
-  .filterbar button{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);
+  .filterbar button{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold2);
     background:linear-gradient(180deg,#2a0a0a,#120406);border:2px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer;transition:.1s;}
   .filterbar button:hover{border-color:var(--gold2);color:#fff;}
-  .filterbar .lbl{flex:1;text-align:center;align-self:center;font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;
+  .filterbar .lbl{flex:1;text-align:center;align-self:center;font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;
     letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     background:linear-gradient(180deg,#3a0d0d,#1a0606);border:1px solid var(--line);border-radius:6px;padding:9px 8px;}
   .rsearch input{margin-bottom:8px;}
   .rcols{display:flex;align-items:center;gap:8px;padding:4px 11px;flex:0 0 auto;
-    font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--line);margin-bottom:6px;}
+    font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--line);margin-bottom:6px;}
   .rcols .c-tag{width:42px;flex:0 0 auto;}
   .rcols .c-nm{flex:1;}
   .rcols .c-rg{width:46px;flex:0 0 auto;text-align:center;}
@@ -302,13 +325,13 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .ritem.sel{border-color:var(--gold2);background:linear-gradient(90deg,#3a1a14,#2a1516);box-shadow:0 0 14px -4px var(--gold2);}
   .ritem.taken{opacity:.3;pointer-events:none;}
   .ritem.taken .rn{text-decoration:line-through;}
-  .rtag{width:42px;flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:.5px;text-align:center;
+  .rtag{width:42px;flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:.5px;text-align:center;
     color:var(--gold2);background:#0c0506;border:1px solid var(--line);border-radius:4px;padding:5px 2px;overflow:hidden;}
   .ritem .rn{flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:17px;letter-spacing:.3px;min-width:0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ritem .rg{width:46px;flex:0 0 auto;text-align:center;font-family:'Press Start 2P',monospace;font-size:8px;color:#ffae6a;}
+  .ritem .rg{width:46px;flex:0 0 auto;text-align:center;font-family:'Press Start 2P',monospace;font-size:9.5px;color:#ffae6a;}
   .ritem .rc{width:78px;flex:0 0 auto;text-align:right;font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;color:var(--gold2);white-space:nowrap;}
-  .rcount{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:1px;text-align:center;padding-top:8px;}
+  .rcount{flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-align:center;padding-top:8px;}
 
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);opacity:0;
     background:#1a0d0e;border:2px solid var(--gold2);color:var(--txt);padding:12px 18px;border-radius:9px;
@@ -324,7 +347,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:12px;}
   .res-card{background:linear-gradient(180deg,rgba(26,11,12,.96),rgba(12,6,7,.97));border:2px solid var(--line);border-radius:11px;padding:15px;
     box-shadow:inset 0 0 30px -18px var(--red2);}
-  .res-card h3{font-size:12px;margin:0 0 5px;}
+  .res-card h3{font-size:13px;margin:0 0 5px;}
   .res-card .tot{font-family:'Barlow',sans-serif;font-size:13px;color:var(--gold2);margin-bottom:11px;}
   .res-card .rosrow{display:flex;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;padding:6px 0;border-bottom:1px solid #251515;}
   .res-card .rosrow .c{margin-left:auto;color:var(--gold2);font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;}
@@ -345,17 +368,17 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     font-family:'Press Start 2P',monospace;
   }
   #fp-player.show{display:flex;}
-  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; line-height:1; color:#0a0506;
+  .fp-pbtn{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:12px; line-height:1; color:#0a0506;
     background:#ffd23f; border:2px solid #fff; border-radius:4px; padding:9px 11px; text-transform:uppercase;
     box-shadow:0 0 10px -2px #ffd23f; transition:.12s; white-space:nowrap;}
   .fp-pbtn:hover{background:#fff; box-shadow:0 0 14px 0 #ffd23f;}
   .fp-pbtn:active{transform:translateY(1px);}
   #fp-play{min-width:42px;}
   #fp-now{flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-    font-size:9px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
+    font-size:10px; letter-spacing:1px; color:#ffd23f; text-shadow:1px 1px 0 #000;}
   #fp-now b{color:#fff;}
   .fp-volwrap{display:flex; align-items:center; gap:9px; flex:0 0 auto;}
-  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:10px; color:#ffd23f;
+  #fp-mute{font-family:'Press Start 2P',monospace; cursor:pointer; font-size:11px; color:#ffd23f;
     background:transparent; border:2px solid #ffd23f; border-radius:4px; padding:8px 9px; transition:.12s; white-space:nowrap;}
   #fp-mute:hover{background:rgba(255,210,63,.15);}
   #fp-mute.muted{color:#0a0506; background:#ffd23f;}
@@ -365,13 +388,13 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     border-radius:50%; background:#fff; border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
   #fp-vol::-moz-range-thumb{width:15px; height:15px; border-radius:50%; background:#fff;
     border:2px solid #ffd23f; box-shadow:0 0 8px 0 #ffd23f; cursor:pointer;}
-  #fp-vol-pct{font-size:8px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
+  #fp-vol-pct{font-size:9.5px; color:#ffd23f; min-width:30px; text-align:right; text-shadow:1px 1px 0 #000;}
   @media(max-width:600px){
     #fp-player{gap:8px; padding:7px 9px calc(7px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap;}
-    .fp-pbtn{font-size:9px; padding:8px 8px;}
-    #fp-now{flex-basis:100%; order:-1; font-size:8px; text-align:center;}
+    .fp-pbtn{font-size:10px; padding:8px 8px;}
+    #fp-now{flex-basis:100%; order:-1; font-size:9.5px; text-align:center;}
     #fp-vol{width:78px;}
-    #fp-mute{font-size:8px; padding:7px 7px;}
+    #fp-mute{font-size:9.5px; padding:7px 7px;}
   }
 
   /* ============================================================
@@ -389,7 +412,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .mode-card .mc-ico{font-size:42px;display:block;margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(255,59,59,.5));}
   .mode-card h2{font-size:13px;color:var(--gold2);margin:0 0 12px;text-shadow:1px 1px 0 #3a0008;}
   .mode-card p{font-size:13.5px;line-height:1.55;color:#cdbfa6;margin:0;}
-  .mode-card .mc-off{font-family:'Press Start 2P',monospace;font-size:8px;color:#ff8a7a;margin-top:12px;display:none;}
+  .mode-card .mc-off{font-family:'Press Start 2P',monospace;font-size:9.5px;color:#ff8a7a;margin-top:12px;display:none;}
   .mode-card.disabled{opacity:.55;cursor:not-allowed;}
   .mode-card.disabled .mc-off{display:block;}
 
@@ -398,8 +421,8 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .olcard{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel2);
     border:2px solid var(--line);border-radius:9px;padding:11px 14px;}
   .olcard .nm{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:19px;color:#fff;letter-spacing:.4px;}
-  .olcard .meta{font-size:12.5px;color:var(--muted);}
-  .olcard .st{font-family:'Press Start 2P',monospace;font-size:7px;border-radius:4px;padding:3px 6px;letter-spacing:0;}
+  .olcard .meta{font-size:13px;color:var(--muted);}
+  .olcard .st{font-family:'Press Start 2P',monospace;font-size:9px;border-radius:4px;padding:3px 6px;letter-spacing:0;}
   .olcard .st.open{background:var(--green);color:#0a2a14;}
   .olcard .st.drafting{background:var(--red2);color:#fff;animation:olPulse 1.2s ease-in-out infinite;}
   @keyframes olPulse{50%{opacity:.65;}}
@@ -409,13 +432,13 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     border-radius:9px;padding:9px 11px;min-height:52px;}
   .olseat.me{border-color:var(--green);box-shadow:0 0 12px -5px var(--green);}
   .olseat.empty{opacity:.6;border-style:dashed;}
-  .olseat .num{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold2);width:22px;text-align:center;flex:0 0 auto;}
+  .olseat .num{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--gold2);width:22px;text-align:center;flex:0 0 auto;}
   .olseat .who{flex:1;min-width:0;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:16px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .olseat .who small{display:block;font-size:11px;color:var(--muted);font-family:'Barlow',sans-serif;font-weight:400;}
-  .ol-clock{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold2);margin-left:auto;}
+  .olseat .who small{display:block;font-size:12px;color:var(--muted);font-family:'Barlow',sans-serif;font-weight:400;}
+  .ol-clock{font-family:'Press Start 2P',monospace;font-size:13px;color:var(--gold2);margin-left:auto;}
   .ol-clock.low{color:#ff5a4a;animation:olPulse .6s ease-in-out infinite;}
-  .olspec{font-family:'Press Start 2P',monospace;font-size:8px;color:#0a0506;background:#8ecbff;
+  .olspec{font-family:'Press Start 2P',monospace;font-size:9.5px;color:#0a0506;background:#8ecbff;
     border-radius:4px;padding:3px 6px;letter-spacing:0;}
 
 </style>
@@ -452,7 +475,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
       <div class="mode-card" onclick="chooseLocal()">
         <span class="mc-ico">🕹️</span>
         <h2>LOCAL / VS AI</h2>
-        <p>Everything on this screen — draft against the AI, or pass the keyboard between friends. No sign-in needed. Exactly the practice draft you know.</p>
+        <p>Everything on this screen, draft against the AI, or pass the keyboard between friends. No sign-in needed. Exactly the practice draft you know.</p>
       </div>
       <div class="mode-card" id="onlineCard" onclick="chooseOnline()">
         <span class="mc-ico">🌐</span>
@@ -469,7 +492,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
       <div class="panel">
         <div class="panel-h">ONLINE PRACTICE LOBBIES</div>
         <div id="olAuthGate" class="hidden">
-          <p class="intro">You need an account to play online (so your seat is really yours) — one tap with Discord, Google or Twitch.</p>
+          <p class="intro">You need an account to play online (so your seat is really yours), one tap with Discord, Google or Twitch.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn primary" onclick="olGoSignIn()">SIGN IN ►</button>
             <button class="btn sm ghost" onclick="showMode()">◄ BACK</button>
@@ -489,7 +512,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
           <div id="olCreateForm" class="hidden" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
             <div class="row">
               <div><label>Lobby name</label><input id="olcName" maxlength="40" placeholder="Friday Night Draft"></div>
-              <div><label>Seats (2–8)</label>
+              <div><label>Seats (2 to 8)</label>
                 <select id="olcSeats"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
               <div><label>Pick clock (seconds)</label>
                 <select id="olcClock"><option value="60">60</option><option value="90">90</option><option value="120" selected>120</option><option value="180">180</option><option value="300">300</option></select></div>
@@ -499,27 +522,27 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
             <div class="row" style="margin-top:4px">
               <div><label>Starting budget each</label>
                 <select id="olcBudget">
-                  <option value="4000000">$4,000,000 — Hard</option>
-                  <option value="5500000" selected>$5,500,000 — Standard</option>
-                  <option value="7500000">$7,500,000 — Comfortable</option>
-                  <option value="10000000">$10,000,000 — Big Roster</option>
+                  <option value="4000000">$4,000,000, Hard</option>
+                  <option value="5500000" selected>$5,500,000, Standard</option>
+                  <option value="7500000">$7,500,000, Comfortable</option>
+                  <option value="10000000">$10,000,000, Big Roster</option>
                 </select></div>
               <div><label>Bankruptcy floor</label>
                 <select id="olcBankruptcy">
-                  <option value="10000" selected>$10,000 — Standard</option>
-                  <option value="0">$0 — Only at fully broke</option>
-                  <option value="50000">$50,000 — Strict</option>
-                  <option value="100000">$100,000 — Brutal</option>
+                  <option value="10000" selected>$10,000, Standard</option>
+                  <option value="0">$0, Only at fully broke</option>
+                  <option value="50000">$50,000, Strict</option>
+                  <option value="100000">$100,000, Brutal</option>
                 </select></div>
               <div><label>Order</label>
                 <select id="olcFormat"><option value="snake" selected>Snake (1‑2‑3‑3‑2‑1)</option><option value="linear">Linear (1‑2‑3‑1‑2‑3)</option></select></div>
             </div>
             <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
               <button class="btn primary" id="olcCreateBtn" onclick="olCreate()">OPEN LOBBY ►</button>
-              <span class="muted" style="font-size:12.5px">Your lobby is public — anyone can join or spectate. Seats still open when you hit START become AI opponents.</span>
+              <span class="muted" style="font-size:13px">Your lobby is public, anyone can join or spectate. Seats still open when you hit START become AI opponents.</span>
             </div>
           </div>
-          <label style="margin-top:16px">Open &amp; live lobbies <span class="muted" style="font-size:11px;text-transform:none;letter-spacing:0">(updates live)</span></label>
+          <label style="margin-top:16px">Open &amp; live lobbies <span class="muted" style="font-size:12px;text-transform:none;letter-spacing:0">(updates live)</span></label>
           <div id="olList"><p class="muted" style="font-size:13.5px">Loading lobbies…</p></div>
         </div>
         <p class="muted" id="olBrowserMsg" style="font-size:13px;margin-top:10px"></p>
@@ -604,10 +627,10 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   <div id="lobby" class="hidden">
     <div class="panel lobby-wrap">
       <div class="panel-h">SET UP YOUR PRACTICE DRAFT</div>
-      <p class="intro">No stakes — draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster. After the mandatory rounds, drafting is <b>optional</b> — keep going as long as you can afford it, or hit <b>I'M DONE</b> to stop. Unspent money is yours; in a real season it carries into booking.</p>
+      <p class="intro">No stakes, draft against friends, the AI, or both. Up to 8 seats. Everyone gets the same starting budget and drafts from the full WCA Fire Pro roster. After the mandatory rounds, drafting is <b>optional</b>, keep going as long as you can afford it, or hit <b>I'M DONE</b> to stop. Unspent money is yours; in a real season it carries into booking.</p>
       <div class="row">
         <div>
-          <label>Seats (2–8)</label>
+          <label>Seats (2 to 8)</label>
           <select id="lobSeats" onchange="lobBuildSeats()">
             <option>2</option><option>3</option><option selected>4</option>
             <option>5</option><option>6</option><option>7</option><option>8</option>
@@ -623,10 +646,10 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
         <div>
           <label>Starting budget each</label>
           <select id="lobBudget" onchange="lobBudgetTier()">
-            <option value="4000000">$4,000,000 — Hard</option>
-            <option value="5500000" selected>$5,500,000 — Standard</option>
-            <option value="7500000">$7,500,000 — Comfortable</option>
-            <option value="10000000">$10,000,000 — Big Roster</option>
+            <option value="4000000">$4,000,000, Hard</option>
+            <option value="5500000" selected>$5,500,000, Standard</option>
+            <option value="7500000">$7,500,000, Comfortable</option>
+            <option value="10000000">$10,000,000, Big Roster</option>
             <option value="custom">Custom amount…</option>
           </select>
           <input id="lobBudgetCustom" type="number" step="50000" placeholder="5500000"
@@ -635,12 +658,12 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
         <div>
           <label>Bankruptcy floor</label>
           <select id="lobBankruptcy">
-            <option value="10000" selected>$10,000 — Standard (real rules)</option>
-            <option value="0">$0 — Only at fully broke</option>
-            <option value="50000">$50,000 — Strict</option>
-            <option value="100000">$100,000 — Brutal</option>
+            <option value="10000" selected>$10,000, Standard (real rules)</option>
+            <option value="0">$0, Only at fully broke</option>
+            <option value="50000">$50,000, Strict</option>
+            <option value="100000">$100,000, Brutal</option>
           </select>
-          <p class="muted" style="font-size:12px;margin:4px 0 0">Drop to or below this and you're eliminated — same as the real game.</p>
+          <p class="muted" style="font-size:13px;margin:4px 0 0">Drop to or below this and you're eliminated, same as the real game.</p>
         </div>
         <div>
           <label>Order</label>
@@ -650,7 +673,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
           </select>
         </div>
       </div>
-      <label style="margin-top:16px">Seats — name each, set Human or AI</label>
+      <label style="margin-top:16px">Seats, name each, set Human or AI</label>
       <div class="seats" id="lobSeatList"></div>
       <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn primary" onclick="lobStart()" id="lobStartBtn">START DRAFT ►</button>
@@ -720,7 +743,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   <div id="resultsView" class="hidden">
     <div class="res-wrap">
       <div class="panel">
-        <div class="panel-h">DRAFT COMPLETE — EVERYONE'S STABLE</div>
+        <div class="panel-h">DRAFT COMPLETE, EVERYONE'S STABLE</div>
         <p class="muted" style="font-size:14px;margin:0 0 12px">Download any single stable, or grab one image of the whole lobby to share and compare.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
           <button class="btn gold" onclick="dlAll()" id="dlAllBtn">📸 DOWNLOAD ALL (PNG)</button>
@@ -833,7 +856,7 @@ function lobBudgetTier(){
   else { inp.style.display='none'; }
 }
 function lobStart(){
-  if(!ROSTER.length){ toast('Roster is empty — nothing to draft.',true); return; }
+  if(!ROSTER.length){ toast('Roster is empty, nothing to draft.',true); return; }
   const n=parseInt(byId('lobSeats').value,10)||4;
   CFG.floor=Math.max(9, parseInt(byId('lobRounds').value,10)||9);
   CFG.format=byId('lobFormat').value;
@@ -867,7 +890,7 @@ function lobStart(){
   byId('lobby').classList.add('hidden');
   byId('draftView').classList.remove('hidden');
   PF=0;FF=0; rosRenderFilters();
-  chatPush('sys', null, 'Draft started — '+n+' seats, '+CFG.floor+' mandatory rounds, then optional. Bankruptcy floor is '+money(CFG.bankruptcy)+' (real-game rule): if your wallet drops to or below it during the season you\'re eliminated, so don\'t blow your whole bankroll drafting — you need money to book shows. Good luck.');
+  chatPush('sys', null, 'Draft started, '+n+' seats, '+CFG.floor+' mandatory rounds, then optional. Bankruptcy floor is '+money(CFG.bankruptcy)+' (real-game rule): if your wallet drops to or below it during the season you\'re eliminated, so don\'t blow your whole bankroll drafting, you need money to book shows. Good luck.');
   // first seat on the clock
   DRAFT.onClock = seatOrderForRound(1)[0];
   beginTurn(true);
@@ -895,11 +918,6 @@ function seatOrderForRound(round){
   let seq=activeSeatsForRound(round);
   if(CFG.format==='snake' && (round%2===0)) seq=seq.slice().reverse();
   return seq;
-}
-function draftIsOver(){
-  // over when no remaining round has anyone able to pick
-  return activeSeatsForRound(DRAFT.round).length===0 &&
-         activeSeatsForRound(DRAFT.round+1).length===0;
 }
 // move the clock to the next eligible seat; rolls rounds; ends the draft when done
 function advanceClock(){
@@ -940,7 +958,7 @@ function imDone(){
   const i=DRAFT.onClock; const s=SEATS[i];
   if(!s || s.ai) return;
   if(DRAFT.round<=CFG.floor){ toast('You must draft through the mandatory rounds first (round '+CFG.floor+').',true); return; }
-  if(!confirm('End your draft? You\'re done for good and won\'t pick again — but continuing is optional, you can keep building your stable if you\'d like. Unspent money stays yours.')) return;
+  if(!wcaTwice('End your draft? You\'re done for good and won\'t pick again, but continuing is optional, you can keep building your stable if you\'d like. Unspent money stays yours.')) return;
   passSeat(i);
   advanceClock();
 }
@@ -982,7 +1000,7 @@ function renderOrder(){
     const pct=target?Math.min(100,Math.round(DRAFT.made/target*100)):0;
     pb.querySelector('.fill').style.width=pct+'%';
     pb.querySelector('.lbl').textContent = DRAFT.round>CFG.floor
-      ? 'OPTIONAL ROUNDS — '+DRAFT.made+' PICKS'
+      ? 'OPTIONAL ROUNDS, '+DRAFT.made+' PICKS'
       : DRAFT.made+' / '+target+' MANDATORY PICKS';
   }
 }
@@ -996,7 +1014,7 @@ function renderCenter(){
     const optional = DRAFT.round>CFG.floor && seat && !seat.ai;
     host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
       (optional
-        ? 'OPTIONAL ROUND — PICK ANOTHER<br>WRESTLER, OR HIT <b>I\'M DONE</b><br>TO LOCK YOUR STABLE'
+        ? 'OPTIONAL ROUND, PICK ANOTHER<br>WRESTLER, OR HIT <b>I\'M DONE</b><br>TO LOCK YOUR STABLE'
         : 'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
     if(optional){ cr.style.display='flex'; byId('confirmBtn').style.display='none'; updateDoneBtn(); }
     else { cr.style.display='none'; }
@@ -1009,13 +1027,13 @@ function renderCenter(){
   const ff=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
   const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
   const rows=[
-    ['FRANCHISE', w.origin||'—'],
-    ['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')||'—'],
-    ['COUNTRY', w.country||'—'],
-    ['DOB', w.dob||'—'],
-    ['FINISHER', w.finisher||'—'],
-    ['SIGNATURE', sigs[0]||'—'],
-    ['SIGNATURE 2', sigs[1]||'—'],
+    ['FRANCHISE', w.origin||''],
+    ['HT / WT', [w.height,w.weight].filter(Boolean).join(' / ')||''],
+    ['COUNTRY', w.country||''],
+    ['DOB', w.dob||''],
+    ['FINISHER', w.finisher||''],
+    ['SIGNATURE', sigs[0]||''],
+    ['SIGNATURE 2', sigs[1]||''],
   ];
   const seat=SEATS[DRAFT.onClock];
   const afford=w._cost<=seat.budget;
@@ -1042,7 +1060,7 @@ function renderCenter(){
     '<div class="cost-zone">'+
       '<div class="cost-row"><span class="cost-lbl">DRAFT COST</span><span class="cost-val'+(afford?'':' bad')+'">'+money(w._cost)+'</span></div>'+
       '<div class="cost-bar"><div class="cost-fill'+(afford?'':' bad')+'" style="width:'+fillPct+'%"></div></div>'+
-      '<div class="cost-note">'+(afford?(money(seat.budget-w._cost)+' would remain in '+esc(seat.name)+'\u2019s budget'):'Over budget — '+esc(seat.name)+' can\'t afford this pick')+'</div>'+
+      '<div class="cost-note">'+(afford?(money(seat.budget-w._cost)+' would remain in '+esc(seat.name)+'\u2019s budget'):'Over budget, '+esc(seat.name)+' can\'t afford this pick')+'</div>'+
     '</div>';
   cr.style.display='flex';
   const btn=byId('confirmBtn');
@@ -1074,9 +1092,9 @@ function confirmPick(){
   // confirm — but the warning teaches the real-game consequence.
   const after = seat.budget - SEL._cost;
   if(after <= CFG.bankruptcy){
-    if(!confirm('⚠ HEADS UP — REAL-GAME RULE\n\nDrafting '+SEL.name+' for '+money(SEL._cost)+' leaves you with '+money(after)+', which is AT OR BELOW the bankruptcy floor of '+money(CFG.bankruptcy)+'.\n\nIn the real season this would ELIMINATE you (no buy-back). Draft anyway for practice?')) return;
+    if(!wcaTwice('⚠ HEADS UP, REAL-GAME RULE\n\nDrafting '+SEL.name+' for '+money(SEL._cost)+' leaves you with '+money(after)+', which is AT OR BELOW the bankruptcy floor of '+money(CFG.bankruptcy)+'.\n\nIn the real season this would ELIMINATE you (no buy-back). Draft anyway for practice?')) return;
   } else if(after < CFG.reserve){
-    if(!confirm('⚠ Low on funds\n\nThis leaves you '+money(after)+'. In the real season your draft money also pays to BOOK shows (matches cost money), so a thin wallet can get you eliminated mid-season. A safer cushion is around '+money(CFG.reserve)+'+.\n\nDraft '+SEL.name+' anyway?')) return;
+    if(!wcaTwice('⚠ Low on funds\n\nThis leaves you '+money(after)+'. In the real season your draft money also pays to BOOK shows (matches cost money), so a thin wallet can get you eliminated mid-season. A safer cushion is around '+money(CFG.reserve)+'+.\n\nDraft '+SEL.name+' anyway?')) return;
   }
   const picked=SEL;
   commitPick(picked);
@@ -1284,7 +1302,7 @@ function rosFiltered(){
 function promoChip(w){
   if(w.promotion_id==null) return 'FA';
   const nm=((PROMOS.find(p=>p.id===w.promotion_id)||{}).name||'').trim();
-  if(!nm) return '—';
+  if(!nm) return '';
   const words=nm.split(/\s+/);
   if(words.length>1) return words.map(x=>x.charAt(0)).join('').slice(0,4).toUpperCase();
   return nm.slice(0,4).toUpperCase();
@@ -1358,7 +1376,7 @@ function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo
 function headerBar(ctx,W,title){
   ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,90);
   ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
-  ctx.fillText('WCA FIRE PRO — PRACTICE DRAFT', 24, 40);
+  ctx.fillText('WCA FIRE PRO, PRACTICE DRAFT', 24, 40);
   ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
   ctx.fillText(title||((CFG.format==='snake'?'Snake':'Linear')+' · min '+CFG.floor+' rounds · '+money(CFG.budget)+' each'), 24, 66);
 }
@@ -1593,10 +1611,10 @@ async function olApi(action, payload){
 }
 function olFriendly(msg){
   const M={ NOT_SIGNED_IN:'Please sign in first.', LOBBIES_DISABLED:'Online lobbies are disabled by the admin.',
-    ALREADY_HOSTING:'You already have a lobby open — close it first.', LOBBY_NOT_OPEN:'That lobby already started.',
-    LOBBY_FULL:'That lobby is full — you can spectate instead.', NOT_HOST:'Only the host can do that.',
+    ALREADY_HOSTING:'You already have a lobby open, close it first.', LOBBY_NOT_OPEN:'That lobby already started.',
+    LOBBY_FULL:'That lobby is full, you can spectate instead.', NOT_HOST:'Only the host can do that.',
     NO_HUMANS:'You need at least one human in the lobby.', ROSTER_TOO_SMALL:'Not enough wrestlers in the roster for that many seats × rounds.',
-    NOT_LIVE:'The draft isn\u2019t live.', NOT_SEATED:'You\u2019re spectating — no picking!', NOT_YOUR_TURN:'It\u2019s not your turn.',
+    NOT_LIVE:'The draft isn\u2019t live.', NOT_SEATED:'You\u2019re spectating, no picking!', NOT_YOUR_TURN:'It\u2019s not your turn.',
     ALREADY_DRAFTED:'Already drafted.', INSUFFICIENT_FUNDS:'You can\u2019t afford that pick.', FLOOR_NOT_MET:'Finish the mandatory rounds first.' };
   return M[msg]||msg;
 }
@@ -1620,7 +1638,7 @@ async function olLoadBrowser(){
       const { data: pl } = await sb.from('fp_lobby_players').select('lobby_id,is_ai').in('lobby_id',ids);
       (pl||[]).forEach(p=>{ if(!counts[p.lobby_id])counts[p.lobby_id]={h:0,a:0}; counts[p.lobby_id][p.is_ai?'a':'h']++; });
     }
-    if(!(lobbies||[]).length){ host.innerHTML='<p class="muted" style="font-size:13.5px">No lobbies right now — host one and it shows up here for everyone instantly.</p>'; return; }
+    if(!(lobbies||[]).length){ host.innerHTML='<p class="muted" style="font-size:13.5px">No lobbies right now, host one and it shows up here for everyone instantly.</p>'; return; }
     host.innerHTML=(lobbies||[]).map(l=>{
       const c=counts[l.id]||{h:0,a:0};
       const open=l.status==='open';
@@ -1635,7 +1653,7 @@ async function olLoadBrowser(){
         '<button class="btn sm'+(open?' ghost':' gold')+'" onclick="olSpectate('+l.id+')">👁 WATCH</button>'+
         '</div>';
     }).join('');
-  }catch(e){ host.innerHTML='<p class="muted" style="font-size:13.5px">Could not load lobbies — run the lobby SQL files first.</p>'; }
+  }catch(e){ host.innerHTML='<p class="muted" style="font-size:13.5px">Could not load lobbies, run the lobby SQL files first.</p>'; }
 }
 function olToggleCreate(){ byId('olCreateForm').classList.toggle('hidden'); }
 async function olCreate(){
@@ -1647,7 +1665,7 @@ async function olCreate(){
       floor:parseInt(byId('olcRounds').value,10), budget:parseInt(byId('olcBudget').value,10),
       bankruptcy:parseInt(byId('olcBankruptcy').value,10), format:byId('olcFormat').value
     });
-    toast('Lobby is open — waiting for challengers.');
+    toast('Lobby is open, waiting for challengers.');
     olEnter(r.lobby_id);
   }catch(e){
     if((e.message||'')==='ALREADY_HOSTING'){ toast(olFriendly('ALREADY_HOSTING'),true); }
@@ -1716,14 +1734,14 @@ async function olLeave(){
   if(!OL.lobby) { chooseOnline(); return; }
   const live=OL.lobby.status==='drafting';
   if(!OL.spectate && OL.me && OL.players.some(p=>p.auth_id===OL.me.id)){
-    if(live && !confirm('Leave mid-draft? The AI takes over your stable and you can\u2019t reclaim the seat.')) return;
+    if(live && !wcaTwice('Leave mid-draft? The AI takes over your stable and you can\u2019t reclaim the seat.')) return;
     try{ await olApi('leave',{lobby_id:OL.lobby.id}); }catch(_){}
   }
   chooseOnline();
 }
 async function olClose(){
   if(!OL.lobby) return;
-  if(!confirm('Close this lobby for everyone?')) return;
+  if(!wcaTwice('Close this lobby for everyone?')) return;
   try{ await olApi('close',{lobby_id:OL.lobby.id}); toast('Lobby closed.'); chooseOnline(); }
   catch(e){ toast(olFriendly(e.message||'failed'),true); }
 }
@@ -1755,7 +1773,7 @@ function olIsMyTurn(){ const s=olMySeat(); return !!(s && OL.lobby && OL.lobby.s
 
 // ===== room render =====
 function olRenderRoom(){
-  byId('olRoomTitle').textContent='LOBBY — '+(OL.lobby.name||'').toUpperCase();
+  byId('olRoomTitle').textContent='LOBBY, '+(OL.lobby.name||'').toUpperCase();
   byId('olRoomInfo').innerHTML='Host: <b>'+esc(OL.lobby.host_name)+'</b> · '+OL.players.length+'/'+OL.lobby.seats+' seats claimed · '+
     money(OL.lobby.budget)+' each · '+OL.lobby.floor_rounds+' mandatory rounds · '+OL.lobby.clock_seconds+'s pick clock.'+
     (OL.spectate?' <span class="olspec">SPECTATING</span>':'')+
@@ -1827,7 +1845,7 @@ function olRenderNow(){
   const floor=OL.lobby.floor_rounds, curRound=OL.lobby.round||1;
   box.innerHTML=
     '<div class="oc-tag'+(seat.is_ai?' ai':'')+'">'+(seat.is_ai?'<span class="spinner"></span> AI PICKING…':(mine?'● YOUR PICK':'● PICKING NOW'))+
-      '<span class="ol-clock" id="olClk">—</span></div>'+
+      '<span class="ol-clock" id="olClk"></span></div>'+
     '<div class="oc-grid">'+
       '<div class="oc-cell"><span class="oc-k">ROUND</span><span class="oc-v">'+curRound+'<i>'+(curRound>floor?' (opt)':'/'+floor)+'</i></span></div>'+
       '<div class="oc-cell"><span class="oc-k">PICKS</span><span class="oc-v">'+(OL.lobby.picks_made||0)+'</span></div>'+
@@ -1843,7 +1861,7 @@ function olRenderNow(){
 }
 function olRenderClock(){
   const el=byId('olClk'); if(!el||!OL.lobby) return;
-  if(!OL.lobby.deadline || OL.lobby.status!=='drafting'){ el.textContent='—'; return; }
+  if(!OL.lobby.deadline || OL.lobby.status!=='drafting'){ el.textContent=''; return; }
   const left=Math.max(0, Math.ceil((new Date(OL.lobby.deadline).getTime()-Date.now())/1000));
   el.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
   el.classList.toggle('low', left<=10);
@@ -1876,7 +1894,7 @@ function olRenderOrder(){
     const target=OL.players.length*OL.lobby.floor_rounds;
     const made=OL.picks.filter(p=>p.wrestler_id!=null).length;
     pb.querySelector('.fill').style.width=(target?Math.min(100,Math.round(made/target*100)):0)+'%';
-    pb.querySelector('.lbl').textContent=(OL.lobby.round>OL.lobby.floor_rounds)?('OPTIONAL ROUNDS — '+made+' PICKS'):(made+' / '+target+' MANDATORY PICKS');
+    pb.querySelector('.lbl').textContent=(OL.lobby.round>OL.lobby.floor_rounds)?('OPTIONAL ROUNDS, '+made+' PICKS'):(made+' / '+target+' MANDATORY PICKS');
   }
 }
 function olSelect(id){
@@ -1890,8 +1908,8 @@ function olRenderCenter(){
   const optionalMine=olIsMyTurn() && (OL.lobby.round||1)>floor;
   if(!OL.sel){
     host.innerHTML='<div class="cs-empty"><span class="big">▼ SELECT A CHALLENGER</span>'+
-      (optionalMine?'OPTIONAL ROUND — PICK ANOTHER<br>WRESTLER, OR HIT <b>I\u2019M DONE</b><br>TO LOCK YOUR STABLE'
-      :olIsMyTurn()?'YOU\u2019RE ON THE CLOCK —<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
+      (optionalMine?'OPTIONAL ROUND, PICK ANOTHER<br>WRESTLER, OR HIT <b>I\u2019M DONE</b><br>TO LOCK YOUR STABLE'
+      :olIsMyTurn()?'YOU\u2019RE ON THE CLOCK,<br>CLICK A WRESTLER ON<br>THE RIGHT TO PICK'
       :'CLICK A WRESTLER ON<br>THE RIGHT TO SCOUT<br>THEIR INFO &amp; COST')+'</div>';
     if(optionalMine){ cr.style.display='flex'; byId('olConfirmBtn').style.display='none'; olUpdateDoneBtn(); }
     else{ cr.style.display='none'; }
@@ -1903,7 +1921,7 @@ function olRenderCenter(){
   const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
   const ffn=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
   const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
-  const rows=[['FRANCHISE',w.origin||'—'],['HT / WT',[w.height,w.weight].filter(Boolean).join(' / ')||'—'],['COUNTRY',w.country||'—'],['DOB',w.dob||'—'],['FINISHER',w.finisher||'—'],['SIGNATURE',sigs[0]||'—'],['SIGNATURE 2',sigs[1]||'—']];
+  const rows=[['FRANCHISE',w.origin||''],['HT / WT',[w.height,w.weight].filter(Boolean).join(' / ')||''],['COUNTRY',w.country||''],['DOB',w.dob||''],['FINISHER',w.finisher||''],['SIGNATURE',sigs[0]||''],['SIGNATURE 2',sigs[1]||'']];
   const my=olMySeat();
   const myBudget=my?Number(my.wallet):Number(OL.lobby.budget);
   const afford=w._cost<=myBudget;
@@ -1921,7 +1939,7 @@ function olRenderCenter(){
     '<div class="cost-zone">'+
       '<div class="cost-row"><span class="cost-lbl">DRAFT COST</span><span class="cost-val'+(afford?'':' bad')+'">'+money(w._cost)+'</span></div>'+
       '<div class="cost-bar"><div class="cost-fill'+(afford?'':' bad')+'" style="width:'+fillPct+'%"></div></div>'+
-      '<div class="cost-note">'+(afford?(money(myBudget-w._cost)+' would remain in your wallet'):'Over budget — you can\u2019t afford this pick')+'</div>'+
+      '<div class="cost-note">'+(afford?(money(myBudget-w._cost)+' would remain in your wallet'):'Over budget, you can\u2019t afford this pick')+'</div>'+
     '</div>';
   cr.style.display='flex';
   const btn=byId('olConfirmBtn');
@@ -1946,9 +1964,9 @@ async function olConfirmPick(){
   const after=Number(my.wallet)-w._cost;
   const reserve=Number(OL.lobby.reserve)||250000;
   if(after<=Number(OL.lobby.bankruptcy)){
-    if(!confirm('⚠ HEADS UP — REAL-GAME RULE\n\nDrafting '+w.name+' for '+money(w._cost)+' leaves you '+money(after)+', AT OR BELOW the bankruptcy floor of '+money(OL.lobby.bankruptcy)+'.\n\nIn the real season this would ELIMINATE you. Draft anyway for practice?')) return;
+    if(!wcaTwice('⚠ HEADS UP, REAL-GAME RULE\n\nDrafting '+w.name+' for '+money(w._cost)+' leaves you '+money(after)+', AT OR BELOW the bankruptcy floor of '+money(OL.lobby.bankruptcy)+'.\n\nIn the real season this would ELIMINATE you. Draft anyway for practice?')) return;
   }else if(after<reserve){
-    if(!confirm('⚠ Low on funds\n\nThis leaves you '+money(after)+'. Draft money also books shows all season — a safer cushion is around '+money(reserve)+'+.\n\nDraft '+w.name+' anyway?')) return;
+    if(!wcaTwice('⚠ Low on funds\n\nThis leaves you '+money(after)+'. Draft money also books shows all season, a safer cushion is around '+money(reserve)+'+.\n\nDraft '+w.name+' anyway?')) return;
   }
   byId('olConfirmBtn').disabled=true;
   try{ await olApi('pick',{lobby_id:OL.lobby.id, wrestler_id:w.id}); OL.sel=null; }
@@ -1957,7 +1975,7 @@ async function olConfirmPick(){
 }
 async function olImDone(){
   if(!olIsMyTurn()) return;
-  if(!confirm('End your draft? You\u2019re done for good this draft — unspent money stays banked.')) return;
+  if(!wcaTwice('End your draft? You\u2019re done for good this draft, unspent money stays banked.')) return;
   try{ await olApi('pass',{lobby_id:OL.lobby.id}); OL.sel=null; }
   catch(e){ toast(olFriendly(e.message||'failed'),true); }
 }
@@ -2021,7 +2039,7 @@ function olFinish(){
   }));
   olShow('resultsView');
   renderResults();
-  toast('Draft complete — check the final stables!');
+  toast('Draft complete, check the final stables!');
 }
 </script>
 
