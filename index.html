@@ -3020,7 +3020,26 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .champ-hist-sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
   .chs-block{background:linear-gradient(160deg,var(--marble,#141b26),rgba(0,0,0,.22));border:1px solid var(--line,#22303f);border-radius:12px;padding:14px 16px;}
   .chs-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-  .chs-head .cn-belt,.chs-head .cn-belt-img{width:28px;height:28px;margin:0;font-size:15px;}
+  .chs-head .cn-belt{width:28px;height:28px;margin:0;font-size:15px;}
+  /* belts are wide, so the history header gets a wide box instead of a 28px square */
+  .chs-head .cn-belt-img{width:84px;height:44px;margin:0;flex:0 0 84px;}
+  /* ===== BELTS ON DISPLAY (Nov 2026) =====
+     Wherever a title is shown as its own card (WCA Champions, promotion
+     Champions, Showdown HEAT and OVERDRIVE), the belt is the centerpiece.
+     The PNG fills its stage and scales up, so the plate design reads.
+     List rows keep their small belt icons. */
+  .champ-now{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+  @media(max-width:700px){ .champ-now{grid-template-columns:1fr;} }
+  .cn-stage{position:relative;height:210px;margin:-2px -2px 14px;display:flex;align-items:center;justify-content:center;
+    border-radius:10px;background:radial-gradient(58% 62% at 50% 54%,rgba(var(--gold-rgb),.20),transparent 72%);}
+  .cn-belt-big{display:block;width:100%;height:100%;object-fit:contain;
+    filter:drop-shadow(0 12px 18px rgba(0,0,0,.8)) drop-shadow(0 0 24px rgba(var(--gold-rgb),.22));transition:transform .25s ease;}
+  @media(hover:hover){ .cn-card:hover .cn-belt-big{transform:scale(1.035);} }
+  .cn-stage-ico{font-size:84px;color:var(--au,var(--gold));opacity:.45;}
+  .cn-card.vacant .cn-belt-big{filter:grayscale(.65) brightness(.8) drop-shadow(0 12px 18px rgba(0,0,0,.8));opacity:.7;}
+  .champ-now .cn-name{font-size:26px;}
+  .champ-now .cn-div{font-size:15px;letter-spacing:2px;}
+  @media(max-width:560px){ .cn-stage{height:160px;} .champ-now .cn-name{font-size:23px;} }
   .chs-title{font-family:var(--font-display);font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:#d8d4ca;flex:1;}
   .chs-toggle{background:none;border:1px solid var(--au,var(--gold));color:var(--au,var(--gold));border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;font-family:var(--font-body);}
   .chs-toggle:hover{background:rgba(var(--gold-rgb),.12);}
@@ -6863,6 +6882,28 @@ details.ed-pane[hidden]{display:none !important;}
 .pm-champs-s .pm-champ{padding:10px 40px 10px 14px; border-top-width:3px;}
 .pm-champs-s .pm-champ .n{font-size:19px;}
 .pm-champs-s .pm-champ-belt{font-size:20px; top:10px; right:12px;}
+/* ---- belt pictures on display (Nov 2026). A title card with a belt picture
+   puts the belt front and center and scales it up; list rows stay small. ---- */
+.pm-champs:has(.has-belt):not(.pmn-shelf){grid-template-columns:repeat(auto-fill, minmax(min(100%,320px),1fr)); gap:14px;}
+.pm-champ.has-belt{padding:14px 16px 16px; align-items:center; text-align:center;}
+.pm-belt-stage{display:flex; align-items:center; justify-content:center; width:100%; height:180px; margin:0 0 10px; border-radius:10px;
+  background:radial-gradient(58% 62% at 50% 54%, color-mix(in srgb, var(--pc, #e9b949) 26%, transparent), transparent 72%);}
+.pm-belt-stage img{display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 12px 18px rgba(0,0,0,.8)); transition:transform .25s ease;}
+.pm-belt-stage.broken{display:none;}
+@media(hover:hover){ .pm-champ.has-belt:hover .pm-belt-stage img{transform:scale(1.035);} }
+.pm-champ.vac .pm-belt-stage img{filter:grayscale(.65) brightness(.8) drop-shadow(0 12px 18px rgba(0,0,0,.8)); opacity:.7;}
+.pm-champs-s .pm-champ.has-belt{padding:10px 12px 12px;}
+.pm-champs-s .pm-belt-stage{height:120px; margin-bottom:8px;}
+.pm-belt-stage.pm-belt-hero{height:230px; margin:0 0 14px;}
+.pm-belt-stage.pm-belt-brand{height:100px; margin:0 0 6px;}
+.br-champs .br-champ-belt{flex-direction:column; align-items:stretch; text-align:center; gap:2px; padding:4px 0;}
+.pm-rk-beltimg{height:22px; width:auto; max-width:64px; object-fit:contain; vertical-align:middle; filter:drop-shadow(0 1px 3px rgba(0,0,0,.6));}
+.ed-titem-belt{width:72px; height:40px; flex:0 0 72px; object-fit:contain;}
+.ed-beltlook{margin:10px 0 6px; max-width:400px;}
+.ed-beltlook:empty{display:none;}
+.ed-beltlook-h{font-size:15px; color:var(--muted); margin-bottom:6px;}
+.ed-beltlook .ed-beltlook-card{cursor:default; margin-bottom:8px;}
+@media(max-width:560px){ .pm-belt-stage{height:150px;} .pm-belt-stage.pm-belt-hero{height:180px;} }
 .pm-thist{border:1px solid var(--line); border-left:4px solid var(--pc); border-radius:14px; background:var(--panel); padding:16px 18px; scroll-margin-top:90px;}
 .pm-thist-h{display:flex; gap:12px; align-items:center; margin-bottom:10px;}
 .pm-thist-h > i{font-size:30px; color:var(--pc);}
@@ -11993,9 +12034,14 @@ async function loadChampions(){
 
   // current champion of a division = the (last) reign with a blank "lost".
   const currentOf=div=>{ const l=byDiv[div]||[]; for(let i=l.length-1;i>=0;i--){ if(chIsCurrent(l[i])) return l[i]; } return null; };
-  const beltMark=div=> (typeof BELTS!=='undefined'&&BELTS[div]&&BELTS[div].image_url)
-    ? `<img class="cn-belt-img" src="${esc(BELTS[div].image_url)}" alt="">`
-    : `<span class="cn-belt"><i class="ti ti-trophy"></i></span>`;
+  // big = the belt on display at the top of a champion card; otherwise the small header icon
+  const beltMark=(div,big)=>{
+    const url=(typeof BELTS!=='undefined'&&BELTS[div]&&BELTS[div].image_url)||'';
+    if(big) return `<div class="cn-stage">${url
+      ? `<img class="cn-belt-big" src="${esc(url)}" alt="${escAttr((CH_DIV_LABEL[div]||div)+' championship belt')}" loading="lazy">`
+      : `<i class="ti ti-trophy cn-stage-ico" aria-hidden="true"></i>`}</div>`;
+    return url ? `<img class="cn-belt-img" src="${esc(url)}" alt="">` : `<span class="cn-belt"><i class="ti ti-trophy"></i></span>`;
+  };
 
   // ---- CURRENT champions row (cards) ----
   let html='<div class="champ-now">';
@@ -12003,12 +12049,12 @@ async function loadChampions(){
     const cur=currentOf(div); const label=CH_DIV_LABEL[div]||div;
     if(!cur){
       const note=div==='Undisputed'?'Vacant':'Vacant';
-      html+=`<div class="cn-card vacant">${beltMark(div)}<div class="cn-div">${esc(label)}</div><div class="cn-name">${note}</div></div>`;
+      html+=`<div class="cn-card vacant">${beltMark(div,true)}<div class="cn-div">${esc(label)}</div><div class="cn-name">${note}</div></div>`;
       return;
     }
     const since=cur.won_at||chDateShort(cur.won_date);
     const defs=(cur.defenses>0)?`<div class="cn-def">${cur.defenses} defense${cur.defenses==1?'':'s'}</div>`:'';
-    html+=`<div class="cn-card">${beltMark(div)}<div class="cn-div">${esc(label)}</div>
+    html+=`<div class="cn-card">${beltMark(div,true)}<div class="cn-div">${esc(label)}</div>
       <div class="cn-name">${div==='Faction'?esc(cur.champion):xlinkName(cur.champion)}</div>${since?`<div class="cn-since">since ${esc(since)}</div>`:''}${defs}</div>`;
   });
   html+='</div>';
@@ -23474,7 +23520,9 @@ function pmRankSections(D){
   return secs;
 }
 function pmRankHTML(secs, pg, click){
-  const belt = e => e.held.length ? `<span class="pm-rk-belt"><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(e.held.map(h => h.t.name).join(', '))}</span>` : '';
+  // list views keep the belt small: a little picture of it when there is one, the trophy when not
+  const beltIco = e => { const h = e.held.find(x => pmBeltUrl(x.t)); return h ? `<img class="pm-rk-beltimg" src="${escAttr(pmBeltUrl(h.t))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<i class="ti ti-trophy" aria-hidden="true"></i>'; };
+  const belt = e => e.held.length ? `<span class="pm-rk-belt">${beltIco(e)} ${esc(e.held.map(h => h.t.name).join(', '))}</span>` : '';
   const ini = e => e.kind === 'person' ? pmFace(e.x, 'pm-rk-ini') : `<span class="pm-rk-ini">${esc(pmInit(e.x.name))}</span>`;
   const rk = e => `<span class="pm-rk-no${e.rank === 'C' ? ' c' : ''}" title="${e.rank === 'C' ? 'Champion' : 'Ranked ' + e.rank}">${esc(e.rank || '')}</span>`;
   return secs.map(s => {
@@ -23499,14 +23547,21 @@ function pmRankNote(pg){
 }
 
 /* ---------- public page: Champions ---------- */
+// the belt picture a promotion gave this championship ('' when none)
+function pmBeltUrl(t){ const u = String((t && t.image_url) || '').trim(); return /^https:\/\/\S+$/i.test(u) ? u : ''; }
+// the belt on display: fills its stage and scales up so the design shows
+function pmBeltStage(url, name, cls){
+  return `<span class="pm-belt-stage${cls ? ' ' + cls : ''}"><img src="${escAttr(url)}" alt="${escAttr((name || 'Championship') + ' belt')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add('broken')"></span>`;
+}
 function pmChampCard(D, t, small){
   const r = pmChampOf(D.reigns, t.id), dv = (D.cats || []).find(c => String(c.id) === String(t.division_id));
   const days = r ? pmDays(r.won_on) : null;
   const sub = r ? [r.won_on ? 'Since ' + fmtDate(r.won_on) : '', r.won_at || '', days != null ? days + (days === 1 ? ' day' : ' days') : ''].filter(Boolean).join(' · ')
     : 'No one holds it right now';
   const on = PM.pub && String(PM.pub.tsel) === String(t.id) && PM.pub.tab === 'champions';
-  return `<button type="button" class="pm-champ${r ? '' : ' vac'}${small ? ' sm' : ''}${on ? ' on' : ''}" style="--pc:${pmTitleColor(t, D.cats)}" onclick="pmTitleOpen(${Number(t.id)})">
-    <i class="ti ti-trophy pm-champ-belt" aria-hidden="true"></i>
+  const img = pmBeltUrl(t);
+  return `<button type="button" class="pm-champ${r ? '' : ' vac'}${small ? ' sm' : ''}${on ? ' on' : ''}${img ? ' has-belt' : ''}" style="--pc:${pmTitleColor(t, D.cats)}" onclick="pmTitleOpen(${Number(t.id)})">
+    ${img ? pmBeltStage(img, t.name) : '<i class="ti ti-trophy pm-champ-belt" aria-hidden="true"></i>'}
     <span class="t">${esc(t.name)}</span><span class="n">${esc(r ? r.holder_name : 'Vacant')}</span>
     <span class="d">${esc(small ? (dv ? dv.name : '') : sub)}</span></button>`;
 }
@@ -23532,7 +23587,8 @@ function pmChampsDraw(){
   const rs = pmReignsFor(P.reigns, t.id);
   const when = (d, at) => [d ? esc(fmtDate(d)) : '', at ? `<small>${esc(at)}</small>` : ''].filter(Boolean).join('');
   box.innerHTML = `<section class="pm-thist" style="--pc:${pmTitleColor(t, P.cats)}">
-    <div class="pm-thist-h"><i class="ti ti-trophy" aria-hidden="true"></i><div><b>${esc(t.name)}</b><span>${dv ? esc(dv.name) : 'Open to anyone'} · ${rs.length} ${rs.length === 1 ? 'reign' : 'reigns'}</span></div></div>
+    ${pmBeltUrl(t) ? pmBeltStage(pmBeltUrl(t), t.name, 'pm-belt-hero') : ''}
+    <div class="pm-thist-h">${pmBeltUrl(t) ? '' : '<i class="ti ti-trophy" aria-hidden="true"></i>'}<div><b>${esc(t.name)}</b><span>${dv ? esc(dv.name) : 'Open to anyone'} · ${rs.length} ${rs.length === 1 ? 'reign' : 'reigns'}</span></div></div>
     ${rs.length ? `<div class="pm-histwrap"><table class="pm-hist"><thead><tr><th scope="col">Champion</th><th scope="col">Won</th><th scope="col">Lost</th><th scope="col">Days</th></tr></thead><tbody>
       ${rs.map(r => { const open = pmReignOpen(r), d = pmDays(r.won_on, open ? null : r.lost_on);
         return `<tr${open ? ' class="cur"' : ''}><td><b>${esc(r.holder_name)}</b>${open ? ' <span class="pm-hist-now">Champion now</span>' : ''}${r.note ? `<small class="pm-hist-note">${esc(r.note)}</small>` : ''}</td>
@@ -23845,7 +23901,7 @@ function mpDrawTitles(){
   const box = pmEl('mp-titlelist'); if(!box) return;
   box.innerHTML = PM.titles.length ? `<div class="ed-tlist">${PM.titles.map((t, i) => { const r = pmChampOf(PM.reigns, t.id), dv = mpCatOf(t.division_id);
     return `<div class="ed-titem${String(PM.titleId) === String(t.id) ? ' on' : ''}" style="--pc:${mpTitleColor(t)}">
-      <i class="ti ti-trophy" aria-hidden="true"></i>
+      ${pmBeltUrl(t) ? `<img class="ed-titem-belt" src="${escAttr(pmBeltUrl(t))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<i class="ti ti-trophy" aria-hidden="true"></i>'}
       <div class="ed-titem-t"><b>${esc(t.name)}</b><small>${esc(dv ? dv.name : 'No division')}</small><span>${r ? 'Champion: <em>' + esc(r.holder_name) + '</em>' : 'Vacant'}</span></div>
       <div class="ed-titem-a">
         <button type="button" class="spc-mini" aria-label="Move up" onclick="mpMoveTitle(${i},-1)"${i === 0 ? ' disabled' : ''}>▲</button>
@@ -23902,6 +23958,12 @@ function mpTitleForm(id){
       <div><label for="mpt_div">Division</label><select id="mpt_div">${PM.cats.map(c => `<option value="${Number(c.id)}"${t ? (String(c.id) === String(t.division_id) ? ' selected' : '') : ''}>${esc(c.name)}</option>`).join('')}<option value=""${t && t.division_id == null ? ' selected' : ''}>No division (open to anyone)</option></select></div>
     </div>
     <label>Color <span class="pm-opt">(leave it to use the division's color)</span></label>${pmColorWidget('mpt_color', t ? t.color || '' : '', 'Same as division')}
+    <label for="mpt_img">Belt picture <span class="pm-opt">(optional, a PNG cut out with no background looks best)</span></label>
+    <div class="pm-logoline">
+      <input id="mpt_img" value="${escAttr(t ? t.image_url || '' : '')}" placeholder="Paste a link to the belt picture (https://…)" oninput="mpBeltLook()">
+      <label class="spc-mini pm-upbtn">Upload<input type="file" accept="image/png,image/webp,image/*" onchange="mpUploadBelt(this)" hidden></label>
+    </div>
+    <div class="ed-beltlook" id="mpt_beltlook" aria-live="polite"></div>
     <div class="ed-champnow">
       <div class="ed-sub-h"><i class="ti ti-trophy" aria-hidden="true"></i> Champion now</div>
       <div class="pm-g3">
@@ -23919,6 +23981,39 @@ function mpTitleForm(id){
       <p class="pm-small pm-dim">Every line can be changed. Fix a name, a show or a date, add a note, and press Save line. A line with no Lost at and no Date lost is the champion now.</p>
       <div id="mp-reigns"></div></div>` : ''}`;
   mpDrawReigns();
+  mpBeltLook();
+  const nm = pmEl('mpt_name'), cl = pmEl('mpt_color');
+  if(nm) nm.addEventListener('input', mpBeltLook);
+  if(cl) cl.addEventListener('input', mpBeltLook);
+}
+// live preview of the belt the way fans see it on the Champions tab
+function mpBeltLook(){
+  const box = pmEl('mpt_beltlook'); if(!box) return;
+  const url = pmBeltUrl({ image_url:(pmEl('mpt_img') || {}).value });
+  const name = ((pmEl('mpt_name') || {}).value || '').trim() || 'Your championship';
+  const t = PM.titles.find(x => String(x.id) === String(PM.titleId));
+  const r = t ? pmChampOf(PM.reigns, t.id) : null;
+  const col = pmColor((pmEl('mpt_color') || {}).value, t ? mpTitleColor(t) : '#e9b949');
+  box.innerHTML = url
+    ? `<div class="ed-beltlook-h">How fans see it on your Champions tab</div>
+       <div class="pm-champ has-belt ed-beltlook-card" style="--pc:${col}">${pmBeltStage((typeof SL_LOCAL_PREVIEW !== 'undefined' && SL_LOCAL_PREVIEW[url]) || url, name)}
+         <span class="t">${esc(name)}</span><span class="n">${esc(r ? r.holder_name : 'Vacant')}</span></div>
+       <button type="button" class="spc-mini" onclick="const i=pmEl('mpt_img');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))">Remove belt picture</button>`
+    : '';
+}
+async function mpUploadBelt(input){
+  const f = input.files && input.files[0]; input.value = '';
+  if(!f) return;
+  mpMsg('mpt_msg', 'Uploading the belt…', true);
+  try{
+    let up;
+    // each promotion's belts go in its own folder; if the media function doesn't take
+    // that folder yet, it lands in the shared promotions folder instead
+    try{ [up] = await wcaMediaUpload([f], 'promotions', PM.curId ? { promotion_id:Number(PM.curId), kind:'belts' } : null); }
+    catch(e1){ if(e1.missing || !PM.curId) throw e1; [up] = await wcaMediaUpload([f], 'promotions'); }
+    const el = pmEl('mpt_img'); if(el){ el.value = up.url; el.dispatchEvent(new Event('input', { bubbles:true })); }
+    mpMsg('mpt_msg', 'Belt uploaded ✓ Press Save championship to keep it.', true);
+  }catch(e){ mpMsg('mpt_msg', 'Upload failed: ' + e.message, false); }
 }
 function mpHolderPick(sel){
   const t = PM.titles.find(x => String(x.id) === String(PM.titleId)), r = t ? pmChampOf(PM.reigns, t.id) : null;
@@ -23936,7 +24031,12 @@ async function mpTitleSave(){
   const name = (pmEl('mpt_name').value || '').trim();
   if(!name){ mpMsg('mpt_msg', 'Give the championship a name first.', false); return; }
   const divV = pmEl('mpt_div').value, was = PM.titleId;
+  const img = ((pmEl('mpt_img') || {}).value || '').trim();
+  if(img && !/^https:\/\/\S+$/i.test(img)){ mpMsg('mpt_msg', 'The belt picture link needs to start with https://', false); return; }
   const row = { name, division_id:divV ? Number(divV) : null, color:pmEl('mpt_color').value || null, updated_at:new Date().toISOString() };
+  // only sent when a belt is involved, so saving still works before the image_url column exists
+  const was0 = was ? PM.titles.find(x => String(x.id) === String(was)) : null;
+  if(img || (was0 && was0.image_url)) row.image_url = img || null;
   const want = pmEl('mpt_holder').value, at = (pmEl('mpt_at').value || '').trim() || null, on = pmEl('mpt_on').value || null;
   PM.busy = true;
   let tid = was;
@@ -30697,6 +30797,15 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
 .sd-belt .who{font-family:var(--font-display);font-size:22px;line-height:1.05;text-transform:uppercase}
 .sd-belt .since{font-family:var(--font-cond);font-size:14px;color:var(--muted);margin-top:3px}
 .sd-belt .wm{position:absolute;right:-10px;bottom:-18px;font-size:90px;opacity:.12}
+/* belt pictures on display (Nov 2026): one brand per row, belt front and center */
+.sd-belts{grid-template-columns:repeat(2,1fr)}
+.sd-belt-stage{display:flex;align-items:center;justify-content:center;height:200px;margin:-4px -4px 12px;border-radius:10px;position:relative;z-index:1}
+.sd-belt.a .sd-belt-stage{background:radial-gradient(58% 62% at 50% 54%,rgba(var(--sd-a-rgb),.30),transparent 72%)}
+.sd-belt.b .sd-belt-stage{background:radial-gradient(58% 62% at 50% 54%,rgba(var(--sd-b-rgb),.30),transparent 72%)}
+.sd-belt-stage img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 18px rgba(0,0,0,.8));transition:transform .25s ease}
+@media(hover:hover){.sd-belt.has-belt:hover .sd-belt-stage img{transform:scale(1.035)}}
+.sd-belt.vac .sd-belt-stage img{filter:grayscale(.65) brightness(.8) drop-shadow(0 12px 18px rgba(0,0,0,.8));opacity:.7}
+.sd-belt.has-belt .t{text-align:center}
 
 /* ---- rankings ---- */
 .sd-rk{display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -30872,6 +30981,7 @@ html.cp-pulse .sd-pts.on.full{animation:sd-pts-pulse 1.8s ease-in-out infinite}
 @media (max-width:640px){
   .sd-bname{font-size:32px}
   .sd-belts{grid-template-columns:1fr}
+  .sd-belt-stage{height:160px}
   .sd-nodes{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px}
   .sd-road{padding:14px}
   .sd-nd .c{font-size:15px}
@@ -30903,6 +31013,8 @@ const SD_DEFAULTS = {
   logo:'',
   titles:{ singles:'{brand} Championship', faction:'{brand} Faction Championship' },
   trophy:{ name:'Showdown Cup', image:'' },
+  /* belt pictures per brand: a = HEAT side, b = OVERDRIVE side (by slot, not name) */
+  belts:{ a:{ singles:'', faction:'' }, b:{ singles:'', faction:'' } },
   points:{ win:3, loss:0, nc:1 }
 };
 let SDS = JSON.parse(JSON.stringify(SD_DEFAULTS));   // live settings
@@ -30969,6 +31081,7 @@ function mergeSettings(saved){
   if(saved.logo) s.logo = saved.logo;
   if(saved.titles){ if(saved.titles.singles) s.titles.singles = saved.titles.singles; if(saved.titles.faction) s.titles.faction = saved.titles.faction; }
   if(saved.trophy){ if(saved.trophy.name) s.trophy.name = saved.trophy.name; if(saved.trophy.image) s.trophy.image = saved.trophy.image; }
+  if(saved.belts){ ['a','b'].forEach(k=>{ const x = saved.belts[k] || {}; ['singles','faction'].forEach(kind=>{ const u = String(x[kind]||'').trim(); if(/^https:\/\/\S+$/i.test(u)) s.belts[k][kind] = u; }); }); }
   if(saved.points){ ['win','loss','nc'].forEach(k=>{ if(saved.points[k]!=null && !isNaN(Number(saved.points[k]))) s.points[k] = Number(saved.points[k]); }); }
   return s;
 }
@@ -31316,7 +31429,12 @@ function renderBelts(){
   const card = (k, kind)=>{
     const c = currentChamp(k, kind);
     const icon = kind==='singles' ? 'ti-crown' : 'ti-users-group';
-    return `<div class="sd-belt ${k}"><i class="ti ${icon} wm"></i><div class="t">${e(titleName(k,kind))}</div>
+    const img = ((SDS.belts||{})[k]||{})[kind] || '';
+    // with a belt picture the belt is the centerpiece of the card; without one, the old watermark icon
+    const top = img
+      ? `<div class="sd-belt-stage"><img src="${e(img)}" alt="${e(titleName(k,kind))} belt" loading="lazy" onerror="this.parentNode.remove()"></div>`
+      : `<i class="ti ${icon} wm"></i>`;
+    return `<div class="sd-belt ${k}${img?' has-belt':''}${c?'':' vac'}">${top}<div class="t">${e(titleName(k,kind))}</div>
       <div class="sd-row">${portrait(c?c.holder:'?', k)}<div><div class="who">${c?e(c.holder):'Vacant'}</div><div class="since">${c?e(reignSince(c)||'Champion'):'Title up for grabs'}</div></div></div></div>`;
   };
   return `<div class="sd-belts">${card('a','singles')}${card('a','faction')}${card('b','singles')}${card('b','faction')}</div>`;
@@ -36828,7 +36946,9 @@ async function pmBrandsTab(box){
         <header class="br-pubh">${id ? brLogo(b, 'br-pub-logo') : '<span class="br-pub-logo br-init"><i class="ti ti-user-question"></i></span>'}<div><b>${esc(b.name)}</b><small>${ppl.length} on the roster</small></div></header>
         ${b.about ? `<p class="br-about">${esc(b.about)}</p>` : ''}
         ${b.gm_name ? `<div class="br-gm">${brGmFace(b, null, 'br-gm-i')}<span><small>General manager</small><b>${esc(b.gm_name)}</b></span></div>` : ''}
-        ${ts.length ? `<div class="br-champs">${ts.map(t => { const r = pmChampOf(P.reigns, t.id); return `<div><i class="ti ti-trophy" aria-hidden="true"></i><span><small>${esc(t.name)}</small><b>${esc(r ? r.holder_name : 'Vacant')}</b></span></div>`; }).join('')}</div>` : ''}
+        ${ts.length ? `<div class="br-champs">${ts.map(t => { const r = pmChampOf(P.reigns, t.id), img = pmBeltUrl(t);
+          return img ? `<div class="br-champ-belt">${pmBeltStage(img, t.name, 'pm-belt-brand')}<span><small>${esc(t.name)}</small><b>${esc(r ? r.holder_name : 'Vacant')}</b></span></div>`
+            : `<div><i class="ti ti-trophy" aria-hidden="true"></i><span><small>${esc(t.name)}</small><b>${esc(r ? r.holder_name : 'Vacant')}</b></span></div>`; }).join('')}</div>` : ''}
         ${groups.map(g => `<div class="br-grp"><div class="br-grph" style="--pc:${pmColor(g.cat.color, '#c9c6be')}">${esc(g.cat.name)} <span>${g.people.length}</span></div>
           ${g.people.map(p => `<button type="button" class="br-person" onclick="brPubOpen(${Number(p.id)})">${pmFace(p, 'br-p-i')}<span><b>${esc(p.name)}</b>${p.nickname ? `<small>${esc(p.nickname)}</small>` : ''}</span>${belt(p)}</button>`).join('')}</div>`).join('') || '<div class="pm-empty pm-small">Nobody yet.</div>'}
       </section>`; }).join('')}</div>
