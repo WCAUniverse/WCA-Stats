@@ -35145,7 +35145,7 @@ async function mpBettingTab(box){
   MPB.econ = er.data || { currency_name:'Dollars', currency_symbol:'$', start_amount:1000, payout_mode:'pool', min_bet:1, max_bet:null, betting_on:true };
   MPB.fans = (fr && fr.data) || []; MPB.grants = (gr && gr.data) || [];
   try{ const w = await sb.rpc('promo_watch_stats', { p_promotion:MPB.pid }); MPB.watch = w && !w.error ? w.data : null; }catch(e){ MPB.watch = null; }
-  // your own balance in this promotion's money, for Give yourself
+  // your own balance in this promotion's money, for Your own balance
   MPB.me = null;
   if(mpbSelfOk()){ try{ const pp = await sb.rpc('promo_public', { p_promotion:MPB.pid }); if(pp && !pp.error && pp.data) MPB.me = pp.data.balance; }catch(e){} }
   mpbDraw();
@@ -35198,10 +35198,22 @@ function mpbDraw(){
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSave()">Save money settings</button></div>
     <div class="msg" id="mpb_msg"></div>
   </section>
+  ${!shared && mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px" id="mpb_self">
+    <div class="pm-h3">Your own balance</div>
+    <p class="pm-p">${mpbIsOwner() ? 'You own ' + esc(name) + ', so you set your own balance here.' : 'You are the WCA admin, so you can set your own balance in ' + esc(name) + '\'s money here.'} Type what it should be and press Save. It only changes ${esc(name)}'s own money, never WCA money or another promotion's, and every change shows in Bonuses you gave.</p>
+    <div class="mpb-selfbal">Right now: <b id="mpb_selfnow">${esc(peMoney(E, MPB.me != null ? MPB.me : E.start_amount))}</b></div>
+    <div class="mpe-fields">
+      <div><label for="mpb_sbal">Your balance</label><input id="mpb_sbal" type="number" min="0" step="1" inputmode="numeric" value="${MPB.me != null ? Number(MPB.me) : Number(E.start_amount) || 0}"></div>
+      <div class="mpb-wide"><label for="mpb_snote">Note <span class="pm-opt">(optional)</span></label><input id="mpb_snote" maxlength="200" placeholder="Money for the next show"></div>
+    </div>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSelfSet()">Save my balance</button></div>
+    <div class="msg" id="mpb_smsg"></div>
+  </section>` : ''}
   ${shared ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Your fans bet with WCA money, so bonuses come from WCA. Switch to your own money above if you want to hand out bonuses.</p></section>` : `<section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Hand out money whenever you like: to everyone who follows ${esc(name)} or has a balance with you, or to the fans you tick, one or many. They get a notification. Use Take back to fix a mistake.</p>
+    ${mpbSelfOk() ? '<p class="pm-p pm-small">You are not in this list. Set your own balance in Your own balance above.</p>' : ''}
     <label>Who gets it</label>
     <div class="br-seg" role="radiogroup" aria-label="Who gets it">
       <button type="button" role="radio" class="${MPB.give === 'all' ? 'on' : ''}" aria-checked="${MPB.give === 'all'}" onclick="MPB.give='all';mpbGiveDraw()">Everyone (${MPB.fans.length} ${MPB.fans.length === 1 ? 'fan' : 'fans'})</button>
@@ -35214,17 +35226,6 @@ function mpbDraw(){
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbGive(1)">Give</button><button type="button" class="spc-mini" onclick="mpbGive(-1)">Take back</button></div>
     <div class="msg" id="mpb_gmsg"></div>
   </section>`}
-  ${!shared && mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px">
-    <div class="pm-h3">Give yourself</div>
-    <p class="pm-p">${mpbIsOwner() ? 'You own ' + esc(name) + ', so you can give yourself its money to bet with on your own shows.' : 'You are the WCA admin, so you can give yourself ' + esc(name) + '\'s money to bet with on its shows.'} It only works in ${esc(name)}'s own money, never WCA money or another promotion's. It shows in Bonuses you gave.</p>
-    <div class="mpb-selfbal">Your balance: <b>${esc(peMoney(E, MPB.me != null ? MPB.me : E.start_amount))}</b>${MPB.me == null ? ' <span class="pm-opt">(your starting balance, until you bet or give yourself some)</span>' : ''}</div>
-    <div class="mpe-fields">
-      <div><label for="mpb_samt">Amount</label><input id="mpb_samt" type="number" min="1" step="1" placeholder="500"></div>
-      <div class="mpb-wide"><label for="mpb_snote">Note <span class="pm-opt">(optional)</span></label><input id="mpb_snote" maxlength="200" placeholder="Money for the Northside 12 card"></div>
-    </div>
-    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSelf(1)">Give myself</button><button type="button" class="spc-mini" onclick="mpbSelf(-1)">Take back</button></div>
-    <div class="msg" id="mpb_smsg"></div>
-  </section>` : ''}
   ${mpbWatchHTML(shared)}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
@@ -35336,18 +35337,20 @@ async function mpbWatchSave(btn){
   MPB.econ = row; MPB.saved = true;
   mpMsg('mpb_w_msg', v.watch_on ? 'Saved. Fans earn while they watch you live on Watch Live.' : 'Saved. Watch rewards are off.', true);
 }
-// Give yourself: only the promotion's owner (not co-owners) and the WCA admin
+// Your own balance: only the promotion's owner (not co-owners) and the WCA admin
 function mpbIsOwner(){ const p = mpCur(); return !!(p && CURRENT_USER && String(p.owner_id) === String(CURRENT_USER.id)); }
 function mpbSelfOk(){ return mpbIsOwner() || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true); }
-async function mpbSelf(sign){
-  const amt = Math.floor(Number(pmEl('mpb_samt').value) || 0);
-  if(amt < 1){ mpMsg('mpb_smsg', 'Enter an amount.', false); return; }
-  const note = pmEl('mpb_snote').value || null;
-  const res = await sb.rpc('promo_self_grant', { p_promotion:MPB.pid, p_amount:amt * sign, p_note:note });
-  if(res.error){ mpMsg('mpb_smsg', /promo_self_grant|could not find|schema cache/i.test(res.error.message || '') ? 'Give yourself is not switched on yet.' : peErr(res.error), false); return; }
-  ['mpb_samt', 'mpb_snote'].forEach(id => { const el = pmEl(id); if(el){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles:true })); } });
+async function mpbSelfSet(){
+  const el = pmEl('mpb_sbal'), raw = el ? String(el.value).trim() : '';
+  const want = Math.floor(Number(raw));
+  if(raw === '' || !isFinite(want) || want < 0){ mpMsg('mpb_smsg', 'Type a balance of 0 or more.', false); return; }
+  const note = (pmEl('mpb_snote') || {}).value || null;
+  const res = await sb.rpc('promo_self_set', { p_promotion:MPB.pid, p_balance:want, p_note:note });
+  if(res.error){ mpMsg('mpb_smsg', /promo_self_set|could not find|schema cache/i.test(res.error.message || '') ? 'Setting your balance is not switched on yet.' : peErr(res.error), false); return; }
+  const nb = pmEl('mpb_snote'); if(nb){ nb.value = ''; nb.dispatchEvent(new Event('input', { bubbles:true })); }
   await mpBettingTab(MPB.box);
-  mpMsg('mpb_smsg', (sign > 0 ? 'Gave yourself ' : 'Took back ') + peMoney(MPB.econ, amt) + '. Your balance is now ' + peMoney(MPB.econ, res.data && res.data.balance != null ? res.data.balance : 0) + '.', true);
+  mpMsg('mpb_smsg', res.data && res.data.changed === false ? 'That is already your balance.' : 'Saved. Your balance is now ' + peMoney(MPB.econ, want) + '.', true);
+  const sec = pmEl('mpb_self'); if(sec) sec.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
