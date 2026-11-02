@@ -7065,6 +7065,12 @@ details.ed-pane[hidden]{display:none !important;}
 .rpc-tp{width:90px; aspect-ratio:2/3; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:#0b0b0d; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; text-align:center;}
 .rpc-ta{width:64px; height:64px; border-radius:50%; overflow:hidden; border:2px solid var(--gold); background:#0b0b0d; display:flex; align-items:center; justify-content:center; color:var(--gold); font-family:var(--font-display); font-size:22px;}
 .rpc-tp img, .rpc-ta img{width:100%; height:100%; object-fit:cover; display:block;}
+/* a new picture still going live: say so instead of a broken picture */
+.rpc-tp.rpc-wait, .rpc-ta.rpc-wait{position:relative;}
+.rpc-tp.rpc-wait img, .rpc-ta.rpc-wait img{position:absolute; inset:0;}
+.rpc-tp.rpc-wait::after{content:'Getting it ready'; font-size:14px; color:var(--muted); text-align:center; padding:6px;}
+.rpc-ta.rpc-wait::after{content:'…'; font-size:22px; color:var(--gold);}
+.rpc-tp.rpc-wait-off::after{content:'Not showing yet. Refresh in a minute'; font-size:14px; color:var(--muted); text-align:center; padding:6px;}
 .rpc-acts{flex:1 1 240px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
 .rpc-acts p{flex-basis:100%; margin:4px 0 0;}
 .rpc-crop{margin-top:14px; border:1px solid var(--gold); border-radius:14px; padding:14px; background:rgba(0,0,0,.25);}
@@ -7532,6 +7538,11 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .bet-hide{display:flex !important; align-items:flex-start; gap:10px; margin:12px 0 4px !important; font-size:15px; line-height:1.4; color:var(--txt-2); text-transform:none !important; letter-spacing:0 !important; cursor:pointer;}
 .bet-hide input{width:20px !important; height:20px; flex:0 0 auto; margin-top:1px; accent-color:var(--gold);}
 .my-bet-hid{font-size:14px; color:var(--muted);}
+/* Reveal on a hidden pick (WCA admin; a promotion's owner on its own shows) */
+.bb-reveal{margin-left:6px; font-style:normal; vertical-align:middle;}
+.bb-pick.revealed{color:var(--gold); font-style:normal;}
+.pe-bb summary{font-size:15px;}
+.mpb-selfbal{font-size:17px; margin:6px 0 10px;} .mpb-selfbal b{color:var(--gold);}
 .arch-bets{margin:-6px 0 18px; padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:var(--panel);}
 .arch-bets summary{font-size:15px;}
 .arch-bets .bb-row{flex-wrap:wrap;}
@@ -13632,7 +13643,7 @@ function boutHTML(m, isMain, ctx){
     }
     const hideCtl = (status==='open' || status==='closed')
       ? (myBet.hidden
-          ? `<span class="my-bet-hid"><i class="ti ti-eye-off"></i> Only you can see your pick</span> <button class="link-btn" onclick="setBetHidden(${m.slot},false)">show my pick</button>`
+          ? `<span class="my-bet-hid"><i class="ti ti-eye-off"></i> Your pick is hidden</span> <button class="link-btn" onclick="setBetHidden(${m.slot},false)">show my pick</button>`
           : `<button class="link-btn" onclick="setBetHidden(${m.slot},true)">hide my pick</button>`)
       : '';
     mine = `<div class="my-bet">You bet <b>${fmtMoney(myBet.amount)}</b> on <b>${esc(sideName)}</b>${resultLine}
@@ -13652,7 +13663,7 @@ function boutHTML(m, isMain, ctx){
         ? `<img class="bb-av" src="${esc(b.player_avatar)}" onerror="this.outerHTML='<span class=\\'bb-init\\'>${init}</span>'">`
         : `<span class="bb-init">${init}</span>`;
       return `<div class="bb-row"><span class="bb-who">${av}${esc(b.player_name)}</span>
-        <span class="bb-pick${hid?' hid':''}">${hid ? '<i class="ti ti-eye-off"></i> Hidden pick' : esc(sideName)}</span>
+        <span class="bb-pick${hid?' hid':''}">${hid ? '<i class="ti ti-eye-off"></i> Hidden pick' + (typeof IS_ADMIN!=='undefined' && IS_ADMIN===true && b.user_id ? ` <button type="button" class="spc-mini bb-reveal" onclick="wcaRevealPick(this,${Number(b.event_id)},${Number(b.slot)},'${jsAttr(String(b.user_id))}')">Reveal</button>` : '') : esc(sideName)}</span>
         <span class="bb-amt">${fmtMoney(b.amount)}</span></div>`;
     }).join('');
     board = `<details class="bet-board"${isMain?' open':''}>
@@ -17287,6 +17298,16 @@ async function cancelBet(slot){
   await refreshUser();
   await refreshBetViews();
   wcaToast('Bet cancelled', 'Your wager was refunded.');
+}
+// WCA admin only: show one hidden pick, on this screen only.
+async function wcaRevealPick(btn, eventId, slot, uid){
+  const { data, error } = await sb.rpc('reveal_bet_pick', { p_event:eventId, p_slot:slot, p_user:uid });
+  if(error){ wcaToast('Could not reveal it', String(error.message||'').replace(/^.*?:\s*/, ''), true); return; }
+  const m = (typeof CURRENT_MATCHES !== 'undefined' && CURRENT_MATCHES || []).find(x => Number(x.slot) === Number(slot));
+  const sides = m ? parseSides(m) : [];
+  const cell = btn.closest('.bb-pick'); if(!cell) return;
+  cell.classList.remove('hid'); cell.classList.add('revealed');
+  cell.innerHTML = '<i class="ti ti-eye" aria-hidden="true"></i> ' + (data === null || data === undefined ? 'No pick found' : esc(sideLabel(sides[Number(data)])));
 }
 // Hide or show who I picked on a match. The amount always shows.
 async function setBetHidden(slot, hide){
@@ -21167,6 +21188,21 @@ function pmPic(p, kind){
   const d = (p && p.details) || {}, u = String(d[kind === 'portrait' ? 'portrait_url' : 'avatar_url'] || '');
   return PM_PIC_RE.test(u) ? u : '';
 }
+// For SHOWING a picture: right after an upload the file takes about a minute to
+// go live on media.wcauniverse.com, so this page shows its own copy until then.
+// (Use pmPic, not this, for anything that gets saved.)
+function pmPicShow(p, kind){ const u = pmPic(p, kind); return u && typeof slShowUrl === 'function' ? slShowUrl(u) : u; }
+// A brand new picture that isn't live yet: keep trying for about two minutes
+// instead of showing a broken picture, then give up quietly.
+function pmPicWait(img){
+  const n = Number(img.dataset.tries || 0);
+  if(n >= 12 || /^blob:/.test(img.src)){ img.closest('.rpc-tp,.rpc-ta') && img.closest('.rpc-tp,.rpc-ta').classList.add('rpc-wait-off'); img.style.visibility = 'hidden'; return; }
+  img.dataset.tries = n + 1;
+  const box = img.closest('.rpc-tp,.rpc-ta'); if(box) box.classList.add('rpc-wait');
+  img.style.visibility = 'hidden';
+  setTimeout(() => { const base = img.dataset.base || img.src; img.dataset.base = base; img.src = base + (base.includes('?') ? '&' : '?') + 'w=' + Date.now(); }, 10000);
+}
+function pmPicLoaded(img){ img.style.visibility = ''; const box = img.closest('.rpc-tp,.rpc-ta'); if(box) box.classList.remove('rpc-wait', 'rpc-wait-off'); }
 // a full body picture that didn't load: show the initials circle in its place
 function pmPicFail(img, cls){
   const box = img.parentNode; if(!box) return;
@@ -21177,7 +21213,7 @@ function pmPicFail(img, cls){
 }
 // the face in a circle (or the initials when there is no picture)
 function pmFace(p, cls){
-  const u = pmPic(p, 'avatar') || pmPic(p, 'portrait');
+  const u = pmPicShow(p, 'avatar') || pmPicShow(p, 'portrait');
   const init = esc(pmInit(p && p.name));
   if(!u) return `<span class="${cls}">${init}</span>`;
   return `<span class="${cls} pm-hasimg"><img src="${escAttr(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('pm-hasimg');this.replaceWith(document.createTextNode('${init}'))"></span>`;
@@ -21193,13 +21229,13 @@ function rpcToggle(k, on){
 }
 const RPC_PORT = { w:720, h:1080 }, RPC_AVA = 400;   // what gets saved
 function rpcSectionHTML(p){
-  const port = pmPic(p, 'portrait'), ava = pmPic(p, 'avatar');
+  const port = pmPicShow(p, 'portrait'), ava = pmPicShow(p, 'avatar');
   const saved = !!(port || ava);
   return `<div class="rpc" id="rpc">
     <div class="rpc-now">
       <div class="rpc-thumbs">
-        <div class="rpc-tp">${port ? `<img src="${escAttr(port)}" alt="Portrait" referrerpolicy="no-referrer">` : '<span>Full body</span>'}</div>
-        <div class="rpc-ta">${ava ? `<img src="${escAttr(ava)}" alt="Avatar" referrerpolicy="no-referrer">` : `<span>${esc(pmInit(p && p.name))}</span>`}</div>
+        <div class="rpc-tp">${port ? `<img src="${escAttr(port)}" alt="" referrerpolicy="no-referrer" onload="pmPicLoaded(this)" onerror="pmPicWait(this)">` : '<span>Full body</span>'}</div>
+        <div class="rpc-ta">${ava ? `<img src="${escAttr(ava)}" alt="" referrerpolicy="no-referrer" onload="pmPicLoaded(this)" onerror="pmPicWait(this)">` : `<span>${esc(pmInit(p && p.name))}</span>`}</div>
       </div>
       <div class="rpc-acts">
         ${p && p.id && (typeof mpRole !== 'function' || mpCur() && ['owner','coowner','admin'].includes(mpRole(mpCur()) || 'owner')) ? `<input type="file" id="rpc_file" accept="image/png,image/jpeg,image/webp" hidden onchange="rpcFile(this.files[0]);this.value=''">
@@ -21335,7 +21371,11 @@ async function rpcSave(){
     const out = await pmPicUpload(Number(PM.curId), Number(p.id), files);
     const v = Date.now();   // a new address each save, so nobody sees the old picture from their browser's memory
     const details = Object.assign({}, p.details || {});
-    files.forEach((f, i) => { details[f.kind === 'portrait' ? 'portrait_url' : 'avatar_url'] = out[i] + '?v=' + v; });
+    files.forEach((f, i) => {
+      const u = out[i] + '?v=' + v;
+      details[f.kind === 'portrait' ? 'portrait_url' : 'avatar_url'] = u;
+      try{ if(typeof SL_LOCAL_PREVIEW !== 'undefined') SL_LOCAL_PREVIEW[u] = URL.createObjectURL(f.blob); }catch(e){}
+    });
     const { error } = await sb.from('promotion_roster').update({ details }).eq('id', p.id);
     if(error) throw error;
     p.details = details;
@@ -23378,7 +23418,7 @@ function pmPersonCard(p, col, catName){
   const fact = ([k, v]) => `<div class="pm-fact"><span>${esc(k)}</span><b>${esc(v)}</b></div>`;
   return `<div class="pm-selcard" style="--pc:${col}">
     <div class="pm-selhead">
-      ${pmPic(p, 'portrait') ? `<span class="pm-selport"><img src="${escAttr(pmPic(p, 'portrait'))}" alt="${escAttr(p.name)}" referrerpolicy="no-referrer" onerror="pmPicFail(this,'pm-selinit')"></span>` : pmFace(p, 'pm-selinit')}
+      ${pmPic(p, 'portrait') ? `<span class="pm-selport"><img src="${escAttr(pmPicShow(p, 'portrait'))}" alt="${escAttr(p.name)}" referrerpolicy="no-referrer" onerror="pmPicFail(this,'pm-selinit')"></span>` : pmFace(p, 'pm-selinit')}
       <div><div class="pm-selcat">${esc(catName)}</div><h2 class="pm-selname">${esc(p.name)}</h2>${p.nickname ? `<div class="pm-selnick">${esc(p.nickname)}</div>` : ''}</div>
     </div>
     <div class="pm-selbody">
@@ -23786,7 +23826,7 @@ function pmPubList(){
               ${pmFace(p, 'pm-nm-i')}<span class="pm-nm-t"><b>${esc(p.name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>${belt(p)}
               ${p.alignment ? `<span class="pm-align ${p.alignment.toLowerCase()}" title="${escAttr(p.alignment)}"></span>` : ''}</button>`; }).join('')
         : `<div class="pm-tiles">${people.map(p => `<button type="button" class="pm-tile${L === 'top' && String(P.sel) === String(p.id) ? ' on' : ''}" data-id="${Number(p.id)}" style="--pc:${pmPubColor(p)}" onclick="pmPubPick(${Number(p.id)})">
-              ${belt(p)}${pmPic(p, 'portrait') ? `<span class="pm-tile-port"><img src="${escAttr(pmPic(p, 'portrait'))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="pmPicFail(this,'pm-tile-i')"></span>` : pmFace(p, 'pm-tile-i')}<b>${esc(p.name)}</b><small>${esc(p.nickname || p.alignment || '')}</small></button>`).join('')}</div>`}
+              ${belt(p)}${pmPic(p, 'portrait') ? `<span class="pm-tile-port"><img src="${escAttr(pmPicShow(p, 'portrait'))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="pmPicFail(this,'pm-tile-i')"></span>` : pmFace(p, 'pm-tile-i')}<b>${esc(p.name)}</b><small>${esc(p.nickname || p.alignment || '')}</small></button>`).join('')}</div>`}
     </div>`).join('') : `<div class="pm-empty pm-small">Nobody matches that search.</div>`;
 }
 function pmPubPick(id){
@@ -34094,6 +34134,7 @@ a.pe-who:hover{color:var(--gold);}
 .mpe-fields label, .mpe label.pe-l{display:block; font-family:var(--font-cond); font-weight:600; letter-spacing:1.3px; text-transform:uppercase; font-size:14px; color:var(--muted); margin:0 0 5px;}
 .mpe-fields input, .mpe-fields select{width:100%;}
 .mpe-fields .pe-other{margin-top:6px;}
+@media(min-width:561px){ .mpe-fields .mpb-wide{grid-column:2/-1;} }
 .mpe-fields .pe-elim{display:flex; flex-direction:column; justify-content:flex-end; gap:4px;}
 .mpe-fields label.pe-chk{display:flex; align-items:center; gap:8px; font-size:15px; letter-spacing:.6px; color:var(--txt); text-transform:none; margin:0; cursor:pointer;}
 .mpe-fields label.pe-chk input{width:20px; height:20px; accent-color:var(--gold);}
@@ -34315,7 +34356,7 @@ async function peLoadPublic(S){
   S.events = (er.data || []).filter(e => e.status !== 'draft');
   if(S.opts.focusEv != null) S.focusEv = S.opts.focusEv;
   const ids = S.events.map(e => e.id);
-  S.matches = {}; S.board = {}; S.mine = {};
+  S.matches = {}; S.board = {}; S.mine = {}; S.bets = {}; S.reveal = S.reveal || {};
   if(ids.length){
     const mr = await sb.from('promotion_matches').select('*').in('event_id', ids).order('slot');
     if(mr.error) throw mr.error;
@@ -34324,6 +34365,12 @@ async function peLoadPublic(S){
     const live = S.events.filter(e => e.status !== 'done' || (S.matches[e.id] || []).some(m => m.bet_status === 'open' || m.bet_status === 'locked'));
     const boards = await Promise.all(live.map(e => sb.rpc('promo_board', { p_event:e.id })));
     boards.forEach(b => ((b && b.data) || []).forEach(r => { (S.board[r.match_id] = S.board[r.match_id] || {})[r.side_idx] = { total:Number(r.total), n:Number(r.bettors) }; }));
+    // who is betting: the shows still taking bets plus the most recent finished ones
+    const listed = S.events.filter(e => e.status !== 'done').concat(S.events.filter(e => e.status === 'done').slice(0, 8));
+    try{
+      const lists = await Promise.all(listed.map(e => sb.rpc('promo_bet_list', { p_event:e.id })));
+      lists.forEach(l => ((l && !l.error && l.data) || []).forEach(r => { (S.bets[r.match_id] = S.bets[r.match_id] || []).push(r); }));
+    }catch(e){ /* list not set up yet: the pot totals still show */ }
     if(frSignedIn()){
       const br = await sb.from('promotion_bets').select('*').eq('promotion_id', pid).eq('user_id', CURRENT_USER.id);
       ((br && br.data) || []).forEach(b => { S.mine[b.match_id] = b; });
@@ -34346,16 +34393,13 @@ function peWalletHTML(S){
     if(!I.signed_in) return `<div class="pe-wallet"><div><div class="pe-wk">Bet on ${esc(S.promo.name || 'their')} shows</div>
       <p>${esc(S.promo.name || 'This promotion')} uses WCA money, the same balance you use everywhere on the site. ${how}</p></div>
       <button type="button" class="spc-post-btn" onclick="frSignIn(event)">Sign in to bet</button></div>`;
-    if(!I.is_owner) return `<div class="pe-wallet"><div><div class="pe-wk">Your WCA money</div>
+    return `<div class="pe-wallet"><div><div class="pe-wk">Your WCA money</div>
       <b class="pe-bal">${esc(peMoney(I, I.balance || 0))}</b>
       <p>${esc(S.promo.name || 'This promotion')} uses WCA money, the same balance you use everywhere on the site. ${how}</p></div></div>`;
   }
   if(!I.signed_in) return `<div class="pe-wallet"><div><div class="pe-wk">Bet on ${esc(S.promo.name || 'their')} shows</div>
       <p>${esc(S.promo.name || 'This promotion')} has its own money, ${esc(I.currency_name || 'Dollars')}, separate from WCA's. Everyone starts with ${esc(peMoney(I, I.start_amount))}. ${how}</p></div>
       <button type="button" class="spc-post-btn" onclick="frSignIn(event)">Sign in to bet</button></div>`;
-  if(I.is_owner) return `<div class="pe-wallet"><div><div class="pe-wk">You run this promotion</div>
-      <p>You see the bets, but you can't place any, because you pick the winners. Open betting and set winners from My Promotion, Events.</p></div>
-      <button type="button" class="spc-ghost-btn" onclick="PM.curId=${S.pid};PM.tab='events';goPage('mypromo')"><i class="ti ti-pencil"></i> Open My Promotion</button></div>`;
   return `<div class="pe-wallet"><div><div class="pe-wk">Your ${esc(I.currency_name || 'Dollars')}</div>
       <b class="pe-bal">${esc(peMoney(I, I.has_wallet ? I.balance : I.start_amount))}</b>
       <p>${I.has_wallet ? '' : 'It is yours once you follow them or place your first bet. '}This money is only for ${esc(S.promo.name || 'this promotion')}'s shows. ${how}</p></div></div>`;
@@ -34400,7 +34444,7 @@ function peEventHTML(S, e){
 function peMatchHTML(S, e, m, i, n){
   const I = S.info || {}, sides = peSides(m), odds = peOdds(m), board = S.board[m.id] || {}, mine = S.mine[m.id];
   const tot = Object.values(board).reduce((a, b) => a + b.total, 0);
-  const canBet = m.bet_status === 'open' && I.signed_in && !I.is_owner && I.betting_on !== false;
+  const canBet = m.bet_status === 'open' && I.signed_in && I.betting_on !== false;
   const done = m.bet_status === 'settled';
   const label = n > 1 && i === n - 1 ? 'Main event' : i === 0 && n > 1 ? 'Opener' : 'Match ' + (i + 1);
   const sideHTML = sides.map((s, k) => {
@@ -34412,7 +34456,12 @@ function peMatchHTML(S, e, m, i, n){
   let mineHTML = '';
   if(mine){
     const side = esc(peSideName(sides[mine.side_idx] || {}));
-    if(mine.status === 'open') mineHTML = `<div class="pe-mine">Your bet: <b>${esc(peMoney(I, mine.amount))}</b> on ${side}.${m.bet_status === 'open' ? ` <button type="button" class="spc-mini" onclick="peBetCancel(${Number(m.id)})">Take it back</button>` : ' Betting is locked, so it stays.'}</div>`;
+    const hideCtl = mine.status === 'open'
+      ? (mine.hide_pick
+          ? ` <span class="my-bet-hid"><i class="ti ti-eye-off" aria-hidden="true"></i> Your pick is hidden</span> <button type="button" class="spc-mini" onclick="peBetHide(${Number(m.id)},false)">Show my pick</button>`
+          : ` <button type="button" class="spc-mini" onclick="peBetHide(${Number(m.id)},true)">Hide my pick</button>`)
+      : '';
+    if(mine.status === 'open') mineHTML = `<div class="pe-mine">Your bet: <b>${esc(peMoney(I, mine.amount))}</b> on ${side}.${hideCtl}${m.bet_status === 'open' ? ` <button type="button" class="spc-mini" onclick="peBetCancel(${Number(m.id)})">Take it back</button>` : ' Betting is locked, so it stays.'}</div>`;
     else if(mine.status === 'won') mineHTML = `<div class="pe-mine won">You won <b>${esc(peMoney(I, mine.payout))}</b> on ${side}.</div>`;
     else if(mine.status === 'lost') mineHTML = `<div class="pe-mine lost">You lost <b>${esc(peMoney(I, mine.amount))}</b> on ${side}.</div>`;
     else if(mine.status === 'refunded') mineHTML = `<div class="pe-mine">Your <b>${esc(peMoney(I, mine.amount))}</b> came back to you.</div>`;
@@ -34435,8 +34484,44 @@ function peMatchHTML(S, e, m, i, n){
     ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
     ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
     ${m.notes ? `<div class="pe-note">${esc(m.notes)}</div>` : ''}
-    ${mineHTML}${signIn}${form}
+    ${mineHTML}${signIn}${form}${peBetListHTML(S, m, sides)}
   </li>`;
+}
+// "See who's betting" under a match. The amount always shows. A hidden pick
+// says Hidden pick; the promotion's owner and the WCA admin get Reveal.
+function peBetListHTML(S, m, sides){
+  const rows = S.bets[m.id] || []; if(!rows.length) return '';
+  const I = S.info || {}, pot = rows.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const canReveal = !!I.is_owner || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true);
+  const body = rows.map(r => {
+    const key = m.id + ':' + r.user_id, shown = S.reveal[key];
+    const hid = r.side_idx === null || r.side_idx === undefined;
+    const init = String(r.name || 'A fan').slice(0, 2).toUpperCase();
+    const av = r.avatar ? `<img class="bb-av" src="${escAttr(r.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=\\'bb-init\\'>${esc(init)}</span>'">` : `<span class="bb-init">${esc(init)}</span>`;
+    let pick;
+    if(!hid) pick = `<span class="bb-pick">${esc(peSideName(sides[r.side_idx] || {}))}${r.hide_pick ? ' <i class="ti ti-eye-off" title="Hidden from other fans" aria-hidden="true"></i>' : ''}</span>`;
+    else if(shown !== undefined) pick = `<span class="bb-pick revealed"><i class="ti ti-eye" aria-hidden="true"></i> ${shown === null ? 'No pick found' : esc(peSideName(sides[shown] || {}))}</span>`;
+    else pick = `<span class="bb-pick hid"><i class="ti ti-eye-off" aria-hidden="true"></i> Hidden pick${canReveal ? ` <button type="button" class="spc-mini bb-reveal" onclick="peRevealPick(${Number(m.id)},'${jsAttr(String(r.user_id))}')">Reveal</button>` : ''}</span>`;
+    return `<div class="bb-row"><span class="bb-who">${av}${esc(r.name || 'A fan')}</span>${pick}<span class="bb-amt">${esc(peMoney(I, r.amount))}</span></div>`;
+  }).join('');
+  return `<details class="bet-board pe-bb"><summary>${rows.length} ${rows.length === 1 ? 'bet' : 'bets'}, ${esc(peMoney(I, pot))} in all. See who's betting</summary><div class="bb-list">${body}</div></details>`;
+}
+// owner or admin: show one hidden pick, on this screen only
+async function peRevealPick(mid, uid){
+  const S = PE.pub; if(!S) return;
+  const { data, error } = await sb.rpc('promo_reveal_pick', { p_match:mid, p_user:uid });
+  if(error){ wcaToast('Could not reveal it', peErr(error), true); return; }
+  S.reveal[mid + ':' + uid] = (data === null || data === undefined) ? null : Number(data);
+  const open = [...document.querySelectorAll('#pe-m-' + Number(mid) + ' details.pe-bb')].some(d => d.open);
+  peDrawPublic();
+  if(open){ const d = document.querySelector('#pe-m-' + Number(mid) + ' details.pe-bb'); if(d) d.open = true; }
+}
+// hide or show my own pick; the amount always shows
+async function peBetHide(mid, hide){
+  const { error } = await sb.rpc('promo_set_bet_hidden', { p_match:mid, p_hide:!!hide });
+  if(error){ wcaToast('Not changed', peErr(error), true); return; }
+  wcaToast(hide ? 'Pick hidden' : 'Pick showing', hide ? 'Fans see how much you bet, not who on. It shows once the match has a winner.' : 'Everyone can see who you picked again.');
+  await peReloadPublic();
 }
 function peBetPick(mid, k){
   const S = PE.pub; S.open[mid] = S.open[mid] === k ? null : k; S.msg[mid] = null;
@@ -34913,6 +34998,9 @@ async function mpBettingTab(box){
   MPB.econ = er.data || { currency_name:'Dollars', currency_symbol:'$', start_amount:1000, payout_mode:'pool', min_bet:1, max_bet:null, betting_on:true };
   MPB.fans = (fr && fr.data) || []; MPB.grants = (gr && gr.data) || [];
   try{ const w = await sb.rpc('promo_watch_stats', { p_promotion:MPB.pid }); MPB.watch = w && !w.error ? w.data : null; }catch(e){ MPB.watch = null; }
+  // your own balance in this promotion's money, for Give yourself
+  MPB.me = null;
+  if(mpbSelfOk()){ try{ const pp = await sb.rpc('promo_public', { p_promotion:MPB.pid }); if(pp && !pp.error && pp.data) MPB.me = pp.data.balance; }catch(e){} }
   mpbDraw();
 }
 function mpbDraw(){
@@ -34974,11 +35062,22 @@ function mpbDraw(){
     <div id="mpb_pick" data-nokeep></div>
     <div class="mpe-fields">
       <div><label for="mpb_gamt">Amount</label><input id="mpb_gamt" type="number" min="1" step="1" placeholder="500"></div>
-      <div style="grid-column:2/-1"><label for="mpb_gnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_gnote" maxlength="200" placeholder="Thanks for watching Northside 12!"></div>
+      <div class="mpb-wide"><label for="mpb_gnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_gnote" maxlength="200" placeholder="Thanks for watching Northside 12!"></div>
     </div>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbGive(1)">Give</button><button type="button" class="spc-mini" onclick="mpbGive(-1)">Take back</button></div>
     <div class="msg" id="mpb_gmsg"></div>
   </section>`}
+  ${!shared && mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px">
+    <div class="pm-h3">Give yourself</div>
+    <p class="pm-p">${mpbIsOwner() ? 'You own ' + esc(name) + ', so you can give yourself its money to bet with on your own shows.' : 'You are the WCA admin, so you can give yourself ' + esc(name) + '\'s money to bet with on its shows.'} It only works in ${esc(name)}'s own money, never WCA money or another promotion's. It shows in Bonuses you gave.</p>
+    <div class="mpb-selfbal">Your balance: <b>${esc(peMoney(E, MPB.me != null ? MPB.me : E.start_amount))}</b>${MPB.me == null ? ' <span class="pm-opt">(your starting balance, until you bet or give yourself some)</span>' : ''}</div>
+    <div class="mpe-fields">
+      <div><label for="mpb_samt">Amount</label><input id="mpb_samt" type="number" min="1" step="1" placeholder="500"></div>
+      <div class="mpb-wide"><label for="mpb_snote">Note <span class="pm-opt">(optional)</span></label><input id="mpb_snote" maxlength="200" placeholder="Money for the Northside 12 card"></div>
+    </div>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSelf(1)">Give myself</button><button type="button" class="spc-mini" onclick="mpbSelf(-1)">Take back</button></div>
+    <div class="msg" id="mpb_smsg"></div>
+  </section>` : ''}
   ${mpbWatchHTML(shared)}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
@@ -34986,7 +35085,7 @@ function mpbDraw(){
       : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
   </section>
   ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
-    <table class="mpb-table"><thead><tr><th>When</th><th>To</th><th>Amount</th><th>Note</th></tr></thead><tbody>${MPB.grants.map(g => `<tr><td>${esc(new Date(g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</td><td>${g.user_id ? esc(fanName(g.user_id)) : g.scope === 'group' ? esc((g.user_ids || []).slice(0, 3).map(fanName).join(', ') + ((g.user_ids || []).length > 3 ? ' and ' + ((g.user_ids || []).length - 3) + ' more' : '')) : 'Everyone (' + Number(g.people) + ')'}</td><td>${esc((g.amount < 0 ? 'Took back ' : '') + peMoney(E, Math.abs(g.amount)))}</td><td>${esc(g.note || '')}</td></tr>`).join('')}</tbody></table></section>` : ''}
+    <table class="mpb-table"><thead><tr><th>When</th><th>To</th><th>Amount</th><th>Note</th></tr></thead><tbody>${MPB.grants.map(g => `<tr><td>${esc(new Date(g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</td><td>${g.scope === 'self' ? (CURRENT_USER && g.user_id === CURRENT_USER.id ? 'Yourself' : (String(g.user_id) === String((mpCur() || {}).owner_id) ? 'The owner, to themselves' : 'WCA admin, to themselves')) : g.user_id ? esc(fanName(g.user_id)) : g.scope === 'group' ? esc((g.user_ids || []).slice(0, 3).map(fanName).join(', ') + ((g.user_ids || []).length > 3 ? ' and ' + ((g.user_ids || []).length - 3) + ' more' : '')) : 'Everyone (' + Number(g.people) + ')'}</td><td>${esc((g.amount < 0 ? 'Took back ' : '') + peMoney(E, Math.abs(g.amount)))}</td><td>${esc(g.note || '')}</td></tr>`).join('')}</tbody></table></section>` : ''}
   </div>`;
   mpbPreview(); mpbMoney(); mpbGiveDraw(); mpbWatchPrev();
 }
@@ -35089,6 +35188,19 @@ async function mpbWatchSave(btn){
   if(error){ mpMsg('mpb_w_msg', /watch_/i.test(error.message || '') ? 'Watch rewards are not switched on yet. Please check back soon!' : peErr(error), false); return; }
   MPB.econ = row; MPB.saved = true;
   mpMsg('mpb_w_msg', v.watch_on ? 'Saved. Fans earn while they watch you live on Watch Live.' : 'Saved. Watch rewards are off.', true);
+}
+// Give yourself: only the promotion's owner (not co-owners) and the WCA admin
+function mpbIsOwner(){ const p = mpCur(); return !!(p && CURRENT_USER && String(p.owner_id) === String(CURRENT_USER.id)); }
+function mpbSelfOk(){ return mpbIsOwner() || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true); }
+async function mpbSelf(sign){
+  const amt = Math.floor(Number(pmEl('mpb_samt').value) || 0);
+  if(amt < 1){ mpMsg('mpb_smsg', 'Enter an amount.', false); return; }
+  const note = pmEl('mpb_snote').value || null;
+  const res = await sb.rpc('promo_self_grant', { p_promotion:MPB.pid, p_amount:amt * sign, p_note:note });
+  if(res.error){ mpMsg('mpb_smsg', /promo_self_grant|could not find|schema cache/i.test(res.error.message || '') ? 'Give yourself is not switched on yet.' : peErr(res.error), false); return; }
+  ['mpb_samt', 'mpb_snote'].forEach(id => { const el = pmEl(id); if(el){ el.value = ''; el.dispatchEvent(new Event('input', { bubbles:true })); } });
+  await mpBettingTab(MPB.box);
+  mpMsg('mpb_smsg', (sign > 0 ? 'Gave yourself ' : 'Took back ') + peMoney(MPB.econ, amt) + '. Your balance is now ' + peMoney(MPB.econ, res.data && res.data.balance != null ? res.data.balance : 0) + '.', true);
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
