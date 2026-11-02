@@ -173,7 +173,7 @@ function wcaSetAddress(pg, qs, push){
      before any of that runs. -->
 <link id="wca-font-boot" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@300;400;500;600;700&family=Barlow:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
    WCA TYPOGRAPHY — one place that decides what the site is set in.
@@ -8805,6 +8805,11 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
   .site-foot .sf-links{display:flex; gap:8px 24px; justify-content:center; flex-wrap:wrap; margin-top:22px;}
   .site-foot .sf-links a{font-family:var(--font-body); font-size:15px; color:var(--txt-2); text-decoration:none;}
   .site-foot .sf-links a:hover{color:var(--gold);}
+  @media (max-width:820px){
+    .site-foot .sf-links a{display:inline-block; padding:10px 6px;}
+    /* iPhones zoom the whole page when a field under 16px is tapped */
+    input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea{font-size:16px;}
+  }
   .site-foot .sf-copy{max-width:1180px; margin:0 auto; padding:12px 24px 22px; border-top:1px solid rgba(255,255,255,.06); font-family:var(--font-body); font-size:13px; color:var(--muted2,#5c5c58); text-align:center;}
 </style>
 
@@ -9797,7 +9802,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
 </div>
 
 <!-- WARP SOUND EFFECT — same file firepro/index.html already uses. -->
-<audio id="fp-warp-sfx" preload="auto" src="firepro/audio/Warp.mp3"></audio>
+<audio id="fp-warp-sfx" preload="none" src="firepro/audio/Warp.mp3"></audio>
 <!-- =================== END FIRE PRO =================== -->
 
 <header>
@@ -10511,9 +10516,35 @@ function wcaToast(title, sub, isErr){
   _toastTimer = setTimeout(()=>el.classList.remove('show'), 3200);
 }
 
+/* Parts of the site often ask for the same data at the same moment (rankings, the
+   featured event). Identical reads within 2.5 seconds share one answer. Saving
+   anything starts fresh, so a read after a save is never given an older answer. */
+const WCA_READS = new Map();
+function wcaSharedFetch(input, init){
+  const url = typeof input === 'string' ? input : (input && input.url) || String(input);
+  const method = String((init && init.method) || 'GET').toUpperCase();
+  if(method !== 'GET' && method !== 'HEAD'){
+    WCA_READS.clear();
+    const w = fetch(input, init), clear = () => WCA_READS.clear();
+    w.then(clear, clear);
+    return w;
+  }
+  if(method !== 'GET' || !/\/rest\/v1\//.test(url) || (init && init.signal)) return fetch(input, init);
+  const key = url + '|' + JSON.stringify([...new Headers((init && init.headers) || {}).entries()]);
+  let p = WCA_READS.get(key);
+  if(!p){
+    p = fetch(input, init);
+    WCA_READS.set(key, p);
+    const forget = () => { if(WCA_READS.get(key) === p) WCA_READS.delete(key); };
+    p.then(r => { if(r.ok) setTimeout(forget, 2500); else forget(); }, forget);
+  }
+  return p.then(r => r.clone());
+}
+
 let sb = null;
 const isConfigured = SUPABASE_URL.startsWith("http") && SUPABASE_KEY.length > 20;
 if (isConfigured) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { fetch: wcaSharedFetch },
   auth: {
     // Keep the login saved between visits, refresh it automatically, and
     // (the important one) read the login token Discord puts in the URL when
@@ -11082,6 +11113,10 @@ function esc(s){if(Array.isArray(s))s=s.join(', ');if(s!=null&&typeof s!=='strin
 // Like esc() but ALSO escapes single quotes and backticks. Use this for any value
 // placed inside an HTML attribute, especially inline event handlers, so a value
 // containing a quote can never "break out" and run as code.
+// For a value placed in quotes inside an inline handler, like onclick="go('NAME')".
+// The browser turns escAttr's &#39; back into a real quote before the handler runs, so the
+// value also needs its quotes backslashed, or a name like Ain't breaks the button.
+function jsAttr(s){if(Array.isArray(s))s=s.join(', ');return escAttr((s==null?'':String(s)).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n'));}
 function escAttr(s){if(Array.isArray(s))s=s.join(', ');return (s==null?'':String(s)).replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));}
 
 // Body formatting via a SAFE whitelist of HTML tags. Everything is escaped first
@@ -11331,7 +11366,7 @@ function mpBox(name, extraDivs){
   // onerror attribute needed three levels of quote escaping.
   const inner = src
     ? `<img class="mp-photo" src="${esc(src)}" alt="${esc(name)}" loading="lazy"
-         onerror="mpNoPhoto(this,'${escAttr(name)}')">`
+         onerror="mpNoPhoto(this,'${jsAttr(name)}')">`
     : `<div class="mp-init">${mpPlaceholder(name)}</div>`;
   const belts = isCh ? mpBeltImgs(divs) : '';
   const over  = isCh ? `<div class="mp-belts">${belts}</div>` : '';
@@ -11903,8 +11938,8 @@ async function loadDashboard(){
     const whoInner = vacant ? 'VACANT' : esc(c.champion);
     const who = isWrestlerChamp
       ? `<span class="xlink" role="link" tabindex="0" title="View ${escAttr(c.champion)}\u2019s profile"
-            onclick="event.stopPropagation();goWrestler('${escAttr(c.champion)}')"
-            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(c.champion)}');}">${whoInner}</span>`
+            onclick="event.stopPropagation();goWrestler('${jsAttr(c.champion)}')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${jsAttr(c.champion)}');}">${whoInner}</span>`
       : whoInner;
     return `<div class="champ-card${vacant?' vacant':''}">
       ${watermark}
@@ -12459,7 +12494,7 @@ function rcNoPhoto(img, name){
 function rosterCard(w){
   const init=w.name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
   const av = w.avatar_url
-    ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="rcNoPhoto(this,'${escAttr(w.name)}')"></div>`
+    ? `<div class="av av-img"><img src="${esc(w.avatar_url)}" alt="${esc(w.name)}" loading="lazy" onerror="rcNoPhoto(this,'${jsAttr(w.name)}')"></div>`
     : `<div class="av av-img">${wcaPlaceholder(w,{mode:'icon'})}</div>`;
   const sub = w.nickname ? `<div class="rmeta nick">"${esc(w.nickname)}"</div>` : '';
   // A stub = a faction member with no matching roster row (no profile to open).
@@ -12691,7 +12726,7 @@ function csPhotoFallback(img, name){
 function csIconHTML(w){
   const src=w.avatar_url||w.image_url||'';
   const inner=src
-    ? `<img src="${esc(src)}" alt="${esc(w.name)}" loading="lazy" onerror="csIconFallback(this,'${escAttr(w.name)}')">`
+    ? `<img src="${esc(src)}" alt="${esc(w.name)}" loading="lazy" onerror="csIconFallback(this,'${jsAttr(w.name)}')">`
     : `<div class="cs-icon-init">${wcaPlaceholder(w,{initials:true})}</div>`;
   const inactive=w.is_active===false?' inactive':'';
   const sel=CS_SELECTED===w.name?' sel':'';
@@ -12710,7 +12745,7 @@ function csSelect(name){
   const holder=document.getElementById('cs-photo-holder');
   if(big){
     holder.outerHTML=`<img class="cs-photo" id="cs-photo-holder" src="${esc(big)}" alt="${esc(w.name)}"
-      onerror="csPhotoFallback(this,'${escAttr(w.name)}')">`;
+      onerror="csPhotoFallback(this,'${jsAttr(w.name)}')">`;
     const img=document.getElementById('cs-photo-holder');
     if(img && img.tagName==='IMG'){ requestAnimationFrame(()=>img.classList.add('in')); }
   } else {
@@ -12889,12 +12924,6 @@ function renderCSTray(list, isFactions, factionGroups){
 function fieldRow(label, value){
   if(!value) return '';
   return `<div class="pf-row"><span class="pf-lbl">${label}</span><span class="pf-val">${esc(value)}</span></div>`;
-}
-function fmtDate(d){
-  if(!d) return '';
-  const dt=new Date(d+'T00:00:00');
-  if(isNaN(dt)) return d;
-  return dt.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
 }
 // Parse a stored last5 string ("W,W,L,D,W" newest-first) into ['W','W',...].
 function parseLast5(s){
@@ -13138,7 +13167,7 @@ function openProfile(w){
   const g=w.gender==='M'?'Mens':w.gender==='F'?'Womens':'Intergender';
   // No name on the placeholder here — the modal prints it right beside.
   const photo = w.image_url
-    ? `<div class="pf-photo"><img src="${esc(w.image_url)}" alt="${esc(w.name)}" onerror="pfNoPhoto(this,'${escAttr(w.name)}')"></div>`
+    ? `<div class="pf-photo"><img src="${esc(w.image_url)}" alt="${esc(w.name)}" onerror="pfNoPhoto(this,'${jsAttr(w.name)}')"></div>`
     : `<div class="pf-photo pf-photo-init">${wcaPlaceholder(w,{mode:'full'})}</div>`;
   let theme='';
   if(w.theme_song){
@@ -13546,8 +13575,8 @@ function xlinkName(name){
   // If roster isn't loaded yet we can't verify — render plain (avoids dead links).
   if(hasRoster && (typeof wrestlerByName==='function') && wrestlerIsListed(wrestlerByName(name))){
     return `<span class="xlink" role="link" tabindex="0" title="View ${escAttr(name)}\u2019s profile"
-      onclick="event.stopPropagation();goWrestler('${escAttr(name)}')"
-      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(name)}');}">${safe}</span>`;
+      onclick="event.stopPropagation();goWrestler('${jsAttr(name)}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${jsAttr(name)}');}">${safe}</span>`;
   }
   return safe;
 }
@@ -15575,7 +15604,7 @@ function chatMsgHTML(m){
     ? `<img class="ch-ava" src="${esc(m.author_avatar)}" alt="" onerror="this.outerHTML='<div class=\\'ch-ava-init\\'>${init}</div>'">`
     : `<div class="ch-ava-init">${init}</div>`;
   const del = IS_ADMIN
-    ? `<button class="ch-del" title="Delete message" onclick="deleteChatMessage('${esc(String(m.id))}')"><i class="ti ti-x"></i></button>`
+    ? `<button class="ch-del" title="Delete message" onclick="deleteChatMessage('${jsAttr(String(m.id))}')"><i class="ti ti-x"></i></button>`
     : '';
   return `<div class="ch-msg">
       ${ava}
@@ -17586,7 +17615,7 @@ function slAvatar(name, cls){
   const ph = slIni(name, c);
   if(src){
     return `<img class="${c}" src="${esc(src)}" alt="${esc(name)}"
-      onerror="slNoPhoto(this,'${escAttr(name)}','${esc(ic)}')">`;
+      onerror="slNoPhoto(this,'${jsAttr(name)}','${jsAttr(ic)}')">`;
   }
   return ph;
 }
@@ -17917,7 +17946,7 @@ function slRenderSpotlight(p){
   const img = pl.image_url || '';
   const subjEsc = esc(subject);
   const subjHtml = (pl.is_wrestler && subject && !slSrc(p))
-    ? `<span class="xlink" role="link" tabindex="0" onclick="event.stopPropagation();goWrestler('${escAttr(subject)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${escAttr(subject)}');}">${subjEsc}</span>`
+    ? `<span class="xlink" role="link" tabindex="0" onclick="event.stopPropagation();goWrestler('${jsAttr(subject)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();goWrestler('${jsAttr(subject)}');}">${subjEsc}</span>`
     : subjEsc;
   return `<article class="slpost sl-spotlight">${slPin(p)}
     <div class="sl-sp-body">
@@ -19211,7 +19240,7 @@ function motnCardHTML(r, opts){
       ${Number(r.reward) > 0 && !closed ? `<span class="motn-pay">Vote and get ${esc(r.reward_text)}</span>` : ''}</div>
     ${win ? `<div class="motn-win"><span>★ The winner</span><b>${esc(win.label)}</b>${win.sub ? `<small>${esc(win.sub)}</small>` : ''}</div>` : ''}
     <div class="motn-list">${(r.options || []).map(o => { const mine = String(r.mine) === String(o.key), w = win && String(win.key) === String(o.key);
-      return `<button type="button" class="motn-row${mine ? ' mine' : ''}${w ? ' won' : ''}" ${closed ? 'disabled' : `onclick="motnVote(${Number(r.id)},'${escAttr(String(o.key))}')"`} aria-pressed="${mine}">
+      return `<button type="button" class="motn-row${mine ? ' mine' : ''}${w ? ' won' : ''}" ${closed ? 'disabled' : `onclick="motnVote(${Number(r.id)},'${jsAttr(String(o.key))}')"`} aria-pressed="${mine}">
         <span class="motn-bar" style="width:${counts ? pct(o.key) : 0}%"></span>
         <span class="motn-lab"><b>${esc(o.label)}</b>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}${mine ? '<em>Your vote</em>' : ''}</span>
         <span class="motn-pct">${counts ? pct(o.key) + '%' : ''}</span></button>`; }).join('')}</div>
@@ -21506,7 +21535,7 @@ function rpcSectionHTML(p){
       <div class="rpc-acts">
         ${p && p.id && (typeof mpRole !== 'function' || mpCur() && ['owner','coowner','admin'].includes(mpRole(mpCur()) || 'owner')) ? `<input type="file" id="rpc_file" accept="image/png,image/jpeg,image/webp" hidden onchange="rpcFile(this.files[0]);this.value=''">
         <button type="button" class="spc-post-btn" onclick="pmEl('rpc_file').click()"><i class="ti ti-upload" aria-hidden="true"></i> ${saved ? 'Upload a new picture' : 'Upload a picture'}</button>
-        ${port || ava ? `<button type="button" class="spc-ghost-btn" onclick="rpcLoad('${escAttr(port || ava)}',true)" title="Open the picture they have now and move the frames"><i class="ti ti-crop" aria-hidden="true"></i> Recrop current photo</button>` : ''}
+        ${port || ava ? `<button type="button" class="spc-ghost-btn" onclick="rpcLoad('${jsAttr(port || ava)}',true)" title="Open the picture they have now and move the frames"><i class="ti ti-crop" aria-hidden="true"></i> Recrop current photo</button>` : ''}
         ${saved ? `<button type="button" class="spc-mini fr-danger" onclick="rpcRemove(this)">Remove picture</button>` : ''}
         <p class="pm-small pm-dim">One picture makes both: the full body for their card, and the face for lists, rankings and the Feed. PNG, JPG or WebP.</p>`
         : `<p class="pm-small pm-dim">Add them to the roster first, then come back to add their picture.</p>`}
@@ -21684,7 +21713,7 @@ function pmAgo(ts){
 function pmLogo(p, cls){
   const col = pmColor(p && p.color);
   return (p && p.logo_url)
-    ? `<img class="${cls}" src="${escAttr(p.logo_url)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} pm-logo-init',textContent:'${escAttr(pmInit(p.name))}'}))" style="--pc:${col}">`
+    ? `<img class="${cls}" src="${escAttr(p.logo_url)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} pm-logo-init',textContent:'${jsAttr(pmInit(p.name))}'}))" style="--pc:${col}">`
     : `<span class="${cls} pm-logo-init" style="--pc:${col}">${esc(pmInit(p && p.name))}</span>`;
 }
 // Go to a promotion's public page.
@@ -23382,9 +23411,9 @@ function mpCoDraw(){
   const boss = String(p.owner_id) === String(me) || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true);
   const co = MP_CO.filter(x => !x.is_owner), owner = MP_CO.find(x => x.is_owner);
   const row = x => `<div class="pm-corow">
-      ${x.avatar ? `<img class="pm-coav" src="${escAttr(x.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pm-coav',textContent:'${escAttr(pmInit(x.name))}'}))">` : `<span class="pm-coav">${esc(pmInit(x.name))}</span>`}
+      ${x.avatar ? `<img class="pm-coav" src="${escAttr(x.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pm-coav',textContent:'${jsAttr(pmInit(x.name))}'}))">` : `<span class="pm-coav">${esc(pmInit(x.name))}</span>`}
       <span class="pm-coname"><b>${esc(x.name || 'Member')}</b><small>${x.is_owner ? 'Owner' : 'Co-owner'}${String(x.user_id) === String(me) ? ', that is you' : ''}</small></span>
-      ${!x.is_owner && (boss || String(x.user_id) === String(me)) ? `<button type="button" class="spc-mini fr-danger" onclick="mpCoRemove('${escAttr(String(x.user_id))}',this)">${String(x.user_id) === String(me) ? 'Leave' : 'Remove'}</button>` : ''}
+      ${!x.is_owner && (boss || String(x.user_id) === String(me)) ? `<button type="button" class="spc-mini fr-danger" onclick="mpCoRemove('${jsAttr(String(x.user_id))}',this)">${String(x.user_id) === String(me) ? 'Leave' : 'Remove'}</button>` : ''}
     </div>`;
   box.innerHTML = `<div class="pm-h3">Co-owners</div>
     <p class="pm-p">Co-owners can do everything here that you can: posts, events, betting, the roster, stories and rivalries. Handy if a team helps you run the show.${boss ? ' Only you can add or remove them.' : ''}</p>
@@ -24071,7 +24100,7 @@ async function pmRanksTab(box){
   const f = secs.some(s => String(s.cat.id) === String(P.rcat)) ? String(P.rcat) : 'all';
   const click = e => e.kind === 'team' ? `pmPubTab('factions')` : `pmPubOpenPerson(${Number(e.x.id)})`;
   box.innerHTML = `<div class="pm-chips pm-rk-chips">${[{ cat:{ id:'all', name:'Everyone', color:'#e9b949' }, rows:[] }].concat(secs).map(s =>
-      `<button type="button" class="pm-chip pm-chip-c${f === String(s.cat.id) ? ' on' : ''}" style="--pc:${pmColor(s.cat.color, '#c9c6be')}" onclick="PM.pub.rcat='${escAttr(String(s.cat.id))}';pmRanksTab(pmEl('pmpub-tab'))">${esc(s.cat.name)}</button>`).join('')}</div>
+      `<button type="button" class="pm-chip pm-chip-c${f === String(s.cat.id) ? ' on' : ''}" style="--pc:${pmColor(s.cat.color, '#c9c6be')}" onclick="PM.pub.rcat='${jsAttr(String(s.cat.id))}';pmRanksTab(pmEl('pmpub-tab'))">${esc(s.cat.name)}</button>`).join('')}</div>
     <div class="pm-rk-find"><input type="search" class="pm-search" id="pmrk-q" value="${escAttr(P.rq || '')}" placeholder="Find someone by name" aria-label="Find someone in the rankings" oninput="PM.pub.rq=this.value;pmRanksList()"><span class="pm-small pm-dim" id="pmrk-n"></span></div>
     ${pmRankNote(P.page)}
     <div class="pm-ranks" id="pmrk-list" data-layout="${P.page.ranks}"></div>`;
@@ -24102,22 +24131,22 @@ function pmRosterTab(box){
   const bAll = [{ id:'all', name:'All brands', color:'#e9b949' }].concat(P.brands || []);
   const bOn = b => String(P.brand || 'all') === String(b.id);
   const brands = (P.brands || []).length ? `<div class="pmn-brands" role="group" aria-label="Brand">${bAll.map(b =>
-      `<button type="button" class="${bOn(b) ? 'on' : ''}" aria-pressed="${bOn(b)}" onclick="pmNavBrand('${escAttr(String(b.id))}')">${esc(b.name)}</button>`).join('')}</div>` : '';
+      `<button type="button" class="${bOn(b) ? 'on' : ''}" aria-pressed="${bOn(b)}" onclick="pmNavBrand('${jsAttr(String(b.id))}')">${esc(b.name)}</button>`).join('')}</div>` : '';
   // the side menu lists the brands like the divisions: full names, their color, one per line
   const brandList = (P.brands || []).length ? `<div class="pmn-sec">Brand</div><div class="pmn-blist" role="group" aria-label="Brand">${bAll.map(b =>
-      `<button type="button" class="pmn-mi pmn-bi${bOn(b) ? ' on' : ''}" style="--pc:${pmColor(b.color, '#e9b949')}" aria-pressed="${bOn(b)}" onclick="pmNavBrand('${escAttr(String(b.id))}')"><span class="dot"></span><span class="nm">${esc(b.name)}</span>${bOn(b) ? '<i class="ti ti-check" aria-hidden="true"></i>' : ''}</button>`).join('')}</div>` : '';
+      `<button type="button" class="pmn-mi pmn-bi${bOn(b) ? ' on' : ''}" style="--pc:${pmColor(b.color, '#e9b949')}" aria-pressed="${bOn(b)}" onclick="pmNavBrand('${jsAttr(String(b.id))}')"><span class="dot"></span><span class="nm">${esc(b.name)}</span>${bOn(b) ? '<i class="ti ti-check" aria-hidden="true"></i>' : ''}</button>`).join('')}</div>` : '';
   const search = `<input class="pm-search pmn-q" id="pmpub-q" value="${escAttr(P.q || '')}" placeholder="Find someone by name" aria-label="Search the roster" oninput="PM.pub.q=this.value;pmPubList()">`;
   const area = L === 'split'
     ? `<div class="pm-splitv"><div class="pm-namelist" id="pmpub-list"></div><aside class="pm-sel pm-big" id="pmpub-sel" aria-live="polite"></aside></div>`
     : L === 'top' ? `<aside class="pm-big pm-big-top" id="pmpub-sel" aria-live="polite"></aside><div id="pmpub-list"></div>` : `<div id="pmpub-list"></div>`;
   const i = menu.indexOf(cur), n = menu.length;
-  const arrows = (k) => `<button type="button" class="pmn-arr" aria-label="${k < 0 ? 'Previous' : 'Next'} division: ${escAttr(menu[(i + k + n) % n].name)}" onclick="pmNavGo('${escAttr(String(menu[(i + k + n) % n].id))}')"><i class="ti ti-chevron-${k < 0 ? 'left' : 'right'}" aria-hidden="true"></i></button>`;
-  const title = `<div class="pmn-title" style="--pc:${cur.color}"><small>${i + 1} of ${n}</small><b>${esc(cur.name)}</b><span class="pmn-dots">${menu.map((m, k) => `<button type="button" class="${k === i ? 'on' : ''}" aria-label="${escAttr(m.name)}" onclick="pmNavGo('${escAttr(String(m.id))}')"></button>`).join('')}</span></div>`;
+  const arrows = (k) => `<button type="button" class="pmn-arr" aria-label="${k < 0 ? 'Previous' : 'Next'} division: ${escAttr(menu[(i + k + n) % n].name)}" onclick="pmNavGo('${jsAttr(String(menu[(i + k + n) % n].id))}')"><i class="ti ti-chevron-${k < 0 ? 'left' : 'right'}" aria-hidden="true"></i></button>`;
+  const title = `<div class="pmn-title" style="--pc:${cur.color}"><small>${i + 1} of ${n}</small><b>${esc(cur.name)}</b><span class="pmn-dots">${menu.map((m, k) => `<button type="button" class="${k === i ? 'on' : ''}" aria-label="${escAttr(m.name)}" onclick="pmNavGo('${jsAttr(String(m.id))}')"></button>`).join('')}</span></div>`;
   box.dataset.layout = L; box.dataset.nav = N;
   if(N === 'tiles' && P.cat === 'menu'){
     box.innerHTML = `<div class="pmn-top"><div><div class="pmn-h">Roster</div><p class="pm-p">Pick a division. Its champions and its people open on their own screen.</p></div>${brands}</div>
       <div class="pmn-tiles">${menu.map(m => { const ts = pmNavTitles(P, m), held = ts.map(t => { const r = pmChampOf(P.reigns, t.id); return r ? r.holder_name : null; }).filter(Boolean);
-        return `<button type="button" class="pmn-tile" style="--pc:${m.color}" onclick="pmNavGo('${escAttr(String(m.id))}')">
+        return `<button type="button" class="pmn-tile" style="--pc:${m.color}" onclick="pmNavGo('${jsAttr(String(m.id))}')">
           <span class="pmn-tile-top"><span><small>${m.id === 'all' ? (ts.length ? ts.length + (ts.length === 1 ? ' champion' : ' champions') : 'The full roster') : ts.length ? ts.length + (ts.length === 1 ? ' title' : ' titles') : 'Division'}</small><b>${esc(m.name)}</b></span><span class="pmn-tile-n"><b>${m.n}</b><small>on the roster</small></span></span>
           ${held.length ? `<span class="pmn-tile-c">${held.slice(0, 3).map(h => `<span><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(h)}</span>`).join('')}${held.length > 3 ? `<span class="more">+${held.length - 3} more</span>` : ''}</span>` : ''}
           <span class="pmn-open">Open <i class="ti ti-chevron-right" aria-hidden="true"></i></span></button>`; }).join('')}</div>`;
@@ -24131,12 +24160,12 @@ function pmRosterTab(box){
           <div class="pmn-mtop"><span class="pmn-sec">Roster menu</span><button type="button" class="pmn-hide" onclick="pmNavCollapse(true)"><i class="ti ti-layout-sidebar-left-collapse" aria-hidden="true"></i> Hide menu</button></div>
           ${brandList}
           ${(P.brands || []).length ? '<div class="pmn-sec">Division</div>' : ''}
-          ${menu.map(m => `<button type="button" class="pmn-mi${m === cur ? ' on' : ''}" style="--pc:${m.color}" aria-current="${m === cur ? 'true' : 'false'}" onclick="pmNavGo('${escAttr(String(m.id))}')"><span class="bar"></span><span class="nm">${esc(m.name)}</span><span class="ct">${m.n}</span></button>`).join('')}
+          ${menu.map(m => `<button type="button" class="pmn-mi${m === cur ? ' on' : ''}" style="--pc:${m.color}" aria-current="${m === cur ? 'true' : 'false'}" onclick="pmNavGo('${jsAttr(String(m.id))}')"><span class="bar"></span><span class="nm">${esc(m.name)}</span><span class="ct">${m.n}</span></button>`).join('')}
           <label class="pmn-ql" for="pmpub-q">Find someone</label>${search}</nav>
         <div class="pmn-rail">
           <button type="button" class="pmn-show" onclick="pmNavCollapse(false)" aria-label="Show the roster menu"><i class="ti ti-layout-sidebar-left-expand" aria-hidden="true"></i><span>Menu</span></button>
           <span class="pmn-railnow" style="--pc:${cur.color}">${bCur && (P.brands || []).length ? `<small>${esc(bCur.name)}</small>` : ''}<b>${esc(cur.name)}</b></span>
-          ${menu.map(m => `<button type="button" class="pmn-rb${m === cur ? ' on' : ''}" style="--pc:${m.color}" title="${escAttr(m.name)}" aria-label="${escAttr(m.name)}" onclick="pmNavGo('${escAttr(String(m.id))}')"></button>`).join('')}
+          ${menu.map(m => `<button type="button" class="pmn-rb${m === cur ? ' on' : ''}" style="--pc:${m.color}" title="${escAttr(m.name)}" aria-label="${escAttr(m.name)}" onclick="pmNavGo('${jsAttr(String(m.id))}')"></button>`).join('')}
         </div></div>
       <div class="pmn-main"><div class="pmn-h" style="color:${cur.color}">${esc(cur.name)}${bCur && bCur.id !== 'all' ? ` <small class="pmn-hb">${esc(bCur.name)}</small>` : ''}</div>${shelf}${area}</div></div>`;
   } else if(N === 'tiles'){
@@ -25781,7 +25810,7 @@ function bindRankingNames(){
   });
 }
 // Re-bind whenever rankings might have re-rendered (cheap + idempotent).
-setInterval(bindRankingNames, 1500);
+setInterval(()=>{ if(!document.hidden && document.querySelector('#page-rankings.active')) bindRankingNames(); }, 1500);
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeProfile();}});
 
@@ -27380,7 +27409,7 @@ function portraitHTML(w){
     : E((w.name||'?').split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase());
   return `<div class="dh-portrait">${ src
     ? `<img src="${typeof escAttr==='function'?escAttr(src):src}" alt="${E(w.name)}"
-         onerror="wcaBoxNoPhoto(this,'${escAttr(w.name)}','full')">`
+         onerror="wcaBoxNoPhoto(this,'${jsAttr(w.name)}','full')">`
     : ph }</div>`;
 }
 
@@ -27535,7 +27564,7 @@ async function renderDhCharFull(){
       <h3 class="dh-char-name">${E(w.name)}</h3>
       <div class="dh-char-meta">${E(s.division)} Division · ${E(standing)}</div>
       <button class="hbtn" style="margin-top:14px"
-        onclick="(typeof goWrestler==='function'?goWrestler('${(w.name||'').replace(/'/g,"\\'")}'):goPage('roster'))">
+        onclick="(typeof goWrestler==='function'?goWrestler('${jsAttr(w.name||'')}'):goPage('roster'))">
         <i class="ti ti-external-link"></i> <span class="hbtn-label">Public profile</span></button>
     </div>
   </div>`;
@@ -27556,6 +27585,7 @@ const CE_SOCIALS = [['twitch','Twitch'],['twitter','Twitter / X'],['instagram','
   ['youtube','YouTube'],['tiktok','TikTok'],['bluesky','Bluesky'],['discord','Discord']];
 let CE_LIST = [], CE_CUR = null;
 function ceSocials(x){ if(!x) return {}; if(typeof x === 'string'){ try{ return JSON.parse(x) || {}; }catch(e){ return {}; } } return x; }
+function ceSameSocials(a, b){ return [...new Set([...Object.keys(a), ...Object.keys(b)])].every(k => (a[k]||'') === (b[k]||'')); }
 function ceMsg(t, ok){ const m = $d('ce-msg'); if(m){ m.textContent = t || ''; m.className = 'ce-msg ' + (ok ? 'ok' : 'bad'); } }
 /* Stories and relationships for the player's own characters (and their factions).
    Same editor as the admin's Stories tab, in player mode: they set their own side,
@@ -27656,7 +27686,7 @@ async function ceSubmit(){
   if(JSON.stringify(fin) !== JSON.stringify(w.finishers||[])) nv.finishers = fin;
   if(JSON.stringify(sig) !== JSON.stringify(w.signatures||[])) nv.signatures = sig;
   const soc = {}; CE_SOCIALS.forEach(([k])=>{ const x = val('ce_soc_'+k); if(x) soc[k] = x; });
-  if(JSON.stringify(soc) !== JSON.stringify(ceSocials(w.socials))) nv.socials = soc;
+  if(!ceSameSocials(soc, ceSocials(w.socials))) nv.socials = soc;
   if(!Object.keys(nv).length){ ceMsg('Nothing changed yet.', false); return; }
   const btn = $d('ce-send'); if(btn) btn.disabled = true;
   const asUser = (typeof IS_ADMIN !== 'undefined' && IS_ADMIN && typeof VIEW_AS_ID !== 'undefined' && VIEW_AS_ID) ? VIEW_AS_ID : null;
@@ -27753,7 +27783,7 @@ function mcCur(){ return MC.list.find(x => x.key === MC.sel) || null; }
 function mcWaiting(it){ return it && it.kind === 'promo' ? MC.edits.find(e => Number(e.roster_id) === it.rid && e.status === 'waiting') || null : null; }
 function mcFace(it, cls){
   const init = String(it.name || '?').split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
-  return `<span class="${cls}">${it.face || it.img ? `<img src="${escAttr(it.face || it.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.textContent='${escAttr(init)}'">` : E(init)}</span>`;
+  return `<span class="${cls}">${it.face || it.img ? `<img src="${escAttr(it.face || it.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.textContent='${jsAttr(init)}'">` : E(init)}</span>`;
 }
 async function mcRender(){
   const host = $d('dh-mc'); if(!host) return;
@@ -31397,7 +31427,7 @@ html.cp-pulse .sd-pts.on.full{animation:sd-pts-pulse 1.8s ease-in-out infinite}
 @media (max-width:640px){
   .sd-bname{font-size:32px}
   .sd-belts{grid-template-columns:1fr}
-  .sd-nodes{grid-template-columns:repeat(8,1fr)!important;gap:5px}
+  .sd-nodes{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px}
   .sd-road{padding:14px}
   .sd-nd .c{font-size:15px}
   .sd-score .n{font-size:44px}
@@ -33215,21 +33245,21 @@ async function stxHydrate(root){
       if(me.kind === 'faction'){
         if(!me.motto && !chs.length && !list.length) continue;
         el.innerHTML = `<div class="stx-pb">${me.motto ? `<p class="stx-motto">“${stxE(me.motto)}”</p>` : ''}
-          <button type="button" class="stx-btn" onclick="stxOpenFaction(${scopeArg},'${stxE(key)}')">Read their story</button></div>`;
+          <button type="button" class="stx-btn" onclick="stxOpenFaction(${scopeArg},'${jsAttr(key)}')">Read their story</button></div>`;
         continue;
       }
       const rvAny = (typeof rvList === 'function') ? await rvList(scope).then(r => r.rows.some(x => x.status === 'active' && x.members.includes(key))).catch(() => false) : false;
       if(!chs.length && !list.length && !facts.length && !rvAny) continue;
       const readBtn = scope != null && typeof pmStoryGo === 'function' && PM.pub && Number(PM.pub.p.id) === Number(scope) && chs.length
-        ? `<button type="button" class="stx-btn sl-readbtn" onclick="pmStoryGo('${stxE(key)}')"><i class="ti ti-book" aria-hidden="true"></i> Read their story like a book</button>` : '';
+        ? `<button type="button" class="stx-btn sl-readbtn" onclick="pmStoryGo('${jsAttr(key)}')"><i class="ti ti-book" aria-hidden="true"></i> Read their story like a book</button>` : '';
       el.innerHTML = `<div class="stx-pb">
         ${chs.length ? `<div class="stx-pb-h">Their story</div><div class="stx-chapbox" data-box="story">${stxChapterView(chs, 0)}</div>${readBtn}` : ''}
         ${facts.length ? `<div class="stx-pb-h">What happened in WCA</div><div class="stx-chapbox stx-factbox" data-box="facts">${stxChapterView(facts, 0)}</div>` : ''}
         ${list.length ? `<div class="stx-pb-h">Relationships</div><div class="stx-plist">${list.slice(0, 12).map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
-          return `<button type="button" class="stx-prow" onclick="stxOpen({scope:${scopeArg},mode:'web',key:'${stxE(key)}',sel:'${stxE(t.other)}'})">
+          return `<button type="button" class="stx-prow" onclick="stxOpen({scope:${scopeArg},mode:'web',key:'${jsAttr(key)}',sel:'${jsAttr(t.other)}'})">
             <span class="stx-dot" style="background:${stxHex(o.color)}"></span><b>${stxE(o.name)}</b><span class="stx-chip" style="--lc:${l.color}">${stxE(stxTieLabel(t.mine, t.relation, t.theirRole, t.mineMore))}</span>
             ${t.myWhy && !t.auto ? `<small>${stxE(t.myWhy)}</small>` : ''}</button>`; }).join('')}</div>
-          <button type="button" class="stx-btn" onclick="stxOpenWeb(${scopeArg},'${stxE(key)}')">Open their web</button>` : ''}
+          <button type="button" class="stx-btn" onclick="stxOpenWeb(${scopeArg},'${jsAttr(key)}')">Open their web</button>` : ''}
         <div data-rvbox></div>
       </div>`;
       // the rivalries they're in right now (when Rivalries is switched on)
@@ -33247,7 +33277,7 @@ async function stxFactionsTab(box, pid){
   catch(e){ box.innerHTML = `<div class="stx-empty">${stxE(stxErr(e))}</div>`; return; }
   const anyTie = ties.length || ctx.factions.some(f => !f.off && f.members.length > 1);
   box.innerHTML = `${anyTie ? `<div class="stx-tabtop"><button type="button" class="stx-btn" onclick="stxOpenWorld(${Number(pid)})"><i class="ti ti-affiliate"></i> See the whole roster's relationships</button></div>` : ''}
-    ${ctx.factions.length ? `<div class="stx-fgrid">${ctx.factions.map(f => `<button type="button" class="stx-fcard" style="--fc:${stxHex(f.color, '#e9b949')}" onclick="stxOpenFaction(${Number(pid)},'${stxE(f.key)}')">
+    ${ctx.factions.length ? `<div class="stx-fgrid">${ctx.factions.map(f => `<button type="button" class="stx-fcard" style="--fc:${stxHex(f.color, '#e9b949')}" onclick="stxOpenFaction(${Number(pid)},'${jsAttr(f.key)}')">
       <span class="stx-fcard-bar"></span><b>${stxE(f.name)}</b>${f.motto ? `<span class="stx-motto">“${stxE(f.motto)}”</span>` : ''}
       <span class="stx-fcard-mem">${f.members.map(k => stxE((ctx.byKey[k] || {}).name || '')).join(', ') || 'No members yet'}</span>
       <span class="stx-fcard-go">Read their story <i class="ti ti-arrow-right"></i></span></button>`).join('')}</div>`
@@ -33468,7 +33498,7 @@ async function stxEdTies(body, ctx){
       <label class="stx-l" for="stxe-who">Character or faction</label>
       <select id="stxe-who" class="stx-in" onchange="STXE.who=this.value;STXE.other=null;stxEdDraw()">${stxEdOptions(ctx, STXE.who, null, true, true)}</select>
       <div class="stx-tlist">${list.map(t => { const o = ctx.byKey[t.other], l = STX_LV[t.mine];
-        return `<button type="button" class="stx-tie${STXE.other === t.other ? ' on' : ''}" onclick="STXE.other='${stxE(t.other)}';stxEdDraw()">
+        return `<button type="button" class="stx-tie${STXE.other === t.other ? ' on' : ''}" onclick="STXE.other='${jsAttr(t.other)}';stxEdDraw()">
           <span class="stx-dot" style="background:${l.color}"></span><span><b>${stxE(o.name)}</b><small>${stxE(stxTieLabel(t.mine, t.relation, t.theirRole, t.mineMore))}</small></span>${t.auto ? '<span class="stx-auto">Automatic</span>' : ''}${!STXE.own && t.tie && t.tie.player_edited_at ? '<span class="stx-auto stx-pl" title="A player changed this">Player edited</span>' : ''}</button>`; }).join('') || '<p class="stx-dim">No relationships yet.</p>'}</div>
       <button type="button" class="stx-btn" onclick="STXE.other='new';stxEdDraw()">+ Add a relationship</button>
       ${STXE.scope == null && typeof stxScanTab === 'function' ? `<button type="button" class="stx-btn ghost" style="margin-left:0" onclick="STXE.tab='scan';stxEdDraw()"><i class="ti ti-radar"></i> Scan for possible rivalries</button>` : ''}
@@ -33740,7 +33770,7 @@ function stxFactsCard(key, facts){
       <p class="stx-dim">The facts from your shows, kept apart from their story. Players can read this but never change it. It shows on the site under their story.</p>
       <div id="stxe-facts">${stxChapterRows(facts)}</div>
       <div class="stx-acts"><button type="button" class="stx-mini" onclick="document.getElementById('stxe-facts').insertAdjacentHTML('beforeend', stxChapterRows([]))">+ Add a chapter</button>
-        <button type="button" class="stx-btn" onclick="stxSaveFacts('${stxE(key)}')">Save WCA facts</button><span id="stxe-fmsg" class="stx-msg"></span></div></section>`;
+        <button type="button" class="stx-btn" onclick="stxSaveFacts('${jsAttr(key)}')">Save WCA facts</button><span id="stxe-fmsg" class="stx-msg"></span></div></section>`;
 }
 function stxFactsBind(root, facts){ const fb = root.querySelector('[data-box="facts"]'); if(fb) stxBindChapters(fb, facts); }
 async function stxSaveFacts(key){
@@ -33776,7 +33806,7 @@ async function stxEdFactions(body, ctx){
   const members = new Set(f ? f.members : []);
   body.innerHTML = `<div class="stx-edgrid">
     <section class="stx-card">
-      <div class="stx-tlist">${facList.map(x => `<button type="button" class="stx-tie${STXE.fac === x.key ? ' on' : ''}" onclick="STXE.fac='${stxE(x.key)}';stxEdDraw()">
+      <div class="stx-tlist">${facList.map(x => `<button type="button" class="stx-tie${STXE.fac === x.key ? ' on' : ''}" onclick="STXE.fac='${jsAttr(x.key)}';stxEdDraw()">
         <span class="stx-dot" style="background:${stxHex(x.color, '#e9b949')}"></span><span><b>${stxE(x.name)}</b><small>${x.members.length} member${x.members.length === 1 ? '' : 's'}${x.off ? ' · inactive, not on the site' : ''}</small></span></button>`).join('') || '<p class="stx-dim">No factions or teams yet.</p>'}</div>
       ${STXE.own ? '<p class="stx-dim stx-small">Every member\'s player can write their faction\'s motto and story. WCA sets the members.</p>'
         : isWca ? '<p class="stx-dim stx-small">Members, colors and records are set in the Factions tab. Their members\' players can write the motto and story too.</p>' : `<button type="button" class="stx-btn" onclick="STXE.fac='new';stxEdDraw()">+ New faction or team</button>`}
@@ -34084,7 +34114,7 @@ function rvCardHTML(ctx, evs, r, opts){
         <ol class="rv-beats">${list.map(beatHTML).join('')}</ol></section>` : ''}
     ${r.status === 'past' && (ended || r.ended_how) ? `<section class="rv-end"><div class="rv-k">How it ended${ended ? ' <span class="rv-kw">' + ended + '</span>' : ''}</div>${stxParas(r.ended_how || '')}</section>` : ''}
     <div class="rv-acts">
-      ${people.length >= 2 ? `<button type="button" class="stx-btn ghost" onclick="stxOpen({scope:${ctx.scope == null ? "'wca'" : Number(ctx.scope)},mode:'web',key:'${stxE(people[0])}',sel:'${stxE(people[1])}'})"><i class="ti ti-affiliate"></i> See their relationship</button>` : ''}
+      ${people.length >= 2 ? `<button type="button" class="stx-btn ghost" onclick="stxOpen({scope:${ctx.scope == null ? "'wca'" : Number(ctx.scope)},mode:'web',key:'${jsAttr(people[0])}',sel:'${jsAttr(people[1])}'})"><i class="ti ti-affiliate"></i> See their relationship</button>` : ''}
       <button type="button" class="stx-btn ghost" onclick="rvShare(${Number(r.id)}, ${ctx.scope == null ? 'null' : Number(ctx.scope)})"><i class="ti ti-share-3"></i> Share</button>
     </div>
   </article>`;
@@ -34893,7 +34923,7 @@ function brChip(b, cls){
 }
 function brLogo(b, cls){
   const c = pmColor(b && b.color, '#c9c6be');
-  return b && b.logo_url ? `<img class="${cls}" src="${escAttr(b.logo_url)}" alt="" referrerpolicy="no-referrer" style="--bc:${c}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} br-init',textContent:'${escAttr(brShort(b))}'}))">`
+  return b && b.logo_url ? `<img class="${cls}" src="${escAttr(b.logo_url)}" alt="" referrerpolicy="no-referrer" style="--bc:${c}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} br-init',textContent:'${jsAttr(brShort(b))}'}))">`
     : `<span class="${cls} br-init" style="--bc:${c}">${esc(brShort(b))}</span>`;
 }
 
@@ -35403,7 +35433,7 @@ function mpbPickList(){
   const box = pmEl('mpb_pick_list'); if(!box) return;
   const list = mpbPickShown(), E = MPB.econ || {};
   box.innerHTML = list.map(f => { const on = MPB.sel.has(f.user_id);
-    return `<button type="button" role="option" aria-selected="${on}" class="ed-pl-mem mpb-fan${on ? ' on' : ''}" onclick="mpbPickToggle('${escAttr(f.user_id)}')"><span class="mpb-box" aria-hidden="true">${on ? '✓' : ''}</span><b>${esc(f.name)}</b><small>${f.balance != null ? esc(peMoney(E, f.balance)) : 'No balance yet'}</small></button>`; }).join('')
+    return `<button type="button" role="option" aria-selected="${on}" class="ed-pl-mem mpb-fan${on ? ' on' : ''}" onclick="mpbPickToggle('${jsAttr(f.user_id)}')"><span class="mpb-box" aria-hidden="true">${on ? '✓' : ''}</span><b>${esc(f.name)}</b><small>${f.balance != null ? esc(peMoney(E, f.balance)) : 'No balance yet'}</small></button>`; }).join('')
     || `<div class="pm-small pm-dim ed-pl-more">${MPB.fans.length ? 'Nobody matches.' : 'Nobody follows you or has a balance yet.'}</div>`;
   const n = pmEl('mpb_pick_n'); if(n) n.textContent = MPB.sel.size ? MPB.sel.size + (MPB.sel.size === 1 ? ' fan ticked' : ' fans ticked') : 'Nobody ticked yet';
 }
@@ -36119,7 +36149,7 @@ function mplDraw(){
       const bits = rs.map(r => `<span class="ed-pl-chip ${r.status === 'approved' ? 'ok' : 'wait'}"><i class="ti ${r.status === 'approved' ? 'ti-circle-check' : 'ti-hourglass'}" aria-hidden="true"></i> ${esc(r.player)}${r.status === 'approved' ? '' : ', waiting for WCA'}
           <button type="button" class="spc-mini" onclick="mplRemove(${Number(r.id)},this)">${r.status === 'approved' ? 'Take back' : 'Cancel'}</button></span>`);
       if(h.name || h.user) bits.push(`<span class="ed-pl-chip ph"><i class="ti ti-user-question" aria-hidden="true"></i> Not on the site yet: ${esc(h.name || h.user)}${h.name && h.user ? ` (${esc(h.user)})` : ''}
-          ${joined ? `<button type="button" class="spc-mini ed-pl-join" onclick="mplGive(${Number(p.id)},'${escAttr(joined.user_id)}')">They joined! Give it to ${esc(joined.name)}</button>` : ''}
+          ${joined ? `<button type="button" class="spc-mini ed-pl-join" onclick="mplGive(${Number(p.id)},'${jsAttr(joined.user_id)}')">They joined! Give it to ${esc(joined.name)}</button>` : ''}
           <button type="button" class="spc-mini" onclick="mplClearPh(${Number(p.id)})">Clear</button></span>`);
       return `<div class="ed-pl-row${String(p.id) === String(MPL.char) ? ' on' : ''}" data-rid="${Number(p.id)}"><button type="button" class="ed-pl-name" onclick="mplPick(${Number(p.id)})">${esc(p.name)}</button>
         <div class="ed-pl-who">${bits.length ? bits.join('') : '<span class="pm-dim">Nobody yet</span>'}</div></div>`; }).join('')}</div>`
@@ -36165,7 +36195,7 @@ function mplFill(){
   const all = MPL.members.filter(m => !q || String(m.name || '').toLowerCase().includes(q) || String(m.username || '').toLowerCase().includes(q));
   const list = all.slice(0, 60);
   if(MPL.who && !list.some(m => m.user_id === MPL.who)){ const keep = MPL.members.find(m => m.user_id === MPL.who); if(keep) list.unshift(keep); }
-  box.innerHTML = list.length ? list.map(m => `<button type="button" role="option" class="ed-pl-mem${m.user_id === MPL.who ? ' on' : ''}" aria-selected="${m.user_id === MPL.who}" onclick="mplWho('${escAttr(m.user_id)}')">
+  box.innerHTML = list.length ? list.map(m => `<button type="button" role="option" class="ed-pl-mem${m.user_id === MPL.who ? ' on' : ''}" aria-selected="${m.user_id === MPL.who}" onclick="mplWho('${jsAttr(m.user_id)}')">
         <span class="ed-pl-dot" aria-hidden="true"></span><b>${esc(m.name)}</b>${m.username && m.username !== m.name ? `<small>@${esc(String(m.username).replace(/^@/, ''))}</small>` : ''}</button>`).join('')
       + (all.length > list.length ? `<div class="pm-small pm-dim ed-pl-more">${all.length - list.length} more. Type more of the name to find them.</div>` : '')
     : `<div class="pm-small pm-dim ed-pl-more">Nobody matches. Not on the site yet? Use the box on the right.</div>`;
@@ -36507,12 +36537,12 @@ function apfQEditHTML(q, si, qi, n){
   const k = si + '_' + qi, open = !!MAF.open[q.id], t = (APF_TYPES.find(x => x[0] === q.type) || APF_TYPES[0])[1];
   return `<div class="apf-q${open ? ' open' : ''}">
     <div class="apf-q-top">
-      <button type="button" class="apf-q-name" onclick="apfQToggle('${escAttr(q.id)}')" aria-expanded="${open}"><b>${esc(q.label || 'Untitled question')}</b>
+      <button type="button" class="apf-q-name" onclick="apfQToggle('${jsAttr(q.id)}')" aria-expanded="${open}"><b>${esc(q.label || 'Untitled question')}</b>
         <span class="apf-q-tags"><span>${esc(t)}</span>${q.req ? '<span class="req-tag">Required</span>' : ''}${q.role ? `<span class="role-tag">${esc(q.role === 'name' ? 'Character name' : 'Goes on the roster')}</span>` : ''}</span></button>
       <div class="apf-q-acts">
         <button type="button" class="spc-mini" aria-label="Move up" onclick="apfQMove(${si},${qi},-1)"${qi === 0 && si === 0 ? ' disabled' : ''}>▲</button>
         <button type="button" class="spc-mini" aria-label="Move down" onclick="apfQMove(${si},${qi},1)"${qi === n - 1 && si === MAF.secs.length - 1 ? ' disabled' : ''}>▼</button>
-        <button type="button" class="spc-mini" onclick="apfQToggle('${escAttr(q.id)}')">${open ? 'Done' : 'Edit'}</button>
+        <button type="button" class="spc-mini" onclick="apfQToggle('${jsAttr(q.id)}')">${open ? 'Done' : 'Edit'}</button>
         ${q.role === 'name' ? '' : `<button type="button" class="spc-mini fr-danger" onclick="apfQRemove(${si},${qi},this)">Remove</button>`}</div>
     </div>
     ${open ? `<div class="apf-q-edit">
@@ -36973,7 +37003,7 @@ function brFormRow(){
 function brGmFace(b, data, cls){
   const src = data || (b && b.gm_pic);
   const init = esc(pmInit((b && b.gm_name) || 'GM'));
-  return src ? `<span class="${cls} pm-hasimg"><img src="${escAttr(src)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${escAttr(pmInit((b && b.gm_name) || 'GM'))}'))"></span>` : `<span class="${cls}">${init}</span>`;
+  return src ? `<span class="${cls} pm-hasimg"><img src="${escAttr(src)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${jsAttr(pmInit((b && b.gm_name) || 'GM'))}'))"></span>` : `<span class="${cls}">${init}</span>`;
 }
 function brPrev(){
   const box = pmEl('brf_prev'); if(!box) return;
@@ -37256,7 +37286,7 @@ function bdHandList(){
   const box = pmEl('bd_hand_list'); if(!box) return;
   const st = bdState(), q = String(BD.handQ || '').trim().toLowerCase();
   const list = st.left.filter(x => !q || String(x.label).toLowerCase().includes(q));
-  box.innerHTML = list.map(x => `<button type="button" role="option" class="ed-pl-mem" onclick="bdHandPick('${escAttr(x.key)}')">${x.kind === 'team' ? '<span class="br-p-i"><i class="ti ti-users"></i></span>' : pmFace(MBR.roster.find(p => Number(p.id) === Number(x.ids[0])) || { name:x.label }, 'br-p-i')}<b>${esc(x.label)}</b>${x.kind === 'team' ? `<small>${x.ids.length} people go together</small>` : ''}</button>`).join('') || '<div class="pm-small pm-dim ed-pl-more">Nobody matches.</div>';
+  box.innerHTML = list.map(x => `<button type="button" role="option" class="ed-pl-mem" onclick="bdHandPick('${jsAttr(x.key)}')">${x.kind === 'team' ? '<span class="br-p-i"><i class="ti ti-users"></i></span>' : pmFace(MBR.roster.find(p => Number(p.id) === Number(x.ids[0])) || { name:x.label }, 'br-p-i')}<b>${esc(x.label)}</b>${x.kind === 'team' ? `<small>${x.ids.length} people go together</small>` : ''}</button>`).join('') || '<div class="pm-small pm-dim ed-pl-more">Nobody matches.</div>';
 }
 async function bdHandPick(key){
   if(BD.spinning || !BD.cur) return;
@@ -37752,7 +37782,7 @@ const RM_KIND = { show:'For a show', post:'Feed post or press', storyline:'Story
 const RM = { pid:null, box:null, msgs:[], ideas:[], people:{}, events:[], col:'idea', edit:null, ch:null, poll:null, queue:[], lines:[], seen:0 };
 function rmWho(uid){ return RM.people[uid] || { name:'Someone', avatar:null }; }
 function rmFace(uid, cls){ const w = rmWho(uid); const init = esc(pmInit(w.name));
-  return w.avatar ? `<span class="${cls} pm-hasimg"><img src="${escAttr(w.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${escAttr(pmInit(w.name))}'))"></span>` : `<span class="${cls}">${init}</span>`; }
+  return w.avatar ? `<span class="${cls} pm-hasimg"><img src="${escAttr(w.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${jsAttr(pmInit(w.name))}'))"></span>` : `<span class="${cls}">${init}</span>`; }
 function rmWhen(ts){ const d = new Date(ts); return d.toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }); }
 async function mpRoomTab(box){
   RM.pid = Number(PM.curId); RM.box = box;
@@ -38142,9 +38172,9 @@ function phDraw(){
   const n = tree.rows.length;
   box.innerHTML = `<section class="ph">
     <div class="ph-head"><small>Hierarchy</small><b>${esc(keys.length > 1 ? k.name : P.p.name)}</b><span class="dim">Higher up means more prestige. Titles side by side are equals.</span></div>
-    ${keys.length > 1 ? `<div class="ph-tabs"><button type="button" class="ph-key" aria-label="Previous brand" onclick="PM.pub.hkey='${escAttr(keys[(ki + keys.length - 1) % keys.length].key)}';phDraw()"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-      <div class="ph-tabrow">${keys.map(x => `<button type="button" class="${x === k ? 'on' : ''}" style="--pc:${x.color}" onclick="PM.pub.hkey='${escAttr(x.key)}';phDraw()">${esc(x.name)}</button>`).join('')}</div>
-      <button type="button" class="ph-key" aria-label="Next brand" onclick="PM.pub.hkey='${escAttr(keys[(ki + 1) % keys.length].key)}';phDraw()"><i class="ti ti-chevron-right" aria-hidden="true"></i></button></div>` : ''}
+    ${keys.length > 1 ? `<div class="ph-tabs"><button type="button" class="ph-key" aria-label="Previous brand" onclick="PM.pub.hkey='${jsAttr(keys[(ki + keys.length - 1) % keys.length].key)}';phDraw()"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <div class="ph-tabrow">${keys.map(x => `<button type="button" class="${x === k ? 'on' : ''}" style="--pc:${x.color}" onclick="PM.pub.hkey='${jsAttr(x.key)}';phDraw()">${esc(x.name)}</button>`).join('')}</div>
+      <button type="button" class="ph-key" aria-label="Next brand" onclick="PM.pub.hkey='${jsAttr(keys[(ki + 1) % keys.length].key)}';phDraw()"><i class="ti ti-chevron-right" aria-hidden="true"></i></button></div>` : ''}
     ${det}
     ${n ? `<div class="ph-scroll"><div class="ph-tree">${tree.rows.map((r, i) => { const stars = Math.max(1, 5 - Math.round(i * (n > 4 ? 4 / (n - 1) : 1)));
         return `<div class="ph-row${i ? '' : ' first'}${i < n - 1 ? ' more' : ''}"><div class="ph-lbl">${esc(r.label || (i ? 'Row ' + (i + 1) : 'Top of the card'))}</div>
@@ -38193,7 +38223,7 @@ function mphDraw(){
   box.innerHTML = `<div class="mph"><section class="pm-card">
       <div class="pm-h3">Hierarchy</div>
       <p class="pm-p">Put your championships in order. The top row is the most prestigious. Titles in the same row are equals. Drag a title onto a row, or use Higher and Lower. Fans see it as a tree on your Hierarchy tab.</p>
-      ${keys.length > 1 ? `<div class="pmn-brands mph-keys" role="group" aria-label="Which tree">${keys.map(k => `<button type="button" class="${k.key === MPH.key ? 'on' : ''}" onclick="mphKey('${escAttr(k.key)}')">${esc(k.name)}</button>`).join('')}</div>` : ''}
+      ${keys.length > 1 ? `<div class="pmn-brands mph-keys" role="group" aria-label="Which tree">${keys.map(k => `<button type="button" class="${k.key === MPH.key ? 'on' : ''}" onclick="mphKey('${jsAttr(k.key)}')">${esc(k.name)}</button>`).join('')}</div>` : ''}
       ${MPH.draft ? `<div class="pm-note">You have changes that are not saved yet. Press Save hierarchy to keep them.</div>` : ''}
       <div class="mph-rows">${T.rows.map((r, i) => `<div class="mph-row" data-row="${i}" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();this.classList.remove('over');mphDrop(${i})">
           <div class="mph-rh"><span class="no">${i + 1}</span><input value="${escAttr(r.label)}" maxlength="40" placeholder="${i ? 'Name this row, like Midcard' : 'Name this row, like World titles'}" aria-label="Row ${i + 1} name" oninput="MPH.tree.rows[${i}].label=this.value;mphStore();mphPrev()">

@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <style>
   :root{
     --bg:#0d0d0f; --panel:#161618; --panel2:#1d1d20; --line:#2a2a2e;
@@ -226,7 +226,7 @@ function ewRenderPage(){
       <div class="soc-grid">${socialInputs}</div>
 
       <div style="margin-top:20px; display:flex; gap:14px; align-items:center; flex-wrap:wrap">
-        <button class="btn" onclick="ewSubmit()">Submit for approval</button>
+        <button class="btn" id="ewSend" onclick="ewSubmit()">Submit for approval</button>
         <span class="msg" id="ewMsg"></span>
       </div>
     </div>
@@ -275,12 +275,14 @@ async function ewSubmit(){
   if(JSON.stringify(finishers) !== JSON.stringify(w.finishers||[])) newVals.finishers = finishers;
   if(JSON.stringify(signatures) !== JSON.stringify(w.signatures||[])) newVals.signatures = signatures;
   const oldSocials = ewParseSocials(w.socials);
-  if(JSON.stringify(socials) !== JSON.stringify(oldSocials||{})) newVals.socials = socials;
+  if([...new Set([...Object.keys(socials), ...Object.keys(oldSocials||{})])].some(k => (socials[k]||'') !== ((oldSocials||{})[k]||''))) newVals.socials = socials;
 
   if(!Object.keys(newVals).length){ ewMsg('Nothing changed yet.', false); return; }
 
   const asUser = (EW_ACTING_ID !== EW_USER.id) ? EW_ACTING_ID : null;
+  const btn = document.getElementById('ewSend'); if(btn) btn.disabled = true;
   const { error } = await sb.rpc('submit_bio_edit', { p_wrestler_id: w.id, p_new_values: newVals, p_as_user: asUser });
+  if(btn) btn.disabled = false;
   if(error){ ewMsg('Failed: '+error.message, false); return; }
   ewMsg('Submitted for approval ✓', true);
   ewLoadHistory();
