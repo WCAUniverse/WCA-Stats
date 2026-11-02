@@ -14205,7 +14205,7 @@ function mpRegister(){
 }
 var MP_SECTIONS = [
   ['edit','Promotion details','ti-id'], ['look','Page colors','ti-palette'], ['layout','Page layout','ti-layout-dashboard'], ['roster','Roster','ti-users'], ['teams','Teams and stables','ti-users-group'], ['cats','Divisions','ti-category'], ['titles','Championships','ti-trophy'], ['hier','Hierarchy','ti-hierarchy'], ['brands','Brands','ti-layout-columns'], ['rels','Relationships','ti-affiliate'], null,
-  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['motn','Awards','ti-award'], ['betting','Betting','ti-cash'], ['store','Redemption Store','ti-shopping-bag'], ['players','Players','ti-user-star'], ['apply','Applications','ti-forms'],
+  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['gfx','Graphics Studio','ti-photo'], ['motn','Awards','ti-award'], ['betting','Betting','ti-cash'], ['store','Redemption Store','ti-shopping-bag'], ['players','Players','ti-user-star'], ['apply','Applications','ti-forms'],
   ['injuries','Injuries','ti-first-aid-kit'], ['stories','Stories','ti-book-2'], ['rivalries','Rivalries','ti-flame'], null,
   ['room',"Writers' Room",'ti-bulb'], ['co','Co-owners','ti-user-shield'], ['suggest','Suggestions','ti-message-2']
 ];
@@ -14279,6 +14279,7 @@ function mpTab(k, clicked){
   if(k === 'rels') return mpRelsTab(box);
   if(k === 'stories') return mpStoriesTab(box);
   if(k === 'rivalries') return mpRivalriesTab(box);
+  if(k === 'gfx') return mpGfxTab(box);
   const later = fn => typeof window[fn] === 'function' ? window[fn](box) : (box.innerHTML = '<div class="loading">Loading…</div>', setTimeout(() => { if(PM.tab === k) mpTab(k); }, 200));
   if(k === 'events') return typeof mpEventsTab === 'function' ? mpEventsTab(box) : later('mpEventsTab');
   if(k === 'betting') return typeof mpBettingTab === 'function' ? mpBettingTab(box) : later('mpBettingTab');
@@ -14590,6 +14591,31 @@ function mpCoTab(box){
   mpCoLoad();
 }
 var MP_SUG_ST = { new:'Sent', seen:'WCA has seen it', planned:'Planned', done:'Done', declined:'Not planned' };
+/* Graphics Studio (Nov 2026): the WCA graphics engine for this promotion,
+   on its own page, /promotion-graphics. Owners, co-owners and the admin only;
+   the page checks that again itself. Saves in promotion_gfx_looks. */
+function mpGfxTab(box){
+  const p = mpCur(); if(!p) return;
+  const href = '/promotion-graphics?id=' + Number(p.id);
+  const items = [
+    ['ti-layout-board','Event cards','The whole card for a show, built from your Events.'],
+    ['ti-brand-youtube','Thumbnails','YouTube thumbnails for any match on the card.'],
+    ['ti-device-mobile','Portrait','Tall pictures for TikTok, Reels, Shorts and Stories.'],
+    ['ti-movie','Posters','Posters for your promotion page or anything you like.'],
+    ['ti-layout-bottombar','Lower Thirds','Name plates for OBS, made from your roster and your matches.']
+  ];
+  box.innerHTML = `<section class="pm-card">
+    <div class="pm-h3"><i class="ti ti-photo" aria-hidden="true"></i> Graphics Studio</div>
+    <p class="pm-p" style="font-size:16px;line-height:1.6">Make match cards, thumbnails, posters and lower thirds for ${esc(p.name)}. The studio pulls in your roster pictures, your shows, your matches and your champions, and you can move every layer, add your own pictures and pick your colors. Everything saves as you edit, so it looks the same when you come back. Export in 720p, 1080p, 1440p or 4K and use the pictures anywhere, like OBS, YouTube or your socials.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:16px 0">
+      ${items.map(x => `<div style="border:1px solid var(--line);border-radius:10px;padding:14px;background:rgba(255,255,255,.02)">
+        <i class="ti ${x[0]}" aria-hidden="true" style="font-size:24px;color:var(--gold)"></i>
+        <b style="display:block;font-size:16px;margin:6px 0 4px">${x[1]}</b><span style="font-size:15px;line-height:1.5;color:var(--muted)">${x[2]}</span></div>`).join('')}
+    </div>
+    <p class="pm-p" style="font-size:15px">Only owners and co-owners of ${esc(p.name)} can open it. Pictures for your roster come from Roster, so add a face or full body picture there first for the best results.</p>
+    <div class="pm-acts"><a class="spc-post-btn" href="${href}" style="text-decoration:none"><i class="ti ti-external-link" aria-hidden="true"></i> Open Graphics Studio</a></div>
+  </section>`;
+}
 function mpSuggestTab(box){
   const p = mpCur(); if(!p) return;
   box.innerHTML = `<div class="ed-two">
