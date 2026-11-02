@@ -4863,13 +4863,40 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .pm-tabarr:disabled{opacity:.3; cursor:default;}
 .pm-tabarr:not(:disabled):hover,.pmn-arr:hover{border-color:var(--gold); color:var(--gold);}
 .pmn-h{font-family:var(--font-display); font-size:34px; text-transform:uppercase; letter-spacing:.5px; line-height:1.1; margin:0 0 12px;}
-.pmn-brands{display:flex; gap:2px; background:var(--panel2); border:1px solid var(--line); border-radius:999px; padding:4px; flex-wrap:nowrap;}
-.pmn-brands button{flex:1 1 0; min-width:0; width:auto !important; margin:0 !important; text-transform:none !important; letter-spacing:0 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border:0; background:none; color:var(--txt-2); font-family:var(--font-body); font-weight:600; font-size:16px; padding:9px 16px; border-radius:999px; cursor:pointer;}
+.pmn-brands{display:flex; gap:4px; background:var(--panel2); border:1px solid var(--line); border-radius:16px; padding:4px; flex-wrap:wrap;}
+.pmn-brands button{flex:1 1 auto; min-width:0; width:auto !important; margin:0 !important; text-transform:none !important; letter-spacing:0 !important; white-space:normal; line-height:1.25; border-radius:12px !important; border:0; background:none; color:var(--txt-2); font-family:var(--font-body); font-weight:600; font-size:16px; padding:9px 16px; border-radius:999px; cursor:pointer;}
 .pmn-brands button.on{background:var(--gold); color:#141414;}
 .pmn-arr{width:50px; height:50px; flex:0 0 50px; border-radius:50%; border:1px solid var(--line); background:var(--panel2); color:var(--txt); display:inline-flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer;}
 .pmn-arr.sm{width:40px; height:40px; flex-basis:40px; font-size:18px;}
 /* side menu */
-.pmn-side{display:grid; grid-template-columns:290px minmax(0,1fr); gap:22px; align-items:start;}
+.pmn-side{display:grid; grid-template-columns:290px minmax(0,1fr); gap:22px; align-items:start; transition:grid-template-columns .3s ease;}
+.pmn-side.col{grid-template-columns:76px minmax(0,1fr);}
+.pmn-left{position:sticky; top:84px; min-width:0;}
+.pmn-side .pmn-menu{position:static;}
+.pmn-side.col .pmn-menu{display:none;}
+.pmn-rail{display:none; flex-direction:column; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:12px 8px;}
+.pmn-side.col .pmn-rail{display:flex; animation:pmnIn .3s ease;}
+@keyframes pmnIn{from{opacity:0; transform:translateX(-12px);} to{opacity:1; transform:none;}}
+.pmn-show{display:flex; flex-direction:column; align-items:center; gap:2px; width:56px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); color:var(--txt); padding:8px 0; cursor:pointer; font-size:22px;}
+.pmn-mtop .pmn-sec{white-space:nowrap;}
+.pmn-show{margin:0 !important;}
+.pmn-show span{font-family:var(--font-cond); font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase;}
+.pmn-show:hover,.pmn-hide:hover{border-color:var(--gold); color:var(--gold);}
+.pmn-railnow{writing-mode:vertical-rl; transform:rotate(180deg); display:flex; flex-direction:column; align-items:center; gap:6px; max-height:300px; overflow:hidden;}
+.pmn-railnow b{font-family:var(--font-cond); font-weight:700; font-size:19px; letter-spacing:1.5px; text-transform:uppercase; color:var(--pc); white-space:nowrap;}
+.pmn-railnow small{font-size:14px; color:var(--muted); white-space:nowrap;}
+.pmn-rb{width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:color-mix(in srgb, var(--pc) 25%, transparent); cursor:pointer; padding:0;}
+.pmn-rb.on{background:var(--pc); outline:2px solid #f2f2f0; outline-offset:2px;}
+.pmn-mtop{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;}
+.pmn-hide{flex:0 0 auto; white-space:nowrap; text-transform:none !important; letter-spacing:0 !important; width:auto !important; margin:0 !important; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--txt-2); font-family:var(--font-body); font-weight:600; font-size:15px; padding:7px 11px; cursor:pointer;}
+.pmn-sec{font-family:var(--font-cond); font-weight:700; font-size:14px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:8px 4px 2px;}
+.pmn-mtop .pmn-sec{margin:0 4px;}
+.pmn-blist{display:flex; flex-direction:column; gap:2px; margin-bottom:6px;}
+.pmn-bi{font-family:var(--font-body) !important; font-weight:600 !important; font-size:17px !important; letter-spacing:0 !important; text-transform:none !important; padding:10px 12px !important;}
+.pmn-bi .dot{width:12px; height:12px; border-radius:50%; background:var(--pc); flex:0 0 auto;}
+.pmn-bi .nm{overflow-wrap:anywhere; line-height:1.25;}
+.pmn-bi i{color:var(--gold); font-size:18px;}
+.pmn-hb{font-family:var(--font-body); font-size:17px; letter-spacing:0; color:var(--muted); text-transform:none;}
 .pmn-menu{position:sticky; top:84px; display:flex; flex-direction:column; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:14px;}
 .pmn-menu .pmn-brands{margin-bottom:8px;}
 .pmn-mi{display:flex; align-items:center; gap:12px; width:100%; border:0; background:none; border-radius:12px; padding:13px 12px; color:var(--txt-2); font-family:var(--font-cond); font-weight:700; font-size:21px; letter-spacing:1px; text-transform:uppercase; text-align:left; cursor:pointer;}
@@ -4917,9 +4944,16 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .pm-champs.pmn-shelf{grid-template-columns:repeat(var(--per,4), minmax(0,1fr)); margin-bottom:18px;}
 @media (max-width:1000px){ .pmn-tiles{grid-template-columns:repeat(2, minmax(0,1fr));} }
 @media (max-width:820px){
-  .pmn-side{grid-template-columns:minmax(0,1fr);}
+  .pmn-side,.pmn-side.col{grid-template-columns:minmax(0,1fr);}
+  .pmn-left{position:static;}
   .pmn-menu{position:static; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px;}
-  .pmn-menu .pmn-brands,.pmn-menu .pmn-ql,.pmn-menu .pm-search{grid-column:1 / -1;}
+  .pmn-menu .pmn-brands,.pmn-menu .pmn-ql,.pmn-menu .pm-search,.pmn-menu .pmn-mtop,.pmn-menu .pmn-sec,.pmn-menu .pmn-blist{grid-column:1 / -1;}
+  .pmn-blist{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px;}
+  .pmn-side.col .pmn-rail{flex-direction:row; padding:8px; overflow-x:auto;}
+  .pmn-show{flex-direction:row; width:auto; padding:8px 12px; gap:6px; font-size:18px;}
+  .pmn-railnow{writing-mode:horizontal-tb; transform:none; flex-direction:column; align-items:flex-start; gap:0; flex:1 1 auto; min-width:0;}
+  .pmn-railnow b{font-size:18px; white-space:normal;}
+  .pmn-rb{display:none;}
   .pmn-mi{font-size:17px; letter-spacing:.3px; gap:8px; padding:11px 10px; background:rgba(255,255,255,.03);} .pmn-mi .ct{font-size:14px;}
   .pmn-tiles{grid-template-columns:minmax(0,1fr);}
   .pmn-tile{min-height:0; flex-direction:row; align-items:center; flex-wrap:wrap; padding:16px; box-shadow:inset 4px 0 0 var(--pc);}
@@ -14591,9 +14625,6 @@ function mpCoTab(box){
   mpCoLoad();
 }
 var MP_SUG_ST = { new:'Sent', seen:'WCA has seen it', planned:'Planned', done:'Done', declined:'Not planned' };
-/* Graphics Studio (Nov 2026): the WCA graphics engine for this promotion,
-   on its own page, /promotion-graphics. Owners, co-owners and the admin only;
-   the page checks that again itself. Saves in promotion_gfx_looks. */
 function mpGfxTab(box){
   const p = mpCur(); if(!p) return;
   const href = '/promotion-graphics?id=' + Number(p.id);
@@ -15944,8 +15975,13 @@ function pmRosterTab(box){
   if(P.cat !== 'menu' && !menu.some(m => String(m.id) === String(P.cat))) P.cat = 'all';
   if(N !== 'tiles' && P.cat === 'menu') P.cat = 'all';
   const cur = menu.find(m => String(m.id) === String(P.cat)) || menu[0];
-  const brands = (P.brands || []).length ? `<div class="pmn-brands" role="group" aria-label="Brand">${[{ id:'all', name:'All' }].concat(P.brands).map(b =>
-      `<button type="button" class="${String(P.brand || 'all') === String(b.id) ? 'on' : ''}" aria-pressed="${String(P.brand || 'all') === String(b.id)}" onclick="pmNavBrand('${escAttr(String(b.id))}')">${esc(b.short || b.name)}</button>`).join('')}</div>` : '';
+  const bAll = [{ id:'all', name:'All brands', color:'#e9b949' }].concat(P.brands || []);
+  const bOn = b => String(P.brand || 'all') === String(b.id);
+  const brands = (P.brands || []).length ? `<div class="pmn-brands" role="group" aria-label="Brand">${bAll.map(b =>
+      `<button type="button" class="${bOn(b) ? 'on' : ''}" aria-pressed="${bOn(b)}" onclick="pmNavBrand('${escAttr(String(b.id))}')">${esc(b.name)}</button>`).join('')}</div>` : '';
+  // the side menu lists the brands like the divisions: full names, their color, one per line
+  const brandList = (P.brands || []).length ? `<div class="pmn-sec">Brand</div><div class="pmn-blist" role="group" aria-label="Brand">${bAll.map(b =>
+      `<button type="button" class="pmn-mi pmn-bi${bOn(b) ? ' on' : ''}" style="--pc:${pmColor(b.color, '#e9b949')}" aria-pressed="${bOn(b)}" onclick="pmNavBrand('${escAttr(String(b.id))}')"><span class="dot"></span><span class="nm">${esc(b.name)}</span>${bOn(b) ? '<i class="ti ti-check" aria-hidden="true"></i>' : ''}</button>`).join('')}</div>` : '';
   const search = `<input class="pm-search pmn-q" id="pmpub-q" value="${escAttr(P.q || '')}" placeholder="Find someone by name" aria-label="Search the roster" oninput="PM.pub.q=this.value;pmPubList()">`;
   const area = L === 'split'
     ? `<div class="pm-splitv"><div class="pm-namelist" id="pmpub-list"></div><aside class="pm-sel pm-big" id="pmpub-sel" aria-live="polite"></aside></div>`
@@ -15965,10 +16001,20 @@ function pmRosterTab(box){
   }
   const shelf = '<div id="pmn-shelf"></div>';
   if(N === 'side'){
-    box.innerHTML = `<div class="pmn-side"><nav class="pmn-menu" aria-label="Roster menu">${brands}
-        ${menu.map(m => `<button type="button" class="pmn-mi${m === cur ? ' on' : ''}" style="--pc:${m.color}" aria-current="${m === cur ? 'true' : 'false'}" onclick="pmNavGo('${escAttr(String(m.id))}')"><span class="bar"></span><span class="nm">${esc(m.name)}</span><span class="ct">${m.n}</span></button>`).join('')}
-        <label class="pmn-ql" for="pmpub-q">Find someone</label>${search}</nav>
-      <div class="pmn-main"><div class="pmn-h" style="color:${cur.color}">${esc(cur.name)}</div>${shelf}${area}</div></div>`;
+    const bCur = bAll.find(bOn);
+    box.innerHTML = `<div class="pmn-side${pmNavCol() ? ' col' : ''}" id="pmn-side"><div class="pmn-left">
+        <nav class="pmn-menu" aria-label="Roster menu">
+          <div class="pmn-mtop"><span class="pmn-sec">Roster menu</span><button type="button" class="pmn-hide" onclick="pmNavCollapse(true)"><i class="ti ti-layout-sidebar-left-collapse" aria-hidden="true"></i> Hide menu</button></div>
+          ${brandList}
+          ${(P.brands || []).length ? '<div class="pmn-sec">Division</div>' : ''}
+          ${menu.map(m => `<button type="button" class="pmn-mi${m === cur ? ' on' : ''}" style="--pc:${m.color}" aria-current="${m === cur ? 'true' : 'false'}" onclick="pmNavGo('${escAttr(String(m.id))}')"><span class="bar"></span><span class="nm">${esc(m.name)}</span><span class="ct">${m.n}</span></button>`).join('')}
+          <label class="pmn-ql" for="pmpub-q">Find someone</label>${search}</nav>
+        <div class="pmn-rail">
+          <button type="button" class="pmn-show" onclick="pmNavCollapse(false)" aria-label="Show the roster menu"><i class="ti ti-layout-sidebar-left-expand" aria-hidden="true"></i><span>Menu</span></button>
+          <span class="pmn-railnow" style="--pc:${cur.color}">${bCur && (P.brands || []).length ? `<small>${esc(bCur.name)}</small>` : ''}<b>${esc(cur.name)}</b></span>
+          ${menu.map(m => `<button type="button" class="pmn-rb${m === cur ? ' on' : ''}" style="--pc:${m.color}" title="${escAttr(m.name)}" aria-label="${escAttr(m.name)}" onclick="pmNavGo('${escAttr(String(m.id))}')"></button>`).join('')}
+        </div></div>
+      <div class="pmn-main"><div class="pmn-h" style="color:${cur.color}">${esc(cur.name)}${bCur && bCur.id !== 'all' ? ` <small class="pmn-hb">${esc(bCur.name)}</small>` : ''}</div>${shelf}${area}</div></div>`;
   } else if(N === 'tiles'){
     box.innerHTML = `<button type="button" class="pmn-back" onclick="pmNavGo('menu')"><i class="ti ti-chevron-left" aria-hidden="true"></i> All divisions</button>
       <div class="pmn-bar" style="--pc:${cur.color}">${arrows(-1)}${title}${arrows(1)}</div>
@@ -15996,6 +16042,12 @@ function pmNavTitles(P, m){
   return (P.titles || []).filter(t => (m.id === 'all' || (m.id !== '' && String(t.division_id) === String(m.id)))
     && (!P.brand || P.brand === 'all' || !t.brand_id || String(t.brand_id) === String(P.brand)));
 }
+function pmNavCol(){ try{ return localStorage.getItem('wca-pmn-col') === '1'; }catch(e){ return false; } }
+function pmNavCollapse(on){
+  try{ localStorage.setItem('wca-pmn-col', on ? '1' : '0'); }catch(e){}
+  const el = pmEl('pmn-side'); if(el) el.classList.toggle('col', !!on);
+  setTimeout(() => { try{ pmNavShelf(); }catch(e){} const b = document.querySelector(on ? '.pmn-show' : '.pmn-hide'); if(b) b.focus(); }, 320);
+}
 function pmNavGo(id){ const P = PM.pub; if(!P) return; P.cat = id; P.shelf = 0; P.q = ''; pmRosterTab(pmEl('pmpub-tab')); const t = pmEl('pmpub-tab'); if(t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ behavior:'smooth', block:'start' }); }
 function pmNavBrand(id){ const P = PM.pub; if(!P) return; P.brand = id; P.shelf = 0; pmRosterTab(pmEl('pmpub-tab')); }
 function pmNavShelf(){
@@ -16004,7 +16056,7 @@ function pmNavShelf(){
   const m = pmNavItems(P).find(x => String(x.id) === String(P.cat)) || { id:'all' };
   const ts = pmNavTitles(P, m);
   if(!ts.length){ box.innerHTML = ''; return; }
-  const per = matchMedia('(max-width:700px)').matches ? 2 : (P.page.nav === 'side' ? 3 : 4), pages = Math.ceil(ts.length / per);
+  const per = matchMedia('(max-width:700px)').matches ? 2 : (P.page.nav === 'side' && !pmNavCol() ? 3 : 4), pages = Math.ceil(ts.length / per);
   const pg = Math.min(P.shelf || 0, pages - 1);
   box.innerHTML = `<div class="pmn-shelf-h"><b>${m.id === 'all' ? 'Every champion' : 'Champions'} <small>${ts.length}</small></b>
       ${pages > 1 ? `<span class="pmn-pg"><span>${pg + 1} of ${pages}</span><button type="button" class="pmn-arr sm" aria-label="Previous champions" onclick="PM.pub.shelf=${(pg + pages - 1) % pages};pmNavShelf()"><i class="ti ti-chevron-left" aria-hidden="true"></i></button><button type="button" class="pmn-arr sm" aria-label="More champions" onclick="PM.pub.shelf=${(pg + 1) % pages};pmNavShelf()"><i class="ti ti-chevron-right" aria-hidden="true"></i></button></span>` : ''}</div>
