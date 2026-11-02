@@ -86,7 +86,7 @@ async function readCredentials() {
 async function q(cred, table, select, filter = '') {
   const u = `${cred.url}/rest/v1/${table}?select=${encodeURIComponent(select)}${filter}`;
   const r = await fetch(u, { headers: { apikey: cred.key, Authorization: `Bearer ${cred.key}` } });
-  if (!r.ok) throw new Error(`${table}: ${r.status} ${r.statusText} — ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) throw new Error(`${table}: ${r.status} ${r.statusText}, ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }
 
@@ -100,7 +100,7 @@ async function gather() {
   console.log('Supabase:', cred.url);
   const soft = async (label, p) => {
     try { return await p; }
-    catch (e) { console.warn(`  ! ${label} skipped — ${e.message}`); return []; }
+    catch (e) { console.warn(`  ! ${label} skipped, ${e.message}`); return []; }
   };
   const [posts, events, wrestlers, posters, matches] = await Promise.all([
     soft('storylines', q(cred, 'storylines',
@@ -174,7 +174,7 @@ function parseSides(m) {
 /* ── the page template ──────────────────────────────────────────────── */
 function page({ title, description, image, deepLink, canonical, kicker, body }) {
   const img = image || CARD;
-  const full = `${title} — ${BRAND}`;
+  const full = `${title}, ${BRAND}`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -286,8 +286,8 @@ function buildEntries({ posts = [], events = [], wrestlers = [] }) {
       },
       kicker: e.tagline ? String(e.tagline) : 'Event',
       description: bits.length
-        ? `${name} — ${bits.join(', ')}. Full card, results and final standings.`
-        : `${name} — full card, results and final standings from ${BRAND}.`,
+        ? `${name}, ${bits.join(', ')}. Full card, results and final standings.`
+        : `${name}, full card, results and final standings from ${BRAND}.`,
       image: absolute(e.poster_url),
       deepLink: `${BASE}archive?event=${encodeURIComponent(e.id)}`,
       date: e.event_date || null
@@ -360,7 +360,7 @@ async function main() {
         await writeFile(path.join(dir, 'card.png'), await renderEventCard(e.card, FONTS));
         e.image = canonical + 'card.png';
         drawn++;
-      } catch (err) { console.warn(`  ! card for ${e.dir} — ${err.message}`); }
+      } catch (err) { console.warn(`  ! card for ${e.dir}, ${err.message}`); }
     }
     await writeFile(path.join(dir, 'index.html'), page({ ...e, canonical, body: e.description }), 'utf8');
     const k = e.dir.split('/')[0];

@@ -92,8 +92,35 @@ const out = {};
 const scripts = Object.keys(out).sort((a, b) => a - b).map(b => '<script>\n' + out[b].join('\n') + '\n</script>').join('\n');
 
 const shell = fs.readFileSync(path.join(ROOT, 'tools', 'promotion-editor.shell.html'), 'utf8');
+
+// ---- keep only the style rules this page can use. A class or id counts as used if it
+// appears anywhere in the editor's code or shell, even as the start or end of a built name.
+function pruneCss(css, used){
+  const out = []; let i = 0, start = 0, depth = 0, sel = '', body = 0;
+  while(i < css.length){
+    if(css.startsWith('/*', i)){ const e = css.indexOf('*/', i + 2); i = e < 0 ? css.length : e + 2; if(!depth) start = i; continue; }
+    if(css[i] === '{'){ if(!depth){ sel = css.slice(start, i).trim(); body = i + 1; } depth++; }
+    else if(css[i] === '}'){
+      depth--;
+      if(depth < 0){ depth = 0; start = i + 1; i++; continue; }   // a stray closing brace
+      if(!depth){
+        if(/^@(media|supports|layer|container)/.test(sel)){ const inner = pruneCss(css.slice(body, i), used); if(inner.trim()) out.push(sel + '{' + inner + '}'); }
+        else if(sel.startsWith('@') || sel.split(',').some(p => [...p.matchAll(/[.#](-?[A-Za-z_][\w-]*)/g)].every(m => used(m[1])))) out.push(css.slice(start, i + 1));
+        start = i + 1;
+      }
+    }
+    i++;
+  }
+  return out.join('\n');
+}
+const pageCode = scripts + fs.readFileSync(path.join(ROOT, 'tools', 'promotion-editor.shell.html'), 'utf8');
+const words = new Set(pageCode.match(/[A-Za-z_][\w-]*/g) || []);
+const starts = [...new Set([...pageCode.matchAll(/([A-Za-z_][\w-]*)(?:\$\{|['"`]\s*\+)/g)].map(m => m[1]))].filter(p => p.length >= 2);
+const ends = [...new Set([...pageCode.matchAll(/(?:\}|\+\s*['"`])(-[\w-]+)/g)].map(m => m[1]))];
+const usedName = c => words.has(c) || starts.some(p => c.startsWith(p)) || ends.some(p => c.endsWith(p));
+const pageStyles = pruneCss(styles, usedName);
 const page = shell
-  .replace('/*__STYLES__*/', () => styles)
+  .replace('/*__STYLES__*/', () => pageStyles)
   .replace('<!--__SCRIPTS__-->', () => scripts);
 fs.writeFileSync(path.join(ROOT, 'promotion-editor.html'), page);
 console.log('promotion-editor.html: ' + (page.length / 1024 | 0) + ' KB, ' + keep.size + ' of ' + stmts.length + ' pieces of index.html');
