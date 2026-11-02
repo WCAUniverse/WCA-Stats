@@ -5043,6 +5043,46 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .mpe-link input{flex:1 1 auto; min-width:0; border:0 !important; border-radius:0 !important; background:transparent !important; font-size:16px !important; font-weight:600; padding-left:2px !important;}
 .mpe-linkmsg{margin-top:6px; font-size:15px !important; color:var(--txt-2);}
 .mpe-linkmsg.ok{color:var(--win);} .mpe-linkmsg.bad{color:var(--loss);}
+/* ===== WCA RANKINGS: tidy columns (Nov 2026) ===== */
+.rk-rate{display:contents;}
+.rk-q-hide{display:none !important;}
+.rk-searchrow{position:relative; display:flex; align-items:center; gap:12px; max-width:560px; margin:14px 0 12px;}
+.rk-searchrow > i{position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:18px; pointer-events:none;}
+.rk-searchrow .rk-search{margin:0; padding-left:42px; font-size:16px;}
+.rk-searchmsg{flex:0 0 auto; font-size:15px; color:var(--txt-2); white-space:nowrap;}
+/* social links sit apart from the name */
+.nm-top .soc-row{margin-left:16px; gap:10px; vertical-align:middle;}
+.nm-top .soc-row + .tag{margin-left:14px;}
+@media (min-width:760px){
+  #page-rankings .division{max-width:1240px !important; margin-left:auto; margin-right:auto;}
+  #page-rankings .division .row{display:grid; align-items:center; column-gap:18px;
+    grid-template-columns:44px 50px minmax(0,1fr) 92px 150px 236px 62px;}
+  #page-rankings .division .row .rank{width:auto;}
+  #page-rankings .division .row .nm{min-width:0;}
+  #page-rankings .division .row .rk-rate{display:flex; justify-content:flex-start;}
+  #page-rankings .division .row .rk-rating{margin-left:0;}
+  #page-rankings .division .row .row-mid{margin-left:0; min-width:0; justify-content:flex-start;}
+  #page-rankings .division .row .wl2{margin-left:0; min-width:0; justify-content:flex-start;}
+  #page-rankings .division .row .dots,#page-rankings .division .row .dots-end{justify-self:end;}
+  #page-rankings .division .row:not(.inactive-rank) + .row.inactive-rank{padding-top:14px;}
+}
+.pm-rk-find{display:flex; align-items:center; gap:12px; margin:10px 0 6px;} .pm-rk-find .pm-search{max-width:420px;}
+/* ===== BETS: hidden picks, and every bet on a past show (Nov 2026) ===== */
+.bb-pick.hid{color:var(--muted); font-style:italic;}
+.bet-hide{display:flex !important; align-items:flex-start; gap:10px; margin:12px 0 4px !important; font-size:15px; line-height:1.4; color:var(--txt-2); text-transform:none !important; letter-spacing:0 !important; cursor:pointer;}
+.bet-hide input{width:20px !important; height:20px; flex:0 0 auto; margin-top:1px; accent-color:var(--gold);}
+.my-bet-hid{font-size:14px; color:var(--muted);}
+.arch-bets{margin:-6px 0 18px; padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:var(--panel);}
+.arch-bets summary{font-size:15px;}
+.arch-bets .bb-row{flex-wrap:wrap;}
+.arch-spoil{color:var(--muted); font-size:13.5px;}
+.arch-bets-note{margin:-6px 0 10px; font-size:15px; color:var(--txt-2);}
+.arch-who > summary{list-style:none; cursor:pointer;}
+.arch-who > summary::-webkit-details-marker{display:none;}
+.arch-who-ch{color:var(--muted); font-size:18px; transition:transform .2s;}
+.arch-who[open] .arch-who-ch{transform:rotate(180deg);}
+.arch-who-bets{display:flex; flex-direction:column; gap:6px; padding:8px 16px 14px;}
+.arch-who-bets .lrc-match{font-size:14px;} .arch-who-bets .lrc-pick{font-size:15px;} .arch-who-bets .lrc-out{font-size:15px;}
 /* ===== BRANDS AND THE BRAND DRAFT (Oct 2026) ===== */
 /* brand form, crop tool and general managers */
 .br-sec{margin-top:16px; padding:14px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.16);}
@@ -9802,6 +9842,44 @@ function bindNameLinks(el){
     };
   });
 }
+function replayBetBreakdown(board, statuses){
+  const stat = {};
+  (statuses||[]).forEach(s=>{ stat[s.slot] = s; });
+  const bySlot = {};
+  (board||[]).forEach(b=>{ (bySlot[b.slot] = bySlot[b.slot] || []).push(b); });
+  const people = {};
+  (board||[]).forEach(b=>{
+    const k = b.user_id || b.player_name;
+    if(!people[k]) people[k] = { user_id:b.user_id, display_name:b.player_name || 'Player', net:0, right:0, wrong:0, bets:[] };
+  });
+  Object.keys(bySlot).forEach(slot=>{
+    const bets = bySlot[slot];
+    const st = stat[slot] || {};
+    const settled = st.status === 'settled' && st.winner_idx !== null && st.winner_idx !== undefined;
+    const w = settled ? Number(st.winner_idx) : null;
+    let winTotal = 0, loseTotal = 0;
+    if(settled) bets.forEach(b=>{ if(Number(b.side_index)===w) winTotal += Number(b.amount)||0; else loseTotal += Number(b.amount)||0; });
+    bets.forEach(b=>{
+      const amt = Number(b.amount)||0;
+      const p = people[b.user_id || b.player_name];
+      const row = { slot:Number(slot), side_index:(b.side_index===null||b.side_index===undefined) ? null : Number(b.side_index), amount:amt, result:'open', delta:0 };
+      if(st.status === 'void'){ row.result = 'void'; }
+      else if(settled){
+        if(Number(b.side_index)===w){
+          row.result = 'won';
+          row.delta = (loseTotal>0 && winTotal>0) ? Math.round(amt/winTotal*loseTotal) : 250;
+          p.right++;
+        } else {
+          row.result = 'lost'; row.delta = -amt; p.wrong++;
+        }
+        p.net += row.delta;
+      }
+      p.bets.push(row);
+    });
+  });
+  Object.values(people).forEach(p=>p.bets.sort((a,b)=>a.slot-b.slot));
+  return Object.values(people).sort((a,b)=> (b.net-a.net) || a.display_name.localeCompare(b.display_name));
+}
 function lbNet(n){
   const v = Number(n)||0;
   const sign = v>0 ? '+' : (v<0 ? '−' : '');
@@ -10031,7 +10109,7 @@ async function openArchiveEvent(id, opts){
   window.scrollTo({top:0,behavior:'smooth'});
 
   // pull matches, statuses (winner), final standings, linked storylines, ratings, and the chat champion
-  const [matchesR, statusR, resultsR, storyR, ratingsR, myRatingsR, chatR, manualR] = await Promise.all([
+  const [matchesR, statusR, resultsR, storyR, ratingsR, myRatingsR, chatR, manualR, boardR] = await Promise.all([
     sb.from('event_matches').select('*').eq('event_id', id).order('slot'),
     sb.from('match_betting').select('*').eq('event_id', id),
     sb.from('event_results').select('*').eq('event_id', id).order('rank'),
@@ -10039,8 +10117,10 @@ async function openArchiveEvent(id, opts){
     sb.from('v_match_ratings').select('*').eq('event_id', id),
     CURRENT_USER ? sb.from('match_ratings').select('slot,stars').eq('event_id', id).eq('user_id', CURRENT_USER.id) : Promise.resolve({data:[]}),
     sb.from('events').select('chat_champion').eq('id', id).single(),
-    sb.from('manual_match_ratings').select('*').eq('event_id', id).then(r=>r, ()=>({data:[]}))
+    sb.from('manual_match_ratings').select('*').eq('event_id', id).then(r=>r, ()=>({data:[]})),
+    sb.from('v_bet_board').select('*').eq('event_id', id).then(r=>r, ()=>({data:[]}))
   ]);
+  const archBoard = (boardR && !boardR.error && boardR.data) || [];
   const chatChampion = (chatR && chatR.data && chatR.data.chat_champion) ? chatR.data.chat_champion : '';
   const matches = matchesR.data || [];
   const statuses = statusR.data || [];
@@ -10110,7 +10190,7 @@ async function openArchiveEvent(id, opts){
     html += matches.map((m,i)=>{
       const isMain = m.slot===1 || (i===0 && !matches.some(x=>x.slot===1));
       REC_CTX = pastRec ? { division: matchDivision(m), map: pastRec, past:true } : null;
-      return archBoutHTML(m, isMain, statusBySlot[m.slot], winBySlot[m.slot]);
+      return archBoutHTML(m, isMain, statusBySlot[m.slot], winBySlot[m.slot]) + archBetsHTML(m, archBoard, statusBySlot[m.slot], winBySlot[m.slot]);
     }).join('');
     REC_CTX = null;
     MP_ASOF = null;                       // back to present day for every other page
@@ -10121,16 +10201,25 @@ async function openArchiveEvent(id, opts){
 
   // final standings (from event_results)
   if(results.length){
+    // tap a name to see every bet they made on this show (folded, so no spoilers)
+    let people = [];
+    try{ people = replayBetBreakdown(archBoard, statuses); }catch(e){}
+    const byId = {}, byName = {};
+    people.forEach(p=>{ if(p.user_id) byId[p.user_id] = p; byName[String(p.display_name||'').toLowerCase()] = p; });
+    const mBySlot = {}; matches.forEach(m=>{ mBySlot[m.slot] = m; });
     html += `<div class="section-title">Final Standings</div>`;
+    html += `<p class="arch-bets-note">Tap a name to see what they bet on. It shows who won each match.</p>`;
     html += `<div class="lb-table">` + results.map(r=>{
       const n = lbNet(r.net);
       const rank = r.rank;
       const cls = `lb-rowx lb-${rank<=3?rank:'n'}${rank%2?'':' alt'}`;
-      return `<div class="${cls}">
-        <span class="lb-rk">${rank}</span>
+      const p = (r.user_id && byId[r.user_id]) || byName[String(r.display_name||'').toLowerCase()] || null;
+      const line = `<span class="lb-rk">${rank}</span>
         <span class="lb-nm">${esc(r.display_name)}${r.is_champion?'<span class="lb-me-tag">CHAMP</span>':''}</span>
-        <span class="lb-net ${n.cls}">${n.txt}</span>
-      </div>`;
+        <span class="lb-net ${n.cls}">${n.txt}</span>`;
+      if(!p || !(p.bets||[]).length) return `<div class="${cls}">${line}</div>`;
+      return `<details class="arch-who"><summary class="${cls}">${line}<i class="ti ti-chevron-down arch-who-ch" aria-hidden="true"></i></summary>
+        <div class="arch-who-bets">${p.bets.slice().sort((a,b)=>a.slot-b.slot).map(b=>archBetLine(mBySlot[b.slot], b)).join('')}</div></details>`;
     }).join('') + `</div>`;
   }
 
@@ -10155,6 +10244,39 @@ async function openArchiveEvent(id, opts){
       wcaShare('event', shareBtn.dataset.eid, 'Share this event', shareBtn.dataset.ename));
   }
   bindNameLinks(detEl);
+}
+function archBetsHTML(m, board, status, winIdx){
+  const bets = (board || []).filter(b => Number(b.slot) === Number(m.slot));
+  if(!bets.length) return '';
+  const sides = parseSides(m), pot = bets.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+  const settled = status === 'settled' && winIdx !== null && winIdx !== undefined, w = Number(winIdx);
+  let winTotal = 0, loseTotal = 0;
+  if(settled) bets.forEach(b => { if(Number(b.side_index) === w) winTotal += Number(b.amount) || 0; else loseTotal += Number(b.amount) || 0; });
+  const rows = bets.slice().sort((a, b) => Number(b.amount) - Number(a.amount)).map(b => {
+    const amt = Number(b.amount) || 0, hid = b.side_index === null || b.side_index === undefined;
+    const pick = hid ? '<i class="ti ti-eye-off"></i> Hidden pick' : esc(sideLabel(sides[b.side_index]));
+    let out = '';
+    if(status === 'void') out = '<span class="lrc-out void">Refunded</span>';
+    else if(settled && !hid){
+      if(Number(b.side_index) === w) out = `<span class="lrc-out won">Right +${fmtMoney((loseTotal > 0 && winTotal > 0) ? Math.round(amt / winTotal * loseTotal) : 250).slice(1)}</span>`;
+      else out = `<span class="lrc-out lost">Wrong -${fmtMoney(amt).slice(1)}</span>`;
+    }
+    const init = (b.player_name || 'P').slice(0, 2).toUpperCase();
+    const av = b.player_avatar ? `<img class="bb-av" src="${esc(b.player_avatar)}" alt="" onerror="this.outerHTML='<span class=\\'bb-init\\'>${esc(init)}</span>'">` : `<span class="bb-init">${esc(init)}</span>`;
+    return `<div class="bb-row"><span class="bb-who">${av}${esc(b.player_name || 'Player')}</span><span class="bb-pick${hid ? ' hid' : ''}">${pick}</span><span class="bb-amt">${fmtMoney(amt)}</span>${out}</div>`;
+  }).join('');
+  return `<details class="bet-board arch-bets"><summary>${bets.length} ${bets.length === 1 ? 'bet' : 'bets'} · ${fmtMoney(pot)} pot. See who bet on what <span class="arch-spoil">(shows the result)</span></summary><div class="bb-list">${rows}</div></details>`;
+}
+function archBetLine(m, b){
+  const sides = m ? parseSides(m) : [];
+  const vs = m ? sides.map(sideLabel).join(' vs ') : 'Match ' + b.slot;
+  const kick = m ? (m.match_title || (m.slot === 1 ? 'Main Event' : (m.match_type && m.match_type !== 'Singles' ? m.match_type : ''))) : '';
+  const hid = b.side_index === null || b.side_index === undefined;
+  const pick = hid ? 'a hidden pick' : sideLabel(sides[b.side_index]);
+  const fmtN = n => (n > 0 ? '+' : n < 0 ? '-' : '') + fmtMoney(Math.abs(n));
+  const out = b.result === 'won' ? `<span class="lrc-out won">Right ${fmtN(b.delta)}</span>` : b.result === 'lost' ? `<span class="lrc-out lost">Wrong ${fmtN(b.delta)}</span>` : b.result === 'void' ? '<span class="lrc-out void">Refunded</span>' : '<span class="lrc-out void">Not settled</span>';
+  return `<div class="lrc-bet ${b.result || ''}"><div class="lrc-match">${esc(kick ? kick + ': ' + vs : vs)}</div>
+    <div class="lrc-line"><span class="lrc-pick">Picked <b>${esc(pick)}</b> for ${fmtMoney(b.amount)}</span>${out}</div></div>`;
 }
 const ARCH_POOL_TYPES = /rumble|battle royal|gauntlet|chamber|money in the bank/i;
 function archIsPool(m, sides){
@@ -15994,8 +16116,19 @@ async function pmRanksTab(box){
   const click = e => e.kind === 'team' ? `pmPubTab('factions')` : `pmPubOpenPerson(${Number(e.x.id)})`;
   box.innerHTML = `<div class="pm-chips pm-rk-chips">${[{ cat:{ id:'all', name:'Everyone', color:'#e9b949' }, rows:[] }].concat(secs).map(s =>
       `<button type="button" class="pm-chip pm-chip-c${f === String(s.cat.id) ? ' on' : ''}" style="--pc:${pmColor(s.cat.color, '#c9c6be')}" onclick="PM.pub.rcat='${escAttr(String(s.cat.id))}';pmRanksTab(pmEl('pmpub-tab'))">${esc(s.cat.name)}</button>`).join('')}</div>
+    <div class="pm-rk-find"><input type="search" class="pm-search" id="pmrk-q" value="${escAttr(P.rq || '')}" placeholder="Find someone by name" aria-label="Find someone in the rankings" oninput="PM.pub.rq=this.value;pmRanksList()"><span class="pm-small pm-dim" id="pmrk-n"></span></div>
     ${pmRankNote(P.page)}
-    <div class="pm-ranks" data-layout="${P.page.ranks}">${pmRankHTML(secs.filter(s => f === 'all' || String(s.cat.id) === f), P.page, click)}</div>`;
+    <div class="pm-ranks" id="pmrk-list" data-layout="${P.page.ranks}"></div>`;
+  P.rsecs = secs.filter(s => f === 'all' || String(s.cat.id) === f); P.rclick = click;
+  pmRanksList();
+}
+function pmRanksList(){
+  const P = PM.pub, box = pmEl('pmrk-list'); if(!P || !box || !P.rsecs) return;
+  const q = String(P.rq || '').trim().toLowerCase();
+  const secs = q ? P.rsecs.map(s => Object.assign({}, s, { rows:s.rows.filter(e => String(e.x.name || '').toLowerCase().includes(q) || String(e.x.nickname || '').toLowerCase().includes(q)) })).filter(s => s.rows.length) : P.rsecs;
+  const n = secs.reduce((a, s) => a + s.rows.length, 0), lbl = pmEl('pmrk-n');
+  if(lbl) lbl.textContent = q ? (n ? n + (n === 1 ? ' match' : ' matches') : '') : '';
+  box.innerHTML = secs.length ? pmRankHTML(secs, P.page, P.rclick) : `<div class="pm-empty pm-small">Nobody by that name.</div>`;
 }
 function pmPubOpenPerson(id){ const P = PM.pub; if(!P) return; P.sel = Number(id); P.openSel = true; P.cat = 'all'; P.g = 'all'; P.q = ''; P.shelf = 0; pmPubTab('roster'); }
 function pmRosterTab(box){

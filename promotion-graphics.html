@@ -1217,22 +1217,20 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
         <div class="phead"><h3 class="ihead">Background</h3><span class="pscope" data-tip="Backgrounds recolour with your identity. Characters and text always composite on top — nothing is baked in.">This graphic</span></div>
 
         <div class="sect" id="s-bgai">
-          <div class="sh" onclick="GFX.toggleSect('s-bgai')"><i class="ti ti-chevron-down ch"></i><span class="st">Make One With AI</span>
-            <i class="ti ti-info-circle hi" data-tip="Describe a background and an AI paints it in your colours. Each person gets a few free pictures a day. You can also copy the words and use ChatGPT or any picture AI you like."></i></div>
+          <div class="sh" onclick="GFX.toggleSect('s-bgai')"><i class="ti ti-chevron-down ch"></i><span class="st">Make One in ChatGPT</span>
+            <i class="ti ti-info-circle hi" data-tip="Write your idea, then copy it. It adds your colours and the right shape for this graphic, and asks for no words or people. Paste it into ChatGPT, or any picture maker you use."></i></div>
           <div class="sb">
             <textarea id="ai_prompt" rows="3" placeholder="An empty wrestling arena at night, purple spotlights cutting through smoke"></textarea>
             <label class="fl">Ideas <span class="hint">· click one to start from it</span></label>
             <div class="chips" id="aiIdeas"></div>
             <div class="ckgrid" style="margin-top:6px">
               <label class="ck" data-tip="Asks for a clean background: open space in the middle, no people, no words, no logos. Your wrestlers and text go on top."><input type="checkbox" id="ai_clean" checked><span>Leave room for my layers</span></label>
-              <label class="ck" data-tip="Tells the model this graphic's colours, so the picture matches your look"><input type="checkbox" id="ai_cols" checked><span>Use my colours</span></label>
+              <label class="ck" data-tip="Tells it this graphic's colours, so the picture matches your look"><input type="checkbox" id="ai_cols" checked><span>Use my colours</span></label>
             </div>
             <div class="mline" id="aiShape"></div>
-            <button class="btn sm" id="aiGo" style="margin-top:10px;width:100%" onclick="GFX.aiGenerate()"><i class="ti ti-sparkles"></i> Make it</button>
-            <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="GFX.aiCopyPrompt()" data-tip="Copies the full words for ChatGPT or any picture AI: your idea, your colours, the right shape, and no words or people in it"><i class="ti ti-copy"></i> Copy it for ChatGPT</button>
-            <div class="mline" id="aiStatus" style="min-height:16px"></div>
-            <div class="info" id="aiHow" style="display:none"><b>Copied!</b> Paste it into ChatGPT, or any picture AI. When the picture is made, download it, then drop it into <b>Your Backgrounds</b> below. It stays there for every graphic.</div>
-            <div id="aiResults"></div>
+            <button class="btn sm" style="margin-top:10px;width:100%" onclick="GFX.aiCopyPrompt()"><i class="ti ti-copy"></i> Copy it for ChatGPT</button>
+            <div class="info" id="aiHow" style="display:none"><b>Copied!</b> Paste it into ChatGPT, or any picture maker. When the picture is made, download it, then drop it into <b>Your Backgrounds</b> below. It stays there for every graphic.</div>
+            <div id="aiResults" hidden></div>
           </div>
         </div>
 
@@ -11119,6 +11117,7 @@ const GFX = {
     try{ navigator.clipboard.writeText(words).then(done,()=>{ window.prompt("Copy these words:", words); }); }catch(e){ window.prompt("Copy these words:", words); }
   },
   async aiGenerate(again){
+    toast("Use Copy it for ChatGPT to make a background.","err"); return;
     if(AI.busy) return;
     const box=document.getElementById("ai_prompt");
     let idea=again ? AI.lastIdea : String(box.value||"").trim();
@@ -11130,7 +11129,7 @@ const GFX = {
     if(st) st.textContent="Painting a "+M.w+" × "+M.h+" picture. Usually 5 to 30 seconds.";
     try{
       // the WCA admin keeps WCA's own image-gen; owners and co-owners use promo-image-gen, a few a day each
-      const fn=CLOUD.siteAdmin ? "image-gen" : "promo-image-gen";
+      const fn="image-gen";
       const { data, error } = await sb.functions.invoke(fn,{ body:{ prompt:full, width:M.w, height:M.h, promotion_id:Number(PROMO.id) } });
       if(error){
         let msg=error.message||"The picture maker didn't answer.";
