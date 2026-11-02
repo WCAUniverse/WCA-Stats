@@ -5037,6 +5037,12 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .mpt-list li{display:flex; align-items:center; gap:8px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 10px;}
 .mpt-list .no{font-family:var(--font-display); color:var(--gold); width:26px; font-size:18px;}
 .mpt-list b{flex:1 1 auto; font-size:16px;}
+/* ===== PROMOTION LINKS (Nov 2026) ===== */
+.mpe-link{display:flex; align-items:stretch; max-width:460px; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--panel2);}
+.mpe-link span{display:flex; align-items:center; padding:0 4px 0 12px; font-size:16px; color:var(--muted); white-space:nowrap;}
+.mpe-link input{flex:1 1 auto; min-width:0; border:0 !important; border-radius:0 !important; background:transparent !important; font-size:16px !important; font-weight:600; padding-left:2px !important;}
+.mpe-linkmsg{margin-top:6px; font-size:15px !important; color:var(--txt-2);}
+.mpe-linkmsg.ok{color:var(--win);} .mpe-linkmsg.bad{color:var(--loss);}
 /* ===== BRANDS AND THE BRAND DRAFT (Oct 2026) ===== */
 /* brand form, crop tool and general managers */
 .br-sec{margin-top:16px; padding:14px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.16);}
@@ -15527,7 +15533,10 @@ function mpPromoForm(id, host){
     <input id="mpe_name" maxlength="60" value="${escAttr(p ? p.name : '')}" placeholder="Your promotion's name" oninput="mpLook()">
     ${p && p.status === 'approved' ? `<div class="pm-small pm-dim">A new name goes to WCA for a quick check first.</div>` : ''}
     ${p ? `<label for="mpe_short">Short name <span class="pm-opt">(Events shows this, like VWA)</span></label>
-    <input id="mpe_short" maxlength="10" value="${escAttr(p.short_name || pmShortOf(p.name))}" placeholder="${escAttr(pmShortOf(p.name))}" style="max-width:220px;text-transform:uppercase">` : ''}
+    <input id="mpe_short" maxlength="10" value="${escAttr(p.short_name || pmShortOf(p.name))}" placeholder="${escAttr(pmShortOf(p.name))}" style="max-width:220px;text-transform:uppercase">
+    ${'slug' in p ? `<label for="mpe_slug">Your link <span class="pm-opt">(for posters, socials and anywhere you share your page)</span></label>
+    <div class="mpe-link"><span>wcauniverse.com/</span><input id="mpe_slug" maxlength="20" value="${escAttr(p.slug || '')}" placeholder="${escAttr(String(p.short_name || pmShortOf(p.name)).replace(/[^A-Za-z0-9]/g, ''))}" autocomplete="off" spellcheck="false" oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'');mpSlugCheck(${Number(p.id)})"></div>
+    <div class="pm-small mpe-linkmsg" id="mpe_slugmsg">${p.slug ? `Your page is at <b>wcauniverse.com/${esc(p.slug)}</b>` : 'Pick a short link, like your short name.'}</div>` : ''}` : ''}
     <label for="mpe_logo">Logo</label>
     <div class="pm-logoline">
       <input id="mpe_logo" value="${escAttr(p && p.logo_url || '')}" placeholder="Paste a link to your logo (https://…)" oninput="mpLook()">
@@ -15586,6 +15595,15 @@ async function mpSavePromo(id){
     p_color:pmEl('mpe_color').value || null, p_about:pmEl('mpe_about').value, p_links:links });
   PM.busy = false;
   if(error){ mpMsg('mpe_msg', cpErrText(error), false); return; }
+  // their link, like wcauniverse.com/PWF (WCA Promotion Links)
+  if(id && pmEl('mpe_slug')){
+    const sl = (pmEl('mpe_slug').value || '').trim(), cur = (mpCur() || {}).slug || '';
+    if(sl && sl !== cur){
+      const r = await sb.rpc('promo_set_slug', { p_promotion:Number(id), p_slug:sl });
+      if(r.error){ mpMsg('mpe_msg', String(r.error.message || '').replace(/^.*?:\s*/, ''), false); return; }
+      wcaSlugRemember(id, r.data || sl);
+    }
+  }
   // the short name Events shows (WCA Promotion Brands)
   if(id && pmEl('mpe_short')){
     const sh = (pmEl('mpe_short').value || '').trim();
@@ -15599,6 +15617,21 @@ async function mpSavePromo(id){
   PM.curId = id || data || PM.curId;
   if(!id) PM.tab = 'edit';
   mpRender();
+}
+let MPE_SLUG_T = 0;
+function mpSlugCheck(id){
+  clearTimeout(MPE_SLUG_T);
+  const el = pmEl('mpe_slug'), msg = pmEl('mpe_slugmsg'); if(!el || !msg) return;
+  const v = el.value.trim();
+  if(!v){ msg.className = 'pm-small mpe-linkmsg'; msg.textContent = 'Pick a short link, like your short name.'; return; }
+  msg.className = 'pm-small mpe-linkmsg'; msg.textContent = 'Checking…';
+  MPE_SLUG_T = setTimeout(async () => {
+    const r = await sb.rpc('promo_slug_ok', { p_slug:v, p_promotion:Number(id) });
+    if(pmEl('mpe_slug') !== el || el.value.trim() !== v) return;
+    if(r.error){ msg.textContent = ''; return; }
+    if(r.data){ msg.className = 'pm-small mpe-linkmsg bad'; msg.textContent = r.data; }
+    else { msg.className = 'pm-small mpe-linkmsg ok'; msg.innerHTML = 'Free! Press Save and your page is at <b>wcauniverse.com/' + esc(v) + '</b>'; }
+  }, 350);
 }
 function mpDrawOutlets(){
   const box = pmEl('mp-outlets'); if(!box) return;
@@ -17296,6 +17329,17 @@ function restorePageFromHash(){
   let { pg, qs } = wcaRoute();
   const known = pg && (document.querySelector('nav [data-page="'+pg+'"]') ||
                        pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo' || pg==='relationships');
+  // maybe a promotion's link (wcauniverse.com/PWF): ask once which promotion it is
+  const seg0 = WCA_PATHS ? (location.pathname.split('/').filter(Boolean)[0] || '') : '';
+  if(!known && /^[A-Za-z0-9]{2,20}$/.test(seg0) && !restorePageFromHash.asked && typeof sb !== 'undefined' && sb){
+    restorePageFromHash.asked = seg0.toLowerCase();
+    sb.rpc('promo_by_slug', { p_slug:seg0 }).then(r => {
+      const row = r && !r.error && (Array.isArray(r.data) ? r.data[0] : r.data);
+      if(row && row.id) wcaSlugRemember(row.id, row.slug);
+      restorePageFromHash();
+    }, () => restorePageFromHash());
+    return;
+  }
   if(!known) pg = '';                     // unknown address: treat it like the front door
   if(pg==='donate'){
     activatePage('home');                 // the Home script opens the donate options

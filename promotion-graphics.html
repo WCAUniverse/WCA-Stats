@@ -687,6 +687,8 @@ label.fl[data-tip]::after{content:" ⓘ";color:#5d5c57;font-size:10px}
   #stagetop .zbtns .kbd{display:none}
 }
 
+/* the WCA website's seasons are WCA's own */
+#s-season{display:none !important}
 /* ============ POSTERS ============ */
 body.poster-mode .ev-only{display:none!important}
 body:not(.poster-mode) .pz-only{display:none!important}
@@ -801,7 +803,7 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
       <button class="railbtn"    data-pane="bg"       onclick="GFX.setPane('bg')"><i class="ti ti-photo-scan"></i><span class="rtip">Background</span></button>
       <button class="railbtn"    data-pane="copy"     onclick="GFX.setPane('copy')"><i class="ti ti-typography"></i><span class="rtip">Copy</span></button>
       <button class="railbtn"    data-pane="elements" onclick="GFX.setPane('elements')"><i class="ti ti-circle-plus"></i><span class="rtip">Elements</span></button>
-      <button class="railbtn"    data-pane="season"   onclick="GFX.setPane('season')"><i class="ti ti-sparkles"></i><span class="rtip">Season &amp; motion</span></button>
+      <button class="railbtn"    data-pane="season"   onclick="GFX.setPane('season')"><i class="ti ti-sparkles"></i><span class="rtip">Motion</span></button>
       <div class="railspacer"></div>
       <button class="railbtn" id="railHide" onclick="GFX.toggleInspector()"><i class="ti ti-layout-sidebar-left-collapse"></i><span class="rtip">Hide panel</span></button>
     </div>
@@ -910,12 +912,7 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
             <label class="ck" style="margin-top:0"><input type="checkbox" id="pz_qrOn" onchange="GFX.pzSet('qrOn',this.checked)"><span>Show a QR code</span></label>
             <label class="fl">Where it goes</label>
             <input type="url" id="pz_qrUrl" oninput="GFX.pzSet('qrUrl',this.value)" placeholder="https://wcauniverse.com">
-            <div class="chips" style="margin-top:6px">
-              <div class="chip" onclick="GFX.pzSet('qrUrl','https://wcauniverse.com');renderPosterPane()">Home</div>
-              <div class="chip" onclick="GFX.pzSet('qrUrl','https://wcauniverse.com/events');renderPosterPane()">Events</div>
-              <div class="chip" onclick="GFX.pzSet('qrUrl','https://wcauniverse.com/apply');renderPosterPane()">Apply</div>
-              <div class="chip" onclick="GFX.pzSet('qrUrl','https://wcauniverse.com/feed');renderPosterPane()">Feed</div>
-            </div>
+            <div class="chips" style="margin-top:6px" id="pzQrChips"></div>
             <label class="fl">Words under it</label>
             <input type="text" id="pz_qrLabel" oninput="GFX.pzSet('qrLabel',this.value)" placeholder="SCAN TO VISIT">
             <label class="fl">Look</label>
@@ -1221,7 +1218,7 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
 
         <div class="sect" id="s-bgai">
           <div class="sh" onclick="GFX.toggleSect('s-bgai')"><i class="ti ti-chevron-down ch"></i><span class="st">Make One With AI</span>
-            <i class="ti ti-info-circle hi" data-tip="Describe a background and Cloudflare's FLUX image model paints it, sized to this graphic. Free every day through your image-gen Edge Function. Admin sign in needed."></i></div>
+            <i class="ti ti-info-circle hi" data-tip="Describe a background and an AI paints it in your colours. Each person gets a few free pictures a day. You can also copy the words and use ChatGPT or any picture AI you like."></i></div>
           <div class="sb">
             <textarea id="ai_prompt" rows="3" placeholder="An empty wrestling arena at night, purple spotlights cutting through smoke"></textarea>
             <label class="fl">Ideas <span class="hint">· click one to start from it</span></label>
@@ -1232,7 +1229,9 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
             </div>
             <div class="mline" id="aiShape"></div>
             <button class="btn sm" id="aiGo" style="margin-top:10px;width:100%" onclick="GFX.aiGenerate()"><i class="ti ti-sparkles"></i> Make it</button>
+            <button class="btn ghost sm" style="margin-top:8px;width:100%" onclick="GFX.aiCopyPrompt()" data-tip="Copies the full words for ChatGPT or any picture AI: your idea, your colours, the right shape, and no words or people in it"><i class="ti ti-copy"></i> Copy it for ChatGPT</button>
             <div class="mline" id="aiStatus" style="min-height:16px"></div>
+            <div class="info" id="aiHow" style="display:none"><b>Copied!</b> Paste it into ChatGPT, or any picture AI. When the picture is made, download it, then drop it into <b>Your Backgrounds</b> below. It stays there for every graphic.</div>
             <div id="aiResults"></div>
           </div>
         </div>
@@ -1468,7 +1467,7 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
 
       <!-- ======== PANE: SEASON & MOTION ======== -->
       <div class="ipane" id="pane-season">
-        <div class="phead"><h3 class="ihead">Season &amp; Motion</h3><span class="pscope" data-tip="Saved with this graphic. Each match's Event Card, Thumbnail and Portrait, and each poster, can wear its own season.">This graphic</span></div>
+        <div class="phead"><h3 class="ihead">Motion</h3><span class="pscope" data-tip="Saved with this graphic. Each match's Event Card, Thumbnail and Portrait, and each poster, can wear its own season.">This graphic</span></div>
 
         <div class="sect" id="s-season">
           <div class="sh" onclick="GFX.toggleSect('s-season')"><i class="ti ti-chevron-down ch"></i><span class="st">Season</span>
@@ -3917,11 +3916,14 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
      plus this browser's own copy, kept apart per promotion
    SQL: WCA_promotion_graphics.sql
    ========================================================================== */
-const PROMO = { id:null, row:null, cats:[], roster:[], facs:[], titles:[], reigns:[], brands:[], events:[],
+const PROMO = { id:null, row:null, theme:{}, cats:[], roster:[], facs:[], titles:[], reigns:[], brands:[], events:[],
   canEdit:false, siteAdmin:false, uid:null, role:"" };
 let LSP = "wcapromo:0:";                 // this browser's storage, one shelf per promotion
 const PROMO_SITE = "https://wcauniverse.com";
-function promoPageUrl(){ return PROMO_SITE + "/promotion?id=" + Number(PROMO.id); }
+// the promotion's own link, like wcauniverse.com/PWF (WCA Promotion Links), else the long one
+function promoSlug(){ const s = PROMO.row && PROMO.row.slug; return /^[A-Za-z0-9]{2,20}$/.test(String(s || "")) ? String(s) : ""; }
+function promoPageUrl(tab){ const s = promoSlug(); return PROMO_SITE + (s ? "/" + s + (tab ? "?tab=" + tab : "") : "/promotion?id=" + Number(PROMO.id) + (tab ? "&tab=" + tab : "")); }
+function promoPageShort(){ const s = promoSlug(); return s ? "WCAUniverse.com/" + s : "WCAUniverse.com"; }
 function promoEditorUrl(){ return "/promotion-editor?id=" + Number(PROMO.id); }
 function promoUrlId(){
   const q = new URLSearchParams(location.search);
@@ -4016,6 +4018,7 @@ async function promoLoad(){
   PROMO.reigns = (rei && !rei.error && rei.data) || [];
   PROMO.brands = (br && !br.error && br.data) || [];
   PROMO.events = (ev && !ev.error && ev.data) || [];
+  try{ const f = await sb.from("promotion_features").select("*").eq("promotion_id", id).maybeSingle(); PROMO.theme = (f && f.data && f.data.theme) || {}; }catch(e){ PROMO.theme = {}; }
   promoBrand();
 }
 
@@ -4035,12 +4038,19 @@ function promoBrand(){
   };
   Object.keys(SOCIAL_PLATFORMS).forEach(k => { const h = handleOf(k, links[k] || (k === "x" ? links.twitter : "")); SOCIAL_PLATFORMS[k].handle = h; SOCIAL_PLATFORMS[k].on = !!h && k !== "website"; });
   if(!SOCIAL_PLATFORMS.website.handle) SOCIAL_PLATFORMS.website.handle = "WCAUniverse.com";
-  const site = "WCAUniverse.com/promotion?id=" + PROMO.id;
+  const site = promoPageShort();
   Object.values(POSTER_TYPES).forEach(ty => {
     const c = ty.content;
     c.website = site; c.qrUrl = promoPageUrl();
     if(c.kicker === "WCA") c.kicker = String(p.short_name || p.name).toUpperCase();
   });
+  // QR code shortcuts: their page, roster, shows and Apply, on their own link
+  const qc = document.getElementById("pzQrChips");
+  if(qc){
+    const go = [["Your page", promoPageUrl()], ["Roster", promoPageUrl("roster")], ["Events", promoPageUrl("events")], ["Apply", PROMO_SITE + "/apply?to=" + Number(PROMO.id)]];
+    window.PZ_QR_GO = go;
+    qc.innerHTML = go.map((x, i) => `<div class="chip" onclick="GFX.pzSet('qrUrl',PZ_QR_GO[${i}][1]);renderPosterPane()">${esc(x[0])}</div>`).join("");
+  }
   if(POSTER_TYPES.launch){
     POSTER_TYPES.launch.label = "Promotion page";
     POSTER_TYPES.launch.blurb = p.name + " is on WCAUniverse.com. A headline, three reasons to visit, the address and a QR code.";
@@ -4081,13 +4091,35 @@ function promoFillData(){
   DIVISIONS = PROMO.cats.map(c => c.name).filter(Boolean);
 }
 
+/* The page backgrounds a promotion can pick (Edit promotion, Page colors), as colours */
+const PROMO_PAGE_COLS = { midnight:["#1c3366","#4a6fd1"], ember:["#f26e28","#ffb347"], crimson:["#e23c46","#ff8a8a"], royal:["#8f7cff","#c9b8ff"],
+  forest:["#46aa69","#a8e6b8"], steel:["#78828f","#c9d1db"], sunset:["#ff7a3d","#ff3d7f","#7b3dff"], ocean:["#00b4d8","#0057b8"], neon:["#ff2fd6","#21d4fd"],
+  aurora:["#3dffb0","#2fa8ff","#a35cff"], inferno:["#ffcc00","#ff5a00","#c1121f"], toxic:["#c6f432","#00a86b"], goldrush:["#f5c542","#8a5a00"],
+  ice:["#bdf3ff","#4a90e2"], bloodmoon:["#ff3b3b","#3b0a0a"], vapor:["#ff71ce","#01cdfe","#05ffa1","#b967ff"] };
 /* Promotion colours as identity looks, built the way the Showdown brands are. */
 function promoPresets(){
   const look = (c, c2, label) => ({ label, primary:c, secondary:c2 || "#D9DCE3", accent:c2 ? lighten(c2, 0.15) : lighten(c, 0.28), text:"#FFFFFF",
     bgTop:darken(mixHex(c2 ? mixHex(c, c2, 0.5) : c, "#0b0b10", 0.80), 0.15), bgBot:darken(mixHex(c, "#000000", 0.93), 0.4) });
   const ok = c => /^#[0-9a-f]{6}$/i.test(String(c || ""));
   const p = PROMO.row;
+  // WCA's own show looks, seasons and website colours are not theirs: take them out
+  Object.keys(IDENTITY_PRESETS).forEach(k => { if(/^(void|invincible|kumite|fwakata|judgement|season_|site_|sd_)/.test(k)) delete IDENTITY_PRESETS[k]; });
+  Object.keys(BG_SUGGEST).forEach(k => { if(!IDENTITY_PRESETS[k]) delete BG_SUGGEST[k]; });
   if(ok(p.color)) IDENTITY_PRESETS.promo_main = look(p.color, null, p.name);
+  // the colours on their page (Edit promotion, Page colors): second color and any gradient
+  const th = PROMO.theme || {}, g = th.grad && Array.isArray(th.grad.colors) ? th.grad.colors.filter(ok) : [];
+  const pageCols = g.length ? g : (PROMO_PAGE_COLS[th.bg] || []);
+  if(pageCols.length) IDENTITY_PRESETS.promo_page = look(pageCols[0], pageCols[1] || (ok(th.c2) ? th.c2 : null), "Your page colors");
+  if(ok(p.color) && ok(th.c2) && th.c2.toLowerCase() !== p.color.toLowerCase()) IDENTITY_PRESETS.promo_two = look(p.color, th.c2, p.name + " · two colors");
+  if(pageCols.length > 2){ IDENTITY_PRESETS.promo_page.accent = pageCols[2]; }
+  // "Classic Gold" was WCA's: anything that starts on it starts on their colours instead
+  const mine = IDENTITY_PRESETS.promo_main || IDENTITY_PRESETS.promo_page;
+  if(mine){
+    IDENTITY_PRESETS.gold = Object.assign({}, mine, { label:p.name + " colors" });
+    delete IDENTITY_PRESETS.promo_main;
+    Object.keys(mine).forEach(k => { if(k !== "label") DEFAULT_THEME[k] = mine[k]; });
+    if(STATE.themeKey === "gold") Object.keys(mine).forEach(k => { if(k !== "label") STATE.theme[k] = mine[k]; });
+  } else IDENTITY_PRESETS.gold.label = "Gold";
   PROMO.brands.forEach(b => { if(ok(b.color)) IDENTITY_PRESETS["promo_b" + b.id] = look(b.color, ok(b.color2) ? b.color2 : null, p.name + " · " + b.name); });
   PROMO.titles.forEach(t => { if(ok(t.color)) IDENTITY_PRESETS["promo_t" + t.id] = look(t.color, null, t.name); });
 }
@@ -4562,7 +4594,7 @@ const DEFAULT_OPTS = {
   panelShape:"chevron", panelAlpha:0.88, edgeW:1,
   frame:true, plinth:true, corners:true,
   /* background */
-  bgStyle:"shards", bgImage:"", bgIntensity:1, vignette:1, grain:0.45,
+  bgStyle:"yours", bgImage:"", bgIntensity:1, vignette:1, grain:0.45,
   bgBlur:0, bgDark:0.25, bgTint:0.18, bgZoom:1, bgShift:0, bgFx:true,
   /* extras */
   logoScale:1, showBelt:true, beltScale:1,
@@ -4960,14 +4992,15 @@ function seeded(a){
    sit underneath the same lighting so a photo never looks pasted in.
    ========================================================================== */
 const BG_STYLES = {
-  space:    "Website space",
-  seasonsky:"Season sky",
+  yours:    "Your colors",
+  glowc:    "Color glow",
+  logowm:   "Your logo",
   shards:   "Shards",
   beams:    "Beams",
   arena:    "Arena",
   vault:    "Vault",
   grid:     "Grid",
-  minimal:  "Minimal",
+  minimal:  "Plain",
   smoke:    "Smoke",
   split:    "Split",
   /* particle fields */
@@ -5004,6 +5037,8 @@ const BG_SUGGEST = {
 function drawBackground(ctx,W,H,forThumb){
   const t=T(), o=STATE.opts;
   const I=o.bgIntensity;
+  /* the WCA website's space and season skies are WCA's own: older graphics move to Your colors */
+  if(o.bgStyle==="space" || o.bgStyle==="seasonsky" || String(o.bgStyle).startsWith("sky_")) o.bgStyle="yours";
 
   /* 1 — base gradient. Always present; the floor of the whole package. */
   const g=ctx.createLinearGradient(0,0,0,H);
@@ -5430,6 +5465,42 @@ function drawBackground(ctx,W,H,forThumb){
       ctx.beginPath(); ctx.moveTo(x-w2/2,H-h2); ctx.lineTo(x-w2/2,H); ctx.stroke();
     }
     ctx.globalCompositeOperation="lighter";
+  }
+
+  /* the promotion's own simple looks */
+  if(style==="yours"){
+    /* a smooth blend through the look's colours, corner to corner, over the dark base */
+    ctx.globalCompositeOperation="source-over";
+    const cols=[t.primary,t.secondary,t.accent].filter((c,i,a)=>c && a.indexOf(c)===i);
+    const lg=ctx.createLinearGradient(0,0,W,H);
+    cols.forEach((c,i)=>lg.addColorStop(cols.length>1?i/(cols.length-1):0, rgba(c,0.42*I)));
+    ctx.fillStyle=lg; ctx.fillRect(0,0,W,H);
+    const fade=ctx.createLinearGradient(0,0,0,H);
+    fade.addColorStop(0,"rgba(0,0,0,0)"); fade.addColorStop(1,rgba(t.bgBot,0.55));
+    ctx.fillStyle=fade; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation="lighter";
+  }
+  if(style==="glowc"){
+    /* soft pools of colour from the corners, the middle left clear */
+    [[0.08,0.05,t.primary],[0.92,0.08,t.secondary],[0.10,0.98,t.accent],[0.9,0.95,t.primary]].forEach(([x,y,c],i)=>{
+      const rg=ctx.createRadialGradient(W*x,H*y,0,W*x,H*y,Math.max(W,H)*(i<2?0.62:0.48));
+      rg.addColorStop(0,rgba(c,(i<2?0.30:0.18)*I)); rg.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=rg; ctx.fillRect(0,0,W,H);
+    });
+  }
+  if(style==="logowm"){
+    /* their logo, big and faint, behind everything */
+    const lg=cachedImg(logoSrc(BRAND_LOGO||""));
+    const wash=ctx.createLinearGradient(0,0,W,H);
+    wash.addColorStop(0,rgba(t.primary,0.18*I)); wash.addColorStop(1,rgba(t.secondary,0.10*I));
+    ctx.fillStyle=wash; ctx.fillRect(0,0,W,H);
+    if(lg && lg.width){
+      ctx.globalCompositeOperation="source-over";
+      const sz=Math.min(W,H)*1.05, r=lg.width/lg.height, dw=r>=1?sz:sz*r, dh=r>=1?sz/r:sz;
+      ctx.globalAlpha=0.10*Math.min(1.6,I);
+      ctx.drawImage(lg,W*0.5-dw/2,H*0.5-dh/2,dw,dh);
+      ctx.globalAlpha=1; ctx.globalCompositeOperation="lighter";
+    } else if(BRAND_LOGO){ loadImg(logoSrc(BRAND_LOGO)).then(()=>{ try{ ACACHE.valid=false; }catch(e){} requestRender(); }); }
   }
 
   /* "minimal" adds nothing here — just the gradient, spotlight and vignette. */
@@ -7194,7 +7265,7 @@ const POSTER_TYPES = {
       qrOn:true, qrUrl:"https://wcauniverse.com", qrLabel:"SCAN TO VISIT", qrStyle:"classic", qrLogo:false,
       wrestlers:[]
     },
-    opts:{ bgStyle:"space" }
+    opts:{ bgStyle:"yours" }
   },
   freeform:{
     label:"Freeform", icon:"layout-collage",
@@ -7209,7 +7280,7 @@ const POSTER_TYPES = {
       qrOn:false, qrUrl:"https://wcauniverse.com", qrLabel:"SCAN TO VISIT", qrStyle:"classic", qrLogo:false,
       wrestlers:[]
     },
-    opts:{ bgStyle:"shards" }
+    opts:{ bgStyle:"glowc" }
   }
 };
 /* things that only make sense on an event graphic start switched off */
@@ -10013,8 +10084,8 @@ const AI={ items:[], busy:false, lastIdea:"" };
 const AI_IDEAS=[
   ["Arena at night","an empty professional wrestling arena at night, the ring far in the distance, dramatic spotlights cutting through haze, crowd silhouettes in darkness"],
   ["Smoky stage","a dark entrance stage with thick rolling smoke, rows of stage lights and laser beams, glowing LED screens"],
-  ["New York rooftop","the New York City skyline at night seen from a rooftop, wet reflective ground, warm city glow"],
-  ["Times Square","Times Square at night in the rain, giant billboards blurred into bokeh, reflections on the street"],
+  ["City rooftop","a big city skyline at night seen from a rooftop, wet reflective ground, warm city glow"],
+  ["Rainy street","a city street at night in the rain, neon signs blurred into bokeh, reflections on the wet road"],
   ["Steel cage","a steel chain link cage lit from behind, sparks flying, dark industrial arena"],
   ["Gold vault","a dark marble vault with gold trim and columns, spotlights on an empty pedestal"],
   ["Cracked stone","a wall of cracked black stone with molten light glowing through the cracks"],
@@ -10022,7 +10093,7 @@ const AI_IDEAS=[
   ["Ice cave","a frozen ice cave lit with cold blue light, frost crystals, mist"],
   ["Neon city","a retro neon city at dusk, synthwave sun, palm trees, glowing grid floor"],
   ["Graveyard fog","a foggy graveyard at night, bare twisted trees, a huge full moon, crows"],
-  ["Deep space","deep space with a colourful nebula, stars and a glowing planet horizon along the bottom"]
+  ["Thunderstorm","a dark stormy sky with lightning bolts striking in the distance, heavy clouds lit from within"]
 ];
 /* rough colour names, because image models don't read hex codes */
 function hueName(hex){
@@ -10205,7 +10276,7 @@ async function checkAuth(){
     b.classList.add("ghost");
     b.title = "Signed in as "+(PROMO.role||"owner").toLowerCase()+" of "+(PROMO.row?PROMO.row.name:"")+". Everything saves as you edit. Click to go back to the Promotion Editor.";
   }
-  const ai=document.getElementById("s-bgai"); if(ai) ai.style.display = CLOUD.siteAdmin ? "" : "none";
+  /* owners and co-owners get AI backgrounds too (a few a day each), and Copy it for ChatGPT */
   return CLOUD.admin;
 }
 
@@ -11037,9 +11108,18 @@ const GFX = {
     const el=document.getElementById("ai_prompt"); if(!el) return;
     el.value=AI_IDEAS[i][1]; el.focus();
   },
+  aiCopyPrompt(){
+    const box=document.getElementById("ai_prompt");
+    const idea=String(box.value||"").trim() || AI_IDEAS[0][1];
+    const M=modeDims(), wide=M.w>=M.h;
+    const words="Make a background image for a pro wrestling graphic. "+aiPrompt(idea)
+      +". Shape: "+(Math.abs(M.w/M.h-16/9)<0.05?"16:9 wide":Math.abs(M.h/M.w-16/9)<0.05?"9:16 tall":wide?"wide":"tall")+", "+M.w+" by "+M.h+" pixels."
+      +" No text, no letters, no logos, no watermarks and no people anywhere in the picture.";
+    const done=()=>{ const h=document.getElementById("aiHow"); if(h) h.style.display=""; toast("Copied. Paste it into ChatGPT.","ok"); };
+    try{ navigator.clipboard.writeText(words).then(done,()=>{ window.prompt("Copy these words:", words); }); }catch(e){ window.prompt("Copy these words:", words); }
+  },
   async aiGenerate(again){
     if(AI.busy) return;
-    if(!CLOUD.siteAdmin){ toast("AI images are not part of the Promotion Studio yet.","err"); return; }
     const box=document.getElementById("ai_prompt");
     let idea=again ? AI.lastIdea : String(box.value||"").trim();
     if(!idea){ toast("Type what you want first, or click an idea","err"); box.focus(); return; }
@@ -11049,11 +11129,13 @@ const GFX = {
     if(go){ go.disabled=true; go.innerHTML='<i class="ti ti-loader-2"></i> Making it…'; }
     if(st) st.textContent="Painting a "+M.w+" × "+M.h+" picture. Usually 5 to 30 seconds.";
     try{
-      const { data, error } = await sb.functions.invoke("image-gen",{ body:{ prompt:full, width:M.w, height:M.h } });
+      // the WCA admin keeps WCA's own image-gen; owners and co-owners use promo-image-gen, a few a day each
+      const fn=CLOUD.siteAdmin ? "image-gen" : "promo-image-gen";
+      const { data, error } = await sb.functions.invoke(fn,{ body:{ prompt:full, width:M.w, height:M.h, promotion_id:Number(PROMO.id) } });
       if(error){
-        let msg=error.message||"The image-gen function didn't answer.";
+        let msg=error.message||"The picture maker didn't answer.";
         try{ const j=await error.context.json(); if(j && j.error) msg=j.error; }catch(e){}
-        if(/not found|404|Failed to send/i.test(msg)) msg="The image-gen Edge Function isn't set up yet (see the setup steps), or it couldn't be reached.";
+        if(/not found|404|Failed to send/i.test(msg)) msg="The picture maker isn't switched on yet. Use Copy it for ChatGPT for now.";
         throw new Error(msg);
       }
       if(!data || !data.image) throw new Error((data&&data.error)||"No picture came back.");
@@ -11061,7 +11143,7 @@ const GFX = {
       AI.items=AI.items.slice(0,4);
       const n=(LS.get(LSP+"aicount",{})||{}), day=new Date().toISOString().slice(0,10);
       n[day]=(n[day]||0)+1; LS.set(LSP+"aicount",{[day]:n[day]});
-      if(st) st.textContent="Made with "+data.model+(data.square?" (square, it'll be cropped to fit)":"")+". "+n[day]+" made today.";
+      if(st) st.textContent="Made"+(data.square?" (square, it'll be cropped to fit)":"")+". "+(data.left!=null ? data.left+" more you can make today." : n[day]+" made today.");
       renderAiResults();
     }catch(e){
       if(st) st.textContent="";
@@ -11113,7 +11195,7 @@ const GFX = {
   seShuffle(){ GFX.seOpt("seSeed",(STATE.opts.seSeed||0)+1); },
   togglePlay(){
     if(ANIM.playing){ stopPlay(); return; }
-    if(!sceneMoves()){ toast("Nothing moves yet. Pick a season, or tick Animate the frames and colour gradients in Season & Motion.","err"); GFX.setPane("season"); return; }
+    if(!sceneMoves()){ toast("Nothing moves yet. Tick Animate the frames and colour gradients in Motion.","err"); GFX.setPane("season"); return; }
     startPlay();
   },
   useThisFrame(){
@@ -11132,7 +11214,7 @@ const GFX = {
     menu.innerHTML=`<button ${webm?"":"disabled"} onclick="GFX.closeMenus();GFX.exportVideo('webm')"><i class="ti ti-brand-obs"></i><span>WebM loop for OBS<small>${L} seconds, ${M.w} × ${M.h}, joins up seamlessly. In OBS add a Media Source and tick Loop.</small></span></button>
       <button ${mp4?"":"disabled"} onclick="GFX.closeMenus();GFX.exportVideo('mp4')"><i class="ti ti-device-mobile"></i><span>MP4 for posting<small>${mp4?"For X, Instagram, TikTok, Shorts and Discord.":"This browser can't make MP4. Use the latest Chrome or Edge, or use the WebM."}</small></span></button>
       <hr>
-      <button onclick="GFX.closeMenus();GFX.setPane('season');GFX.gotoSect('season','s-anim')"><i class="ti ti-adjustments"></i><span>Loop length and motion<small>The video is one loop long. Change it in Season &amp; Motion.</small></span></button>`;
+      <button onclick="GFX.closeMenus();GFX.setPane('season');GFX.gotoSect('season','s-anim')"><i class="ti ti-adjustments"></i><span>Loop length and motion<small>The video is one loop long. Change it in Motion.</small></span></button>`;
     menu.classList.add("on");
   },
   async exportVideo(fmt){
@@ -12022,6 +12104,11 @@ function refreshAllPanels(){
    brands (and their Finale clash), then any looks you've saved yourself. */
 function quickGroups(){
   const P=IDENTITY_PRESETS, has=k=>!!P[k];
+  if(PROMO && PROMO.id){
+    const yours=["gold","promo_page","promo_two"].concat(Object.keys(P).filter(k=>/^promo_[bt]/.test(k))).filter(has);
+    const more=["emerald","crimson","violet","ice"].filter(has);
+    return [["Yours",yours],["More",more],["Mine",(STATE.customThemes||[]).map(c=>c.id)]].filter(g=>g[1].length);
+  }
   const site=["site_live","site_season","gold","void","invincible","kumite","fwakata","judgement","emerald"]
     .concat(Object.keys(P).filter(k=>k.startsWith("site_c_"))).filter(has);
   const sd=["sd_a","sd_b","sd_clash","sd_gold"].filter(has);
