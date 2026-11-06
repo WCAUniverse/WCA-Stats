@@ -18942,7 +18942,7 @@ function slEngageBar(p){
    pays once: WCA money for WCA votes, the promotion's own money for theirs.
    Results show after you vote. The winner keeps a badge on the match.
    SQL: WCA Match of the Night and Character Replies */
-var MOTN = { rows:{}, order:[], winners:null };
+var MOTN = { rows:{}, order:[], winners:null, feed:[] };
 function motnWhen(ts){
   if(!ts) return '';
   const ms = new Date(ts).getTime() - Date.now();
@@ -19026,22 +19026,30 @@ async function motnResults(id){
   if(error || !data) return null;
   MOTN.rows[id] = data; return data;
 }
-// the strip at the top of the Feed: votes that are open, and winners from the last three days
+// Votes and awards now sit inside the Feed list by the date they were started, like any other post,
+// so they scroll down with it instead of staying pinned at the top.
 async function motnLoadFeed(){
-  const host = document.getElementById('motn-strip'); if(!host || typeof sb === 'undefined') return;
+  if(typeof sb === 'undefined') return;
   let want = null;
   try{ want = ((wcaRoute().qs || '').match(/(?:^|&)motn=(\d+)/) || [])[1] || null; }catch(e){}
   try{
-    const since = new Date(Date.now() - 3 * 864e5).toISOString();
-    const { data, error } = await sb.from('motn_polls').select('id,status,closed_at').or('status.eq.open,closed_at.gte.' + since).order('created_at', { ascending:false }).limit(8);
-    if(error){ host.innerHTML = ''; return; }
+    const since = new Date(Date.now() - 14 * 864e5).toISOString();
+    const { data, error } = await sb.from('motn_polls').select('id,status,closed_at,created_at').or('status.eq.open,created_at.gte.' + since).order('created_at', { ascending:false }).limit(20);
+    if(error){ MOTN.feed = []; renderStorylines(); return; }
+    const when = {};
+    (data || []).forEach(x => { when[x.id] = x.created_at; });
     const ids = (data || []).map(x => x.id);
     if(want && !ids.includes(Number(want))) ids.unshift(Number(want));
     const rows = (await Promise.all(ids.map(motnResults))).filter(Boolean);
-    rows.sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1));
-    host.innerHTML = rows.map(r => motnCardHTML(r)).join('');
+    MOTN.feed = rows.map(r => ({ id:0, kind:'__motn', motn_id:r.id, pinned:false,
+      story_date:String(when[r.id] || r.created_at || r.closed_at || new Date().toISOString()).slice(0, 10) }));
+    if(want){
+      const idx = slFeedList().findIndex(p => p.kind === '__motn' && Number(p.motn_id) === Number(want));
+      if(idx >= 0) SL_PAGE = Math.floor(idx / SL_PAGE_SIZE) + 1;
+    }
+    renderStorylines();
     if(want){ const el = document.getElementById('motn-' + want); if(el) setTimeout(() => el.scrollIntoView({ behavior:'smooth', block:'center' }), 300); }
-  }catch(e){ host.innerHTML = ''; }
+  }catch(e){ MOTN.feed = []; renderStorylines(); }
 }
 // winners, for the badge on a match or a person:
 //   'w:<event_matches id>', 'p:<promotion_matches id>', 'r:<promotion_roster id>'
@@ -25053,11 +25061,21 @@ function spRenderMySubs(){
   }).join('');
 }
 
+// The Feed list: posts, plus Match of the Night votes and Awards on the All filter only,
+// all sorted by date. Nothing here is pinned to the top.
+function slFeedList(){
+  const items = (SL_FILTER === 'all' && MOTN.feed && MOTN.feed.length) ? SL_ALL.concat(MOTN.feed) : SL_ALL;
+  return slSort(items);
+}
+function slRenderItem(p){
+  if(p.kind === '__motn'){ const r = MOTN.rows[p.motn_id]; return r ? motnCardHTML(r) : ''; }
+  return slRenderPost(p);
+}
 function renderStorylines(){
   const feed = document.getElementById('sl-feed');
   const pager = document.getElementById('sl-pager');
   if(!feed) return;
-  let list = slSort(SL_ALL);
+  let list = slFeedList();
   if(SL_FILTER === 'outside') list = list.filter(p=>!!slSrc(p));          // other promotions + Press Pass
   else if(SL_FILTER === 'following') list = list.filter(p=>typeof peFollowsPost === 'function' && peFollowsPost(p));   // promotions you follow
   else if(SL_FILTER === 'wca') list = list.filter(p=>!slSrc(p) && p.kind!=='review');
@@ -25075,7 +25093,7 @@ function renderStorylines(){
   if(SL_PAGE > pages) SL_PAGE = pages;
   const start = (SL_PAGE-1) * SL_PAGE_SIZE;
   const slice = list.slice(start, start + SL_PAGE_SIZE);
-  feed.innerHTML = slice.map(slRenderPost).join('');
+  feed.innerHTML = slice.map(slRenderItem).join('');
   // re-open any threads that were expanded before a re-render
   slice.forEach(p=>{ if(SL_OPEN[p.id]) slRenderComments(p.id); });
   // pagination only when needed
