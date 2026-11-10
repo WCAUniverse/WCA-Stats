@@ -11137,7 +11137,7 @@ function beltIcon(div, cls){
 
 /* ===================== MATCH PORTRAITS =====================
    Square, bordered photo boxes for everyone in a match, on the Events card
-   and in the Archive. Photo order: admin override -> image_url -> avatar_url
+   and in the Archive. Photo order: admin override -> avatar_url (square avatar) -> image_url
    -> initials box. Reigning champions get their belt across the bottom.
 
    All sizing comes from site_settings.match_portraits (JSONB), so the admin
@@ -11214,7 +11214,7 @@ function mpInitials(name){
   if(parts.length === 1) return (parts[0][0]||'?').toUpperCase();
   return ((parts[0][0]||'') + (parts[parts.length-1][0]||'')).toUpperCase();
 }
-// Photo for a name: admin override wins, then the roster's big portrait, then the thumb.
+// Photo for a name: admin override wins, then the square avatar you crop in the admin, then the full-body portrait.
 function mpPhotoFor(name){
   const key = String(name||'').trim().toLowerCase();
   if(MP_OVERRIDES_LC[key]) return MP_OVERRIDES_LC[key];
@@ -11223,7 +11223,7 @@ function mpPhotoFor(name){
   // an override may be filed under the roster's canonical spelling instead
   const alt = MP_OVERRIDES_LC[String(w.name||'').trim().toLowerCase()];
   if(alt) return alt;
-  return w.image_url || w.avatar_url || '';
+  return w.avatar_url || w.image_url || '';
 }
 // Resolve any spelling of a name to the roster's canonical one. wrestlerByName
 // already understands aliases, so "Stella" and "ParallaxStella" both land on
@@ -34490,7 +34490,7 @@ function peDivLabel(c){ const n = String(c.name || '').trim(); return /division$
 // one square: their picture, else the stand in picture with their initials on it
 function peBox(D, x){
   const p = pePerson(D, x), name = (p && p.name) || x.name || '';
-  const src = p ? (pmPicShow(p, 'portrait') || pmPicShow(p, 'avatar')) : '';
+  const src = p ? (pmPicShow(p, 'avatar') || pmPicShow(p, 'portrait')) : '';
   const r = p ? D.rank[String(p.id)] : null;
   const belts = r ? r.held.map(h => pmBeltUrl(h.t)).filter(Boolean) : [];
   const champ = !!(r && r.held.length);
