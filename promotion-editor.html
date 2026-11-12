@@ -3306,7 +3306,20 @@
     letter-spacing:.4px;
   }
 
-  .umenu{min-width:180px;}
+  .umenu{min-width:220px;}
+  .umenu-sec, .login-sec{font-family:var(--font-cond); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:13px; color:var(--muted); padding:10px 14px 4px; border-top:1px solid var(--line); margin-top:4px;}
+  .umenu a.umenu-acct{display:flex; align-items:center; gap:10px;}
+  .umenu-acct img, .umenu-ini{width:28px; height:28px; border-radius:50%; object-fit:cover; flex:0 0 28px;}
+  .umenu-ini{display:flex; align-items:center; justify-content:center; background:var(--line); font-size:12px; font-weight:700;}
+  .umenu-acct small, .login-menu small{display:block; font-size:13px; color:var(--muted);}
+  .login-ava{width:22px; height:22px; border-radius:50%; object-fit:cover; vertical-align:middle;}
+  .uprov{display:block; font-size:12.5px; color:var(--muted); line-height:1.1;}
+  .wca-as{display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:15px; color:var(--txt-2);}
+  .wca-as img{width:24px; height:24px; border-radius:50%; object-fit:cover;}
+  .wca-as b{color:var(--txt);} .wca-as small{font-size:13.5px; color:var(--muted);}
+  .wca-as-sw{background:none; border:1px solid var(--line); color:var(--gold); border-radius:14px; padding:2px 10px; font-size:13.5px; cursor:pointer;}
+  .wca-as-sw:hover{border-color:var(--gold);}
+  .ch-asrow{padding:6px 10px 0;}
 
   @keyframes navlive{0%,100%{opacity:1}50%{opacity:.3}}
 @media(max-width:900px){
@@ -7566,11 +7579,6 @@ body.pe{margin:0; min-height:100vh;}
 .pe-signin h1{font-family:var(--font-display); text-transform:uppercase; letter-spacing:1px; font-size:34px; margin:0 0 10px;}
 .pe-signin p{font-size:17px; color:var(--txt-2); line-height:1.6;}
 @media (max-width:900px){ .pe-main .ed{grid-template-columns:1fr;} .pe-kind{border-left:0; padding-left:0;} .pe-links{margin-left:0;} }
-
-/* Betting tab styles added from index.html */
-.mpb-watch-stats b{display:block; font-size:21px; color:#fff;} .mpb-watch-stats small{font-size:14px; color:var(--muted);}
-.mpb-selfbal{font-size:17px; margin:6px 0 10px;} .mpb-selfbal b{color:var(--gold);}
-@media(min-width:561px){ .mpe-fields .mpb-wide{grid-column:2/-1;} }
 </style>
 <script>
 /* ===== the editor's own setup ===== */
@@ -8018,7 +8026,91 @@ async function linkProvider(provider){
     wcaToast('Link failed', 'Linking is not enabled yet (turn on Manual Linking in Supabase).', true);
   }
 }
-async function signOut(){ await sb.auth.signOut(); location.reload(); }
+/* ===================== SAVED ACCOUNTS (Nov 2026) =====================
+   Stay signed in to more than one account in this browser (e.g. the admin
+   email login and a Discord account) and switch with one tap.
+   The account in use lives in Supabase's own storage as always. The others
+   are kept here as {id, name, avatar, provider, at, rt} so switching needs no
+   new sign in. "Add another account" saves the current one, signs out of it
+   on THIS browser only (scope local, so its saved login stays good), and
+   opens the sign in menu. Switching reloads the page so every part of the
+   site picks up the new account. */
+const WCA_ACCT_KEY = 'wca-accounts';
+function wcaAccts(){ try{ const a = JSON.parse(localStorage.getItem(WCA_ACCT_KEY) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+function wcaAcctsSave(a){ try{ localStorage.setItem(WCA_ACCT_KEY, JSON.stringify(a.slice(0, 6))); }catch(e){} }
+function wcaProviderOf(u){ const p = u && u.app_metadata && u.app_metadata.provider; return p || 'email'; }
+function wcaProviderLabel(p){ return ({ discord:'Discord', google:'Google', twitch:'Twitch', email:'Email' })[p] || (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Email'); }
+// keep this account's name and picture in the list (and its login, when asked)
+async function wcaAcctRemember(withTokens){
+  if(!CURRENT_USER) return;
+  const list = wcaAccts();
+  let e = list.find(x => x.id === CURRENT_USER.id);
+  if(!e){ e = { id:CURRENT_USER.id }; list.unshift(e); }
+  e.name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || (CURRENT_USER.email || 'Member');
+  e.avatar = (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || '';
+  e.provider = wcaProviderOf(CURRENT_USER);
+  if(withTokens){
+    try{ const { data:{ session } } = await sb.auth.getSession();
+      if(session){ e.at = session.access_token; e.rt = session.refresh_token; } }catch(err){}
+  }
+  wcaAcctsSave(list);
+}
+function wcaOtherAccts(){ return wcaAccts().filter(x => x.rt && (!CURRENT_USER || x.id !== CURRENT_USER.id)); }
+async function wcaSwitchAccount(id){
+  const to = wcaAccts().find(x => x.id === id && x.rt);
+  if(!to){ wcaToast('Sign in again', 'That account needs a fresh sign in.', true); return; }
+  await wcaAcctRemember(true);                       // save where we are first
+  const { error } = await sb.auth.setSession({ access_token:to.at || '', refresh_token:to.rt });
+  if(error){
+    wcaAcctsSave(wcaAccts().map(x => x.id === id ? Object.assign(x, { at:null, rt:null }) : x));
+    wcaToast('Sign in again', (to.name || 'That account') + ' was signed out. Sign in to it again to add it back.', true);
+    return;
+  }
+  wcaAcctsSave(wcaAccts().map(x => x.id === id ? Object.assign(x, { at:null, rt:null }) : x));   // it is the live login now
+  location.reload();
+}
+async function wcaAddAccount(){
+  await wcaAcctRemember(true);
+  try{ await sb.auth.signOut({ scope:'local' }); }catch(e){}
+  CURRENT_USER = null; MY_PROFILE = null; IS_ADMIN = false;
+  await refreshUser();
+  setTimeout(() => { const m = document.getElementById('loginMenu'); if(m) m.classList.add('open'); }, 50);
+  wcaToast('Add another account', 'Pick how to sign in. Your other account stays saved in the account menu.');
+}
+function wcaAcctMenuHTML(){
+  const others = wcaOtherAccts();
+  return `<div class="umenu-sec">Switch account</div>`
+    + others.map(a => `<a href="#" role="menuitem" onclick="wcaSwitchAccount('${jsAttr(a.id)}');return false;" class="umenu-acct">
+        ${a.avatar ? `<img src="${escAttr(a.avatar)}" alt="">` : `<span class="umenu-ini">${esc(String(a.name || '?').slice(0, 2).toUpperCase())}</span>`}
+        <span>${esc(a.name || 'Member')}<small>${esc(wcaProviderLabel(a.provider))}</small></span></a>`).join('')
+    + `<a href="#" role="menuitem" onclick="wcaAddAccount();return false;"><i class="ti ti-user-plus"></i> Add another account</a>`;
+}
+// sign in menu: saved accounts you can go straight back to
+function wcaSavedLoginHTML(){
+  const others = wcaOtherAccts();
+  if(!others.length) return '';
+  return `<div class="login-sec">Saved accounts</div>` + others.map(a => `<button onclick="wcaSwitchAccount('${jsAttr(a.id)}')">
+      ${a.avatar ? `<img class="login-ava" src="${escAttr(a.avatar)}" alt="">` : '<i class="ti ti-user-circle"></i>'} ${esc(a.name || 'Member')} <small>${esc(wcaProviderLabel(a.provider))}</small></button>`).join('')
+    + `<div class="login-sec">Or sign in with</div>`;
+}
+/* "Commenting as ..." label, shown before you type, chat, comment or vote, so
+   it is always clear which account it goes out as. verb: Commenting, Chatting, Voting... */
+function wcaActingAs(verb){
+  if(typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return '';
+  const asAdmin = verb === 'Chatting' && IS_ADMIN && POST_AS_ADMIN;
+  const name = asAdmin ? 'Admin' : ((MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member');
+  const av = !asAdmin && MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url);
+  const many = wcaOtherAccts().length > 0;
+  return `<span class="wca-as">${av ? `<img src="${escAttr(av)}" alt="">` : '<i class="ti ti-user-circle"></i>'}
+    <span>${esc(verb || 'Posting')} as <b>${esc(name)}</b> <small>${esc(wcaProviderLabel(wcaProviderOf(CURRENT_USER)))}</small></span>
+    <button type="button" class="wca-as-sw" onclick="event.stopPropagation();toggleUserMenu(event)">${many ? 'Switch' : 'Add account'}</button></span>`;
+}
+async function signOut(){
+  // forget this account here; any other saved account is still one tap away
+  if(CURRENT_USER) wcaAcctsSave(wcaAccts().filter(x => x.id !== CURRENT_USER.id));
+  await sb.auth.signOut({ scope:'local' });
+  location.reload();
+}
 function wcaMoneyCtx(){
   let S = typeof PE !== 'undefined' ? PE.pub : null, store = false;
   const on = x => x && x.isConnected && !x.hidden && x.offsetParent;
@@ -8648,7 +8740,7 @@ function rcRecordsFor(name){
     if(!inIt) return;
     const fk = rcNorm(f.name);
     const champ = (typeof CHAMP_DIVS_BY_NAME!=='undefined' && (CHAMP_DIVS_BY_NAME[fk]||[]).includes('Faction'));
-    list.push({ kind:'faction', label:f.name, short:f.name, division:'Faction', champ,
+    list.push({ kind:'faction', label:'Faction Division, ' + f.name, short:f.name, division:'Faction', champ,
       slot:0, inactive:false,
       wins:+f.wins||0, losses:+f.losses||0, draws:+f.draws||0, no_wins:+f.no_wins||0,
       win_pct:+f.win_pct||0, contender_points:+f.contender_points||0,
@@ -8747,15 +8839,19 @@ async function renderWrestlerHistory(name, hostId){
         .order('event_date',{ascending:false}).order('slot',{ascending:true});
       if(error) throw error;
       rows = data||[];
-      MH_CACHE[name]=rows;
-    }catch(e){ host.innerHTML=card; return; } // history view not installed yet — keep just the record
+    }catch(e){ rows = []; }
+    // v_match_history only holds matches whose rankings were updated. Add every
+    // other match they were on the card for (winner saved in Show Editor only,
+    // shows outside the records range, team matches saved by team name only).
+    try{ rows = rows.concat(await mhExtraMatches(name, rows)); }catch(e){}
+    MH_CACHE[name]=rows;
   }
   // guard against a stale async fill after the user clicked another wrestler
   if(hostId==='cs-history' && typeof CS_SELECTED!=='undefined' && CS_SELECTED && CS_SELECTED!==name) return;
   if(hostId==='sm-history' && typeof smCurrentName==='function' && smCurrentName() && smCurrentName()!==name) return;
   if(!rows.length){
     host.innerHTML = card + `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
-      <div class="pf-empty">No recorded matches on file for them yet. Matches appear here once a winner is saved for them.</div></div>`;
+      <div class="pf-empty">No matches on file for them yet.</div></div>`;
     return;
   }
   const legend = `<details class="mh-legend"><summary>How to read this</summary>
@@ -8765,7 +8861,7 @@ async function renderWrestlerHistory(name, hostId){
     <span class="f5b n" style="width:16px;height:16px">N</span> no-win, they were on the losing end but never took the fall, so it doesn't count against them ·
     <span class="f5b d" style="width:16px;height:16px">D</span> draw.
     <i class="ti ti-crown" style="color:var(--gold)"></i> = a championship was on the line.
-    A match appears here once its winner is on file.</div></details>`;
+    Every match they were on the card for is listed. Only matches with their rankings updated count toward the record above.</div></details>`;
   // group by division, newest first inside each. Shows outside the records
   // range (before the WCA 34 reset) are still listed, under their own label,
   // so the history is complete but nobody mistakes them for part of the record.
@@ -8779,7 +8875,7 @@ async function renderWrestlerHistory(name, hostId){
       return `<div class="mh-row">
         <span class="f5b ${cls}" style="width:20px;height:20px;flex:0 0 20px">${r.result}</span>
         <span class="mh-main">${opp?('vs '+esc(opp)):esc(r.match_title||'Match')}${belt}
-          <span class="mh-sub">${esc(r.event_name||'')}${when?' · '+when:''}${r.match_type?' · '+esc(r.match_type):''}</span></span>
+          <span class="mh-sub">${esc(r.event_name||'')}${when?' · '+when:''}${r.match_type?' · '+esc(r.match_type):''}${noResult}</span></span>
       </div>`;
   };
   const secs = Object.keys(byDiv).sort().map(dv=>{
@@ -10328,7 +10424,7 @@ function slSourceStrip(p){
   const click = (!isPress && src.id!=null) ? ` role="link" tabindex="0" onclick="cpShowPromotion(${Number(src.id)})"` : '';
   return `<div class="sl-src"${col?` style="--src:${col}"`:''}>
     ${logo}<span class="sl-src-name"${click}>${esc(src.name)}</span>
-    <span class="sl-src-kind">${isPress ? 'Press Pass' : 'Promotion'}</span>
+    <span class="sl-src-kind">${isPress ? 'Publication' : 'Promotion'}</span>
   </div>`;
 }
 const SL_PC_AVA = {};
@@ -12242,12 +12338,27 @@ async function slCopyShare(){
     try{ document.execCommand('copy'); }catch(_){}
   }
 }
-function slFocusSharedPost(id){
-  const el = document.getElementById('slpost-'+id);
+// A linked post stays "wanted" for a few seconds, so if the Feed redraws
+// (awards or reactions finish loading and push posts around) it is found again.
+var SL_FOCUS = null;
+function slFocusSharedPost(id, again){
+  if(!again) SL_FOCUS = { id:String(id), until:Date.now() + 6000 };
+  let el = document.getElementById('slpost-'+id);
   if(!el){
-    // The post may be on another pagination page — jump to page 1 where newest live,
-    // or just flash a toast if not found in the current list.
-    return false;
+    // Not on the page showing right now. Find it in the whole Feed, clear any
+    // filter that hides it, turn to the page it is on, then scroll to it.
+    const all = slFeedList();
+    if(!all.some(p => String(p.id) === String(id))) return false;   // Feed still loading, try again shortly
+    if(SL_FILTER !== 'all'){
+      SL_FILTER = 'all';
+      document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter==='all'));
+      const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
+    }
+    const idx = slFeedList().findIndex(p => String(p.id) === String(id));
+    SL_PAGE = Math.floor(idx / SL_PAGE_SIZE) + 1;
+    renderStorylines();
+    el = document.getElementById('slpost-'+id);
+    if(!el) return false;
   }
   el.scrollIntoView({behavior:'smooth', block:'center'});
   el.classList.add('sl-shared-flash');
@@ -12314,7 +12425,7 @@ async function slRenderComments(id){
     ? `<div class="sl-cform" data-keep="comment:${Number(id)}">
          <textarea id="sl-cinput-${id}" placeholder="Add a comment… (or add a GIF)" maxlength="1000"></textarea>
          <div class="sl-crow">
-           <span class="sl-cwhen">Posting as ${esc(MY_PROFILE ? (MY_PROFILE.display_name||MY_PROFILE.username||'Member') : 'Member')}</span>
+           ${wcaActingAs('Commenting')}
            <span style="display:flex;gap:8px;align-items:center">
              <button class="sl-cgif" onclick="slToggleGifPicker(${id})" title="Add a GIF">🎞️ GIF</button>
              <button class="sl-cpost" onclick="slPostComment(${id})">Post comment</button>
@@ -12952,7 +13063,7 @@ async function cpOpen(mode, opts){
   host.innerHTML = `<div class="spc-editor"><div class="loading">Loading…</div></div>`;
   const ok = await cpLoadMyOrgs();
   if(!ok){
-    host.innerHTML = `<div class="spc-editor"><div class="spc-note" style="margin:0 0 10px">The Promotion Portal and Press Pass are not switched on yet. Please check back soon!</div>
+    host.innerHTML = `<div class="spc-editor"><div class="spc-note" style="margin:0 0 10px">The Promotion Portal and Publications are not switched on yet. Please check back soon!</div>
       <button class="spc-mini" onclick="frClose()">Close</button></div>`;
     return;
   }
@@ -12999,12 +13110,12 @@ function cpRenderOrgList(){
   const anyPending = !isPress && list.some(o=>o.status==='pending') && !list.some(o=>o.status==='approved');
   host.innerHTML = `<div class="spc-editor">
     <div class="spc-tagbar">
-      <div class="fr-pickval" style="color:var(--gold)">${isPress ? 'Your Press Pass outlets' : 'Your promotions'}</div>
+      <div class="fr-pickval" style="color:var(--gold)">${isPress ? 'Your publications' : 'Your promotions'}</div>
       <button class="spc-mini" onclick="frClose()">✕ Close</button>
     </div>
     ${anyPending ? `<div class="cp-wait"><i class="ti ti-hourglass"></i> Your promotion is waiting for WCA to approve it. Once it's approved you can post as it right here.</div>` : ''}
     ${rows || '<div class="spc-note">Nothing here yet.</div>'}
-    ${list.length < max ? `<button class="spc-ghost-btn" style="margin-top:12px" onclick="cpOpen('${CP_MODE}',{newOrg:true})">${isPress ? '+ New outlet' : '+ Register another promotion'}</button>` : ''}
+    ${list.length < max ? `<button class="spc-ghost-btn" style="margin-top:12px" onclick="cpOpen('${CP_MODE}',{newOrg:true})">${isPress ? '+ New publication' : '+ Register another promotion'}</button>` : ''}
   </div>`;
 }
 function cpRenderPromoForm(id){
@@ -13152,12 +13263,12 @@ function cpRenderOutletForm(id){
   const color = (o && /^#[0-9a-f]{6}$/i.test(o.color||'')) ? o.color : '#E9B949';
   host.innerHTML = `<div class="spc-editor">
     <div class="spc-tagbar">
-      <div class="fr-pickval" style="color:var(--gold)">${o ? 'Edit your outlet' : 'Get your Press Pass'}</div>
+      <div class="fr-pickval" style="color:var(--gold)">${o ? 'Edit your publication' : 'New publication'}</div>
       <button class="spc-mini" onclick="frClose()">✕ Close</button>
     </div>
-    ${o ? '' : `<div class="cp-intro">Make up a news outlet and a reporter, then cover anyone you like: WCA, your own promotion, or anybody else's. ${CP_TRUSTED ? 'Since you run an approved promotion, your stories go straight to the Feed.' : 'Your stories go to WCA for approval before they hit the Feed. Once you run an approved promotion, they go live right away.'}</div>`}
+    ${o ? '' : `<div class="cp-intro">Make up a publication and a reporter, then cover anyone you like: WCA, your own promotion, or anybody else's. ${CP_TRUSTED ? 'Since you run an approved promotion, your stories go straight to the Feed.' : 'Your stories go to WCA for approval before they hit the Feed. Once you run an approved promotion, they go live right away.'}</div>`}
     <div class="spc-row">
-      <div><label style="margin-top:0">Outlet name</label>
+      <div><label style="margin-top:0">Publication name</label>
         <div class="cp-aiwrap"><input id="cpx_name" maxlength="60" placeholder="The Turnbuckle Times" value="${escAttr(o?o.name:'')}"></div></div>
       <div><label style="margin-top:0">Reporter name</label>
         <div class="cp-aiwrap"><input id="cpx_reporter" maxlength="60" placeholder="Dana Cross" value="${escAttr(o?o.reporter:'')}"></div></div>
@@ -13165,9 +13276,9 @@ function cpRenderOutletForm(id){
     ${cpLogoFieldHTML()}
     <label>Color</label><input type="color" id="cpx_color" value="${escAttr(color)}" style="height:42px;padding:4px;max-width:120px">
     <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px">
-      <button class="spc-post-btn" onclick="cpSaveOutlet(${o?Number(o.id):'null'})">${o ? 'Save changes' : 'Get my Press Pass'}</button>
+      <button class="spc-post-btn" onclick="cpSaveOutlet(${o?Number(o.id):'null'})">${o ? 'Save changes' : 'Make this publication'}</button>
       ${CP_OUTLETS.length ? `<button class="spc-mini" onclick="cpOpen('press',{manage:true})">Back</button>` : ''}
-      ${o ? `<button class="spc-mini fr-danger" onclick="cpDeleteOutlet(${Number(o.id)})">Delete outlet</button>` : ''}
+      ${o && !o.is_official ? `<button class="spc-mini fr-danger" onclick="cpDeleteOutlet(${Number(o.id)})">Delete publication</button>` : ''}
     </div>
     <div class="msg" id="cpMsg" style="margin-top:10px"></div>
   </div>`;
@@ -13177,22 +13288,25 @@ async function cpSaveOutlet(id){
   if(CP_BUSY) return;
   const name = (document.getElementById('cpx_name').value||'').trim();
   const reporter = (document.getElementById('cpx_reporter').value||'').trim();
-  if(name.length < 2){ cpMsg('Give your outlet a name.', false); return; }
+  if(name.length < 2){ cpMsg('Give your publication a name.', false); return; }
   if(reporter.length < 2){ cpMsg('Give your reporter a name.', false); return; }
   let logo = '';
   try{ logo = await cpReadLogo(); }catch(e){ cpMsg(e.message, false); return; }
   CP_BUSY = true;
-  const { data, error } = await sb.rpc('save_press_outlet', {
-    p_id: id, p_name: name, p_reporter: reporter, p_logo: logo || null, p_color: document.getElementById('cpx_color').value
+  const cur = id != null ? CP_OUTLETS.find(x=>String(x.id)===String(id)) : null;
+  const { data, error } = await sb.rpc('save_publication', {
+    p_id: id, p_name: name, p_reporter: reporter, p_logo: logo || null, p_color: document.getElementById('cpx_color').value,
+    p_promotion: cur && cur.promotion_id != null ? Number(cur.promotion_id) : ((CP_PROMOS.find(p=>p.status==='approved' && !p._role) || {}).id || null),
+    p_style: cur ? (cur.style || null) : null, p_people: cur && Array.isArray(cur.people) ? cur.people : []
   });
   CP_BUSY = false;
   if(error){ cpMsg(cpErrText(error), false); return; }
-  wcaToast('Press Pass ready', name + ' is set up. Time to write!');
+  wcaToast('Publication ready', name + ' is set up. Time to write!');
   CP_SRC_ID = data || id;
   cpOpen('press');
 }
 async function cpDeleteOutlet(id){
-  if(!wcaTwice('Delete this outlet?')) return;
+  if(!wcaTwice('Delete this publication?')) return;
   const { error } = await sb.rpc('delete_press_outlet', { p_id:id });
   if(error){ cpMsg(cpErrText(error), false); return; }
   cpOpen('press', {manage:true});
@@ -13280,9 +13394,9 @@ function cpRenderComposer(){
   const inMp = CP_HOST_ID === 'mp-composer';
   host.innerHTML = `<div class="spc-editor cp-editor">
     <div class="spc-tagbar">
-      <div class="fr-pickval" style="color:var(--gold)"><i class="ti ${isPress?'ti-id-badge-2':'ti-flag-3'}"></i> ${inMp ? (editing ? 'Edit your post' : 'Write a post') : (isPress ? 'Press Pass' : 'Promotion Portal')}</div>
+      <div class="fr-pickval" style="color:var(--gold)"><i class="ti ${isPress?'ti-id-badge-2':'ti-flag-3'}"></i> ${inMp ? (editing ? 'Edit your post' : 'Write a post') : (isPress ? 'Publications' : 'Promotion Portal')}</div>
       <span style="display:flex;gap:8px;flex-wrap:wrap">
-        ${inMp ? (editing ? `<button class="spc-mini" onclick="mpNewPost()">Start a new post</button>` : '') : `<button class="spc-mini" onclick="cpOpen('${CP_MODE}',{manage:true})">${isPress ? 'Manage outlets' : 'Manage promotions'}</button>
+        ${inMp ? (editing ? `<button class="spc-mini" onclick="mpNewPost()">Start a new post</button>` : '') : `<button class="spc-mini" onclick="cpOpen('${CP_MODE}',{manage:true})">${isPress ? 'Manage publications' : 'Manage promotions'}</button>
         <button class="spc-mini" onclick="frClose()">✕ Close</button>`}
       </span>
     </div>
@@ -13296,7 +13410,7 @@ function cpRenderComposer(){
           <div><label style="margin-top:0">Story date <span class="cp-opt">(when this happened)</span></label>
             <input type="date" id="cp_date"></div>
         </div>
-        ${isPress ? `<div class="spc-note" style="margin:6px 0 0">Reporter: <b>${esc(cpReporter())}</b></div>` : ''}
+        ${isPress ? `<div class="spc-note" style="margin:6px 0 0">Main reporter: <b>${esc(cpReporter())}</b></div>` + cpPubBarHTML() : ''}
         <div id="cpFields">${cpFieldsHTML()}</div>
         <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:12px">
           <label style="margin-top:0">Photos <span class="cp-opt">(optional, up to 4)</span></label>
@@ -13372,7 +13486,9 @@ function cpFieldsHTML(){
     }
     if(o.hl) return `<label>${esc(label)}${opt}</label><input id="${id}" maxlength="${o.max||200}" placeholder="${escAttr(cpPh(ph))}" value="${escAttr(fill)}" oninput="wcaHeadlineHelp(this)">
         <div class="hl-help" data-for="${id}"></div>`;
-    return `<label>${esc(label)}${opt}</label><input id="${id}" maxlength="${o.max||200}" placeholder="${escAttr(cpPh(ph))}" value="${escAttr(fill)}">`;
+    // saved people of the publication show as picks (you can still type your own)
+    const dl = (CP_MODE==='press' && o.pressFill) ? (/^By /.test(o.pressFill) ? ' list="cp-bylines"' : ' list="cp-people"') : '';
+    return `<label>${esc(label)}${opt}</label><input id="${id}" maxlength="${o.max||200}" placeholder="${escAttr(cpPh(ph))}" value="${escAttr(fill)}"${dl}>`;
   }).join('');
 }
 function cpRepDef(k){
@@ -13401,7 +13517,8 @@ function cpAddRep(k, vals){
       return `<label>${esc(fl)}</label><select data-k="${fk}">${fp.map(o=>`<option value="${o}"${o===v?' selected':''}>${esc(CP_MOVE_LABEL[o]||o)}</option>`).join('')}</select>`;
     }
     if(ft === 'area') return `<label>${esc(fl)}</label><textarea data-k="${fk}" rows="2" maxlength="4000">${esc(v)}</textarea>`;
-    return `<label>${esc(fl)}</label><input data-k="${fk}" maxlength="200" value="${escAttr(v)}" placeholder="${escAttr(typeof fp==='string'?cpPh(fp):'')}">`;
+    const dl = (CP_MODE==='press' && typeof fp==='string' && /\{REPORTER\}/.test(fp)) ? ' list="cp-people"' : '';
+    return `<label>${esc(fl)}</label><input data-k="${fk}" maxlength="200" value="${escAttr(v)}" placeholder="${escAttr(typeof fp==='string'?cpPh(fp):'')}"${dl}>`;
   }).join('') + `<button type="button" class="spc-mini cp-repx" onclick="this.parentNode.remove()">Remove</button>`;
   box.appendChild(row);
 }
@@ -13601,9 +13718,9 @@ async function cpEditFromFeed(id){
   mpEditFromFeed(data);
 }
 async function cpShowPromotion(id){ pmGo(id); }
-const PM_ATTRS = ['Arm Power','Leg Power','Grapple Offense','Running Offense','Aerial Offense','Aerial Defense',
+const PM_ATTRS = ['Arm Power','Leg Power','Grapple Offense','Running Offense','Aerial Offense',
   'Aerial Range','Power Submission Offense','Technical Submission Offense','Aerial Reversal','Strike Reversal',
-  'Grapple Reversal','Pin Escape','Strength','Stamina','Agility','Movement Speed','Recovery','Special','Finisher'];
+  'Grapple Reversal','Pin Escape','Body Durability','Arm Durability','Leg Durability','Strength','Stamina','Agility','Movement Speed','Recovery','Special','Finisher'];
 const PM_SWATCHES = [['#e2574c','Red'],['#b5121b','Crimson'],['#f28c38','Orange'],['#e9b949','Gold'],['#c6f432','Lime'],['#3fc46a','Green'],['#5dcaa5','Teal'],['#21d4fd','Cyan'],
   ['#4fa3f7','Blue'],['#2346b8','Navy'],['#8f7cff','Purple'],['#c13cff','Violet'],['#ff2fd6','Magenta'],['#ff6fb5','Pink'],['#c9c6be','Silver'],['#ffffff','White']];
 const PM_WCLASS = ['Cruiserweight','Light Heavyweight','Heavyweight','Super Heavyweight'];
@@ -14077,7 +14194,7 @@ function mpRegister(){
   host.innerHTML = `<div class="pm-card">
     <div class="pm-kick">My Promotion</div>
     <h2 class="pm-h2">Register your promotion</h2>
-    <p class="pm-p">Run your own wrestling promotion? Register it here. Once WCA approves it, you can post to the Feed as your promotion, get a Press Pass for your own newsroom, and build your roster with every WWE 2K25 detail.</p>
+    <p class="pm-p">Run your own wrestling promotion? Register it here. Once WCA approves it, you can post to the Feed as your promotion, get your own Newswire and other publications, and build your roster with every WWE 2K25 detail.</p>
     <div id="mp-edit-form"></div>
   </div>`;
   mpPromoForm(null, pmEl('mp-edit-form'));
@@ -14490,6 +14607,18 @@ function mpGfxTab(box){
     </div>
     <p class="pm-p" style="font-size:15px">Only owners and co-owners of ${esc(p.name)} can open it. Pictures for your roster come from Roster, so add a face or full body picture there first for the best results.</p>
     <div class="pm-acts"><a class="spc-post-btn" href="${href}" style="text-decoration:none"><i class="ti ti-external-link" aria-hidden="true"></i> Open Graphics Studio</a></div>
+  </section>
+  <section class="pm-card" style="margin-top:14px">
+    <div class="pm-h3"><i class="ti ti-broadcast" aria-hidden="true"></i> Your broadcast kit for OBS</div>
+    <p class="pm-p" style="font-size:16px;line-height:1.6">The same live lower thirds and sponsor pop ups WCA uses on its shows, made for ${esc(p.name)}. It runs on your own PC with OBS: your roster, divisions, teams, champions and records come straight from here, you add your own sponsors with their pictures and ad reads, and you can change every color, shape and position. Works with Streamer.bot and a Stream Deck too.</p>
+    <ol class="pm-p" style="font-size:15.5px;line-height:1.7;margin:8px 0 12px 20px;padding:0">
+      <li>Download your copy and put it in its own folder on your PC.</li>
+      <li>In OBS, turn on the WebSocket server (Tools, WebSocket Server Settings).</li>
+      <li>Add the file to OBS as a Browser source, 1920 by 1080.</li>
+      <li>Open the same file in Chrome. That is your control window, and its START HERE tab walks you through the rest.</li>
+    </ol>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpLtDownload(this)"><i class="ti ti-download" aria-hidden="true"></i> Download my broadcast kit</button></div>
+    <div class="msg" id="mplt_msg"></div>
   </section>`;
 }
 function mpSuggestTab(box){
@@ -14716,7 +14845,7 @@ function mpPostsTab(box){
 function mpSources(){
   const p = mpCur();
   const list = p ? [{ mode:'promotion', id:p.id, name:p.name, sub:'Promotion', color:pmColor(p.color), logo:p.logo_url }] : [];
-  (CP_OUTLETS || []).forEach(o => list.push({ mode:'press', id:o.id, name:o.name, sub:'Press Pass · ' + (o.reporter || ''), color:pmColor(o.color), logo:o.logo_url }));
+  (CP_OUTLETS || []).forEach(o => list.push({ mode:'press', id:o.id, name:o.name, sub:(o.is_official ? 'Official Newswire' : 'Publication') + ' · ' + (o.reporter || ''), color:pmColor(o.color), logo:o.logo_url }));
   return list;
 }
 function mpDrawPostAs(){
@@ -14727,7 +14856,7 @@ function mpDrawPostAs(){
       ${pmLogo({ name:s.name, color:s.color, logo_url:s.logo }, 'pm-as-init')}
       <span><b>${esc(s.name)}</b><small>${esc(s.sub)}</small></span></button>`;
   }).join('')}
-  ${(CP_OUTLETS || []).length ? '' : `<button type="button" class="pm-as pm-as-add" onclick="mpTab('edit');setTimeout(()=>mpOutletForm(null),50)"><i class="ti ti-id-badge-2"></i><span><b>Get a Press Pass</b><small>Your own newsroom</small></span></button>`}</div>`;
+  ${(CP_OUTLETS || []).length ? '' : `<button type="button" class="pm-as pm-as-add" onclick="mpTab('edit');setTimeout(()=>mpOutletForm(null),50)"><i class="ti ti-id-badge-2"></i><span><b>Get your Newswire</b><small>Your own newsroom and publications</small></span></button>`}</div>`;
 }
 function mpPostAs(mode, id){
   const g = cpCollect();
@@ -14804,7 +14933,7 @@ function mpDrawPosts(){
   const box = pmEl('mp-cards'), fb = pmEl('mp-filters'); if(!box) return;
   const p = mpCur();
   const test = (k, r) => k === 'all' || (k === 'promo' && r.promotion_id != null) || (k === 'press' && r.outlet_id != null) || (k === 'review' && r.submission_status !== 'approved');
-  const filters = [['all','All'],['promo', p ? p.name : 'Promotion']].concat((CP_OUTLETS || []).length ? [['press','Press Pass']] : []).concat([['review','Waiting or sent back']]);
+  const filters = [['all','All'],['promo', p ? p.name : 'Promotion']].concat((CP_OUTLETS || []).length ? [['press','Publications']] : []).concat([['review','Waiting or sent back']]);
   if(fb) fb.innerHTML = filters.map(([k, l]) => `<button type="button" class="pm-chip${PM.filter === k ? ' on' : ''}" onclick="PM.filter='${k}';mpDrawPosts()">${esc(l)} <span>${PM.posts.filter(r => test(k, r)).length}</span></button>`).join('');
   const list = PM.posts.filter(r => test(PM.filter, r));
   if(!list.length){ box.innerHTML = `<div class="pm-empty">${PM.posts.length ? 'Nothing here.' : 'No posts yet. Write your first one above!'}</div>`; return; }
@@ -14821,7 +14950,7 @@ function mpDrawPosts(){
     const likes = (Number(r.seed_likes) || 0) + rc.l, dis = (Number(r.seed_dislikes) || 0) + rc.d;
     const on = CP_EDITING && String(CP_EDITING.id) === String(r.id);
     return `<article class="pm-pcard${on ? ' on' : ''}">
-      <div class="pm-pcard-top" style="--pc:${col}"><span>${esc(src.name || 'Posted by you')}${src.type === 'press' ? ', Press Pass' : ''}</span><b class="pm-pill ${st[1]}">${st[0]}</b></div>
+      <div class="pm-pcard-top" style="--pc:${col}"><span>${esc(src.name || 'Posted by you')}${src.type === 'press' ? ', Publication' : ''}</span><b class="pm-pill ${st[1]}">${st[0]}</b></div>
       ${ph.length ? `<div class="pm-pcard-ph"><img src="${escAttr(slShowUrl(ph[0].url))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">${ph.length > 1 ? `<span>${ph.length} photos</span>` : ''}</div>` : ''}
       <div class="pm-pcard-body">
         <div class="pm-pcard-kind">${esc(CP_KIND_LABEL[r.kind] || r.kind)} · ${esc(r.story_date ? fmtDate(r.story_date) : '')}</div>
@@ -15294,8 +15423,8 @@ async function mpEditTab(box){
       <div class="pm-h3">Your promotion</div>
       <div id="mp-edit-form"></div>
       <div class="pm-outlets">
-        <div class="pm-h3">Press Pass outlets</div>
-        <p class="pm-p">Your newsroom. Pick an outlet under Post as in Posts to write as the press.</p>
+        <div class="pm-h3">Publications</div>
+        <p class="pm-p">Your newsroom. Every approved promotion gets its own official Newswire, and you can add more publications, like a dirt sheet, a magazine or a podcast. Pick one under Post as in Posts to write for it.</p>
         <div id="mp-outlets"></div>
         <div id="mp-outlet-form"></div>
       </div>
@@ -15474,49 +15603,80 @@ function mpSlugCheck(id){
 }
 function mpDrawOutlets(){
   const box = pmEl('mp-outlets'); if(!box) return;
-  const ok = mpApproved();
-  box.innerHTML = (CP_OUTLETS || []).map(o => `<div class="pm-outlet">
+  const ok = mpApproved(), list = mpPubsHere();
+  const hasWire = list.some(o => o.is_official);
+  box.innerHTML = (ok && !hasWire ? `<div class="pm-card pm-subcard pm-wirecta"><div class="pm-h3">Your official Newswire</div>
+      <p class="pm-p">Get ${esc((mpCur() || {}).name || 'your promotion')} Newswire, your promotion's own in house news wire, like WCA Newswire is for WCA.</p>
+      <button type="button" class="spc-post-btn" onclick="mpMakeNewswire()"><i class="ti ti-news"></i> Get my Newswire</button>
+      <div class="msg" id="mpw_msg"></div></div>` : '')
+    + list.map(o => `<div class="pm-outlet">
       ${pmLogo({ name:o.name, color:o.color, logo_url:o.logo_url }, 'pm-outlet-logo')}
-      <span><b>${esc(o.name)}</b><small>Reporter: ${esc(o.reporter || '')}</small></span>
-      ${ok ? `<button type="button" class="spc-mini" onclick="mpOutletForm(${Number(o.id)})">Edit outlet</button>` : ''}
+      <span><b>${esc(o.name)}${o.is_official ? ' <em class="pm-offtag">Official</em>' : ''}</b><small>${esc(o.reporter || '')}${(o.people || []).length ? ' and ' + (o.people.length) + ' more saved' : ''}${(o.templates || []).length ? ' · ' + o.templates.length + ' post template' + (o.templates.length === 1 ? '' : 's') : ''}</small></span>
+      ${ok ? `<button type="button" class="spc-mini" onclick="mpOutletForm(${Number(o.id)})">Edit</button>` : ''}
     </div>`).join('')
-    + (ok ? ((CP_OUTLETS || []).length < 5 ? `<button type="button" class="spc-ghost-btn pm-addout" onclick="mpOutletForm(null)">+ ${(CP_OUTLETS || []).length ? 'Add another outlet' : 'Get your Press Pass'}</button>` : '')
-          : `<div class="pm-small pm-dim">Press Pass opens once WCA approves your promotion.</div>`);
+    + (ok ? ((CP_OUTLETS || []).length < 10 ? `<button type="button" class="spc-ghost-btn pm-addout" onclick="mpOutletForm(null)">+ Add a publication</button>` : '')
+          : `<div class="pm-small pm-dim">Publications open once WCA approves your promotion.</div>`);
+}
+async function mpMakeNewswire(){
+  const { error } = await sb.rpc('ensure_promo_newswire', { p_promotion:Number(PM.curId) });
+  if(error){ mpMsg('mpw_msg', /function|schema cache/i.test(error.message || '') ? 'Publications are not switched on yet. Please check back soon!' : cpErrText(error), false); return; }
+  wcaToast('Newswire ready', 'Pick it under Post as in Posts to write for it.');
+  await cpLoadMyOrgs();
+  mpDrawOutlets();
+}
+/* WCA's own publications, offered as starting points. WCA Newswire is WCA's
+   only, so it is not here: each promotion gets its own Newswire instead. */
+const PUB_TEMPLATES = [
+  { name:'The Van Vliet Report', reporter:'Van Vliet', style:'smooth, media trained interview show. Friendly access journalism, softball questions, big smile energy' },
+  { name:'W.M.Z. Sports', reporter:'W.M.Z. Desk', style:'ambush tabloid outlet. Doorstep, parking lot and airport interviews, sensational headlines, invasive' },
+  { name:'The Melzer Observer', reporter:'Melzer', style:'dense insider newsletter. Cites unnamed sources, obsesses over gate numbers and backstage politics, self serious' },
+  { name:'MatSide News', reporter:'MatSide Staff', style:'clickbait aggregator. Dramatic headlines, speculation dressed up as fact, sources tell us' },
+  { name:'The Jack Corrigan Show', reporter:'Jack Corrigan', style:'loud studio show or podcast. Rapid fire opinions, catchphrases, big reactions' },
+  { name:'JTfromBK718', reporter:'JT from BK', style:'reaction podcast. Stream of consciousness fan takes, thick New York attitude, slang heavy' }
+];
+function mpPubUseTemplate(i){
+  const t = PUB_TEMPLATES[i]; if(!t) return;
+  pmEl('mpo_name').value = t.name; pmEl('mpo_rep').value = t.reporter; pmEl('mpo_style').value = t.style;
+  document.querySelectorAll('.pm-pubtpl button').forEach((b, k) => b.classList.toggle('on', k === i));
 }
 function mpOutletForm(id){
   const box = pmEl('mp-outlet-form'); if(!box) return;
   const o = id != null ? (CP_OUTLETS || []).find(x => String(x.id) === String(id)) : null;
   box.innerHTML = `<div class="pm-card pm-subcard">
-    <div class="pm-h3">${o ? 'Edit ' + esc(o.name) : 'New Press Pass outlet'}</div>
+    <div class="pm-h3">${o ? 'Edit ' + esc(o.name) : 'New publication'}</div>
+    ${o ? '' : `<p class="pm-p">Start from one of WCA's publications and make it yours, or make your own from scratch.</p>
+      <div class="pm-pubtpl">${PUB_TEMPLATES.map((t, i) => `<button type="button" class="spc-mini" onclick="mpPubUseTemplate(${i})">${esc(t.name)}</button>`).join('')}</div>`}
     <div class="pm-g2">
-      <div><label for="mpo_name">Outlet name</label><input id="mpo_name" maxlength="60" value="${escAttr(o ? o.name : '')}" placeholder="The Turnbuckle Times"></div>
-      <div><label for="mpo_rep">Reporter name</label><input id="mpo_rep" maxlength="60" value="${escAttr(o ? o.reporter : '')}" placeholder="Dana Cross"></div>
+      <div><label for="mpo_name">Publication name</label><input id="mpo_name" maxlength="60" value="${escAttr(o ? o.name : '')}" placeholder="The Turnbuckle Times"></div>
+      <div><label for="mpo_rep">Main reporter or host</label><input id="mpo_rep" maxlength="60" value="${escAttr(o ? o.reporter : '')}" placeholder="Dana Cross"></div>
     </div>
     <label for="mpo_logo">Logo</label>
     <div class="pm-logoline"><input id="mpo_logo" value="${escAttr(o && o.logo_url || '')}" placeholder="https://">
       <label class="spc-mini pm-upbtn">Upload<input type="file" accept="image/*" onchange="mpUploadLogo(this,'mpo_logo')" hidden></label></div>
     <label>Color</label>${pmColorWidget('mpo_color', o ? o.color : '#e9b949')}
     <div class="pm-acts">
-      <button type="button" class="spc-post-btn" onclick="mpSaveOutlet(${o ? Number(o.id) : 'null'})">${o ? 'Save outlet' : 'Get my Press Pass'}</button>
+      <button type="button" class="spc-post-btn" onclick="mpSaveOutlet(${o ? Number(o.id) : 'null'})">${o ? 'Save publication' : 'Make this publication'}</button>
       <button type="button" class="spc-mini" onclick="pmEl('mp-outlet-form').innerHTML=''">Cancel</button>
-      ${o ? `<button type="button" class="spc-mini fr-danger" onclick="mpDeleteOutlet(${Number(o.id)})">Delete outlet</button>` : ''}
+      ${o && !o.is_official ? `<button type="button" class="spc-mini fr-danger" onclick="mpDeleteOutlet(${Number(o.id)})">Delete publication</button>` : ''}
     </div>
     <div class="msg" id="mpo_msg"></div></div>`;
   box.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 async function mpSaveOutlet(id){
   const name = (pmEl('mpo_name').value || '').trim(), rep = (pmEl('mpo_rep').value || '').trim(), logo = (pmEl('mpo_logo').value || '').trim();
-  if(name.length < 2){ mpMsg('mpo_msg', 'Give your outlet a name.', false); return; }
-  if(rep.length < 2){ mpMsg('mpo_msg', 'Give your reporter a name.', false); return; }
+  if(name.length < 2){ mpMsg('mpo_msg', 'Give your publication a name.', false); return; }
+  if(/^wca\b/i.test(name)){ mpMsg('mpo_msg', 'Publication names can\'t start with WCA. WCA Newswire is WCA\'s own.', false); return; }
+  if(rep.length < 2){ mpMsg('mpo_msg', 'Give your main reporter or host a name.', false); return; }
   if(logo && !/^https:\/\/\S+$/i.test(logo)){ mpMsg('mpo_msg', 'The logo link needs to start with https://', false); return; }
-  const { error } = await sb.rpc('save_press_outlet', { p_id:id, p_name:name, p_reporter:rep, p_logo:logo || null, p_color:pmEl('mpo_color').value || null });
-  if(error){ mpMsg('mpo_msg', cpErrText(error), false); return; }
-  wcaToast('Press Pass saved', name + ' is ready. Pick it under Post as to write.');
+  const { error } = await sb.rpc('save_publication', { p_id:id, p_name:name, p_reporter:rep, p_logo:logo || null, p_color:pmEl('mpo_color').value || null,
+    p_promotion:PM.curId != null ? Number(PM.curId) : null, p_style:(pmEl('mpo_style').value || '').trim() || null, p_people:pubPeopleFrom(pmEl('mpo_people').value) });
+  if(error){ mpMsg('mpo_msg', /function|schema cache/i.test(error.message || '') ? 'Publications are not switched on yet. Please check back soon!' : cpErrText(error), false); return; }
+  wcaToast('Publication saved', name + ' is ready. Pick it under Post as to write.');
   await cpLoadMyOrgs();
   mpRender();
 }
 async function mpDeleteOutlet(id){
-  if(!wcaTwice('Delete this outlet?')) return;
+  if(!wcaTwice('Delete this publication?')) return;
   const { error } = await sb.rpc('delete_press_outlet', { p_id:id });
   if(error){ mpMsg('mpo_msg', cpErrText(error), false); return; }
   await cpLoadMyOrgs();
@@ -15588,7 +15748,7 @@ function pmPubTab(t, quiet){
   }
   if(t === 'posts'){
     const about = P.p.about ? `<section class="pm-aboutcard"><div class="pm-kick">About ${esc(P.p.name)}</div><p>${esc(P.p.about)}</p></section>` : '';
-    box.innerHTML = about + (P.posts.length ? `<div class="pm-cards pm-cards-m">${P.posts.map(r => {
+    box.innerHTML = about + `<div class="pm-awards-pin" id="pm-awards-pin" hidden></div>` + (P.posts.length ? `<div class="pm-cards pm-cards-m">${P.posts.map(r => {
       const prep = slPreparePhotos(r, slPhotosOf(r)), ph = prep.photos, pl = r.payload || {};
       const head = r.title || pl.author || pl.subject || CP_KIND_LABEL[r.kind] || 'Post';
       const full = String(prep.post.body || pl.intro || '').replace(/<[^>]+>/g, ' ').replace(/[*_~#>`]/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
@@ -15597,7 +15757,7 @@ function pmPubTab(t, quiet){
       return `<button type="button" class="pm-pcard pm-pcard-link pm-pcard-m" onclick="mpOpenInFeed(${Number(r.id)})">
         ${ph.length ? `<span class="pm-pcard-ph"><img src="${escAttr(ph[0].url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">${ph.length > 1 ? `<span>${ph.length} photos</span>` : ''}</span>` : ''}
         <span class="pm-pcard-body"><span class="pm-pcard-kind">${esc(CP_KIND_LABEL[r.kind] || r.kind)} · ${esc(r.story_date ? fmtDate(r.story_date) : '')}</span>
-          ${(() => { const sc = slSrc(r); if(r.promotion_id != null) return ''; const by = sc && sc.type === 'press' ? sc.name + ', Press Pass' : sc ? sc.name : ''; return by ? `<span class="pm-pcard-by">Posted as ${esc(by)}</span>` : ''; })()}
+          ${(() => { const sc = slSrc(r); if(r.promotion_id != null) return ''; const by = sc && sc.type === 'press' ? sc.name : sc ? sc.name : ''; return by ? `<span class="pm-pcard-by">Posted as ${esc(by)}</span>` : ''; })()}
           <span class="pm-pcard-title">${esc(head)}</span>${text ? `<span class="pm-pcard-text">${esc(text)}${full.length > 600 ? '…' : ''}</span>` : ''}</span>
         <span class="pm-pcard-foot">${likes ? `<span class="pm-pcard-n"><i class="ti ti-thumb-up"></i> ${likes.toLocaleString()}</span>` : '<span class="pm-pcard-n"></span>'}<span class="pm-pcard-go">Open in the Feed <i class="ti ti-arrow-right"></i></span></span>
       </button>`; }).join('')}</div>` : `<div class="pm-empty">No posts yet.</div>`);
@@ -16521,7 +16681,7 @@ function aiBrief(id){
   const field = (CP_FORMS[CP_KIND].find(f=>cpFid(f[0])===id) || [, 'text'])[1];
   const words = CP_KIND==='social' ? 'under 60' : CP_KIND==='promo' ? '120 to 220' : CP_KIND==='article' ? '180 to 320' : '100 to 220';
   const voice = isPress
-    ? `as ${cpReporter()}, a reporter for the made up outlet ${cpOrgName()}. Newsy and engaging, like a wrestling news site or dirt sheet.`
+    ? `as ${cpReporter()}, a reporter for the made up publication ${cpOrgName()}. Newsy and engaging, like a wrestling news site or dirt sheet.`
     : CP_KIND==='promo' ? `as spoken word by ${pl.author||'the speaker'}, a wrestler in ${cpOrgName()}. Intense and in character.`
     : CP_KIND==='social' ? `as a social media post by ${pl.author||cpOrgName()}.`
     : `in the official voice of ${cpOrgName()}, a pro wrestling promotion.`;
@@ -17233,7 +17393,7 @@ function restorePageFromHash(){
       const tryFocus=()=>{ if(typeof slFocusSharedPost==='function') return slFocusSharedPost(pid); return false; };
       // the feed may still be loading — retry a few times then give up quietly
       let tries=0;
-      const iv=setInterval(()=>{ tries++; if(tryFocus()||tries>20) clearInterval(iv); }, 250);
+      const iv=setInterval(()=>{ tries++; if(tryFocus()||tries>48) clearInterval(iv); }, 250);
     }
   }
 }
@@ -19652,7 +19812,7 @@ async function mpeUnsettle(id, btn){
   await mpeLoadCard(); mpeDraw();
   mpMsg('mpe_mmsg_' + id, 'Result taken back, and so were the payouts. Betting is locked. Set the right winner.', true);
 }
-const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null, editFan:null };
+const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null };
 async function mpBettingTab(box){
   box.innerHTML = '<div class="loading">Loading…</div>';
   MPB.pid = Number(PM.curId); MPB.box = box;
@@ -19666,9 +19826,6 @@ async function mpBettingTab(box){
   MPB.econ = er.data || { currency_name:'Dollars', currency_symbol:'$', start_amount:1000, payout_mode:'pool', min_bet:1, max_bet:null, betting_on:true };
   MPB.fans = (fr && fr.data) || []; MPB.grants = (gr && gr.data) || [];
   try{ const w = await sb.rpc('promo_watch_stats', { p_promotion:MPB.pid }); MPB.watch = w && !w.error ? w.data : null; }catch(e){ MPB.watch = null; }
-  // your own balance in this promotion's money, for Your own balance
-  MPB.me = null;
-  if(mpbSelfOk()){ try{ const pp = await sb.rpc('promo_public', { p_promotion:MPB.pid }); if(pp && !pp.error && pp.data) MPB.me = pp.data.balance; }catch(e){} }
   mpbDraw();
 }
 function mpbDraw(){
@@ -19676,7 +19833,6 @@ function mpbDraw(){
   const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion', shared = E.money_mode === 'wca';
   const money = shared ? { currency_name:'WCA money', currency_symbol:'$' } : E;
   const fanName = id => (MPB.fans.find(f => f.user_id === id) || {}).name || 'A fan';
-  if(MPB.editFan && !shared){ mpbFanEditDraw(); return; }
   box.setAttribute('data-keep', 'mp-bet:' + Number(MPB.pid));
   box.innerHTML = `<div class="pe">
   <section class="pm-card">
@@ -19720,26 +19876,10 @@ function mpbDraw(){
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSave()">Save money settings</button></div>
     <div class="msg" id="mpb_msg"></div>
   </section>
-  ${!shared && mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px" id="mpb_self">
-    <div class="pm-h3">Your own balance</div>
-    <p class="pm-p">${mpbIsOwner() ? 'You own ' + esc(name) + ', so you set your own balance here.' : 'You are the WCA admin, so you can set your own balance in ' + esc(name) + '\'s money here.'} Type what it should be and press Save. It only changes ${esc(name)}'s own money, never WCA money or another promotion's, and every change shows in Bonuses you gave.</p>
-    <div class="mpb-selfbal">Right now: <b id="mpb_selfnow">${esc(peMoney(E, MPB.me != null ? MPB.me : E.start_amount))}</b></div>
-    <div class="mpe-fields">
-      <div><label for="mpb_sbal">Your balance</label><input id="mpb_sbal" type="number" min="0" step="1" inputmode="numeric" value="${MPB.me != null ? Number(MPB.me) : Number(E.start_amount) || 0}"></div>
-      <div class="mpb-wide"><label for="mpb_snote">Note <span class="pm-opt">(optional)</span></label><input id="mpb_snote" maxlength="200" placeholder="Money for the next show"></div>
-    </div>
-    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSelfSet()">Save my balance</button></div>
-    <div class="msg" id="mpb_smsg"></div>
-  </section>` : ''}
-  ${!shared && !mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px" id="mpb_self">
-    <div class="pm-h3">Your own balance</div>
-    <p class="pm-p">Only the account that owns ${esc(name)} can set its own balance here. You are signed in as ${mpRole() === 'coowner' ? 'a co-owner of' : 'someone who is not the owner of'} ${esc(name)}. If you run ${esc(name)}, sign in with the account you made it with, or ask the WCA admin to check which account is listed as the owner.</p>
-  </section>` : ''}
   ${shared ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Your fans bet with WCA money, so bonuses come from WCA. Switch to your own money above if you want to hand out bonuses.</p></section>` : `<section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Hand out money whenever you like: to everyone who follows ${esc(name)} or has a balance with you, or to the fans you tick, one or many. They get a notification. Use Take back to fix a mistake.</p>
-    ${mpbSelfOk() ? '<p class="pm-p pm-small">You are not in this list. Set your own balance in Your own balance above.</p>' : ''}
     <label>Who gets it</label>
     <div class="br-seg" role="radiogroup" aria-label="Who gets it">
       <button type="button" role="radio" class="${MPB.give === 'all' ? 'on' : ''}" aria-checked="${MPB.give === 'all'}" onclick="MPB.give='all';mpbGiveDraw()">Everyone (${MPB.fans.length} ${MPB.fans.length === 1 ? 'fan' : 'fans'})</button>
@@ -19747,7 +19887,7 @@ function mpbDraw(){
     <div id="mpb_pick" data-nokeep></div>
     <div class="mpe-fields">
       <div><label for="mpb_gamt">Amount</label><input id="mpb_gamt" type="number" min="1" step="1" placeholder="500"></div>
-      <div class="mpb-wide"><label for="mpb_gnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_gnote" maxlength="200" placeholder="Thanks for watching Northside 12!"></div>
+      <div style="grid-column:2/-1"><label for="mpb_gnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_gnote" maxlength="200" placeholder="Thanks for watching Northside 12!"></div>
     </div>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbGive(1)">Give</button><button type="button" class="spc-mini" onclick="mpbGive(-1)">Take back</button></div>
     <div class="msg" id="mpb_gmsg"></div>
@@ -19755,11 +19895,11 @@ function mpbDraw(){
   ${mpbWatchHTML(shared)}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
-    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th>${shared ? '' : '<th>Points</th>'}</tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td>${shared ? '' : `<td><button type="button" class="spc-mini" onclick="mpbFanEdit('${jsAttr(f.user_id)}')">Edit points</button></td>`}</tr>`).join('')}</tbody></table>`
+    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
       : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
   </section>
   ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
-    <table class="mpb-table"><thead><tr><th>When</th><th>To</th><th>Amount</th><th>Note</th></tr></thead><tbody>${MPB.grants.map(g => `<tr><td>${esc(new Date(g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</td><td>${g.scope === 'self' ? (CURRENT_USER && g.user_id === CURRENT_USER.id ? 'Yourself' : (String(g.user_id) === String((mpCur() || {}).owner_id) ? 'The owner, to themselves' : 'WCA admin, to themselves')) : g.user_id ? esc(fanName(g.user_id)) : g.scope === 'group' ? esc((g.user_ids || []).slice(0, 3).map(fanName).join(', ') + ((g.user_ids || []).length > 3 ? ' and ' + ((g.user_ids || []).length - 3) + ' more' : '')) : 'Everyone (' + Number(g.people) + ')'}</td><td>${esc((g.amount < 0 ? 'Took back ' : '') + peMoney(E, Math.abs(g.amount)))}</td><td>${esc(g.note || '')}</td></tr>`).join('')}</tbody></table></section>` : ''}
+    <table class="mpb-table"><thead><tr><th>When</th><th>To</th><th>Amount</th><th>Note</th></tr></thead><tbody>${MPB.grants.map(g => `<tr><td>${esc(new Date(g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</td><td>${g.user_id ? esc(fanName(g.user_id)) : g.scope === 'group' ? esc((g.user_ids || []).slice(0, 3).map(fanName).join(', ') + ((g.user_ids || []).length > 3 ? ' and ' + ((g.user_ids || []).length - 3) + ' more' : '')) : 'Everyone (' + Number(g.people) + ')'}</td><td>${esc((g.amount < 0 ? 'Took back ' : '') + peMoney(E, Math.abs(g.amount)))}</td><td>${esc(g.note || '')}</td></tr>`).join('')}</tbody></table></section>` : ''}
   </div>`;
   mpbPreview(); mpbMoney(); mpbGiveDraw(); mpbWatchPrev();
 }
@@ -19785,7 +19925,6 @@ function mpbPickList(){
 }
 function mpbPickToggle(uid){ if(MPB.sel.has(uid)) MPB.sel.delete(uid); else MPB.sel.add(uid); mpbPickList(); }
 function mpbPickAll(on){ mpbPickShown().forEach(f => { if(on) MPB.sel.add(f.user_id); else MPB.sel.delete(f.user_id); }); if(!on && !String(MPB.find || '').trim()) MPB.sel.clear(); mpbPickList(); }
-// own money: its name, symbol and starting balance. WCA money: none of those
 function mpbMoney(){
   const w = ((document.querySelector('input[name="mpb_money"]:checked') || {}).value || 'own') === 'wca';
   document.querySelectorAll('.mpb-money').forEach(l => l.classList.toggle('on', !!l.querySelector('input:checked')));
@@ -19813,7 +19952,6 @@ async function mpbSave(){
   MPB.econ = row; MPB.saved = true;
   mpbDraw(); mpMsg('mpb_msg', 'Saved. ' + (money === 'wca' ? 'Fans bet with their WCA money now. ' : '') + (mode === 'odds' ? 'Set the odds on each match in Events before you open betting.' : 'Bets pay out from a shared pot.'), true);
 }
-/* Watch rewards: fans earn while they watch the promotion's live stream on Watch Live */
 const MPB_EVERY = [1, 2, 3, 5, 10, 15, 20, 30, 60];
 function mpbWatchHTML(shared){
   const E = MPB.econ || {}, W = MPB.watch, name = (mpCur() || {}).name || 'your promotion';
@@ -19862,60 +20000,6 @@ async function mpbWatchSave(btn){
   if(error){ mpMsg('mpb_w_msg', /watch_/i.test(error.message || '') ? 'Watch rewards are not switched on yet. Please check back soon!' : peErr(error), false); return; }
   MPB.econ = row; MPB.saved = true;
   mpMsg('mpb_w_msg', v.watch_on ? 'Saved. Fans earn while they watch you live on Watch Live.' : 'Saved. Watch rewards are off.', true);
-}
-// Your own balance: only the promotion's owner (not co-owners) and the WCA admin
-function mpbIsOwner(){ const p = mpCur(); return !!(p && CURRENT_USER && String(p.owner_id) === String(CURRENT_USER.id)); }
-function mpbSelfOk(){ return mpbIsOwner() || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true); }
-async function mpbSelfSet(){
-  const el = pmEl('mpb_sbal'), raw = el ? String(el.value).trim() : '';
-  const want = Math.floor(Number(raw));
-  if(raw === '' || !isFinite(want) || want < 0){ mpMsg('mpb_smsg', 'Type a balance of 0 or more.', false); return; }
-  const note = (pmEl('mpb_snote') || {}).value || null;
-  const res = await sb.rpc('promo_self_set', { p_promotion:MPB.pid, p_balance:want, p_note:note });
-  if(res.error){ mpMsg('mpb_smsg', /promo_self_set|could not find|schema cache/i.test(res.error.message || '') ? 'Setting your balance is not switched on yet.' : peErr(res.error), false); return; }
-  const nb = pmEl('mpb_snote'); if(nb){ nb.value = ''; nb.dispatchEvent(new Event('input', { bubbles:true })); }
-  await mpBettingTab(MPB.box);
-  mpMsg('mpb_smsg', res.data && res.data.changed === false ? 'That is already your balance.' : 'Saved. Your balance is now ' + peMoney(MPB.econ, want) + '.', true);
-  const sec = pmEl('mpb_self'); if(sec) sec.scrollIntoView({ behavior:'smooth', block:'center' });
-}
-/* Edit one fan's points: its own page, not a pop up. Save sends only the difference to that one fan. */
-function mpbFanEdit(uid){ MPB.editFan = String(uid); mpbDraw(); window.scrollTo({ top:0, behavior:'smooth' }); }
-function mpbFanCancel(){ MPB.editFan = null; mpbDraw(); }
-function mpbFanEditDraw(){
-  const box = MPB.box, E = MPB.econ || {}, name = (mpCur() || {}).name || 'your promotion';
-  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan));
-  if(!f){ MPB.editFan = null; mpbDraw(); return; }
-  const cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
-  box.setAttribute('data-keep', 'mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
-  box.innerHTML = `<div class="pe">
-    <div class="ed-crumb"><button type="button" onclick="mpbFanCancel()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Your fans</button><span aria-hidden="true">/</span><span>${esc(f.name)}</span></div>
-    <section class="pm-card" style="margin-top:12px">
-      <div class="pm-h3">Edit points for ${esc(f.name)}</div>
-      <p class="pm-p">This only changes ${esc(f.name)}'s ${esc(E.currency_name || 'money')} in ${esc(name)}. Nobody else is touched, and it shows in Bonuses you gave.</p>
-      <div class="mpb-selfbal">Right now: <b>${f.balance != null ? esc(peMoney(E, f.balance)) : esc(peMoney(E, cur)) + ' (starting balance, no balance saved yet)'}</b></div>
-      <div class="mpe-fields">
-        <div><label for="mpb_fbal">New balance</label><input id="mpb_fbal" type="number" min="0" step="1" inputmode="numeric" value="${cur}"></div>
-        <div class="mpb-wide"><label for="mpb_fnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_fnote" maxlength="200" placeholder="Fixing a mistake"></div>
-      </div>
-      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbFanSave()">Save points</button><button type="button" class="spc-mini" onclick="mpbFanCancel()">Cancel</button></div>
-      <div class="msg" id="mpb_fmsg"></div>
-    </section></div>`;
-}
-async function mpbFanSave(){
-  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan)); if(!f) return;
-  const E = MPB.econ || {}, cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
-  const raw = String((pmEl('mpb_fbal') || {}).value || '').trim(), want = Math.floor(Number(raw));
-  if(raw === '' || !isFinite(want) || want < 0){ mpMsg('mpb_fmsg', 'Type a balance of 0 or more.', false); return; }
-  const diff = want - cur;
-  if(diff === 0){ mpMsg('mpb_fmsg', 'That is already their balance.', false); return; }
-  const note = ((pmEl('mpb_fnote') || {}).value || '').trim() || 'Points set by the owner';
-  const res = await sb.rpc('promo_grant', { p_promotion:MPB.pid, p_user:f.user_id, p_amount:diff, p_note:note });
-  if(res.error){ mpMsg('mpb_fmsg', peErr(res.error), false); return; }
-  const nm = f.name;
-  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
-  MPB.editFan = null;
-  await mpBettingTab(MPB.box);
-  mpMsg('mpb_gmsg', nm + ' now has ' + peMoney(MPB.econ, want) + '.', true);
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
@@ -22305,6 +22389,155 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   }
   sb.auth.onAuthStateChange(function(ev){ if(ev === 'SIGNED_OUT') location.reload(); });
 })();
+</script>
+<script>
+/* Synced from index.html (Nov 2026): Publications, award voters, broadcast kit */
+function cpPubBarHTML(){
+  if(CP_MODE !== 'press') return '';
+  const o = cpOrg(); if(!o) return '';
+  const ppl = cpPubPeople(), tpls = Array.isArray(o.templates) ? o.templates : [];
+  return `<datalist id="cp-people">${ppl.map(n=>`<option value="${escAttr(n)}"></option>`).join('')}</datalist>
+    <datalist id="cp-bylines">${ppl.map(n=>`<option value="${escAttr('By ' + n)}"></option>`).join('')}</datalist>
+    <div class="cp-tplbar" id="cpTplBar">
+      <div class="cp-tplrow"><label style="margin:0">Post templates</label>
+        ${tpls.length ? `<select id="cp_tpl">${tpls.map((t,i)=>`<option value="${i}">${esc(t.name)} (${esc(CP_KIND_LABEL[t.kind]||t.kind)})</option>`).join('')}</select>
+          <button type="button" class="spc-mini" onclick="cpTplUse()">Use this template</button>` : `<span class="spc-note" style="margin:0">None saved yet for ${esc(o.name)}.</span>`}</div>
+      <div class="cp-tplrow"><input id="cp_tpl_name" maxlength="60" placeholder="Name this layout, like Weekly Power Rankings">
+        <button type="button" class="spc-mini" onclick="cpTplSave()">Save as a template</button></div>
+      <div class="msg" id="cpTplMsg"></div>
+    </div>`;
+}
+function cpPubPeople(){ const o = CP_MODE==='press' ? cpOrg() : null; if(!o) return [];
+  return [...new Set([o.reporter].concat(Array.isArray(o.people) ? o.people : []).filter(Boolean))]; }
+function cpTplNote(t, ok){ const m = document.getElementById('cpTplMsg'); if(!m) return; m.className = 'msg show ' + (ok ? 'ok' : 'err'); m.textContent = t; }
+function cpTplUse(){
+  const o = cpOrg(); const t = o && (o.templates || [])[Number((document.getElementById('cp_tpl')||{}).value)];
+  if(!t) return;
+  if(CP_KIND !== t.kind){ CP_KIND = t.kind; const box = document.getElementById('cpFields');
+    document.querySelectorAll('.cp-editor .spc-kindtabs button').forEach(b=>b.classList.toggle('active', b.getAttribute('onclick')===`cpSetKind('${t.kind}')`));
+    if(box){ box.innerHTML = cpFieldsHTML(); cpStartReps(); } }
+  cpFill({ kind:t.kind, title:t.title || '', body:t.body || '', payload:Object.assign({}, t.payload || {}) });
+  if(typeof aiDecorate === 'function') aiDecorate(document.getElementById('cpFields'));
+  cpTplNote('Filled in from ' + t.name + '. Change anything you like.', true);
+}
+async function cpTplSave(){
+  const o = cpOrg(); if(!o) return;
+  const name = ((document.getElementById('cp_tpl_name')||{}).value || '').trim();
+  if(name.length < 2){ cpTplNote('Give the template a name first.', false); return; }
+  const g = cpCollect(); const payload = Object.assign({}, g.payload); delete payload.photos;
+  const list = (Array.isArray(o.templates) ? o.templates : []).filter(t => t.name.toLowerCase() !== name.toLowerCase());
+  list.push({ name, kind:CP_KIND, title:g.title, body:g.body, payload });
+  const { error } = await sb.rpc('save_publication_templates', { p_id:Number(o.id), p_templates:list });
+  if(error){ cpTplNote(/function|schema cache/i.test(error.message || '') ? 'Templates are not switched on yet. Please check back soon!' : cpErrText(error), false); return; }
+  o.templates = list;
+  const bar = document.getElementById('cpTplBar'); if(bar) bar.outerHTML = cpPubBarHTML().replace(/^[\s\S]*?(<div class="cp-tplbar")/, '$1');
+  cpTplNote(name + ' is saved. Pick it from Post templates any time.', true);
+}
+function mpPubsHere(){
+  const pid = PM.curId;
+  return (CP_OUTLETS || []).filter(o => o.promotion_id == null || String(o.promotion_id) === String(pid));
+}
+function pubPeopleFrom(txt){ return [...new Set(String(txt || '').split(/\r?\n|,/).map(x => x.trim()).filter(Boolean))].slice(0, 20); }
+async function mpTplDelete(id, i){
+  const o = (CP_OUTLETS || []).find(x => String(x.id) === String(id)); if(!o) return;
+  if(!wcaTwice('Remove this template?')) return;
+  const list = (o.templates || []).filter((_, k) => k !== i);
+  const { error } = await sb.rpc('save_publication_templates', { p_id:Number(id), p_templates:list });
+  if(error){ mpMsg('mpo_msg', cpErrText(error), false); return; }
+  o.templates = list; mpOutletForm(id); mpDrawOutlets();
+}
+async function mhExtraMatches(name, have){
+  const key = rcNorm(name);
+  const myTeams = (typeof FACTIONS!=='undefined' ? FACTIONS : [])
+    .filter(f=>(f.members||[]).some(m=>rcNorm(m)===key)).map(f=>f.name);
+  const qs = [sb.from('event_matches').select('event_id,slot,division,championship,match_type,match_title,sides').contains('sides', JSON.stringify([{ members:[name] }]))];
+  myTeams.forEach(t=>qs.push(sb.from('event_matches').select('event_id,slot,division,championship,match_type,match_title,sides').contains('sides', JSON.stringify([{ team_name:t }]))));
+  const got = await Promise.all(qs);
+  const bySlot = {};
+  got.forEach(r=>(r.data||[]).forEach(m=>{ bySlot[m.event_id+'_'+m.slot] = m; }));
+  const seen = new Set((have||[]).map(r=>r.event_id+'_'+r.slot));
+  const todo = Object.values(bySlot).filter(m=>!seen.has(m.event_id+'_'+m.slot));
+  if(!todo.length) return [];
+  const ids = [...new Set(todo.map(m=>m.event_id))];
+  const [er, br] = await Promise.all([
+    sb.from('events').select('id,name,event_date,is_complete,archived').in('id', ids),
+    sb.from('match_betting').select('event_id,slot,winner_idx').in('event_id', ids)
+  ]);
+  const evs = {}; (er.data||[]).forEach(e=>{ evs[e.id] = e; });
+  const win = {}; (br.data||[]).forEach(b=>{ if(b.winner_idx!=null) win[b.event_id+'_'+b.slot] = Number(b.winner_idx); });
+  const out = [];
+  todo.forEach(m=>{
+    const ev = evs[m.event_id];
+    const w = win[m.event_id+'_'+m.slot];
+    if(!ev || ev.archived === true) return;
+    if(!ev.is_complete && w == null) return;            // a show still being booked is not history
+    let sides = m.sides;
+    if(typeof sides==='string'){ try{ sides = JSON.parse(sides); }catch(e){ sides = []; } }
+    if(!Array.isArray(sides)) return;
+    const idx = sides.findIndex(sd=>{
+      const mem = (sd && Array.isArray(sd.members)) ? sd.members.filter(Boolean) : [];
+      if(mem.some(x=>rcNorm(x)===key)) return true;
+      return !mem.length && sd && sd.team_name && myTeams.some(t=>rcNorm(t)===rcNorm(sd.team_name));
+    });
+    if(idx < 0) return;
+    const result = w == null ? '?' : w === idx ? 'W' : sides.length === 2 ? 'L' : 'N';
+    out.push({ event_id:m.event_id, slot:m.slot, event_name:ev.name, event_date:ev.event_date,
+      division:m.division || '', championship:m.championship || null, winner_idx:w == null ? null : w,
+      match_type:m.match_type, match_title:m.match_title, sides, side_index:idx, participant:name, result, from_card:true });
+  });
+  return out;
+}
+async function motnVoters(id, btn){
+  const box = btn.closest('.motn') ? btn.closest('.motn').querySelector('.motn-voters') : null;
+  if(!box) return;
+  if(!box.hidden){ box.hidden = true; btn.innerHTML = '<i class="ti ti-users"></i> See who voted'; return; }
+  box.hidden = false; box.innerHTML = '<div class="motn-vlist-empty">Loading…</div>';
+  btn.innerHTML = '<i class="ti ti-users"></i> Hide who voted';
+  const { data, error } = await sb.rpc('motn_voters', { p_poll:Number(id) });
+  if(error){ box.innerHTML = `<div class="motn-vlist-empty">${/function|schema cache/i.test(error.message || '') ? 'The voter list is not switched on yet. Please check back soon!' : esc(error.message)}</div>`; return; }
+  if(!data || data.hidden){ box.innerHTML = '<div class="motn-vlist-empty">Vote first to see who voted.</div>'; return; }
+  const r = MOTN.rows[id] || {}, opts = r.options || [];
+  const by = {}; (data.voters || []).forEach(v => { (by[v.choice] = by[v.choice] || []).push(v.name); });
+  const groups = opts.filter(o => by[o.key] && by[o.key].length).map(o => `<div class="motn-vgroup">
+      <div class="motn-vhead"><b>${esc(o.label)}</b><span>${by[o.key].length} ${by[o.key].length === 1 ? 'vote' : 'votes'}</span></div>
+      <div class="motn-vnames">${by[o.key].map(n => `<span>${esc(n)}</span>`).join('')}</div></div>`).join('');
+  box.innerHTML = groups || '<div class="motn-vlist-empty">No votes yet.</div>';
+}
+async function pmAwardsPin(pid){
+  const host = pmEl('pm-awards-pin'); if(!host || typeof sb === 'undefined') return;
+  try{
+    const since = new Date(Date.now() - 14 * 864e5).toISOString();
+    const { data, error } = await sb.from('motn_polls').select('id,created_at').eq('promotion_id', Number(pid))
+      .or('status.eq.open,created_at.gte.' + since).order('created_at', { ascending:false }).limit(8);
+    if(error || !data || !data.length) return;
+    const rows = (await Promise.all(data.map(x => motnResults(x.id)))).filter(Boolean);
+    const now = pmEl('pm-awards-pin');
+    if(!rows.length || !now) return;
+    now.innerHTML = `<div class="pm-kick">Awards</div><div class="motn-strip motn-big">${rows.map(r => motnCardHTML(r)).join('')}</div>`;
+    now.hidden = false;
+  }catch(e){}
+}
+async function mpLtDownload(btn){
+  const p = mpCur(); if(!p) return;
+  if(btn) btn.disabled = true;
+  try{
+    const r = await fetch('/promotion-lower-thirds.html', { cache:'no-cache' });
+    if(!r.ok) throw new Error('not found');
+    let html = await r.text();
+    const cfg = { id:Number(p.id), name:String(p.name || ''), short:String(p.short_name || ''), color:/^#[0-9a-f]{6}$/i.test(p.color || '') ? p.color : '#e9b949',
+      logo:String(p.logo_url || ''), page:String(p.slug ? 'https://wcauniverse.com/' + p.slug : '') };
+    if(!/\/\*PROMO\*\/[\s\S]*?\/\*END\*\//.test(html)) throw new Error('template is missing its settings line');
+    html = html.replace(/\/\*PROMO\*\/[\s\S]*?\/\*END\*\//, () => '/*PROMO*/' + JSON.stringify(cfg).replace(/</g, '\\u003c') + '/*END*/');
+    const name = (String(p.name || 'promotion').replace(/[^a-z0-9 ]+/gi, '').trim() || 'Promotion') + ' Lower Thirds.html';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], { type:'text/html' })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    mpMsg('mplt_msg', 'Downloaded ' + name + '. Put it in its own folder, then open it in Chrome and follow START HERE.', true);
+  }catch(e){
+    mpMsg('mplt_msg', 'The broadcast kit is not ready to download yet. Please check back soon!', false);
+  }finally{ if(btn) btn.disabled = false; }
+}
 </script>
 </body>
 </html>

@@ -4191,20 +4191,6 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     padding:9px 16px; border-radius:8px; cursor:pointer; transition:.15s;}
   .rfilter:hover{color:var(--txt); border-color:var(--gold-dim);}
   .rfilter.active{background:var(--gold); color:var(--on-gold); border-color:var(--gold); font-weight:600;}
-  /* Feed filters: a Promotion row and a Type row */
-  .sl-filters{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 16px; display:grid; gap:10px;}
-  .sl-frow{display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:center;}
-  .sl-flab{font-family:var(--font-cond); font-weight:600; letter-spacing:1.4px; text-transform:uppercase; font-size:15px; color:var(--muted);}
-  .sl-fchips{display:flex; gap:8px; flex-wrap:wrap;}
-  .sl-fchips .rfilter{background:rgba(0,0,0,.18); border-radius:999px; padding:8px 15px; font-size:15px; display:inline-flex; align-items:center; gap:7px;}
-  .sl-fchips .rfilter[hidden]{display:none;}
-  .sl-fchips .rfilter i.sl-fdot{width:10px; height:10px; border-radius:50%; background:var(--pc,var(--gold)); flex:none; display:inline-block;}
-  .sl-fchips .rfilter.active i.sl-fdot{box-shadow:0 0 0 2px rgba(0,0,0,.35);}
-  @media (max-width:700px){
-    .sl-frow{grid-template-columns:1fr; gap:6px;}
-    .sl-fchips{flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
-    .sl-fchips .rfilter{flex:none;}
-  }
 
   /* faction grouping inside roster */
   .roster-grid.as-block{display:block;}
@@ -5667,31 +5653,6 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
      The two lights are variables so the backdrop style can recolour them. */
   html{ --pl-a:rgba(30,96,168,.52); --pl-b:rgba(214,86,26,.50); --pl-void:#04060b; }
   html[data-backdrop="space-nebula"]{ --pl-a:rgba(84,60,168,.50); --pl-b:rgba(34,86,168,.46); --pl-void:#05060d; }
-  /* ── VICE SUNSET (Admin > Appearance > Site background) ───────────
-     A dusk sky behind everything, pink and orange light on the panels, and
-     a neon coast skyline with palms along the bottom of the backdrop canvas
-     (painted by the space engine, see VICE_SPACE). Everything here is scoped
-     to data-backdrop="vice", so every other background is untouched. */
-  html[data-backdrop="vice"]{
-    --pl-a:rgba(255,95,162,.42); --pl-b:rgba(255,160,70,.38); --pl-void:#0d0720;
-    --vice-grad:linear-gradient(90deg,#FF5FA2 0%,#FF8A5C 55%,#FFC46B 100%);
-  }
-  html[data-backdrop="vice"] body{
-    background:linear-gradient(180deg,#0d0722 0%,#1b0d3d 34%,#43165e 62%,#8a2a6c 84%,#d9596a 100%);
-    background-attachment:fixed;
-  }
-  html[data-backdrop="vice"] header{ border-bottom:2px solid transparent; border-image:var(--vice-grad) 1; }
-  html[data-backdrop="vice"] .hm-hero::before{ width:min(60%,360px); height:3px; background:var(--vice-grad); box-shadow:0 0 22px rgba(255,95,162,.8); }
-  html[data-backdrop="vice"] .hm-title em,
-  html[data-backdrop="vice"] .hm-h2{
-    background:var(--vice-grad); -webkit-background-clip:text; background-clip:text;
-    -webkit-text-fill-color:transparent; color:transparent;
-  }
-  html[data-backdrop="vice"] .hm-cta{ border-radius:999px; padding:12px 26px; }
-  html[data-backdrop="vice"] .hm-cta-solid{ background:var(--vice-grad); border-color:transparent; color:#1c0a24; box-shadow:0 8px 26px -10px rgba(255,95,162,.9); }
-  html[data-backdrop="vice"] .hm-cta-solid:hover{ background:var(--vice-grad); }
-  html[data-backdrop="vice"] .hm-panel{ border-color:rgba(255,95,162,.34); }
-  html[data-backdrop="vice"] .section-title{ letter-spacing:4px; }
 
   html:not([data-backdrop="off"]) .hero,
   html:not([data-backdrop="off"]) .cn-card,
@@ -8867,16 +8828,6 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     transform:translateX(-50%); background:var(--gold);
     box-shadow:0 0 18px rgba(var(--gold-rgb),.8);
   }
-  /* cover art above the headline (Admin > Home Page > Cover art) */
-  .hm-cover{
-    max-width:1180px; margin:0 auto clamp(18px,2.6vw,28px); border-radius:14px; overflow:hidden;
-    border:1px solid var(--line); box-shadow:0 24px 60px -28px rgba(0,0,0,.9), 0 0 0 1px rgba(var(--gold-rgb),.18);
-    background:#0b0618;
-  }
-  .hm-cover img{display:block; width:100%; height:auto;}
-  .hm-cover[data-when="vice"]{display:none;}
-  html[data-backdrop="vice"] .hm-cover[data-when="vice"]{display:block;}
-  .hm-cover[hidden]{display:none !important;}
   .hm-kicker{
     font-family:var(--font-cond); font-size:14px; letter-spacing:5px;
     text-transform:uppercase; color:var(--gold); margin-bottom:10px;
@@ -9864,7 +9815,6 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <div class="hm-wrap">
 
       <section class="hm-panel hm-hero">
-        <div class="hm-cover" id="hm-cover" hidden></div>
         <div class="hm-kicker" id="hm-kicker"></div>
         <h1 class="hm-title" id="hm-rule-title"></h1>
         <div class="hm-video" id="hm-video"></div>
@@ -10304,30 +10254,24 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <p class="sl-intro">What's happening in the WCA right now, social-media drama, breaking
       news, official announcements and reaction, newest first. For the history of how it all
       got here, head to the <a href="/timeline" data-page="timeline">Timeline</a>.</p>
-    <div class="sl-filters" id="sl-filters">
-      <div class="sl-frow"><div class="sl-flab">Promotion</div>
-        <div class="sl-fchips" id="sl-f-promo">
-        <button class="rfilter active" data-slpromo="all" onclick="slSetPromo('all',this)">All</button>
-        <button class="rfilter" data-slpromo="wca" onclick="slSetPromo('wca',this)">WCA</button>
-        <button class="rfilter" data-slpromo="following" id="sl-f-follow" onclick="slSetPromo('following',this)" hidden>Following</button>
-        </div></div>
-      <div class="sl-frow"><div class="sl-flab">Type</div>
-        <div class="sl-fchips" id="sl-f-type">
-        <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
-        <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
-        <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
-        <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
-        <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
-        <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
-        <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
-        <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
-        <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
-        <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
-        <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
-        <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
-        <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
-        <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
-        </div></div>
+    <div class="roster-filters" id="sl-filters">
+      <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
+      <button class="rfilter" data-slfilter="wca" onclick="slSetFilter('wca',this)">WCA</button>
+      <button class="rfilter" data-slfilter="outside" onclick="slSetFilter('outside',this)">Around the Universe</button>
+      <button class="rfilter" data-slfilter="following" id="sl-f-follow" onclick="slSetFilter('following',this)" hidden>Following</button>
+      <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
+      <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
+      <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
+      <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
+      <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
+      <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
+      <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
+      <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
+      <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
+      <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
+      <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
+      <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
+      <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
     </div>
     <div id="fr-composer"></div>
     <div id="sp-composer"></div>
@@ -10870,8 +10814,6 @@ async function applyTheme(){
     if(typeof spaceRefresh === 'function') spaceRefresh();
     document.documentElement.dataset.surface  = (t && t.surface)  || 'solid';
     document.documentElement.dataset.backdrop = (t && t.backdrop) || 'space';
-    // the backdrop canvas rebuilds when the background style changes (Vice Sunset has no planet)
-    if(typeof spaceRefresh === 'function') spaceRefresh();
     // A season's colours sit ON TOP of the saved theme, so wipe the last
     // season's colours first or they'd outlive it.
     try{ if(window.WCASeason) WCASeason.clearPalette(); }catch(e){}
@@ -17651,8 +17593,7 @@ async function refreshBetViews(){
 //  rankings use. Step 2 will swap SL_SEED for a live Supabase query.
 // ============================================================================
 const SL_PAGE_SIZE = 20;
-let SL_FILTER = 'all';      // the Type row
-let SL_PROMO = 'all';       // the Promotion row: all, wca, following, or src:<promotion id>
+let SL_FILTER = 'all';
 let SL_PAGE = 1;
 
 // --- SEED DATA (visual approval only; replaced by a DB load in Step 2) ---
@@ -19109,47 +19050,13 @@ function slRenderPostInner(p){
 }
 
 // ── Filter helper called by filter chips ──────────────────────────────────
-function slPaintFilters(){
-  document.querySelectorAll('#sl-f-type .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===SL_FILTER));
-  document.querySelectorAll('#sl-f-promo .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slpromo===SL_PROMO));
-}
-function slResetFilters(){ SL_FILTER = 'all'; SL_PROMO = 'all'; slPaintFilters(); }
 function slSetFilter(kind, btn){
   SL_FOCUS = null;
   SL_FILTER = kind;
   const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
   SL_PAGE = 1;
-  slPaintFilters();
+  document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===kind));
   renderStorylines();
-}
-function slSetPromo(key, btn){
-  SL_FOCUS = null;
-  SL_PROMO = key;
-  const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
-  SL_PAGE = 1;
-  slPaintFilters();
-  renderStorylines();
-}
-// One chip per approved promotion, named by its short name (PWF and so on)
-async function slLoadPromoFilters(){
-  try{
-    if(typeof peLoadPromoList !== 'function') return;
-    const list = await peLoadPromoList();
-    const row = document.getElementById('sl-f-promo'); if(!row) return;
-    row.querySelectorAll('[data-slpromo^="src:"]').forEach(b=>b.remove());
-    (list || []).forEach(pr=>{
-      const btn = document.createElement('button');
-      btn.className = 'rfilter';
-      btn.dataset.slpromo = 'src:' + Number(pr.id);
-      btn.title = pr.name || '';
-      const col = (typeof pmColor === 'function') ? pmColor(pr.color, '#E9B949') : '#E9B949';
-      btn.style.setProperty('--pc', col);
-      btn.innerHTML = '<i class="sl-fdot" aria-hidden="true"></i>' + esc(peShort(pr));
-      btn.onclick = () => slSetPromo(btn.dataset.slpromo, btn);
-      row.appendChild(btn);
-    });
-    slPaintFilters();
-  }catch(e){}
 }
 
 // Sort: pinned first, then by story_date newest-first.
@@ -19178,7 +19085,7 @@ async function slLoadSegmentTypeFilters(){
   try{
     const { data } = await sb.from('segment_types').select('key,name').order('created_at',{ascending:true});
     if(!data || !data.length) return;
-    const filterBar = document.getElementById('sl-f-type');
+    const filterBar = document.getElementById('sl-filters');
     if(!filterBar) return;
     data.forEach(t=>{
       // Don't duplicate if already rendered
@@ -19214,7 +19121,6 @@ async function loadStorylines(){
 
   // Load custom segment type filter chips (non-blocking)
   slLoadSegmentTypeFilters();
-  slLoadPromoFilters();
 
   await slLoadEngagement();
   renderStorylines();
@@ -20017,8 +19923,9 @@ function slFocusSharedPost(id, again){
     // filter that hides it, turn to the page it is on, then scroll to it.
     const all = slFeedList();
     if(!all.some(p => String(p.id) === String(id))) return false;   // Feed still loading, try again shortly
-    if(SL_FILTER !== 'all' || SL_PROMO !== 'all'){
-      slResetFilters();
+    if(SL_FILTER !== 'all'){
+      SL_FILTER = 'all';
+      document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter==='all'));
       const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
     }
     const idx = slFeedList().findIndex(p => String(p.id) === String(id));
@@ -22523,7 +22430,42 @@ function mpGfxTab(box){
     </div>
     <p class="pm-p" style="font-size:15px">Only owners and co-owners of ${esc(p.name)} can open it. Pictures for your roster come from Roster, so add a face or full body picture there first for the best results.</p>
     <div class="pm-acts"><a class="spc-post-btn" href="${href}" style="text-decoration:none"><i class="ti ti-external-link" aria-hidden="true"></i> Open Graphics Studio</a></div>
+  </section>
+  <section class="pm-card" style="margin-top:14px">
+    <div class="pm-h3"><i class="ti ti-broadcast" aria-hidden="true"></i> Your broadcast kit for OBS</div>
+    <p class="pm-p" style="font-size:16px;line-height:1.6">The same live lower thirds and sponsor pop ups WCA uses on its shows, made for ${esc(p.name)}. It runs on your own PC with OBS: your roster, divisions, teams, champions and records come straight from here, you add your own sponsors with their pictures and ad reads, and you can change every color, shape and position. Works with Streamer.bot and a Stream Deck too.</p>
+    <ol class="pm-p" style="font-size:15.5px;line-height:1.7;margin:8px 0 12px 20px;padding:0">
+      <li>Download your copy and put it in its own folder on your PC.</li>
+      <li>In OBS, turn on the WebSocket server (Tools, WebSocket Server Settings).</li>
+      <li>Add the file to OBS as a Browser source, 1920 by 1080.</li>
+      <li>Open the same file in Chrome. That is your control window, and its START HERE tab walks you through the rest.</li>
+    </ol>
+    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpLtDownload(this)"><i class="ti ti-download" aria-hidden="true"></i> Download my broadcast kit</button></div>
+    <div class="msg" id="mplt_msg"></div>
   </section>`;
+}
+/* A copy of the lower thirds and sponsors kit with this promotion filled in.
+   The template lives at /promotion-lower-thirds.html (built from WCA's own file). */
+async function mpLtDownload(btn){
+  const p = mpCur(); if(!p) return;
+  if(btn) btn.disabled = true;
+  try{
+    const r = await fetch('/promotion-lower-thirds.html', { cache:'no-cache' });
+    if(!r.ok) throw new Error('not found');
+    let html = await r.text();
+    const cfg = { id:Number(p.id), name:String(p.name || ''), short:String(p.short_name || ''), color:/^#[0-9a-f]{6}$/i.test(p.color || '') ? p.color : '#e9b949',
+      logo:String(p.logo_url || ''), page:String(p.slug ? 'https://wcauniverse.com/' + p.slug : '') };
+    if(!/\/\*PROMO\*\/[\s\S]*?\/\*END\*\//.test(html)) throw new Error('template is missing its settings line');
+    html = html.replace(/\/\*PROMO\*\/[\s\S]*?\/\*END\*\//, () => '/*PROMO*/' + JSON.stringify(cfg).replace(/</g, '\\u003c') + '/*END*/');
+    const name = (String(p.name || 'promotion').replace(/[^a-z0-9 ]+/gi, '').trim() || 'Promotion') + ' Lower Thirds.html';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], { type:'text/html' })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    mpMsg('mplt_msg', 'Downloaded ' + name + '. Put it in its own folder, then open it in Chrome and follow START HERE.', true);
+  }catch(e){
+    mpMsg('mplt_msg', 'The broadcast kit is not ready to download yet. Please check back soon!', false);
+  }finally{ if(btn) btn.disabled = false; }
 }
 function mpSuggestTab(box){
   const p = mpCur(); if(!p) return;
@@ -25586,15 +25528,14 @@ function renderStorylines(){
   const pager = document.getElementById('sl-pager');
   if(!feed) return;
   let list = slFeedList();
-  // Promotion row first, then the Type row
-  const motnOf = p => p.kind === '__motn' ? (MOTN.rows[p.motn_id] || {}) : null;
-  const promoOf = p => { const m = motnOf(p); if(m) return m.promotion_id != null ? Number(m.promotion_id) : null;
-    const s = slSrc(p); if(s) return s.type === 'promotion' && s.id != null ? Number(s.id) : -1;
-    return p.promotion_id != null ? Number(p.promotion_id) : null; };   // null = WCA, -1 = a Press Pass outlet
-  if(SL_PROMO === 'wca') list = list.filter(p=>promoOf(p) === null && (p.kind !== 'review' || SL_FILTER === 'review'));
-  else if(SL_PROMO === 'following') list = list.filter(p=>{ const m = motnOf(p); return m ? (m.promotion_id != null && PE.follows && PE.follows.has(Number(m.promotion_id))) : (typeof peFollowsPost === 'function' && peFollowsPost(p)); });
-  else if(String(SL_PROMO).indexOf('src:') === 0){ const want = Number(String(SL_PROMO).slice(4)); list = list.filter(p=>promoOf(p) === want); }
-  if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
+  if(SL_FILTER === 'outside') list = list.filter(p=>!!slSrc(p));          // other promotions + Press Pass
+  else if(SL_FILTER === 'following') list = list.filter(p=>typeof peFollowsPost === 'function' && peFollowsPost(p));   // promotions you follow
+  else if(SL_FILTER === 'wca') list = list.filter(p=>!slSrc(p) && p.kind!=='review');
+  else if(String(SL_FILTER).indexOf('src:') === 0){
+    const want = String(SL_FILTER).slice(4);
+    list = list.filter(p=>{ const s = slSrc(p); return s && s.type==='promotion' && String(s.id)===want; });
+  }
+  else if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
   if(!list.length){
     feed.innerHTML = '<div class="sl-empty">No storylines here yet</div>';
     if(pager) pager.innerHTML = '';
@@ -25899,7 +25840,16 @@ document.querySelectorAll('#rank-filters .rfilter').forEach(b=>{
     });
   };
 });
-// Storylines type filter: the Type row uses slSetFilter, the Promotion row uses slSetPromo (set in the markup above)
+// Storylines type filter (All / Social / Articles / HR / Timeline)
+document.querySelectorAll('#sl-filters .rfilter').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('#sl-filters .rfilter').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    SL_FILTER=b.dataset.slfilter;
+    SL_PAGE=1;
+    renderStorylines();
+  };
+});
 // Leaderboard view toggle (Most Recent Event / All-Time)
 document.querySelectorAll('#lb-filters .rfilter').forEach(b=>{
   b.onclick=()=>{
@@ -26860,23 +26810,12 @@ function camFor(pg){
   // A seasonal theme tints the planet (Halloween turns it into a harvest moon).
   const ss = seasonSpace();
   if(ss && ss.hue != null) c.hue = ss.hue;
-  if(ss && ss.noPlanet) c.planet = false;   // Vice Sunset: a sunset sky, no globe
   return c;
 }
-/* VICE SUNSET site background. It borrows the space engine: pink, orange and
-   violet haze, warm stars, no planet, and the neon coast skyline with palms
-   that the Seasons engine already paints for Summer. A live season with its
-   own background still wins while it runs. */
-const VICE_SPACE = { id:'summer', noPlanet:true, skyline:true,
-  fog:[{h:[322,338],w:2.4,a:.085},{h:[18,34],w:1.6,a:.07},{h:[262,284],w:1.2,a:.06}],
-  stars:['#ffffff','#FFD1E8','#FFE2B8'], hue:326, corona:[255,110,150] };
 /* The live season's backdrop settings, or null when no season is running
    (or its background is switched off in the admin). */
 function seasonSpace(){
-  let s = null;
-  try{ s = (window.WCASeason && WCASeason.space()) || null; }catch(e){ s = null; }
-  if(!s && document.documentElement.dataset.backdrop === 'vice') s = VICE_SPACE;
-  return s;
+  try{ return (window.WCASeason && WCASeason.space()) || null; }catch(e){ return null; }
 }
 const POV = {
   home:        { x:0.50, y:1.16, r:0.80, hue:212, tilt:-0.15 },
@@ -28779,8 +28718,6 @@ window.timelineLeave = function(){};
 const HOME_DEFAULTS = {
   /* the intro video. Any normal YouTube link works. Blank shows "coming soon". */
   video_url: '',
-  /* cover art above the headline: wide for computers, tall for phones */
-  cover_url: '', cover_tall_url: '', cover_when: 'vice',
 
   /* above the video */
   pitch_kicker: 'Welcome to the WCA Universe',
@@ -28935,7 +28872,6 @@ function paintHome(){
     `<div class="hm-hubpt"><i class="ti ${ic}"></i><div><h3>${escH(HOME[k + '_title'])}</h3><p>${escH(HOME[k + '_body'])}</p></div></div>`).join('');
 
   paintVideo();
-  try{ paintCover(); }catch(e){}
   paintGuide();
   paintDonateOpts($h('hm-donate-opts'));
   observeRises();
@@ -28951,21 +28887,6 @@ function youTubeId(url){
   if((m = u.match(/youtube\.com\/(?:embed|live|shorts)\/([\w-]{6,})/))) return m[1];
   if(/^[\w-]{11}$/.test(u))                               return u;
   return '';
-}
-/* The cover picture above the headline. Whether it shows only with the Vice
-   Sunset background or always is decided in CSS from data-when, so it reacts
-   the moment the theme loads. */
-function paintCover(){
-  const box = $h('hm-cover');
-  if(!box) return;
-  const ok = u => /^https?:\/\//i.test(String(u||''));
-  const wide = ok(HOME.cover_url) ? HOME.cover_url : (ok(HOME.cover_tall_url) ? HOME.cover_tall_url : '');
-  const tall = ok(HOME.cover_tall_url) ? HOME.cover_tall_url : wide;
-  if(!wide){ box.hidden = true; box.innerHTML = ''; return; }
-  box.dataset.when = HOME.cover_when === 'always' ? 'always' : 'vice';
-  box.hidden = false;
-  box.innerHTML = `<picture><source media="(max-width:700px)" srcset="${attrH(tall)}">
-    <img src="${attrH(wide)}" alt="WCA cover art"></picture>`;
 }
 function paintVideo(){
   const box = $h('hm-video');
@@ -34875,8 +34796,8 @@ async function peLoadFollows(){
 function pePaintFeedChip(){
   const b = document.getElementById('sl-f-follow'); if(!b) return;
   b.hidden = !(PE.follows && PE.follows.size);
-  if(b.hidden && typeof SL_PROMO !== 'undefined' && SL_PROMO === 'following' && typeof slSetPromo === 'function'){
-    const all = document.querySelector('#sl-f-promo [data-slpromo="all"]'); slSetPromo('all', all);
+  if(b.hidden && typeof SL_FILTER !== 'undefined' && SL_FILTER === 'following' && typeof slSetFilter === 'function'){
+    const all = document.querySelector('#sl-filters [data-slfilter="all"]'); slSetFilter('all', all);
   }
 }
 // a Feed post from a promotion this person follows
@@ -35164,7 +35085,6 @@ function peMatchHTML(S, e, m, i, n){
       <button type="button" class="spc-post-btn" onclick="peBetGo(${Number(m.id)})">Place bet</button>
       <button type="button" class="spc-mini" onclick="PE.pub.open[${Number(m.id)}]=null;peDrawPublic()">Cancel</button>
       <span class="pe-est" id="pe-est-${m.id}"></span>
-      <label class="bet-hide" for="pe-hide-${m.id}" style="flex-basis:100%"><input type="checkbox" id="pe-hide-${m.id}"${(S.hide && S.hide[m.id] !== undefined ? S.hide[m.id] : !!(mine && mine.hide_pick)) ? ' checked' : ''} onchange="(PE.pub.hide = PE.pub.hide || {})[${Number(m.id)}] = this.checked"> <span>Hide who I picked. Everyone still sees how much I bet. My pick shows once the match is over.</span></label>
       <div class="pe-msg${S.msg[m.id] && S.msg[m.id].bad ? ' bad' : ''}" style="flex-basis:100%">${S.msg[m.id] ? esc(S.msg[m.id].t) : ''}</div></div>`;
   }
   const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="pe-mine"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
@@ -35253,12 +35173,8 @@ async function peBetGo(mid){
   const S = PE.pub, inp = document.getElementById('pe-amt-' + mid);
   const amt = Math.floor(Number(inp && inp.value) || 0);
   if(amt < 1){ S.msg[mid] = { t:'Enter how much to bet.', bad:true }; peDrawPublic(); return; }
-  const hideBox = document.getElementById('pe-hide-' + mid), wantHide = !!(hideBox && hideBox.checked), hadHidden = !!(S.mine[mid] && S.mine[mid].hide_pick);
   const { data, error } = await sb.rpc('promo_place_bet', { p_match:mid, p_side:S.open[mid], p_amount:amt });
   if(error){ S.msg[mid] = { t:peErr(error), bad:true }; peDrawPublic(); const i2 = document.getElementById('pe-amt-' + mid); if(i2) i2.value = amt; return; }
-  // hide or show the pick the way the box says
-  if(wantHide || hadHidden){ try{ await sb.rpc('promo_set_bet_hidden', { p_match:mid, p_hide:wantHide }); }catch(e){} }
-  if(S.hide) delete S.hide[mid];
   S.open[mid] = null; S.msg[mid] = null;
   peSyncWcaMoney(data);
   wcaToast('Bet placed', 'You can change it or take it back until betting locks.');
@@ -35690,7 +35606,7 @@ async function mpeUnsettle(id, btn){
 }
 
 /* ---------------- My Promotion: Betting ---------------- */
-const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null, editFan:null };
+const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null };
 async function mpBettingTab(box){
   box.innerHTML = '<div class="loading">Loading…</div>';
   MPB.pid = Number(PM.curId); MPB.box = box;
@@ -35714,7 +35630,6 @@ function mpbDraw(){
   const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion', shared = E.money_mode === 'wca';
   const money = shared ? { currency_name:'WCA money', currency_symbol:'$' } : E;
   const fanName = id => (MPB.fans.find(f => f.user_id === id) || {}).name || 'A fan';
-  if(MPB.editFan && !shared){ mpbFanEditDraw(); return; }
   box.setAttribute('data-keep', 'mp-bet:' + Number(MPB.pid));
   box.innerHTML = `<div class="pe">
   <section class="pm-card">
@@ -35769,10 +35684,6 @@ function mpbDraw(){
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSelfSet()">Save my balance</button></div>
     <div class="msg" id="mpb_smsg"></div>
   </section>` : ''}
-  ${!shared && !mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px" id="mpb_self">
-    <div class="pm-h3">Your own balance</div>
-    <p class="pm-p">Only the account that owns ${esc(name)} can set its own balance here. You are signed in as ${mpRole() === 'coowner' ? 'a co-owner of' : 'someone who is not the owner of'} ${esc(name)}. If you run ${esc(name)}, sign in with the account you made it with, or ask the WCA admin to check which account is listed as the owner.</p>
-  </section>` : ''}
   ${shared ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Your fans bet with WCA money, so bonuses come from WCA. Switch to your own money above if you want to hand out bonuses.</p></section>` : `<section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Give a bonus</div>
@@ -35793,7 +35704,7 @@ function mpbDraw(){
   ${mpbWatchHTML(shared)}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
-    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th>${shared ? '' : '<th>Points</th>'}</tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td>${shared ? '' : `<td><button type="button" class="spc-mini" onclick="mpbFanEdit('${jsAttr(f.user_id)}')">Edit points</button></td>`}</tr>`).join('')}</tbody></table>`
+    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
       : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
   </section>
   ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
@@ -35915,45 +35826,6 @@ async function mpbSelfSet(){
   await mpBettingTab(MPB.box);
   mpMsg('mpb_smsg', res.data && res.data.changed === false ? 'That is already your balance.' : 'Saved. Your balance is now ' + peMoney(MPB.econ, want) + '.', true);
   const sec = pmEl('mpb_self'); if(sec) sec.scrollIntoView({ behavior:'smooth', block:'center' });
-}
-/* Edit one fan's points: its own page, not a pop up. Save sends only the difference to that one fan. */
-function mpbFanEdit(uid){ MPB.editFan = String(uid); mpbDraw(); window.scrollTo({ top:0, behavior:'smooth' }); }
-function mpbFanCancel(){ MPB.editFan = null; mpbDraw(); }
-function mpbFanEditDraw(){
-  const box = MPB.box, E = MPB.econ || {}, name = (mpCur() || {}).name || 'your promotion';
-  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan));
-  if(!f){ MPB.editFan = null; mpbDraw(); return; }
-  const cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
-  box.setAttribute('data-keep', 'mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
-  box.innerHTML = `<div class="pe">
-    <div class="ed-crumb"><button type="button" onclick="mpbFanCancel()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Your fans</button><span aria-hidden="true">/</span><span>${esc(f.name)}</span></div>
-    <section class="pm-card" style="margin-top:12px">
-      <div class="pm-h3">Edit points for ${esc(f.name)}</div>
-      <p class="pm-p">This only changes ${esc(f.name)}'s ${esc(E.currency_name || 'money')} in ${esc(name)}. Nobody else is touched, and it shows in Bonuses you gave.</p>
-      <div class="mpb-selfbal">Right now: <b>${f.balance != null ? esc(peMoney(E, f.balance)) : esc(peMoney(E, cur)) + ' (starting balance, no balance saved yet)'}</b></div>
-      <div class="mpe-fields">
-        <div><label for="mpb_fbal">New balance</label><input id="mpb_fbal" type="number" min="0" step="1" inputmode="numeric" value="${cur}"></div>
-        <div class="mpb-wide"><label for="mpb_fnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_fnote" maxlength="200" placeholder="Fixing a mistake"></div>
-      </div>
-      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbFanSave()">Save points</button><button type="button" class="spc-mini" onclick="mpbFanCancel()">Cancel</button></div>
-      <div class="msg" id="mpb_fmsg"></div>
-    </section></div>`;
-}
-async function mpbFanSave(){
-  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan)); if(!f) return;
-  const E = MPB.econ || {}, cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
-  const raw = String((pmEl('mpb_fbal') || {}).value || '').trim(), want = Math.floor(Number(raw));
-  if(raw === '' || !isFinite(want) || want < 0){ mpMsg('mpb_fmsg', 'Type a balance of 0 or more.', false); return; }
-  const diff = want - cur;
-  if(diff === 0){ mpMsg('mpb_fmsg', 'That is already their balance.', false); return; }
-  const note = ((pmEl('mpb_fnote') || {}).value || '').trim() || 'Points set by the owner';
-  const res = await sb.rpc('promo_grant', { p_promotion:MPB.pid, p_user:f.user_id, p_amount:diff, p_note:note });
-  if(res.error){ mpMsg('mpb_fmsg', peErr(res.error), false); return; }
-  const nm = f.name;
-  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
-  MPB.editFan = null;
-  await mpBettingTab(MPB.box);
-  mpMsg('mpb_gmsg', nm + ' now has ' + peMoney(MPB.econ, want) + '.', true);
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
