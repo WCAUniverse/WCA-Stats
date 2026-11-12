@@ -35638,7 +35638,7 @@ async function mpeUnsettle(id, btn){
 }
 
 /* ---------------- My Promotion: Betting ---------------- */
-const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null };
+const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null, editFan:null };
 async function mpBettingTab(box){
   box.innerHTML = '<div class="loading">Loading…</div>';
   MPB.pid = Number(PM.curId); MPB.box = box;
@@ -35662,6 +35662,7 @@ function mpbDraw(){
   const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion', shared = E.money_mode === 'wca';
   const money = shared ? { currency_name:'WCA money', currency_symbol:'$' } : E;
   const fanName = id => (MPB.fans.find(f => f.user_id === id) || {}).name || 'A fan';
+  if(MPB.editFan && !shared){ mpbFanEditDraw(); return; }
   box.setAttribute('data-keep', 'mp-bet:' + Number(MPB.pid));
   box.innerHTML = `<div class="pe">
   <section class="pm-card">
@@ -35736,7 +35737,7 @@ function mpbDraw(){
   ${mpbWatchHTML(shared)}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
-    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
+    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th>${shared ? '' : '<th>Points</th>'}</tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td>${shared ? '' : `<td><button type="button" class="spc-mini" onclick="mpbFanEdit('${jsAttr(f.user_id)}')">Edit points</button></td>`}</tr>`).join('')}</tbody></table>`
       : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
   </section>
   ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
@@ -35858,6 +35859,45 @@ async function mpbSelfSet(){
   await mpBettingTab(MPB.box);
   mpMsg('mpb_smsg', res.data && res.data.changed === false ? 'That is already your balance.' : 'Saved. Your balance is now ' + peMoney(MPB.econ, want) + '.', true);
   const sec = pmEl('mpb_self'); if(sec) sec.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+/* Edit one fan's points: its own page, not a pop up. Save sends only the difference to that one fan. */
+function mpbFanEdit(uid){ MPB.editFan = String(uid); mpbDraw(); window.scrollTo({ top:0, behavior:'smooth' }); }
+function mpbFanCancel(){ MPB.editFan = null; mpbDraw(); }
+function mpbFanEditDraw(){
+  const box = MPB.box, E = MPB.econ || {}, name = (mpCur() || {}).name || 'your promotion';
+  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan));
+  if(!f){ MPB.editFan = null; mpbDraw(); return; }
+  const cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
+  box.setAttribute('data-keep', 'mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
+  box.innerHTML = `<div class="pe">
+    <div class="ed-crumb"><button type="button" onclick="mpbFanCancel()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Your fans</button><span aria-hidden="true">/</span><span>${esc(f.name)}</span></div>
+    <section class="pm-card" style="margin-top:12px">
+      <div class="pm-h3">Edit points for ${esc(f.name)}</div>
+      <p class="pm-p">This only changes ${esc(f.name)}'s ${esc(E.currency_name || 'money')} in ${esc(name)}. Nobody else is touched, and it shows in Bonuses you gave.</p>
+      <div class="mpb-selfbal">Right now: <b>${f.balance != null ? esc(peMoney(E, f.balance)) : esc(peMoney(E, cur)) + ' (starting balance, no balance saved yet)'}</b></div>
+      <div class="mpe-fields">
+        <div><label for="mpb_fbal">New balance</label><input id="mpb_fbal" type="number" min="0" step="1" inputmode="numeric" value="${cur}"></div>
+        <div class="mpb-wide"><label for="mpb_fnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_fnote" maxlength="200" placeholder="Fixing a mistake"></div>
+      </div>
+      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbFanSave()">Save points</button><button type="button" class="spc-mini" onclick="mpbFanCancel()">Cancel</button></div>
+      <div class="msg" id="mpb_fmsg"></div>
+    </section></div>`;
+}
+async function mpbFanSave(){
+  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan)); if(!f) return;
+  const E = MPB.econ || {}, cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
+  const raw = String((pmEl('mpb_fbal') || {}).value || '').trim(), want = Math.floor(Number(raw));
+  if(raw === '' || !isFinite(want) || want < 0){ mpMsg('mpb_fmsg', 'Type a balance of 0 or more.', false); return; }
+  const diff = want - cur;
+  if(diff === 0){ mpMsg('mpb_fmsg', 'That is already their balance.', false); return; }
+  const note = ((pmEl('mpb_fnote') || {}).value || '').trim() || 'Points set by the owner';
+  const res = await sb.rpc('promo_grant', { p_promotion:MPB.pid, p_user:f.user_id, p_amount:diff, p_note:note });
+  if(res.error){ mpMsg('mpb_fmsg', peErr(res.error), false); return; }
+  const nm = f.name;
+  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
+  MPB.editFan = null;
+  await mpBettingTab(MPB.box);
+  mpMsg('mpb_gmsg', nm + ' now has ' + peMoney(MPB.econ, want) + '.', true);
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
