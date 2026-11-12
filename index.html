@@ -8334,6 +8334,8 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
 .pm-dirkick{font-family:var(--font-cond); font-weight:600; letter-spacing:3px; text-transform:uppercase; font-size:14px; color:var(--gold);}
 .pm-dirtitle{margin:4px 0 8px; font-family:var(--font-display); font-weight:400; font-size:clamp(40px,6vw,64px); line-height:1; letter-spacing:1px; text-transform:uppercase; color:#fff;}
 .pm-dirintro{margin:0; font-size:17px; line-height:1.6; color:var(--txt-2);}
+.pm-dirsignup{display:flex; flex-direction:column; align-items:center; gap:10px; margin:20px 0 0;}
+.pm-dirsignup-note{margin:0; font-size:16px; line-height:1.5; color:var(--txt-2);}
 #page-promotions .pm-dirtools{display:flex; justify-content:center; margin:0 0 30px;}
 #page-promotions .pm-dirtools input{width:min(440px,100%); font-size:16px; padding:12px 16px; text-align:center;}
 #page-promotions .pm-dirgrid{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:56px 52px; padding:6px 0 20px;}
@@ -10285,6 +10287,10 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
       <div class="pm-dirkick">The WCA Universe</div>
       <h1 class="pm-dirtitle">Promotions</h1>
       <p class="pm-dirintro">Wrestling promotions from across the WCA Universe. Pick one to see its posts and its roster.</p>
+      <div class="pm-dirsignup">
+        <button class="hm-cta hm-cta-solid" type="button" onclick="goPage('mypromo')"><i class="ti ti-plus"></i> <span>Sign up your promotion</span></button>
+        <p class="pm-dirsignup-note">Run your own promotion? Sign it up and once WCA approves it, it gets its own page here.</p>
+      </div>
     </div>
     <div id="pmdir-body"></div>
   </div>
@@ -18789,6 +18795,7 @@ function slRenderPostInner(p){
 
 // ── Filter helper called by filter chips ──────────────────────────────────
 function slSetFilter(kind, btn){
+  SL_FOCUS = null;
   SL_FILTER = kind;
   const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
   SL_PAGE = 1;
@@ -19629,14 +19636,30 @@ async function slCopyShare(){
   }
 }
 // Open a shared post: scroll to it and briefly highlight it.
-function slFocusSharedPost(id){
-  const el = document.getElementById('slpost-'+id);
+// A linked post stays "wanted" for a few seconds, so if the Feed redraws
+// (awards or reactions finish loading and push posts around) it is found again.
+var SL_FOCUS = null;
+function slFocusSharedPost(id, again){
+  if(!again) SL_FOCUS = { id:String(id), until:Date.now() + 6000 };
+  let el = document.getElementById('slpost-'+id);
   if(!el){
-    // The post may be on another pagination page — jump to page 1 where newest live,
-    // or just flash a toast if not found in the current list.
-    return false;
+    // Not on the page showing right now. Find it in the whole Feed, clear any
+    // filter that hides it, turn to the page it is on, then scroll to it.
+    const all = slFeedList();
+    if(!all.some(p => String(p.id) === String(id))) return false;   // Feed still loading, try again shortly
+    if(SL_FILTER !== 'all'){
+      SL_FILTER = 'all';
+      document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter==='all'));
+      const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
+    }
+    const idx = slFeedList().findIndex(p => String(p.id) === String(id));
+    SL_PAGE = Math.floor(idx / SL_PAGE_SIZE) + 1;
+    renderStorylines();
+    el = document.getElementById('slpost-'+id);
+    if(!el) return false;
   }
   el.scrollIntoView({behavior:'smooth', block:'center'});
+  if(again) return true;
   el.classList.add('sl-shared-flash');
   setTimeout(()=>el.classList.remove('sl-shared-flash'), 2200);
   return true;
@@ -21096,9 +21119,9 @@ async function cpShowPromotion(id){ pmGo(id); }
    #mp-composer instead of the Feed, so every post type works the same.
    Tables: SUPABASE_SETUP_promotion_rosters.sql. Photos and logos upload to
    WCA media through media-upload (folder "promotions"). */
-const PM_ATTRS = ['Arm Power','Leg Power','Grapple Offense','Running Offense','Aerial Offense','Aerial Defense',
+const PM_ATTRS = ['Arm Power','Leg Power','Grapple Offense','Running Offense','Aerial Offense',
   'Aerial Range','Power Submission Offense','Technical Submission Offense','Aerial Reversal','Strike Reversal',
-  'Grapple Reversal','Pin Escape','Strength','Stamina','Agility','Movement Speed','Recovery','Special','Finisher'];
+  'Grapple Reversal','Pin Escape','Body Durability','Arm Durability','Leg Durability','Strength','Stamina','Agility','Movement Speed','Recovery','Special','Finisher'];
 const PM_SWATCHES = [['#e2574c','Red'],['#b5121b','Crimson'],['#f28c38','Orange'],['#e9b949','Gold'],['#c6f432','Lime'],['#3fc46a','Green'],['#5dcaa5','Teal'],['#21d4fd','Cyan'],
   ['#4fa3f7','Blue'],['#2346b8','Navy'],['#8f7cff','Purple'],['#c13cff','Violet'],['#ff2fd6','Magenta'],['#ff6fb5','Pink'],['#c9c6be','Silver'],['#ffffff','White']];
 const PM_WCLASS = ['Cruiserweight','Light Heavyweight','Heavyweight','Super Heavyweight'];
@@ -23210,7 +23233,7 @@ function pmDirDraw(){
   const box = pmEl('pmdir-grid'); if(!box || !PM.dir) return;
   const q = (PM.dir.q || '').trim().toLowerCase();
   const list = PM.dir.list.filter(p => !q || p.name.toLowerCase().includes(q) || String(p.about || '').toLowerCase().includes(q));
-  if(!list.length){ box.innerHTML = `<div class="pm-empty">${PM.dir.list.length ? 'No promotion matches that.' : 'No promotions yet. Run your own? Open My Promotion in your account menu to register it.'}</div>`; return; }
+  if(!list.length){ box.innerHTML = `<div class="pm-empty">${PM.dir.list.length ? 'No promotion matches that.' : 'No promotions yet. Run your own? Press Sign up your promotion above.'}</div>`; return; }
   box.innerHTML = list.map(p => { const n = PM.dir.counts[p.id] || 0;
     return `<button type="button" class="pm-dircard" style="--pc:${pmColor(p.color)}" onclick="pmGo(${Number(p.id)})" aria-label="${escAttr(p.name)}">
       <span class="pm-dir-art">${pmLogo(p, 'pm-dir-logo')}</span>
@@ -25094,6 +25117,10 @@ function renderStorylines(){
   const start = (SL_PAGE-1) * SL_PAGE_SIZE;
   const slice = list.slice(start, start + SL_PAGE_SIZE);
   feed.innerHTML = slice.map(slRenderItem).join('');
+  if(SL_FOCUS && Date.now() < SL_FOCUS.until && !SL_FOCUS.busy){
+    const fid = SL_FOCUS.id;
+    setTimeout(()=>{ if(!SL_FOCUS || SL_FOCUS.id !== fid) return; SL_FOCUS.busy = true; try{ slFocusSharedPost(fid, true); }finally{ if(SL_FOCUS) SL_FOCUS.busy = false; } }, 60);
+  }
   // re-open any threads that were expanded before a re-render
   slice.forEach(p=>{ if(SL_OPEN[p.id]) slRenderComments(p.id); });
   // pagination only when needed
@@ -25108,6 +25135,7 @@ function renderStorylines(){
   }
 }
 function slGoPage(n){
+  SL_FOCUS = null;
   SL_PAGE = n;
   renderStorylines();
   const pg = document.getElementById('page-storylines');
@@ -25321,7 +25349,7 @@ function restorePageFromHash(){
       const tryFocus=()=>{ if(typeof slFocusSharedPost==='function') return slFocusSharedPost(pid); return false; };
       // the feed may still be loading — retry a few times then give up quietly
       let tries=0;
-      const iv=setInterval(()=>{ tries++; if(tryFocus()||tries>20) clearInterval(iv); }, 250);
+      const iv=setInterval(()=>{ tries++; if(tryFocus()||tries>48) clearInterval(iv); }, 250);
     }
   }
 }
