@@ -5853,7 +5853,20 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     display:block;margin-top:2px;font-size:13.5px;color:var(--muted);
     letter-spacing:.4px;
   }
-  .umenu{min-width:180px;}
+  .umenu{min-width:220px;}
+  .umenu-sec, .login-sec{font-family:var(--font-cond); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:13px; color:var(--muted); padding:10px 14px 4px; border-top:1px solid var(--line); margin-top:4px;}
+  .umenu a.umenu-acct{display:flex; align-items:center; gap:10px;}
+  .umenu-acct img, .umenu-ini{width:28px; height:28px; border-radius:50%; object-fit:cover; flex:0 0 28px;}
+  .umenu-ini{display:flex; align-items:center; justify-content:center; background:var(--line); font-size:12px; font-weight:700;}
+  .umenu-acct small, .login-menu small{display:block; font-size:13px; color:var(--muted);}
+  .login-ava{width:22px; height:22px; border-radius:50%; object-fit:cover; vertical-align:middle;}
+  .uprov{display:block; font-size:12.5px; color:var(--muted); line-height:1.1;}
+  .wca-as{display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:15px; color:var(--txt-2);}
+  .wca-as img{width:24px; height:24px; border-radius:50%; object-fit:cover;}
+  .wca-as b{color:var(--txt);} .wca-as small{font-size:13.5px; color:var(--muted);}
+  .wca-as-sw{background:none; border:1px solid var(--line); color:var(--gold); border-radius:14px; padding:2px 10px; font-size:13.5px; cursor:pointer;}
+  .wca-as-sw:hover{border-color:var(--gold);}
+  .ch-asrow{padding:6px 10px 0;}
   .navdrop-trigger.nav-islive{color:var(--loss)!important;}
   .navdrop-trigger.nav-islive::before{
     content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
@@ -11572,7 +11585,91 @@ async function linkProvider(provider){
     wcaToast('Link failed', 'Linking is not enabled yet (turn on Manual Linking in Supabase).', true);
   }
 }
-async function signOut(){ await sb.auth.signOut(); location.reload(); }
+/* ===================== SAVED ACCOUNTS (Nov 2026) =====================
+   Stay signed in to more than one account in this browser (e.g. the admin
+   email login and a Discord account) and switch with one tap.
+   The account in use lives in Supabase's own storage as always. The others
+   are kept here as {id, name, avatar, provider, at, rt} so switching needs no
+   new sign in. "Add another account" saves the current one, signs out of it
+   on THIS browser only (scope local, so its saved login stays good), and
+   opens the sign in menu. Switching reloads the page so every part of the
+   site picks up the new account. */
+const WCA_ACCT_KEY = 'wca-accounts';
+function wcaAccts(){ try{ const a = JSON.parse(localStorage.getItem(WCA_ACCT_KEY) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+function wcaAcctsSave(a){ try{ localStorage.setItem(WCA_ACCT_KEY, JSON.stringify(a.slice(0, 6))); }catch(e){} }
+function wcaProviderOf(u){ const p = u && u.app_metadata && u.app_metadata.provider; return p || 'email'; }
+function wcaProviderLabel(p){ return ({ discord:'Discord', google:'Google', twitch:'Twitch', email:'Email' })[p] || (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Email'); }
+// keep this account's name and picture in the list (and its login, when asked)
+async function wcaAcctRemember(withTokens){
+  if(!CURRENT_USER) return;
+  const list = wcaAccts();
+  let e = list.find(x => x.id === CURRENT_USER.id);
+  if(!e){ e = { id:CURRENT_USER.id }; list.unshift(e); }
+  e.name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || (CURRENT_USER.email || 'Member');
+  e.avatar = (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || '';
+  e.provider = wcaProviderOf(CURRENT_USER);
+  if(withTokens){
+    try{ const { data:{ session } } = await sb.auth.getSession();
+      if(session){ e.at = session.access_token; e.rt = session.refresh_token; } }catch(err){}
+  }
+  wcaAcctsSave(list);
+}
+function wcaOtherAccts(){ return wcaAccts().filter(x => x.rt && (!CURRENT_USER || x.id !== CURRENT_USER.id)); }
+async function wcaSwitchAccount(id){
+  const to = wcaAccts().find(x => x.id === id && x.rt);
+  if(!to){ wcaToast('Sign in again', 'That account needs a fresh sign in.', true); return; }
+  await wcaAcctRemember(true);                       // save where we are first
+  const { error } = await sb.auth.setSession({ access_token:to.at || '', refresh_token:to.rt });
+  if(error){
+    wcaAcctsSave(wcaAccts().map(x => x.id === id ? Object.assign(x, { at:null, rt:null }) : x));
+    wcaToast('Sign in again', (to.name || 'That account') + ' was signed out. Sign in to it again to add it back.', true);
+    return;
+  }
+  wcaAcctsSave(wcaAccts().map(x => x.id === id ? Object.assign(x, { at:null, rt:null }) : x));   // it is the live login now
+  location.reload();
+}
+async function wcaAddAccount(){
+  await wcaAcctRemember(true);
+  try{ await sb.auth.signOut({ scope:'local' }); }catch(e){}
+  CURRENT_USER = null; MY_PROFILE = null; IS_ADMIN = false;
+  await refreshUser();
+  setTimeout(() => { const m = document.getElementById('loginMenu'); if(m) m.classList.add('open'); }, 50);
+  wcaToast('Add another account', 'Pick how to sign in. Your other account stays saved in the account menu.');
+}
+function wcaAcctMenuHTML(){
+  const others = wcaOtherAccts();
+  return `<div class="umenu-sec">Switch account</div>`
+    + others.map(a => `<a href="#" role="menuitem" onclick="wcaSwitchAccount('${jsAttr(a.id)}');return false;" class="umenu-acct">
+        ${a.avatar ? `<img src="${escAttr(a.avatar)}" alt="">` : `<span class="umenu-ini">${esc(String(a.name || '?').slice(0, 2).toUpperCase())}</span>`}
+        <span>${esc(a.name || 'Member')}<small>${esc(wcaProviderLabel(a.provider))}</small></span></a>`).join('')
+    + `<a href="#" role="menuitem" onclick="wcaAddAccount();return false;"><i class="ti ti-user-plus"></i> Add another account</a>`;
+}
+// sign in menu: saved accounts you can go straight back to
+function wcaSavedLoginHTML(){
+  const others = wcaOtherAccts();
+  if(!others.length) return '';
+  return `<div class="login-sec">Saved accounts</div>` + others.map(a => `<button onclick="wcaSwitchAccount('${jsAttr(a.id)}')">
+      ${a.avatar ? `<img class="login-ava" src="${escAttr(a.avatar)}" alt="">` : '<i class="ti ti-user-circle"></i>'} ${esc(a.name || 'Member')} <small>${esc(wcaProviderLabel(a.provider))}</small></button>`).join('')
+    + `<div class="login-sec">Or sign in with</div>`;
+}
+/* "Commenting as ..." label, shown before you type, chat, comment or vote, so
+   it is always clear which account it goes out as. verb: Commenting, Chatting, Voting... */
+function wcaActingAs(verb){
+  if(typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return '';
+  const asAdmin = verb === 'Chatting' && IS_ADMIN && POST_AS_ADMIN;
+  const name = asAdmin ? 'Admin' : ((MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member');
+  const av = !asAdmin && MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url);
+  const many = wcaOtherAccts().length > 0;
+  return `<span class="wca-as">${av ? `<img src="${escAttr(av)}" alt="">` : '<i class="ti ti-user-circle"></i>'}
+    <span>${esc(verb || 'Posting')} as <b>${esc(name)}</b> <small>${esc(wcaProviderLabel(wcaProviderOf(CURRENT_USER)))}</small></span>
+    <button type="button" class="wca-as-sw" onclick="event.stopPropagation();toggleUserMenu(event)">${many ? 'Switch' : 'Add account'}</button></span>`;
+}
+async function signOut(){
+  // forget this account here; any other saved account is still one tap away
+  if(CURRENT_USER) wcaAcctsSave(wcaAccts().filter(x => x.id !== CURRENT_USER.id));
+  await sb.auth.signOut({ scope:'local' });
+  location.reload();
+}
 
 async function refreshUser(){
   // getSession() is the reliable one to call right after an OAuth redirect —
@@ -11585,6 +11682,7 @@ async function refreshUser(){
     box.innerHTML = `<div class="login-wrap">
         <button class="login-btn" id="loginBtn" onclick="toggleLoginMenu(event)"><i class="ti ti-login-2"></i> Sign in</button>
         <div class="login-menu" id="loginMenu">
+          ${wcaSavedLoginHTML()}
           <button onclick="signInProvider('discord')"><i class="ti ti-brand-discord" style="color:#5865F2"></i> Discord</button>
           <button onclick="signInProvider('google')"><i class="ti ti-brand-google" style="color:#EA4335"></i> Google</button>
           <button onclick="signInProvider('twitch')"><i class="ti ti-brand-twitch" style="color:#9146FF"></i> Twitch</button>
@@ -11603,6 +11701,7 @@ async function refreshUser(){
   // the actual delete is still enforced by RLS server-side).
   try{ const { data:adm } = await sb.rpc('is_admin'); IS_ADMIN = adm===true; }
   catch(e){ IS_ADMIN = false; }
+  try{ wcaAcctRemember(false); }catch(e){}
   renderUserChip();
   try{ if(typeof wcaNotifAuth === 'function') wcaNotifAuth(); }catch(e){}     // notifications: who this device belongs to
   try{ if(typeof peLoadFollows === 'function') peLoadFollows(); }catch(e){}   // the Feed's Following filter
@@ -11668,6 +11767,7 @@ function renderUserChip(){
         <div class="ucol">
           ${wcaMoneyChip()}
           <span class="uname">${esc(name)}</span>
+          <span class="uprov">${esc(wcaProviderLabel(wcaProviderOf(CURRENT_USER)))}</span>
         </div>
       </div>
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
@@ -11675,6 +11775,7 @@ function renderUserChip(){
         <a href="/dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
         <a href="/my-promotion" role="menuitem" onclick="goPage('mypromo');return false;"><i class="ti ti-flag-3"></i> My Promotion</a>
         <a href="/account" role="menuitem" onclick="openAccount();return false;"><i class="ti ti-user-cog"></i> Account</a>
+        ${wcaAcctMenuHTML()}
       </div>
     </div>`;
 }
@@ -12065,6 +12166,10 @@ async function loadChampions(){
     if(!error&&data) rows=data;
   }catch(e){}
 
+  // Defenses and the W/L during each reign are worked out from the saved
+  // match results, so they update by themselves as past shows get filled in.
+  try{ await chReignStats(rows); }catch(e){}
+
   // Group by division, preserving the ascending (oldest -> newest) sort_order.
   const byDiv={ Mens:[], Womens:[], Faction:[], Undisputed:[] };
   rows.forEach(r=>{ const d=r.division||'Mens'; (byDiv[d]=byDiv[d]||[]).push(r); });
@@ -12111,8 +12216,8 @@ async function loadChampions(){
       const reign=isCur
         ? `${esc(r.won_at||chDateShort(r.won_date))} to present`
         : `${esc(r.won_at||chDateShort(r.won_date))} to ${esc(r.lost_at||chDateShort(r.lost_date))}`;
-      const won=(r.events_won!=null&&r.events_won!=='')?Number(r.events_won):'';
-      const lost=(r.events_lost!=null&&r.events_lost!=='')?Number(r.events_lost):'';
+      const won=r._auto?r._w:(r.events_won!=null&&r.events_won!=='')?Number(r.events_won):'';
+      const lost=r._auto?r._l:(r.events_lost!=null&&r.events_lost!=='')?Number(r.events_lost):'';
       const stat=[];
       if(won!=='') stat.push(`${won}W`);
       if(lost!=='') stat.push(`${lost}L`);
@@ -12135,6 +12240,70 @@ async function loadChampions(){
   html+='</div>';
   wrap.innerHTML=html;
   if(typeof bindNameLinks==='function') bindNameLinks(wrap);
+}
+/* Every win as champion is a defense (his rule). For each title_history reign:
+   find the show it started and ended at (from "WCA 43" style won_at/lost_at,
+   or the dates), then count the champion's saved results in every WCA match
+   after the winning show, up to and including the show they lost it.
+   Showdown episodes are left out (their own records). Results come from the
+   saved winners (match_betting), so backfilled shows count too. A reign the
+   shows can't be placed for keeps the numbers typed in the admin. */
+function chNorm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+async function chReignStats(rows){
+  if(!rows || !rows.length || typeof sb === 'undefined') return;
+  const [er, mr, br, sr] = await Promise.all([
+    sb.from('events').select('id,name,show_number,event_date,completed_at'),
+    sb.from('event_matches').select('event_id,slot,sides'),
+    sb.from('match_betting').select('event_id,slot,winner_idx'),
+    sb.from('v_sd_episodes').select('id')
+  ]);
+  if(er.error || mr.error || br.error) return;
+  const sd = new Set(((sr && sr.data) || []).map(x=>String(x.id)));
+  const noOf = e => { const n = parseInt(e.show_number,10); if(!isNaN(n)) return n;
+    const m = String(e.name||'').match(/wca\s*#?\s*(\d{1,4})/i); return m ? Number(m[1]) : null; };
+  const evs = (er.data||[]).filter(e=>!sd.has(String(e.id))).map(e=>({ id:e.id, no:noOf(e), name:String(e.name||''),
+    t:Date.parse(e.event_date||e.completed_at||'') }));
+  const evById = {}; evs.forEach(e=>{ evById[e.id] = e; });
+  // where a reign starts or ends, as a show number
+  const placeShow = (at, date) => {
+    const m = String(at||'').match(/wca\s*#?\s*(\d{1,4})/i); if(m) return Number(m[1]);
+    const byName = evs.find(e=>at && chNorm(e.name)===chNorm(at) && e.no!=null); if(byName) return byName.no;
+    const t = Date.parse(date||''); if(isNaN(t)) return null;
+    const before = evs.filter(e=>e.no!=null && !isNaN(e.t) && e.t<=t).sort((a,b)=>b.t-a.t)[0];
+    return before ? before.no : null;
+  };
+  const win = {}; (br.data||[]).forEach(b=>{ if(b.winner_idx!=null) win[b.event_id+'_'+b.slot] = Number(b.winner_idx); });
+  const facMembers = name => { const f = (typeof FACTIONS!=='undefined'?FACTIONS:[]).find(x=>chNorm(x.name)===chNorm(name)); return f ? f.members.map(chNorm) : []; };
+  const canon = n => { const w = (typeof wrestlerByName==='function') ? wrestlerByName(n) : null; return chNorm(w ? w.name : n); };
+  // every saved result, as [show number, sides, winning side]
+  const res = [];
+  (mr.data||[]).forEach(m=>{
+    const e = evById[m.event_id]; const w = win[m.event_id+'_'+m.slot];
+    if(!e || e.no==null || w==null) return;
+    let sides = m.sides; if(typeof sides==='string'){ try{ sides = JSON.parse(sides); }catch(x){ sides = []; } }
+    if(Array.isArray(sides) && sides.length >= 2) res.push({ no:e.no, sides, w });
+  });
+  rows.forEach(r=>{
+    const from = placeShow(r.won_at, r.won_date);
+    if(from == null) return;
+    const lostTxt = String(r.lost_at||'').trim().toLowerCase();
+    const isCur = !lostTxt && !String(r.lost_date||'').trim();
+    let to = isCur ? Infinity : placeShow(r.lost_at, r.lost_date);
+    if(to == null) return;
+    const team = r.division === 'Faction', who = team ? chNorm(r.champion) : canon(r.champion), mem = team ? facMembers(r.champion) : [];
+    const onSide = sd => { if(!sd) return false;
+      const ms = (Array.isArray(sd.members)?sd.members:[]).filter(Boolean);
+      if(team){ if(sd.team_name && chNorm(sd.team_name)===who) return true;
+        return ms.length > 0 && mem.length > 0 && ms.every(x=>mem.includes(chNorm(x))); }
+      return ms.some(x=>canon(x)===who); };
+    let w = 0, l = 0;
+    res.forEach(x=>{
+      if(x.no <= from || x.no > to) return;
+      const i = x.sides.findIndex(onSide); if(i < 0) return;
+      if(i === x.w) w++; else if(x.sides.length === 2) l++;
+    });
+    r._auto = true; r._w = w; r._l = l; r.defenses = w;
+  });
 }
 function chToggle(id, btn){
   const el=document.getElementById(id); if(!el) return;
@@ -15518,7 +15687,7 @@ function renderChatComposer(){
       <button onclick="signInDiscord()">Sign in with Discord</button> to join the chat.</div>`;
     return;
   }
-  slot.innerHTML = `<div class="ch-composer">
+  slot.innerHTML = `<div class="ch-asrow">${wcaActingAs('Chatting')}</div><div class="ch-composer">
       <textarea id="ch-input" rows="1" maxlength="500" placeholder="Say something…"
         oninput="chatAutoGrow(this)" onkeydown="chatKeydown(event)"></textarea>
       <button class="ch-send" id="ch-send" onclick="sendChat()">Send</button>
@@ -19072,6 +19241,7 @@ function motnCardHTML(r, opts){
       <span>${closed ? total.toLocaleString() + (total === 1 ? ' vote' : ' votes') + '. Voting has closed.'
         : r.mine != null ? total.toLocaleString() + (total === 1 ? ' vote' : ' votes') + ' so far. Tap another ' + what + ' to change your vote.'
         : 'Tap a ' + what + ' to vote. The results show after you vote.'}</span>
+      ${!closed ? wcaActingAs('Voting') : ''}
       <span>${closed ? '' : esc(r.closes_at ? motnWhen(r.closes_at) : 'Open until it is closed')}</span>
       ${total > 0 && (closed || r.mine != null || r.can_manage) ? `<button type="button" class="spc-mini" onclick="motnVoters(${Number(r.id)},this)"><i class="ti ti-users"></i> See who voted</button>` : ''}
       ${r.can_manage && !closed ? `<button type="button" class="spc-mini" onclick="motnClose(${Number(r.id)},this)">Close the vote now</button>` : ''}
@@ -19825,7 +19995,7 @@ async function slRenderComments(id){
     ? `<div class="sl-cform" data-keep="comment:${Number(id)}">
          <textarea id="sl-cinput-${id}" placeholder="Add a comment… (or add a GIF)" maxlength="1000"></textarea>
          <div class="sl-crow">
-           <span class="sl-cwhen">Posting as ${esc(MY_PROFILE ? (MY_PROFILE.display_name||MY_PROFILE.username||'Member') : 'Member')}</span>
+           ${wcaActingAs('Commenting')}
            <span style="display:flex;gap:8px;align-items:center">
              <button class="sl-cgif" onclick="slToggleGifPicker(${id})" title="Add a GIF">🎞️ GIF</button>
              <button class="sl-cpost" onclick="slPostComment(${id})">Post comment</button>
