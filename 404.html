@@ -6768,6 +6768,26 @@ label.motn-pick, .pm-card label.motn-pick{display:flex; align-items:center; gap:
 .motn-given .motn-note{padding:0 16px;}
 .motn-pick b{display:block; font-family:var(--font-body); font-size:16px; color:var(--txt);} .motn-pick small{display:block; font-family:var(--font-body); font-size:14px; color:var(--muted);}
 @media (prefers-reduced-motion:reduce){ .motn-bar{transition:none;} }
+.motn-voters{padding:0 16px 16px; display:flex; flex-direction:column; gap:12px;}
+.motn-vgroup{border-top:1px solid var(--line); padding-top:10px;}
+.motn-vhead{display:flex; justify-content:space-between; gap:10px; align-items:baseline; margin-bottom:6px;}
+.motn-vhead b{font-size:16.5px;} .motn-vhead span{font-size:15px; color:var(--muted);}
+.motn-vnames{display:flex; flex-wrap:wrap; gap:6px;}
+.motn-vnames span{font-size:15px; padding:4px 10px; border:1px solid var(--line); border-radius:20px; color:var(--txt);}
+.motn-vlist-empty{font-size:15px; color:var(--muted);}
+/* Awards pinned on a promotion's own page: shown big */
+.pm-awards-pin{margin:0 0 22px;}
+.pm-awards-pin .pm-kick{margin-bottom:10px;}
+.motn-big .motn{border-width:2px; border-color:color-mix(in srgb, var(--pc, #E9B949) 55%, var(--line));}
+.motn-big .motn-top{padding:20px 22px;}
+.motn-big .motn-star{width:64px; height:64px; flex:0 0 64px; font-size:30px;}
+.motn-big .motn-tt b{font-size:clamp(26px,4vw,36px);}
+.motn-big .motn-tt span{font-size:17px;}
+.motn-big .motn-win{padding:18px 22px 4px;}
+.motn-big .motn-win b{font-size:clamp(28px,4.5vw,42px);}
+.motn-big .motn-lab b{font-size:18px;}
+.motn-big .motn-pct{font-size:26px;}
+.motn-big .motn-note{font-size:17.5px; padding:0 22px;}
 /* ===== Characters on the Feed (Oct 2026) ===== */
 .sl-asbtn{color:var(--gold) !important;}
 .sl-charbox{margin:12px 0 4px; padding:12px; border:1px solid rgba(233,185,73,.45); border-radius:12px; background:rgba(233,185,73,.05);}
@@ -12799,7 +12819,15 @@ function rcNorm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '
 function rcRecordsFor(name){
   const order = { Mens:0, Womens:1, Undisputed:2 };
   const seenDiv = new Set();
-  const list = (RANK_BY_NAME[name]||[]).filter(r=>!seenDiv.has(r.division) && seenDiv.add(r.division))
+  // In the Faction division a member always represents their stable, so a member
+  // shows the stable's record (below), never a personal Faction division count.
+  const inAStable = (typeof FACTIONS!=='undefined' ? FACTIONS : []).some(f=>(f.members||[]).some(m=>{
+    if(rcNorm(m)===rcNorm(name)) return true;
+    const w = (typeof wrestlerByName==='function') ? wrestlerByName(m) : null;
+    return !!(w && w.name===name);
+  }));
+  const list = (RANK_BY_NAME[name]||[]).filter(r=>!(inAStable && r.division==='Faction'))
+    .filter(r=>!seenDiv.has(r.division) && seenDiv.add(r.division))
     .sort((a,b)=>((order[a.division]??9)-(order[b.division]??9)))
     .map(r=>Object.assign({ kind:'div', label:r.division+' Division', short:r.division }, r));
   // their stable's record, if they're in one
@@ -12812,9 +12840,9 @@ function rcRecordsFor(name){
     });
     if(!inIt) return;
     const fk = rcNorm(f.name);
-    if(list.some(x=>x.kind==='faction' && rcNorm(x.label)===fk)) return;   // one chip per stable
+    if(list.some(x=>x.kind==='faction' && rcNorm(x.short)===fk)) return;   // one chip per stable
     const champ = (typeof CHAMP_DIVS_BY_NAME!=='undefined' && (CHAMP_DIVS_BY_NAME[fk]||[]).includes('Faction'));
-    list.push({ kind:'faction', label:f.name, short:f.name, division:'Faction', champ,
+    list.push({ kind:'faction', label:'Faction Division, ' + f.name, short:f.name, division:'Faction', champ,
       slot:0, inactive:false,
       wins:+f.wins||0, losses:+f.losses||0, draws:+f.draws||0, no_wins:+f.no_wins||0,
       win_pct:+f.win_pct||0, contender_points:+f.contender_points||0,
@@ -12915,15 +12943,19 @@ async function renderWrestlerHistory(name, hostId){
         .order('event_date',{ascending:false}).order('slot',{ascending:true});
       if(error) throw error;
       rows = data||[];
-      MH_CACHE[name]=rows;
-    }catch(e){ host.innerHTML=card; return; } // history view not installed yet — keep just the record
+    }catch(e){ rows = []; }
+    // v_match_history only holds matches whose rankings were updated. Add every
+    // other match they were on the card for (winner saved in Show Editor only,
+    // shows outside the records range, team matches saved by team name only).
+    try{ rows = rows.concat(await mhExtraMatches(name, rows)); }catch(e){}
+    MH_CACHE[name]=rows;
   }
   // guard against a stale async fill after the user clicked another wrestler
   if(hostId==='cs-history' && typeof CS_SELECTED!=='undefined' && CS_SELECTED && CS_SELECTED!==name) return;
   if(hostId==='sm-history' && typeof smCurrentName==='function' && smCurrentName() && smCurrentName()!==name) return;
   if(!rows.length){
     host.innerHTML = card + `<div class="mh-wrap"><div class="mh-title"><i class="ti ti-history"></i> Match History</div>
-      <div class="pf-empty">No recorded matches on file for them yet. Matches appear here once a winner is saved for them.</div></div>`;
+      <div class="pf-empty">No matches on file for them yet.</div></div>`;
     return;
   }
   const legend = `<details class="mh-legend"><summary>How to read this</summary>
@@ -12931,9 +12963,10 @@ async function renderWrestlerHistory(name, hostId){
     <span class="f5b w" style="width:16px;height:16px">W</span> won the match ·
     <span class="f5b l" style="width:16px;height:16px">L</span> lost, they were pinned, tapped out, or eliminated ·
     <span class="f5b n" style="width:16px;height:16px">N</span> no-win, they were on the losing end but never took the fall, so it doesn't count against them ·
+    <span class="f5b n" style="width:16px;height:16px">?</span> no winner saved for that match yet ·
     <span class="f5b d" style="width:16px;height:16px">D</span> draw.
     <i class="ti ti-crown" style="color:var(--gold)"></i> = a championship was on the line.
-    A match appears here once its winner is on file.</div></details>`;
+    Every match they were on the card for is listed. Only matches with their rankings updated count toward the record above.</div></details>`;
   // group by division, newest first inside each. Shows outside the records
   // range (before the WCA 34 reset) are still listed, under their own label,
   // so the history is complete but nobody mistakes them for part of the record.
@@ -12941,13 +12974,14 @@ async function renderWrestlerHistory(name, hostId){
   rows.slice().sort(recRowSort).forEach(r=>{ const k=r.division||'Other'; (byDiv[k]=byDiv[k]||[]).push(r); });
   const mhRow = r=>{
       const cls = r.result==='W'?'w':r.result==='L'?'l':r.result==='D'?'d':'n';
+      const noResult = r.result==='?' ? ' · <b>No winner saved yet</b>' : '';
       const opp = mhOpponents(r);
       const when = r.event_date ? new Date(r.event_date).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}) : '';
       const belt = r.championship ? ` <i class="ti ti-crown" style="color:var(--gold)" title="${esc(r.championship)} Championship match"></i>` : '';
       return `<div class="mh-row">
         <span class="f5b ${cls}" style="width:20px;height:20px;flex:0 0 20px">${r.result}</span>
         <span class="mh-main">${opp?('vs '+esc(opp)):esc(r.match_title||'Match')}${belt}
-          <span class="mh-sub">${esc(r.event_name||'')}${when?' · '+when:''}${r.match_type?' · '+esc(r.match_type):''}</span></span>
+          <span class="mh-sub">${esc(r.event_name||'')}${when?' · '+when:''}${r.match_type?' · '+esc(r.match_type):''}${noResult}</span></span>
       </div>`;
   };
   const secs = Object.keys(byDiv).sort().map(dv=>{
@@ -12968,6 +13002,52 @@ async function renderWrestlerHistory(name, hostId){
     <div class="mh-title"><i class="ti ti-history"></i> Match History
       <span class="mh-count">${rows.length} match${rows.length===1?'':'es'}</span></div>
     ${legend}<div class="mh-scroll">${secs}</div></div>`;
+}
+/* Every completed show match this person was on, read straight from the
+   cards, for the ones v_match_history doesn't have. A side saved as just a
+   team name counts its stable's members. Results come from the saved winner:
+   W for the winning side, L in a one on one or two side match, N (no-win) for
+   the losing sides of bigger matches. These never change the record card. */
+async function mhExtraMatches(name, have){
+  const key = rcNorm(name);
+  const myTeams = (typeof FACTIONS!=='undefined' ? FACTIONS : [])
+    .filter(f=>(f.members||[]).some(m=>rcNorm(m)===key)).map(f=>f.name);
+  const qs = [sb.from('event_matches').select('event_id,slot,division,championship,match_type,match_title,sides').contains('sides', JSON.stringify([{ members:[name] }]))];
+  myTeams.forEach(t=>qs.push(sb.from('event_matches').select('event_id,slot,division,championship,match_type,match_title,sides').contains('sides', JSON.stringify([{ team_name:t }]))));
+  const got = await Promise.all(qs);
+  const bySlot = {};
+  got.forEach(r=>(r.data||[]).forEach(m=>{ bySlot[m.event_id+'_'+m.slot] = m; }));
+  const seen = new Set((have||[]).map(r=>r.event_id+'_'+r.slot));
+  const todo = Object.values(bySlot).filter(m=>!seen.has(m.event_id+'_'+m.slot));
+  if(!todo.length) return [];
+  const ids = [...new Set(todo.map(m=>m.event_id))];
+  const [er, br] = await Promise.all([
+    sb.from('events').select('id,name,event_date,is_complete,archived').in('id', ids),
+    sb.from('match_betting').select('event_id,slot,winner_idx').in('event_id', ids)
+  ]);
+  const evs = {}; (er.data||[]).forEach(e=>{ evs[e.id] = e; });
+  const win = {}; (br.data||[]).forEach(b=>{ if(b.winner_idx!=null) win[b.event_id+'_'+b.slot] = Number(b.winner_idx); });
+  const out = [];
+  todo.forEach(m=>{
+    const ev = evs[m.event_id];
+    const w = win[m.event_id+'_'+m.slot];
+    if(!ev || ev.archived === true) return;
+    if(!ev.is_complete && w == null) return;            // a show still being booked is not history
+    let sides = m.sides;
+    if(typeof sides==='string'){ try{ sides = JSON.parse(sides); }catch(e){ sides = []; } }
+    if(!Array.isArray(sides)) return;
+    const idx = sides.findIndex(sd=>{
+      const mem = (sd && Array.isArray(sd.members)) ? sd.members.filter(Boolean) : [];
+      if(mem.some(x=>rcNorm(x)===key)) return true;
+      return !mem.length && sd && sd.team_name && myTeams.some(t=>rcNorm(t)===rcNorm(sd.team_name));
+    });
+    if(idx < 0) return;
+    const result = w == null ? '?' : w === idx ? 'W' : sides.length === 2 ? 'L' : 'N';
+    out.push({ event_id:m.event_id, slot:m.slot, event_name:ev.name, event_date:ev.event_date,
+      division:m.division || '', championship:m.championship || null, winner_idx:w == null ? null : w,
+      match_type:m.match_type, match_title:m.match_title, sides, side_index:idx, participant:name, result, from_card:true });
+  });
+  return out;
 }
 // Everyone in the match EXCEPT the wrestler's own side.
 function mhOpponents(r){
@@ -18993,11 +19073,30 @@ function motnCardHTML(r, opts){
         : r.mine != null ? total.toLocaleString() + (total === 1 ? ' vote' : ' votes') + ' so far. Tap another ' + what + ' to change your vote.'
         : 'Tap a ' + what + ' to vote. The results show after you vote.'}</span>
       <span>${closed ? '' : esc(r.closes_at ? motnWhen(r.closes_at) : 'Open until it is closed')}</span>
+      ${total > 0 && (closed || r.mine != null || r.can_manage) ? `<button type="button" class="spc-mini" onclick="motnVoters(${Number(r.id)},this)"><i class="ti ti-users"></i> See who voted</button>` : ''}
       ${r.can_manage && !closed ? `<button type="button" class="spc-mini" onclick="motnClose(${Number(r.id)},this)">Close the vote now</button>` : ''}
       ${opts.manage ? rm : ''}
     </div>
+    <div class="motn-voters" id="motn-voters-${Number(r.id)}" hidden></div>
     <div class="msg" id="motn-msg-${Number(r.id)}"></div>
   </article>`;
+}
+/* Who voted for what, opened under the vote. SQL: WCA_Award_Voters.sql */
+async function motnVoters(id, btn){
+  const box = btn.closest('.motn') ? btn.closest('.motn').querySelector('.motn-voters') : null;
+  if(!box) return;
+  if(!box.hidden){ box.hidden = true; btn.innerHTML = '<i class="ti ti-users"></i> See who voted'; return; }
+  box.hidden = false; box.innerHTML = '<div class="motn-vlist-empty">Loading…</div>';
+  btn.innerHTML = '<i class="ti ti-users"></i> Hide who voted';
+  const { data, error } = await sb.rpc('motn_voters', { p_poll:Number(id) });
+  if(error){ box.innerHTML = `<div class="motn-vlist-empty">${/function|schema cache/i.test(error.message || '') ? 'The voter list is not switched on yet. Please check back soon!' : esc(error.message)}</div>`; return; }
+  if(!data || data.hidden){ box.innerHTML = '<div class="motn-vlist-empty">Vote first to see who voted.</div>'; return; }
+  const r = MOTN.rows[id] || {}, opts = r.options || [];
+  const by = {}; (data.voters || []).forEach(v => { (by[v.choice] = by[v.choice] || []).push(v.name); });
+  const groups = opts.filter(o => by[o.key] && by[o.key].length).map(o => `<div class="motn-vgroup">
+      <div class="motn-vhead"><b>${esc(o.label)}</b><span>${by[o.key].length} ${by[o.key].length === 1 ? 'vote' : 'votes'}</span></div>
+      <div class="motn-vnames">${by[o.key].map(n => `<span>${esc(n)}</span>`).join('')}</div></div>`).join('');
+  box.innerHTML = groups || '<div class="motn-vlist-empty">No votes yet.</div>';
 }
 async function motnRemove(id, btn){
   if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to remove it'; return; }
@@ -23419,7 +23518,7 @@ function pmPubTab(t, quiet){
   }
   if(t === 'posts'){
     const about = P.p.about ? `<section class="pm-aboutcard"><div class="pm-kick">About ${esc(P.p.name)}</div><p>${esc(P.p.about)}</p></section>` : '';
-    box.innerHTML = about + (P.posts.length ? `<div class="pm-cards pm-cards-m">${P.posts.map(r => {
+    box.innerHTML = about + `<div class="pm-awards-pin" id="pm-awards-pin" hidden></div>` + (P.posts.length ? `<div class="pm-cards pm-cards-m">${P.posts.map(r => {
       const prep = slPreparePhotos(r, slPhotosOf(r)), ph = prep.photos, pl = r.payload || {};
       const head = r.title || pl.author || pl.subject || CP_KIND_LABEL[r.kind] || 'Post';
       const full = String(prep.post.body || pl.intro || '').replace(/<[^>]+>/g, ' ').replace(/[*_~#>`]/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
@@ -23432,9 +23531,27 @@ function pmPubTab(t, quiet){
           <span class="pm-pcard-title">${esc(head)}</span>${text ? `<span class="pm-pcard-text">${esc(text)}${full.length > 600 ? '…' : ''}</span>` : ''}</span>
         <span class="pm-pcard-foot">${likes ? `<span class="pm-pcard-n"><i class="ti ti-thumb-up"></i> ${likes.toLocaleString()}</span>` : '<span class="pm-pcard-n"></span>'}<span class="pm-pcard-go">Open in the Feed <i class="ti ti-arrow-right"></i></span></span>
       </button>`; }).join('')}</div>` : `<div class="pm-empty">No posts yet.</div>`);
+    pmAwardsPin(P.p.id);
     return;
   }
   pmRosterTab(box);
+}
+/* A promotion's Awards and Match of the Night votes, pinned big at the top of
+   its own Posts tab: every open vote, plus awards from the last 14 days. On the
+   main Feed they stay in date order and are never pinned. */
+async function pmAwardsPin(pid){
+  const host = pmEl('pm-awards-pin'); if(!host || typeof sb === 'undefined') return;
+  try{
+    const since = new Date(Date.now() - 14 * 864e5).toISOString();
+    const { data, error } = await sb.from('motn_polls').select('id,created_at').eq('promotion_id', Number(pid))
+      .or('status.eq.open,created_at.gte.' + since).order('created_at', { ascending:false }).limit(8);
+    if(error || !data || !data.length) return;
+    const rows = (await Promise.all(data.map(x => motnResults(x.id)))).filter(Boolean);
+    const now = pmEl('pm-awards-pin');
+    if(!rows.length || !now) return;
+    now.innerHTML = `<div class="pm-kick">Awards</div><div class="motn-strip motn-big">${rows.map(r => motnCardHTML(r)).join('')}</div>`;
+    now.hidden = false;
+  }catch(e){}
 }
 // The big card for one person (public roster). WCA wrestlers use wcaGameRows instead.
 function pmPersonCard(p, col, catName){
