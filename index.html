@@ -4191,6 +4191,20 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     padding:9px 16px; border-radius:8px; cursor:pointer; transition:.15s;}
   .rfilter:hover{color:var(--txt); border-color:var(--gold-dim);}
   .rfilter.active{background:var(--gold); color:var(--on-gold); border-color:var(--gold); font-weight:600;}
+  /* Feed filters: a Promotion row and a Type row */
+  .sl-filters{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 16px; display:grid; gap:10px;}
+  .sl-frow{display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:center;}
+  .sl-flab{font-family:var(--font-cond); font-weight:600; letter-spacing:1.4px; text-transform:uppercase; font-size:15px; color:var(--muted);}
+  .sl-fchips{display:flex; gap:8px; flex-wrap:wrap;}
+  .sl-fchips .rfilter{background:rgba(0,0,0,.18); border-radius:999px; padding:8px 15px; font-size:15px; display:inline-flex; align-items:center; gap:7px;}
+  .sl-fchips .rfilter[hidden]{display:none;}
+  .sl-fchips .rfilter i.sl-fdot{width:10px; height:10px; border-radius:50%; background:var(--pc,var(--gold)); flex:none; display:inline-block;}
+  .sl-fchips .rfilter.active i.sl-fdot{box-shadow:0 0 0 2px rgba(0,0,0,.35);}
+  @media (max-width:700px){
+    .sl-frow{grid-template-columns:1fr; gap:6px;}
+    .sl-fchips{flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
+    .sl-fchips .rfilter{flex:none;}
+  }
 
   /* faction grouping inside roster */
   .roster-grid.as-block{display:block;}
@@ -10290,24 +10304,30 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <p class="sl-intro">What's happening in the WCA right now, social-media drama, breaking
       news, official announcements and reaction, newest first. For the history of how it all
       got here, head to the <a href="/timeline" data-page="timeline">Timeline</a>.</p>
-    <div class="roster-filters" id="sl-filters">
-      <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
-      <button class="rfilter" data-slfilter="wca" onclick="slSetFilter('wca',this)">WCA</button>
-      <button class="rfilter" data-slfilter="outside" onclick="slSetFilter('outside',this)">Around the Universe</button>
-      <button class="rfilter" data-slfilter="following" id="sl-f-follow" onclick="slSetFilter('following',this)" hidden>Following</button>
-      <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
-      <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
-      <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
-      <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
-      <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
-      <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
-      <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
-      <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
-      <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
-      <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
-      <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
-      <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
-      <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
+    <div class="sl-filters" id="sl-filters">
+      <div class="sl-frow"><div class="sl-flab">Promotion</div>
+        <div class="sl-fchips" id="sl-f-promo">
+        <button class="rfilter active" data-slpromo="all" onclick="slSetPromo('all',this)">All</button>
+        <button class="rfilter" data-slpromo="wca" onclick="slSetPromo('wca',this)">WCA</button>
+        <button class="rfilter" data-slpromo="following" id="sl-f-follow" onclick="slSetPromo('following',this)" hidden>Following</button>
+        </div></div>
+      <div class="sl-frow"><div class="sl-flab">Type</div>
+        <div class="sl-fchips" id="sl-f-type">
+        <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
+        <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
+        <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
+        <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
+        <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
+        <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
+        <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
+        <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
+        <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
+        <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
+        <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
+        <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
+        <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
+        <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
+        </div></div>
     </div>
     <div id="fr-composer"></div>
     <div id="sp-composer"></div>
@@ -17631,7 +17651,8 @@ async function refreshBetViews(){
 //  rankings use. Step 2 will swap SL_SEED for a live Supabase query.
 // ============================================================================
 const SL_PAGE_SIZE = 20;
-let SL_FILTER = 'all';
+let SL_FILTER = 'all';      // the Type row
+let SL_PROMO = 'all';       // the Promotion row: all, wca, following, or src:<promotion id>
 let SL_PAGE = 1;
 
 // --- SEED DATA (visual approval only; replaced by a DB load in Step 2) ---
@@ -19088,13 +19109,47 @@ function slRenderPostInner(p){
 }
 
 // ── Filter helper called by filter chips ──────────────────────────────────
+function slPaintFilters(){
+  document.querySelectorAll('#sl-f-type .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===SL_FILTER));
+  document.querySelectorAll('#sl-f-promo .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slpromo===SL_PROMO));
+}
+function slResetFilters(){ SL_FILTER = 'all'; SL_PROMO = 'all'; slPaintFilters(); }
 function slSetFilter(kind, btn){
   SL_FOCUS = null;
   SL_FILTER = kind;
   const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
   SL_PAGE = 1;
-  document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===kind));
+  slPaintFilters();
   renderStorylines();
+}
+function slSetPromo(key, btn){
+  SL_FOCUS = null;
+  SL_PROMO = key;
+  const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
+  SL_PAGE = 1;
+  slPaintFilters();
+  renderStorylines();
+}
+// One chip per approved promotion, named by its short name (PWF and so on)
+async function slLoadPromoFilters(){
+  try{
+    if(typeof peLoadPromoList !== 'function') return;
+    const list = await peLoadPromoList();
+    const row = document.getElementById('sl-f-promo'); if(!row) return;
+    row.querySelectorAll('[data-slpromo^="src:"]').forEach(b=>b.remove());
+    (list || []).forEach(pr=>{
+      const btn = document.createElement('button');
+      btn.className = 'rfilter';
+      btn.dataset.slpromo = 'src:' + Number(pr.id);
+      btn.title = pr.name || '';
+      const col = (typeof pmColor === 'function') ? pmColor(pr.color, '#E9B949') : '#E9B949';
+      btn.style.setProperty('--pc', col);
+      btn.innerHTML = '<i class="sl-fdot" aria-hidden="true"></i>' + esc(peShort(pr));
+      btn.onclick = () => slSetPromo(btn.dataset.slpromo, btn);
+      row.appendChild(btn);
+    });
+    slPaintFilters();
+  }catch(e){}
 }
 
 // Sort: pinned first, then by story_date newest-first.
@@ -19123,7 +19178,7 @@ async function slLoadSegmentTypeFilters(){
   try{
     const { data } = await sb.from('segment_types').select('key,name').order('created_at',{ascending:true});
     if(!data || !data.length) return;
-    const filterBar = document.getElementById('sl-filters');
+    const filterBar = document.getElementById('sl-f-type');
     if(!filterBar) return;
     data.forEach(t=>{
       // Don't duplicate if already rendered
@@ -19159,6 +19214,7 @@ async function loadStorylines(){
 
   // Load custom segment type filter chips (non-blocking)
   slLoadSegmentTypeFilters();
+  slLoadPromoFilters();
 
   await slLoadEngagement();
   renderStorylines();
@@ -19961,9 +20017,8 @@ function slFocusSharedPost(id, again){
     // filter that hides it, turn to the page it is on, then scroll to it.
     const all = slFeedList();
     if(!all.some(p => String(p.id) === String(id))) return false;   // Feed still loading, try again shortly
-    if(SL_FILTER !== 'all'){
-      SL_FILTER = 'all';
-      document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter==='all'));
+    if(SL_FILTER !== 'all' || SL_PROMO !== 'all'){
+      slResetFilters();
       const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
     }
     const idx = slFeedList().findIndex(p => String(p.id) === String(id));
@@ -25531,14 +25586,15 @@ function renderStorylines(){
   const pager = document.getElementById('sl-pager');
   if(!feed) return;
   let list = slFeedList();
-  if(SL_FILTER === 'outside') list = list.filter(p=>!!slSrc(p));          // other promotions + Press Pass
-  else if(SL_FILTER === 'following') list = list.filter(p=>typeof peFollowsPost === 'function' && peFollowsPost(p));   // promotions you follow
-  else if(SL_FILTER === 'wca') list = list.filter(p=>!slSrc(p) && p.kind!=='review');
-  else if(String(SL_FILTER).indexOf('src:') === 0){
-    const want = String(SL_FILTER).slice(4);
-    list = list.filter(p=>{ const s = slSrc(p); return s && s.type==='promotion' && String(s.id)===want; });
-  }
-  else if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
+  // Promotion row first, then the Type row
+  const motnOf = p => p.kind === '__motn' ? (MOTN.rows[p.motn_id] || {}) : null;
+  const promoOf = p => { const m = motnOf(p); if(m) return m.promotion_id != null ? Number(m.promotion_id) : null;
+    const s = slSrc(p); if(s) return s.type === 'promotion' && s.id != null ? Number(s.id) : -1;
+    return p.promotion_id != null ? Number(p.promotion_id) : null; };   // null = WCA, -1 = a Press Pass outlet
+  if(SL_PROMO === 'wca') list = list.filter(p=>promoOf(p) === null && (p.kind !== 'review' || SL_FILTER === 'review'));
+  else if(SL_PROMO === 'following') list = list.filter(p=>{ const m = motnOf(p); return m ? (m.promotion_id != null && PE.follows && PE.follows.has(Number(m.promotion_id))) : (typeof peFollowsPost === 'function' && peFollowsPost(p)); });
+  else if(String(SL_PROMO).indexOf('src:') === 0){ const want = Number(String(SL_PROMO).slice(4)); list = list.filter(p=>promoOf(p) === want); }
+  if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
   if(!list.length){
     feed.innerHTML = '<div class="sl-empty">No storylines here yet</div>';
     if(pager) pager.innerHTML = '';
@@ -25843,16 +25899,7 @@ document.querySelectorAll('#rank-filters .rfilter').forEach(b=>{
     });
   };
 });
-// Storylines type filter (All / Social / Articles / HR / Timeline)
-document.querySelectorAll('#sl-filters .rfilter').forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll('#sl-filters .rfilter').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    SL_FILTER=b.dataset.slfilter;
-    SL_PAGE=1;
-    renderStorylines();
-  };
-});
+// Storylines type filter: the Type row uses slSetFilter, the Promotion row uses slSetPromo (set in the markup above)
 // Leaderboard view toggle (Most Recent Event / All-Time)
 document.querySelectorAll('#lb-filters .rfilter').forEach(b=>{
   b.onclick=()=>{
@@ -34828,8 +34875,8 @@ async function peLoadFollows(){
 function pePaintFeedChip(){
   const b = document.getElementById('sl-f-follow'); if(!b) return;
   b.hidden = !(PE.follows && PE.follows.size);
-  if(b.hidden && typeof SL_FILTER !== 'undefined' && SL_FILTER === 'following' && typeof slSetFilter === 'function'){
-    const all = document.querySelector('#sl-filters [data-slfilter="all"]'); slSetFilter('all', all);
+  if(b.hidden && typeof SL_PROMO !== 'undefined' && SL_PROMO === 'following' && typeof slSetPromo === 'function'){
+    const all = document.querySelector('#sl-f-promo [data-slpromo="all"]'); slSetPromo('all', all);
   }
 }
 // a Feed post from a promotion this person follows
@@ -35117,6 +35164,7 @@ function peMatchHTML(S, e, m, i, n){
       <button type="button" class="spc-post-btn" onclick="peBetGo(${Number(m.id)})">Place bet</button>
       <button type="button" class="spc-mini" onclick="PE.pub.open[${Number(m.id)}]=null;peDrawPublic()">Cancel</button>
       <span class="pe-est" id="pe-est-${m.id}"></span>
+      <label class="bet-hide" for="pe-hide-${m.id}" style="flex-basis:100%"><input type="checkbox" id="pe-hide-${m.id}"${(S.hide && S.hide[m.id] !== undefined ? S.hide[m.id] : !!(mine && mine.hide_pick)) ? ' checked' : ''} onchange="(PE.pub.hide = PE.pub.hide || {})[${Number(m.id)}] = this.checked"> <span>Hide who I picked. Everyone still sees how much I bet. My pick shows once the match is over.</span></label>
       <div class="pe-msg${S.msg[m.id] && S.msg[m.id].bad ? ' bad' : ''}" style="flex-basis:100%">${S.msg[m.id] ? esc(S.msg[m.id].t) : ''}</div></div>`;
   }
   const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="pe-mine"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
@@ -35205,8 +35253,12 @@ async function peBetGo(mid){
   const S = PE.pub, inp = document.getElementById('pe-amt-' + mid);
   const amt = Math.floor(Number(inp && inp.value) || 0);
   if(amt < 1){ S.msg[mid] = { t:'Enter how much to bet.', bad:true }; peDrawPublic(); return; }
+  const hideBox = document.getElementById('pe-hide-' + mid), wantHide = !!(hideBox && hideBox.checked), hadHidden = !!(S.mine[mid] && S.mine[mid].hide_pick);
   const { data, error } = await sb.rpc('promo_place_bet', { p_match:mid, p_side:S.open[mid], p_amount:amt });
   if(error){ S.msg[mid] = { t:peErr(error), bad:true }; peDrawPublic(); const i2 = document.getElementById('pe-amt-' + mid); if(i2) i2.value = amt; return; }
+  // hide or show the pick the way the box says
+  if(wantHide || hadHidden){ try{ await sb.rpc('promo_set_bet_hidden', { p_match:mid, p_hide:wantHide }); }catch(e){} }
+  if(S.hide) delete S.hide[mid];
   S.open[mid] = null; S.msg[mid] = null;
   peSyncWcaMoney(data);
   wcaToast('Bet placed', 'You can change it or take it back until betting locks.');
