@@ -4191,6 +4191,28 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     padding:9px 16px; border-radius:8px; cursor:pointer; transition:.15s;}
   .rfilter:hover{color:var(--txt); border-color:var(--gold-dim);}
   .rfilter.active{background:var(--gold); color:var(--on-gold); border-color:var(--gold); font-weight:600;}
+  /* Feed filters: a Promotion row and a Type row */
+  .sl-filters{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 16px; display:grid; gap:10px;}
+  .sl-frow{display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:center;}
+  .sl-flab{font-family:var(--font-cond); font-weight:600; letter-spacing:1.4px; text-transform:uppercase; font-size:15px; color:var(--muted);}
+  .sl-fchips{display:flex; gap:8px; flex-wrap:wrap;}
+  .sl-fchips .rfilter{background:rgba(0,0,0,.18); border-radius:999px; padding:8px 15px; font-size:15px; display:inline-flex; align-items:center; gap:7px;}
+  .sl-fchips .rfilter[hidden]{display:none;}
+  /* the selected chip keeps its accent fill (the dark chip background above was winning, hiding the dark text) */
+  .sl-fchips .rfilter.active{background:var(--gold); color:var(--on-gold); border-color:var(--gold);}
+  /* ── TEXT COLORS (Admin > Appearance > Edit colors by hand > Text colors) ──
+     Optional. Each one only applies when a color is saved for it. */
+  html[data-tc-head] .hm-title, html[data-tc-head] .hm-h2{ color:var(--head); -webkit-text-fill-color:currentColor; background:none; }
+  html[data-tc-head-hi] .hm-title em, html[data-tc-head-hi] .hm-kicker, html[data-tc-head-hi] .hm-eyebrow,
+  html[data-tc-head-hi] .section-title, html[data-tc-head-hi] #page-storylines .section-title{ color:var(--head-hi); }
+  html[data-tc-head-hi] .hm-title em{ -webkit-text-fill-color:currentColor; background:none; }
+  .sl-fchips .rfilter i.sl-fdot{width:10px; height:10px; border-radius:50%; background:var(--pc,var(--gold)); flex:none; display:inline-block;}
+  .sl-fchips .rfilter.active i.sl-fdot{box-shadow:0 0 0 2px rgba(0,0,0,.35);}
+  @media (max-width:700px){
+    .sl-frow{grid-template-columns:1fr; gap:6px;}
+    .sl-fchips{flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
+    .sl-fchips .rfilter{flex:none;}
+  }
 
   /* faction grouping inside roster */
   .roster-grid.as-block{display:block;}
@@ -5653,6 +5675,36 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
      The two lights are variables so the backdrop style can recolour them. */
   html{ --pl-a:rgba(30,96,168,.52); --pl-b:rgba(214,86,26,.50); --pl-void:#04060b; }
   html[data-backdrop="space-nebula"]{ --pl-a:rgba(84,60,168,.50); --pl-b:rgba(34,86,168,.46); --pl-void:#05060d; }
+  /* ── VICE SUNSET (Admin > Appearance > Site background) ───────────
+     A dusk sky behind everything, pink and orange light on the panels, and
+     a neon coast skyline with palms along the bottom of the backdrop canvas
+     (painted by the space engine, see VICE_SPACE). Everything here is scoped
+     to data-backdrop="vice", so every other background is untouched. */
+  html[data-backdrop="vice"]{
+    --pl-a:rgba(255,95,162,.42); --pl-b:rgba(255,160,70,.38); --pl-void:#0d0720;
+    --vice-grad:linear-gradient(90deg,#FF5FA2 0%,#FF8A5C 55%,#FFC46B 100%);
+  }
+  html[data-backdrop="vice"] body{
+    background:linear-gradient(180deg,#0d0722 0%,#1b0d3d 34%,#43165e 62%,#8a2a6c 84%,#d9596a 100%);
+    background-attachment:fixed;
+  }
+  html[data-backdrop="vice"] header{ border-bottom:2px solid transparent; border-image:var(--vice-grad) 1; }
+  html[data-backdrop="vice"] .hm-hero::before{ width:min(60%,360px); height:3px; background:var(--vice-grad); box-shadow:0 0 22px rgba(255,95,162,.8); }
+  /* Vice skies (Admin > Appearance > Site style > Sky). Dusk is the rule above. */
+  html[data-backdrop="vice"][data-sky="golden"] body{ background:linear-gradient(180deg,#2a1a6e 0%,#7a2f96 26%,#e0527f 52%,#ff8f5e 76%,#ffd27a 100%); background-attachment:fixed; }
+  html[data-backdrop="vice"][data-sky="day"] body{ background:linear-gradient(180deg,#0f63c4 0%,#2b8fe6 30%,#63bdf2 56%,#b6e6f7 78%,#ffe6c4 100%); background-attachment:fixed; }
+  html[data-backdrop="vice"][data-sky="image"] body{ background:#0d0722 var(--sky-img, none) center / cover no-repeat; background-attachment:fixed; }
+  /* "Dim the sky behind the page": one flat veil, so text that sits straight on the sky stays readable */
+  html[data-backdrop="vice"] body::before{
+    background:linear-gradient(rgba(8,4,24,var(--sky-dim,0)),rgba(8,4,24,var(--sky-dim,0)));
+    opacity:1;
+  }
+  html[data-backdrop="vice"] .hm-title em{ color:var(--gold); text-shadow:0 2px 18px rgba(var(--gold-rgb),.35); }
+  html[data-backdrop="vice"] .hm-cta{ border-radius:999px; padding:12px 26px; }
+  html[data-backdrop="vice"] .hm-cta-solid{ background:var(--vice-grad); border-color:transparent; color:#1c0a24; box-shadow:0 8px 26px -10px rgba(255,95,162,.9); }
+  html[data-backdrop="vice"] .hm-cta-solid:hover{ background:var(--vice-grad); }
+  html[data-backdrop="vice"] .hm-panel{ border-color:rgba(255,95,162,.34); }
+  html[data-backdrop="vice"] .section-title{ letter-spacing:4px; }
 
   html:not([data-backdrop="off"]) .hero,
   html:not([data-backdrop="off"]) .cn-card,
@@ -8828,6 +8880,16 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     transform:translateX(-50%); background:var(--gold);
     box-shadow:0 0 18px rgba(var(--gold-rgb),.8);
   }
+  /* cover art above the headline (Admin > Home Page > Cover art) */
+  .hm-cover{
+    max-width:1180px; margin:0 auto clamp(18px,2.6vw,28px); border-radius:14px; overflow:hidden;
+    border:1px solid var(--line); box-shadow:0 24px 60px -28px rgba(0,0,0,.9), 0 0 0 1px rgba(var(--gold-rgb),.18);
+    background:#0b0618;
+  }
+  .hm-cover img{display:block; width:100%; height:auto;}
+  .hm-cover[data-when="vice"]{display:none;}
+  html[data-backdrop="vice"] .hm-cover[data-when="vice"]{display:block;}
+  .hm-cover[hidden]{display:none !important;}
   .hm-kicker{
     font-family:var(--font-cond); font-size:14px; letter-spacing:5px;
     text-transform:uppercase; color:var(--gold); margin-bottom:10px;
@@ -9815,6 +9877,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <div class="hm-wrap">
 
       <section class="hm-panel hm-hero">
+        <div class="hm-cover" id="hm-cover" hidden></div>
         <div class="hm-kicker" id="hm-kicker"></div>
         <h1 class="hm-title" id="hm-rule-title"></h1>
         <div class="hm-video" id="hm-video"></div>
@@ -10254,24 +10317,30 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <p class="sl-intro">What's happening in the WCA right now, social-media drama, breaking
       news, official announcements and reaction, newest first. For the history of how it all
       got here, head to the <a href="/timeline" data-page="timeline">Timeline</a>.</p>
-    <div class="roster-filters" id="sl-filters">
-      <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
-      <button class="rfilter" data-slfilter="wca" onclick="slSetFilter('wca',this)">WCA</button>
-      <button class="rfilter" data-slfilter="outside" onclick="slSetFilter('outside',this)">Around the Universe</button>
-      <button class="rfilter" data-slfilter="following" id="sl-f-follow" onclick="slSetFilter('following',this)" hidden>Following</button>
-      <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
-      <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
-      <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
-      <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
-      <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
-      <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
-      <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
-      <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
-      <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
-      <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
-      <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
-      <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
-      <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
+    <div class="sl-filters" id="sl-filters">
+      <div class="sl-frow"><div class="sl-flab">Promotion</div>
+        <div class="sl-fchips" id="sl-f-promo">
+        <button class="rfilter active" data-slpromo="all" onclick="slSetPromo('all',this)">All</button>
+        <button class="rfilter" data-slpromo="wca" onclick="slSetPromo('wca',this)">WCA</button>
+        <button class="rfilter" data-slpromo="following" id="sl-f-follow" onclick="slSetPromo('following',this)" hidden>Following</button>
+        </div></div>
+      <div class="sl-frow"><div class="sl-flab">Type</div>
+        <div class="sl-fchips" id="sl-f-type">
+        <button class="rfilter active" data-slfilter="all" onclick="slSetFilter('all',this)">All</button>
+        <button class="rfilter" data-slfilter="review" onclick="slSetFilter('review',this)">Reviews</button>
+        <button class="rfilter" data-slfilter="social" onclick="slSetFilter('social',this)">Social</button>
+        <button class="rfilter" data-slfilter="article" onclick="slSetFilter('article',this)">Articles</button>
+        <button class="rfilter" data-slfilter="notice" onclick="slSetFilter('notice',this)">HR</button>
+        <button class="rfilter" data-slfilter="promo" onclick="slSetFilter('promo',this)">Promos</button>
+        <button class="rfilter" data-slfilter="interview" onclick="slSetFilter('interview',this)">Interviews</button>
+        <button class="rfilter" data-slfilter="press_qa" onclick="slSetFilter('press_qa',this)">Press Q&amp;A</button>
+        <button class="rfilter" data-slfilter="signing" onclick="slSetFilter('signing',this)">Signings</button>
+        <button class="rfilter" data-slfilter="injury" onclick="slSetFilter('injury',this)">Injuries</button>
+        <button class="rfilter" data-slfilter="rankings" onclick="slSetFilter('rankings',this)">Rankings</button>
+        <button class="rfilter" data-slfilter="mystery" onclick="slSetFilter('mystery',this)">Mystery</button>
+        <button class="rfilter" data-slfilter="spotlight" onclick="slSetFilter('spotlight',this)">Spotlight</button>
+        <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
+        </div></div>
     </div>
     <div id="fr-composer"></div>
     <div id="sp-composer"></div>
@@ -10814,6 +10883,29 @@ async function applyTheme(){
     if(typeof spaceRefresh === 'function') spaceRefresh();
     document.documentElement.dataset.surface  = (t && t.surface)  || 'solid';
     document.documentElement.dataset.backdrop = (t && t.backdrop) || 'space';
+    // Vice bottom scenery: a painted picture that replaces the drawn skyline (Admin > Appearance > Site style)
+    window.SITE_GROUND = /^https?:\/\//i.test(String(t.ground_url||''))
+      ? { url:String(t.ground_url), key:t.ground_key !== false, h:Math.max(15, Math.min(70, Number(t.ground_h) || 50)) } : null;
+    // Vice sky: dusk, golden hour, daylight, or your own picture, plus how much to dim it
+    {
+      const skyUrl = /^https?:\/\//i.test(String(t.sky_url||'')) ? String(t.sky_url) : '';
+      let sky = ['dusk','golden','day','image'].indexOf(t.sky) >= 0 ? t.sky : 'dusk';
+      if(sky === 'image' && !skyUrl) sky = 'dusk';
+      root.dataset.sky = sky;
+      root.dataset.skyline = (t.sky_line === false) ? 'off' : 'on';
+      root.dataset.ground = window.SITE_GROUND ? (window.SITE_GROUND.url + '|' + window.SITE_GROUND.key + '|' + window.SITE_GROUND.h) : '';
+      if(sky === 'image') root.style.setProperty('--sky-img', 'url("' + skyUrl.replace(/["\\\n]/g,'') + '")'); else root.style.removeProperty('--sky-img');
+      const dim = Math.max(0, Math.min(80, Number(t.sky_dim) || 0)) / 100;
+      root.style.setProperty('--sky-dim', String(dim));
+    }
+    // optional text colors: headline, highlighted headline words and section headings
+    [['head','tcHead'],['head-hi','tcHeadHi']].forEach(([k,d])=>{
+      const v = String(t[k]||'');
+      if(/^#[0-9a-f]{3,8}$/i.test(v)){ root.style.setProperty('--'+k, v); root.dataset[d] = '1'; }
+      else { root.style.removeProperty('--'+k); delete root.dataset[d]; }
+    });
+    // the backdrop canvas rebuilds when the background style changes (Vice Sunset has no planet)
+    if(typeof spaceRefresh === 'function') spaceRefresh();
     // A season's colours sit ON TOP of the saved theme, so wipe the last
     // season's colours first or they'd outlive it.
     try{ if(window.WCASeason) WCASeason.clearPalette(); }catch(e){}
@@ -10884,7 +10976,9 @@ function applyDerivedAccent(t){
   const onGold = luma(gold) > 150
     ? rgbToHex(...Object.values(mix(gold, 0, 0.88)))   // light accent -> near-black
     : '#ffffff';                                       // dark accent  -> white
-  root.style.setProperty('--on-gold', onGold);
+  // Admin > Appearance > Text colors can name this one outright
+  const onGoldSet = t && /^#[0-9a-f]{3,8}$/i.test(String(t['on-gold']||'')) ? t['on-gold'] : null;
+  root.style.setProperty('--on-gold', onGoldSet || onGold);
 
   // ambient page glow: strong on a dark background, dialled back on a light one
   const bg = hexToRgb((t && t.bg) || getComputedStyle(root).getPropertyValue('--bg'));
@@ -17593,7 +17687,8 @@ async function refreshBetViews(){
 //  rankings use. Step 2 will swap SL_SEED for a live Supabase query.
 // ============================================================================
 const SL_PAGE_SIZE = 20;
-let SL_FILTER = 'all';
+let SL_FILTER = 'all';      // the Type row
+let SL_PROMO = 'all';       // the Promotion row: all, wca, following, or src:<promotion id>
 let SL_PAGE = 1;
 
 // --- SEED DATA (visual approval only; replaced by a DB load in Step 2) ---
@@ -19050,13 +19145,47 @@ function slRenderPostInner(p){
 }
 
 // ── Filter helper called by filter chips ──────────────────────────────────
+function slPaintFilters(){
+  document.querySelectorAll('#sl-f-type .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===SL_FILTER));
+  document.querySelectorAll('#sl-f-promo .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slpromo===SL_PROMO));
+}
+function slResetFilters(){ SL_FILTER = 'all'; SL_PROMO = 'all'; slPaintFilters(); }
 function slSetFilter(kind, btn){
   SL_FOCUS = null;
   SL_FILTER = kind;
   const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
   SL_PAGE = 1;
-  document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter===kind));
+  slPaintFilters();
   renderStorylines();
+}
+function slSetPromo(key, btn){
+  SL_FOCUS = null;
+  SL_PROMO = key;
+  const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
+  SL_PAGE = 1;
+  slPaintFilters();
+  renderStorylines();
+}
+// One chip per approved promotion, named by its short name (PWF and so on)
+async function slLoadPromoFilters(){
+  try{
+    if(typeof peLoadPromoList !== 'function') return;
+    const list = await peLoadPromoList();
+    const row = document.getElementById('sl-f-promo'); if(!row) return;
+    row.querySelectorAll('[data-slpromo^="src:"]').forEach(b=>b.remove());
+    (list || []).forEach(pr=>{
+      const btn = document.createElement('button');
+      btn.className = 'rfilter';
+      btn.dataset.slpromo = 'src:' + Number(pr.id);
+      btn.title = pr.name || '';
+      const col = (typeof pmColor === 'function') ? pmColor(pr.color, '#E9B949') : '#E9B949';
+      btn.style.setProperty('--pc', col);
+      btn.innerHTML = '<i class="sl-fdot" aria-hidden="true"></i>' + esc(peShort(pr));
+      btn.onclick = () => slSetPromo(btn.dataset.slpromo, btn);
+      row.appendChild(btn);
+    });
+    slPaintFilters();
+  }catch(e){}
 }
 
 // Sort: pinned first, then by story_date newest-first.
@@ -19085,7 +19214,7 @@ async function slLoadSegmentTypeFilters(){
   try{
     const { data } = await sb.from('segment_types').select('key,name').order('created_at',{ascending:true});
     if(!data || !data.length) return;
-    const filterBar = document.getElementById('sl-filters');
+    const filterBar = document.getElementById('sl-f-type');
     if(!filterBar) return;
     data.forEach(t=>{
       // Don't duplicate if already rendered
@@ -19121,6 +19250,7 @@ async function loadStorylines(){
 
   // Load custom segment type filter chips (non-blocking)
   slLoadSegmentTypeFilters();
+  slLoadPromoFilters();
 
   await slLoadEngagement();
   renderStorylines();
@@ -19923,9 +20053,8 @@ function slFocusSharedPost(id, again){
     // filter that hides it, turn to the page it is on, then scroll to it.
     const all = slFeedList();
     if(!all.some(p => String(p.id) === String(id))) return false;   // Feed still loading, try again shortly
-    if(SL_FILTER !== 'all'){
-      SL_FILTER = 'all';
-      document.querySelectorAll('#sl-filters .rfilter').forEach(b=>b.classList.toggle('active', b.dataset.slfilter==='all'));
+    if(SL_FILTER !== 'all' || SL_PROMO !== 'all'){
+      slResetFilters();
       const pc = document.getElementById('cp-promo-card'); if(pc) pc.innerHTML = '';
     }
     const idx = slFeedList().findIndex(p => String(p.id) === String(id));
@@ -22430,42 +22559,7 @@ function mpGfxTab(box){
     </div>
     <p class="pm-p" style="font-size:15px">Only owners and co-owners of ${esc(p.name)} can open it. Pictures for your roster come from Roster, so add a face or full body picture there first for the best results.</p>
     <div class="pm-acts"><a class="spc-post-btn" href="${href}" style="text-decoration:none"><i class="ti ti-external-link" aria-hidden="true"></i> Open Graphics Studio</a></div>
-  </section>
-  <section class="pm-card" style="margin-top:14px">
-    <div class="pm-h3"><i class="ti ti-broadcast" aria-hidden="true"></i> Your broadcast kit for OBS</div>
-    <p class="pm-p" style="font-size:16px;line-height:1.6">The same live lower thirds and sponsor pop ups WCA uses on its shows, made for ${esc(p.name)}. It runs on your own PC with OBS: your roster, divisions, teams, champions and records come straight from here, you add your own sponsors with their pictures and ad reads, and you can change every color, shape and position. Works with Streamer.bot and a Stream Deck too.</p>
-    <ol class="pm-p" style="font-size:15.5px;line-height:1.7;margin:8px 0 12px 20px;padding:0">
-      <li>Download your copy and put it in its own folder on your PC.</li>
-      <li>In OBS, turn on the WebSocket server (Tools, WebSocket Server Settings).</li>
-      <li>Add the file to OBS as a Browser source, 1920 by 1080.</li>
-      <li>Open the same file in Chrome. That is your control window, and its START HERE tab walks you through the rest.</li>
-    </ol>
-    <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpLtDownload(this)"><i class="ti ti-download" aria-hidden="true"></i> Download my broadcast kit</button></div>
-    <div class="msg" id="mplt_msg"></div>
   </section>`;
-}
-/* A copy of the lower thirds and sponsors kit with this promotion filled in.
-   The template lives at /promotion-lower-thirds.html (built from WCA's own file). */
-async function mpLtDownload(btn){
-  const p = mpCur(); if(!p) return;
-  if(btn) btn.disabled = true;
-  try{
-    const r = await fetch('/promotion-lower-thirds.html', { cache:'no-cache' });
-    if(!r.ok) throw new Error('not found');
-    let html = await r.text();
-    const cfg = { id:Number(p.id), name:String(p.name || ''), short:String(p.short_name || ''), color:/^#[0-9a-f]{6}$/i.test(p.color || '') ? p.color : '#e9b949',
-      logo:String(p.logo_url || ''), page:String(p.slug ? 'https://wcauniverse.com/' + p.slug : '') };
-    if(!/\/\*PROMO\*\/[\s\S]*?\/\*END\*\//.test(html)) throw new Error('template is missing its settings line');
-    html = html.replace(/\/\*PROMO\*\/[\s\S]*?\/\*END\*\//, () => '/*PROMO*/' + JSON.stringify(cfg).replace(/</g, '\\u003c') + '/*END*/');
-    const name = (String(p.name || 'promotion').replace(/[^a-z0-9 ]+/gi, '').trim() || 'Promotion') + ' Lower Thirds.html';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([html], { type:'text/html' })); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    mpMsg('mplt_msg', 'Downloaded ' + name + '. Put it in its own folder, then open it in Chrome and follow START HERE.', true);
-  }catch(e){
-    mpMsg('mplt_msg', 'The broadcast kit is not ready to download yet. Please check back soon!', false);
-  }finally{ if(btn) btn.disabled = false; }
 }
 function mpSuggestTab(box){
   const p = mpCur(); if(!p) return;
@@ -25528,14 +25622,15 @@ function renderStorylines(){
   const pager = document.getElementById('sl-pager');
   if(!feed) return;
   let list = slFeedList();
-  if(SL_FILTER === 'outside') list = list.filter(p=>!!slSrc(p));          // other promotions + Press Pass
-  else if(SL_FILTER === 'following') list = list.filter(p=>typeof peFollowsPost === 'function' && peFollowsPost(p));   // promotions you follow
-  else if(SL_FILTER === 'wca') list = list.filter(p=>!slSrc(p) && p.kind!=='review');
-  else if(String(SL_FILTER).indexOf('src:') === 0){
-    const want = String(SL_FILTER).slice(4);
-    list = list.filter(p=>{ const s = slSrc(p); return s && s.type==='promotion' && String(s.id)===want; });
-  }
-  else if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
+  // Promotion row first, then the Type row
+  const motnOf = p => p.kind === '__motn' ? (MOTN.rows[p.motn_id] || {}) : null;
+  const promoOf = p => { const m = motnOf(p); if(m) return m.promotion_id != null ? Number(m.promotion_id) : null;
+    const s = slSrc(p); if(s) return s.type === 'promotion' && s.id != null ? Number(s.id) : -1;
+    return p.promotion_id != null ? Number(p.promotion_id) : null; };   // null = WCA, -1 = a Press Pass outlet
+  if(SL_PROMO === 'wca') list = list.filter(p=>promoOf(p) === null && (p.kind !== 'review' || SL_FILTER === 'review'));
+  else if(SL_PROMO === 'following') list = list.filter(p=>{ const m = motnOf(p); return m ? (m.promotion_id != null && PE.follows && PE.follows.has(Number(m.promotion_id))) : (typeof peFollowsPost === 'function' && peFollowsPost(p)); });
+  else if(String(SL_PROMO).indexOf('src:') === 0){ const want = Number(String(SL_PROMO).slice(4)); list = list.filter(p=>promoOf(p) === want); }
+  if(SL_FILTER !== 'all') list = list.filter(p=>p.kind===SL_FILTER);
   if(!list.length){
     feed.innerHTML = '<div class="sl-empty">No storylines here yet</div>';
     if(pager) pager.innerHTML = '';
@@ -25840,16 +25935,7 @@ document.querySelectorAll('#rank-filters .rfilter').forEach(b=>{
     });
   };
 });
-// Storylines type filter (All / Social / Articles / HR / Timeline)
-document.querySelectorAll('#sl-filters .rfilter').forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll('#sl-filters .rfilter').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    SL_FILTER=b.dataset.slfilter;
-    SL_PAGE=1;
-    renderStorylines();
-  };
-});
+// Storylines type filter: the Type row uses slSetFilter, the Promotion row uses slSetPromo (set in the markup above)
 // Leaderboard view toggle (Most Recent Event / All-Time)
 document.querySelectorAll('#lb-filters .rfilter').forEach(b=>{
   b.onclick=()=>{
@@ -26810,12 +26896,156 @@ function camFor(pg){
   // A seasonal theme tints the planet (Halloween turns it into a harvest moon).
   const ss = seasonSpace();
   if(ss && ss.hue != null) c.hue = ss.hue;
+  if(ss && ss.noPlanet) c.planet = false;   // Vice Sunset: a sunset sky, no globe
   return c;
 }
+/* VICE SUNSET site background. It borrows the space engine: pink, orange and
+   violet haze, warm stars, no planet, and the neon coast skyline with palms
+   that the Seasons engine already paints for Summer. A live season with its
+   own background still wins while it runs. */
+const VICE_SPACE = { id:'summer', noPlanet:true, skyline:true,
+  fog:[{h:[322,338],w:2.4,a:.085},{h:[18,34],w:1.6,a:.07},{h:[262,284],w:1.2,a:.06}],
+  stars:['#ffffff','#FFD1E8','#FFE2B8'], hue:326, corona:[255,110,150] };
 /* The live season's backdrop settings, or null when no season is running
    (or its background is switched off in the admin). */
 function seasonSpace(){
-  try{ return (window.WCASeason && WCASeason.space()) || null; }catch(e){ return null; }
+  let s = null;
+  try{ s = (window.WCASeason && WCASeason.space()) || null; }catch(e){ s = null; }
+  if(!s && document.documentElement.dataset.backdrop === 'vice'){
+    const ds = document.documentElement.dataset, sky = ds.sky || 'dusk', line = ds.skyline !== 'off';
+    if(sky === 'day') s = Object.assign({}, VICE_DAY, { skyline:line });
+    else if(sky === 'image') s = Object.assign({}, VICE_DAY, { paint:null, skyline:false });
+    else s = Object.assign({}, VICE_SPACE, { skyline:line });
+    // a painted scenery picture, once it has loaded, takes the place of the drawn skyline
+    const G = (sky !== 'image' && line) ? groundReady() : null;
+    if(G) s = Object.assign({}, s, { skyline:true, paint:function(c, W, H){ paintGround(c, W, H, G); } });
+  }
+  return s;
+}
+/* BOTTOM SCENERY PICTURE. Loaded once, its green (or already transparent)
+   background removed, the empty space above the scenery trimmed off, then
+   stamped along the bottom of the backdrop at the height set in the admin. */
+const GROUND = { key:'', cv:null, loading:'' };
+function groundReady(){
+  const g = window.SITE_GROUND; if(!g || !g.url) return null;
+  const key = g.url + '|' + (g.key ? 1 : 0);
+  if(GROUND.key === key) return GROUND.cv;
+  if(GROUND.loading === key) return null;
+  GROUND.loading = key;
+  const im = new Image(); im.crossOrigin = 'anonymous';
+  im.onload = () => { try{ GROUND.cv = prepGround(im, g.key); }catch(e){ GROUND.cv = null; } GROUND.key = key; try{ if(ready) build(); }catch(e){} };
+  im.onerror = () => { GROUND.cv = null; GROUND.key = key; };
+  im.src = g.url;
+  return null;
+}
+function prepGround(im, keyOut){
+  const k = Math.min(1, 2400 / im.naturalWidth);
+  const w = Math.max(1, Math.round(im.naturalWidth*k)), h = Math.max(1, Math.round(im.naturalHeight*k));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently:true }); x.drawImage(im, 0, 0, w, h);
+  let d; try{ d = x.getImageData(0, 0, w, h); }catch(e){ return c; }      // the host blocks pixel access: use it as is
+  const p = d.data;
+  if(keyOut){
+    for(let i=0;i<p.length;i+=4){
+      const r = p[i], g = p[i+1], b = p[i+2], m = Math.max(r, b), over = g - m;
+      if(g > 70 && over > 18){
+        const a = Math.max(0, Math.min(1, 1 - (over - 18)/52));            // soft edge
+        p[i+3] = Math.round(p[i+3]*a);
+        p[i+1] = Math.round(m + (g - m)*a*0.25);                           // pull the green spill out of the edge
+      }
+    }
+    x.putImageData(d, 0, 0);
+  }
+  // trim the empty rows above the scenery
+  let top = 0;
+  outer: for(let y=0;y<h;y++){ const row = y*w*4; let n = 0;
+    for(let xx=0;xx<w;xx+=3){ if(p[row + xx*4 + 3] > 40 && ++n > w/200) { top = y; break outer; } } }
+  if(top < 2) return c;
+  const o = document.createElement('canvas'); o.width = w; o.height = h - top;
+  o.getContext('2d').drawImage(c, 0, top, w, h - top, 0, 0, w, h - top);
+  return o;
+}
+function paintGround(c, W, H, G){
+  const pct = ((window.SITE_GROUND && window.SITE_GROUND.h) || 50) / 100;
+  // The height set in the admin is always kept. If the picture is then too
+  // narrow to reach both edges, mirrored copies continue it left and right
+  // (a mirrored copy always joins up cleanly with its neighbour).
+  const sc = H*pct / G.height, dw = G.width*sc, dh = G.height*sc, x0 = (W - dw)/2, y0 = H - dh;
+  c.imageSmoothingQuality = 'high';
+  c.drawImage(G, x0, y0, dw, dh);
+  for(let n = 1; x0 - (n-1)*dw > 0 && n < 8; n++){
+    [x0 - n*dw, x0 + n*dw].forEach(x => {
+      c.save();
+      if(n % 2){ c.translate(x + dw, y0); c.scale(-1, 1); c.drawImage(G, 0, 0, dw + 1, dh); }
+      else c.drawImage(G, x, y0, dw + 1, dh);
+      c.restore();
+    });
+  }
+}
+/* VICE DAYLIGHT: no stars, no haze. Clouds, a bright sea, pastel hotels and
+   green palms, all drawn in code like the dusk skyline. */
+const VICE_DAY = { id:'summer', noPlanet:true, noStars:true, noFog:true, skyline:true, fog:[], stars:['#ffffff'], hue:200, corona:[255,255,255],
+  paint:function(c, W, H){ paintViceDay(c, W, H); } };
+function paintViceDay(c, W, H){
+  let seed = 4242; const rnd = () => (seed = (seed*9301 + 49297) % 233280) / 233280;
+  const h = Math.min(H*0.30, 290), s = Math.max(0.45, h/290), hz = H - h*0.40;
+  // clouds: soft white heaps with a cool underside
+  const cloud = (x, y, k) => {
+    const blobs = [[0,0,46],[42,-14,38],[84,-2,44],[-40,6,34],[120,10,30],[24,14,40],[70,16,36]];
+    c.fillStyle = 'rgba(120,170,220,.35)'; blobs.forEach(b=>{ c.beginPath(); c.ellipse(x+b[0]*k, y+(b[1]+12)*k, b[2]*k*1.15, b[2]*k*0.62, 0, 0, 6.283); c.fill(); });
+    c.fillStyle = 'rgba(255,255,255,.94)'; blobs.forEach(b=>{ c.beginPath(); c.ellipse(x+b[0]*k, y+b[1]*k, b[2]*k*1.15, b[2]*k*0.66, 0, 0, 6.283); c.fill(); });
+  };
+  const nC = Math.max(4, Math.round(W/260));
+  for(let i=0;i<nC;i++) cloud((i + 0.15 + rnd()*0.7) * W/nC, H*(0.07 + rnd()*0.40), (0.7 + rnd()*1.3) * Math.max(0.6, s));
+  // warm haze on the horizon
+  let g = c.createLinearGradient(0, hz - h*0.9, 0, hz);
+  g.addColorStop(0, 'rgba(255,240,215,0)'); g.addColorStop(1, 'rgba(255,240,215,.55)');
+  c.fillStyle = g; c.fillRect(0, hz - h*0.9, W, h*0.9);
+  // far towers, hazy
+  let x = 0; c.fillStyle = 'rgba(150,190,225,.75)';
+  while(x < W){ const bw = (18 + rnd()*30)*s, bh = h*(0.18 + rnd()*0.5); c.fillRect(x, hz - bh, bw, bh); x += bw + rnd()*14*s; }
+  // the sea
+  g = c.createLinearGradient(0, hz, 0, H);
+  g.addColorStop(0, '#39d2de'); g.addColorStop(0.5, '#12a5c9'); g.addColorStop(1, '#0b6fa0');
+  c.fillStyle = g; c.fillRect(0, hz, W, H - hz);
+  c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.4;
+  for(let i=0;i<46;i++){ const y = hz + 5 + rnd()*(H - hz - 8), w = (20 + rnd()*90)*s, xx = rnd()*W;
+    c.globalAlpha = 0.25 + rnd()*0.6; c.beginPath(); c.moveTo(xx, y); c.lineTo(xx + w, y); c.stroke(); }
+  c.globalAlpha = 1;
+  // pastel deco hotels on both sides, sun on one face and shade on the other
+  const pastel = ['#FFD3DF','#FFF0C4','#BFEAF3','#FFC7A6','#E6D8FF','#FFFFFF','#C9F2DC'];
+  const trim   = ['#FF5FA2','#19B5C9','#FF9A4D','#8E6BFF'];
+  const hotels = (x0, x1) => {
+    let x = x0;
+    while(x < x1){
+      const bw = (44 + rnd()*62)*s*1.25, bh = h*(0.50 + rnd()*0.80), top = H - bh, col = pastel[(rnd()*pastel.length)|0], tc = trim[(rnd()*trim.length)|0];
+      c.fillStyle = col; c.fillRect(x, top, bw, bh);
+      c.fillStyle = 'rgba(40,60,120,.22)'; c.fillRect(x + bw*0.72, top, bw*0.28, bh);            // shaded side
+      if(rnd() < 0.65){ c.fillStyle = col; c.fillRect(x + bw*0.34, top - 16*s, bw*0.32, 16*s); c.fillStyle = tc; c.fillRect(x + bw*0.47, top - 40*s, bw*0.06, 24*s); }
+      c.fillStyle = tc; c.fillRect(x, top, bw, Math.max(3, 5*s));                                  // roof band
+      c.fillStyle = 'rgba(30,70,130,.50)';                                                         // window rows
+      const rows = Math.max(3, Math.floor(bh/(20*s)));
+      for(let r=1;r<rows;r++){ const y = top + r*(bh/rows); c.fillRect(x + bw*0.08, y, bw*0.84, Math.max(3, 6*s)); }
+      c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(x + bw*0.48, top + 6*s, Math.max(2, bw*0.04), bh);  // centre fin
+      x += bw + 2;
+    }
+  };
+  hotels(-10, W*0.24); hotels(W*0.76, W + 10);
+  // palms
+  const palm = (px, ph, lean) => {
+    const base = H + 4, tx = px + lean, ty = base - ph;
+    c.strokeStyle = '#7a5230'; c.lineWidth = Math.max(4, ph*0.05); c.lineCap = 'round';
+    c.beginPath(); c.moveTo(px, base); c.quadraticCurveTo(px + lean*0.15, base - ph*0.55, tx, ty); c.stroke();
+    for(let i=0;i<8;i++){
+      const a = -Math.PI*0.98 + i*(Math.PI*0.96/7), len = ph*(0.40 + (i%2)*0.08);
+      const ex = tx + Math.cos(a)*len, ey = ty + Math.sin(a)*len*0.7 + len*0.36;
+      c.fillStyle = i % 2 ? '#1f9a55' : '#2fb86a';
+      c.beginPath(); c.moveTo(tx, ty); c.quadraticCurveTo(tx + Math.cos(a)*len*0.6, ty + Math.sin(a)*len*0.85, ex, ey);
+      c.quadraticCurveTo(tx + Math.cos(a)*len*0.5, ty + Math.sin(a)*len*0.42, tx, ty); c.fill();
+    }
+  };
+  palm(W*0.05, h*1.20, 30*s); palm(W*0.12, h*0.86, -22*s); palm(W*0.30, h*0.70, 16*s);
+  palm(W*0.70, h*0.74, -16*s); palm(W*0.89, h*0.96, 24*s); palm(W*0.96, h*1.24, -30*s);
 }
 const POV = {
   home:        { x:0.50, y:1.16, r:0.80, hue:212, tilt:-0.15 },
@@ -26844,8 +27074,8 @@ function build(){
   cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
 
-  const n = Math.round(Math.min(LOW ? 130 : 320, (W*H)/(LOW ? 9000 : 5200)));
   const SS = seasonSpace();
+  const n = (SS && SS.noStars) ? 0 : Math.round(Math.min(LOW ? 130 : 320, (W*H)/(LOW ? 9000 : 5200)));
   stars = [];
   for(let i=0;i<n;i++){
     const depth = Math.random();
@@ -26853,7 +27083,7 @@ function build(){
                  r:0.35 + depth*1.45, tw:Math.random()*6.283, sp:0.5+Math.random()*1.3,
                  col: SS ? SS.stars[(Math.random()*SS.stars.length)|0] : null });
   }
-  const fn = LOW ? 7 : 13;
+  const fn = (SS && SS.noFog) ? 0 : (LOW ? 7 : 13);
   fog = [];
   const style = document.documentElement.dataset.backdrop || 'space-fire';
   for(let i=0;i<fn;i++){
@@ -26884,7 +27114,7 @@ function build(){
     skyLayer = document.createElement('canvas');
     skyLayer.width = Math.round(W*dpr); skyLayer.height = Math.round(H*dpr);
     const k = skyLayer.getContext('2d'); k.setTransform(dpr,0,0,dpr,0,0);
-    try{ WCASeason.paintSkyline(k, W, H, SS.id); }catch(e){ skyLayer = null; }
+    try{ if(SS.paint) SS.paint(k, W, H); else WCASeason.paintSkyline(k, W, H, SS.id); }catch(e){ skyLayer = null; }
   }
   planetLayer = null; planetKey = '';   // sizes changed — drop the cached body
   ready = true;
@@ -27149,7 +27379,8 @@ let lastStyle = null;
 function setPage(pg){
   if(!cv) return;
   const style = document.documentElement.dataset.backdrop || 'space-fire';
-  if(style !== lastStyle){ lastStyle = style; if(ready) build(); }
+  { const ds = document.documentElement.dataset, key = style + '|' + (ds.sky||'') + '|' + (ds.skyline||'') + '|' + (ds.ground||'');
+    if(key !== lastStyle){ lastStyle = key; if(ready) build(); } }
   // Only the 3D star map needs the 2D layer out of the way — one space scene
   // at a time. Character select (the list view) has no WebGL running, so it
   // keeps the animated starfield like every other page.
@@ -28718,6 +28949,8 @@ window.timelineLeave = function(){};
 const HOME_DEFAULTS = {
   /* the intro video. Any normal YouTube link works. Blank shows "coming soon". */
   video_url: '',
+  /* cover art above the headline: wide for computers, tall for phones */
+  cover_url: '', cover_tall_url: '', cover_when: 'vice',
 
   /* above the video */
   pitch_kicker: 'Welcome to the WCA Universe',
@@ -28872,6 +29105,7 @@ function paintHome(){
     `<div class="hm-hubpt"><i class="ti ${ic}"></i><div><h3>${escH(HOME[k + '_title'])}</h3><p>${escH(HOME[k + '_body'])}</p></div></div>`).join('');
 
   paintVideo();
+  try{ paintCover(); }catch(e){}
   paintGuide();
   paintDonateOpts($h('hm-donate-opts'));
   observeRises();
@@ -28887,6 +29121,21 @@ function youTubeId(url){
   if((m = u.match(/youtube\.com\/(?:embed|live|shorts)\/([\w-]{6,})/))) return m[1];
   if(/^[\w-]{11}$/.test(u))                               return u;
   return '';
+}
+/* The cover picture above the headline. Whether it shows only with the Vice
+   Sunset background or always is decided in CSS from data-when, so it reacts
+   the moment the theme loads. */
+function paintCover(){
+  const box = $h('hm-cover');
+  if(!box) return;
+  const ok = u => /^https?:\/\//i.test(String(u||''));
+  const wide = ok(HOME.cover_url) ? HOME.cover_url : (ok(HOME.cover_tall_url) ? HOME.cover_tall_url : '');
+  const tall = ok(HOME.cover_tall_url) ? HOME.cover_tall_url : wide;
+  if(!wide){ box.hidden = true; box.innerHTML = ''; return; }
+  box.dataset.when = HOME.cover_when === 'always' ? 'always' : 'vice';
+  box.hidden = false;
+  box.innerHTML = `<picture><source media="(max-width:700px)" srcset="${attrH(tall)}">
+    <img src="${attrH(wide)}" alt="WCA cover art"></picture>`;
 }
 function paintVideo(){
   const box = $h('hm-video');
@@ -34796,8 +35045,8 @@ async function peLoadFollows(){
 function pePaintFeedChip(){
   const b = document.getElementById('sl-f-follow'); if(!b) return;
   b.hidden = !(PE.follows && PE.follows.size);
-  if(b.hidden && typeof SL_FILTER !== 'undefined' && SL_FILTER === 'following' && typeof slSetFilter === 'function'){
-    const all = document.querySelector('#sl-filters [data-slfilter="all"]'); slSetFilter('all', all);
+  if(b.hidden && typeof SL_PROMO !== 'undefined' && SL_PROMO === 'following' && typeof slSetPromo === 'function'){
+    const all = document.querySelector('#sl-f-promo [data-slpromo="all"]'); slSetPromo('all', all);
   }
 }
 // a Feed post from a promotion this person follows
@@ -35085,6 +35334,7 @@ function peMatchHTML(S, e, m, i, n){
       <button type="button" class="spc-post-btn" onclick="peBetGo(${Number(m.id)})">Place bet</button>
       <button type="button" class="spc-mini" onclick="PE.pub.open[${Number(m.id)}]=null;peDrawPublic()">Cancel</button>
       <span class="pe-est" id="pe-est-${m.id}"></span>
+      <label class="bet-hide" for="pe-hide-${m.id}" style="flex-basis:100%"><input type="checkbox" id="pe-hide-${m.id}"${(S.hide && S.hide[m.id] !== undefined ? S.hide[m.id] : !!(mine && mine.hide_pick)) ? ' checked' : ''} onchange="(PE.pub.hide = PE.pub.hide || {})[${Number(m.id)}] = this.checked"> <span>Hide who I picked. Everyone still sees how much I bet. My pick shows once the match is over.</span></label>
       <div class="pe-msg${S.msg[m.id] && S.msg[m.id].bad ? ' bad' : ''}" style="flex-basis:100%">${S.msg[m.id] ? esc(S.msg[m.id].t) : ''}</div></div>`;
   }
   const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="pe-mine"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
@@ -35173,8 +35423,12 @@ async function peBetGo(mid){
   const S = PE.pub, inp = document.getElementById('pe-amt-' + mid);
   const amt = Math.floor(Number(inp && inp.value) || 0);
   if(amt < 1){ S.msg[mid] = { t:'Enter how much to bet.', bad:true }; peDrawPublic(); return; }
+  const hideBox = document.getElementById('pe-hide-' + mid), wantHide = !!(hideBox && hideBox.checked), hadHidden = !!(S.mine[mid] && S.mine[mid].hide_pick);
   const { data, error } = await sb.rpc('promo_place_bet', { p_match:mid, p_side:S.open[mid], p_amount:amt });
   if(error){ S.msg[mid] = { t:peErr(error), bad:true }; peDrawPublic(); const i2 = document.getElementById('pe-amt-' + mid); if(i2) i2.value = amt; return; }
+  // hide or show the pick the way the box says
+  if(wantHide || hadHidden){ try{ await sb.rpc('promo_set_bet_hidden', { p_match:mid, p_hide:wantHide }); }catch(e){} }
+  if(S.hide) delete S.hide[mid];
   S.open[mid] = null; S.msg[mid] = null;
   peSyncWcaMoney(data);
   wcaToast('Bet placed', 'You can change it or take it back until betting locks.');
@@ -35606,7 +35860,7 @@ async function mpeUnsettle(id, btn){
 }
 
 /* ---------------- My Promotion: Betting ---------------- */
-const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null };
+const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null, editFan:null };
 async function mpBettingTab(box){
   box.innerHTML = '<div class="loading">Loading…</div>';
   MPB.pid = Number(PM.curId); MPB.box = box;
@@ -35630,6 +35884,7 @@ function mpbDraw(){
   const E = MPB.econ, name = (mpCur() || {}).name || 'your promotion', shared = E.money_mode === 'wca';
   const money = shared ? { currency_name:'WCA money', currency_symbol:'$' } : E;
   const fanName = id => (MPB.fans.find(f => f.user_id === id) || {}).name || 'A fan';
+  if(MPB.editFan && !shared){ mpbFanEditDraw(); return; }
   box.setAttribute('data-keep', 'mp-bet:' + Number(MPB.pid));
   box.innerHTML = `<div class="pe">
   <section class="pm-card">
@@ -35684,6 +35939,10 @@ function mpbDraw(){
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbSelfSet()">Save my balance</button></div>
     <div class="msg" id="mpb_smsg"></div>
   </section>` : ''}
+  ${!shared && !mpbSelfOk() ? `<section class="pm-card" style="margin-top:16px" id="mpb_self">
+    <div class="pm-h3">Your own balance</div>
+    <p class="pm-p">Only the account that owns ${esc(name)} can set its own balance here. You are signed in as ${mpRole() === 'coowner' ? 'a co-owner of' : 'someone who is not the owner of'} ${esc(name)}. If you run ${esc(name)}, sign in with the account you made it with, or ask the WCA admin to check which account is listed as the owner.</p>
+  </section>` : ''}
   ${shared ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Give a bonus</div>
     <p class="pm-p">Your fans bet with WCA money, so bonuses come from WCA. Switch to your own money above if you want to hand out bonuses.</p></section>` : `<section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Give a bonus</div>
@@ -35704,7 +35963,7 @@ function mpbDraw(){
   ${mpbWatchHTML(shared)}
   <section class="pm-card" style="margin-top:16px">
     <div class="pm-h3">Your fans</div>
-    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th></tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td></tr>`).join('')}</tbody></table>`
+    ${MPB.fans.length ? `<table class="mpb-table"><thead><tr><th>Fan</th><th>Balance</th><th>Follows you</th>${shared ? '' : '<th>Points</th>'}</tr></thead><tbody>${MPB.fans.map(f => `<tr><td>${esc(f.name)}</td><td>${f.balance != null ? esc(peMoney(money, f.balance)) : 'No balance yet'}</td><td>${f.following ? 'Yes' : 'No'}</td>${shared ? '' : `<td><button type="button" class="spc-mini" onclick="mpbFanEdit('${jsAttr(f.user_id)}')">Edit points</button></td>`}</tr>`).join('')}</tbody></table>`
       : '<p class="pm-p">Nobody yet. Fans show up here once they follow you or place a bet.</p>'}
   </section>
   ${MPB.grants.length ? `<section class="pm-card" style="margin-top:16px"><div class="pm-h3">Bonuses you gave</div>
@@ -35826,6 +36085,45 @@ async function mpbSelfSet(){
   await mpBettingTab(MPB.box);
   mpMsg('mpb_smsg', res.data && res.data.changed === false ? 'That is already your balance.' : 'Saved. Your balance is now ' + peMoney(MPB.econ, want) + '.', true);
   const sec = pmEl('mpb_self'); if(sec) sec.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+/* Edit one fan's points: its own page, not a pop up. Save sends only the difference to that one fan. */
+function mpbFanEdit(uid){ MPB.editFan = String(uid); mpbDraw(); window.scrollTo({ top:0, behavior:'smooth' }); }
+function mpbFanCancel(){ MPB.editFan = null; mpbDraw(); }
+function mpbFanEditDraw(){
+  const box = MPB.box, E = MPB.econ || {}, name = (mpCur() || {}).name || 'your promotion';
+  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan));
+  if(!f){ MPB.editFan = null; mpbDraw(); return; }
+  const cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
+  box.setAttribute('data-keep', 'mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
+  box.innerHTML = `<div class="pe">
+    <div class="ed-crumb"><button type="button" onclick="mpbFanCancel()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Your fans</button><span aria-hidden="true">/</span><span>${esc(f.name)}</span></div>
+    <section class="pm-card" style="margin-top:12px">
+      <div class="pm-h3">Edit points for ${esc(f.name)}</div>
+      <p class="pm-p">This only changes ${esc(f.name)}'s ${esc(E.currency_name || 'money')} in ${esc(name)}. Nobody else is touched, and it shows in Bonuses you gave.</p>
+      <div class="mpb-selfbal">Right now: <b>${f.balance != null ? esc(peMoney(E, f.balance)) : esc(peMoney(E, cur)) + ' (starting balance, no balance saved yet)'}</b></div>
+      <div class="mpe-fields">
+        <div><label for="mpb_fbal">New balance</label><input id="mpb_fbal" type="number" min="0" step="1" inputmode="numeric" value="${cur}"></div>
+        <div class="mpb-wide"><label for="mpb_fnote">Note <span class="pm-opt">(optional, they see it)</span></label><input id="mpb_fnote" maxlength="200" placeholder="Fixing a mistake"></div>
+      </div>
+      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpbFanSave()">Save points</button><button type="button" class="spc-mini" onclick="mpbFanCancel()">Cancel</button></div>
+      <div class="msg" id="mpb_fmsg"></div>
+    </section></div>`;
+}
+async function mpbFanSave(){
+  const f = MPB.fans.find(x => String(x.user_id) === String(MPB.editFan)); if(!f) return;
+  const E = MPB.econ || {}, cur = f.balance != null ? Number(f.balance) : (Number(E.start_amount) || 0);
+  const raw = String((pmEl('mpb_fbal') || {}).value || '').trim(), want = Math.floor(Number(raw));
+  if(raw === '' || !isFinite(want) || want < 0){ mpMsg('mpb_fmsg', 'Type a balance of 0 or more.', false); return; }
+  const diff = want - cur;
+  if(diff === 0){ mpMsg('mpb_fmsg', 'That is already their balance.', false); return; }
+  const note = ((pmEl('mpb_fnote') || {}).value || '').trim() || 'Points set by the owner';
+  const res = await sb.rpc('promo_grant', { p_promotion:MPB.pid, p_user:f.user_id, p_amount:diff, p_note:note });
+  if(res.error){ mpMsg('mpb_fmsg', peErr(res.error), false); return; }
+  const nm = f.name;
+  if(typeof wcaKeepDone === 'function') wcaKeepDone('mp-fanedit:' + Number(MPB.pid) + ':' + String(f.user_id));
+  MPB.editFan = null;
+  await mpBettingTab(MPB.box);
+  mpMsg('mpb_gmsg', nm + ' now has ' + peMoney(MPB.econ, want) + '.', true);
 }
 async function mpbGive(sign){
   const amt = Math.floor(Number(pmEl('mpb_gamt').value) || 0);
