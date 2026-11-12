@@ -10892,6 +10892,13 @@ async function applyTheme(){
       let sky = ['dusk','golden','day','image'].indexOf(t.sky) >= 0 ? t.sky : 'dusk';
       if(sky === 'image' && !skyUrl) sky = 'dusk';
       root.dataset.sky = sky;
+      // No scenery picture saved in the admin: use the ones that ship with the site
+      // (vice/scenery-day.webp under the daylight sky, vice/scenery-night.webp otherwise).
+      // If the file is missing the drawn skyline shows, so nothing breaks.
+      if(!window.SITE_GROUND && t.backdrop === 'vice' && sky !== 'image'){
+        try{ window.SITE_GROUND = { url:new URL(sky === 'day' ? '/vice/scenery-day.webp' : '/vice/scenery-night.webp', location.href).href,
+               key:true, h:Math.max(15, Math.min(70, Number(t.ground_h) || 50)) }; }catch(e){}
+      }
       root.dataset.skyline = (t.sky_line === false) ? 'off' : 'on';
       root.dataset.ground = window.SITE_GROUND ? (window.SITE_GROUND.url + '|' + window.SITE_GROUND.key + '|' + window.SITE_GROUND.h) : '';
       if(sky === 'image') root.style.setProperty('--sky-img', 'url("' + skyUrl.replace(/["\\\n]/g,'') + '")'); else root.style.removeProperty('--sky-img');
