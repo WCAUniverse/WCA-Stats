@@ -23,7 +23,7 @@ try{ window.__wcaFirstVisit = !localStorage.getItem('wca-seen-home'); }catch(e){
 var WCA_PATHS = /^https?:$/.test(location.protocol);
 var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
                  'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate',
-                 'promotions','promotion','my-promotion','mypromo','relationships'];
+                 'promotions','promotion','my-promotion','mypromo','relationships','starmap'];
 var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };                       // tab id -> address
 var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };   // address -> tab id
 (function(){
@@ -10414,6 +10414,12 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
       <div class="sm-views"><div class="stx-panel"><div id="rv-body"></div></div></div>
     </div>
   </div></div>
+  <!-- STAR MAP (Nov 2026): the whole WCA Universe on one map. In Fight Hub the WCA Universe block at the end of the file draws it full screen. -->
+  <div class="page" id="page-starmap">
+    <div class="section-title">Star Map</div>
+    <p class="hint" style="font-size:16px">The Star Map lives on the Roster page in this design.</p>
+    <button class="btn" type="button" onclick="goPage('roster')">Open the Roster</button>
+  </div>
   <div class="page" id="page-relationships"><div class="stx-pagewrap">
     <div class="stx-crumbs" id="stx-crumbs"></div>
     <div class="sm-layout stx-layout no-rail" id="stx-layout">
@@ -25798,7 +25804,7 @@ function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
   // Pages reached without a nav button: account and the personal dashboard
   // (both from the user chip) and home (the logo).
-  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo' && pg!=='relationships') return false;
+  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo' && pg!=='relationships' && pg!=='starmap') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   setTimeout(() => { try{ if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE) renderUserChip(); }catch(e){} }, 60);   // the money in the top right
   if(typeof wcaNavIcon==='function') wcaNavIcon();
@@ -25855,7 +25861,7 @@ function activatePage(pg){
 function restorePageFromHash(){
   let { pg, qs } = wcaRoute();
   const known = pg && (document.querySelector('nav [data-page="'+pg+'"]') ||
-                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo' || pg==='relationships');
+                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo' || pg==='relationships' || pg==='starmap');
   // maybe a promotion's link (wcauniverse.com/PWF): ask once which promotion it is
   const seg0 = WCA_PATHS ? (location.pathname.split('/').filter(Boolean)[0] || '') : '';
   if(!known && /^[A-Za-z0-9]{2,20}$/.test(seg0) && !restorePageFromHash.asked && typeof sb !== 'undefined' && sb){
@@ -39388,7 +39394,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   /* ── page names for the page bar and the loading screen ── */
   const NAMES = { storylines:'Feed', events:'Events', archive:'Past Events', live:'Watch Live', roster:'Roster', rivalries:'Rivalries', rankings:'Rankings',
     leaderboard:'Betting', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'About WCA', dash:'Dashboard',
-    account:'Account', mypromo:'My Promotion', relationships:'Relationships', showdown:'Showdown', timeline:'Timeline' };
+    account:'Account', mypromo:'My Promotion', relationships:'Relationships', showdown:'Showdown', timeline:'Timeline', starmap:'Star Map' };
   const TIPS = [
     'When you bet, you can hide your pick. The amount always shows.',
     'Every promotion has its own currency. Your balance in the top corner follows the one you are looking at.',
@@ -39439,7 +39445,8 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     return out;
   }
   const HELP = { home:'What WCA is, the intro video, and how to get started.', storylines:'What every promotion is saying right now.', events:'Pick a promotion, then pick its upcoming show or past events.',
-    live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable.', rivalries:'Who is at war right now.',
+    live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable, from every promotion.', rivalries:'Who is at war right now.',
+    starmap:'The whole WCA Universe in the stars. Every promotion, every superstar.',
     rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', promotions:'Every promotion in the WCA Universe.',
     more:'Apply, Sponsors, Donate, Get the App and more.' };
   function mi(label, o){
@@ -39473,6 +39480,8 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     const cur = curPage();
     c1.innerHTML = '<div class="fh-head">Main Menu</div>';
     const items = [{ pg:'home', t:'About WCA' }].concat(navItems().filter(x => x.pg !== 'apply' && x.pg !== 'sponsors' && x.pg !== 'home'));
+    // the Star Map gets its own entry, right after the Roster (Nov 2026)
+    { const ri = items.findIndex(x => x.pg === 'roster'); items.splice(ri >= 0 ? ri + 1 : items.length, 0, { pg:'starmap', t:'Star Map' }); }
     items.forEach(x => {
       const isSub = x.pg === 'events' || x.pg === 'promotions';
       const active = sub ? (sub === x.pg || (sub && sub.promo && x.pg === 'events')) : (cur === x.pg || (x.pg === 'events' && (cur === 'archive' || cur === 'showdown')));
@@ -39695,7 +39704,7 @@ const FHBG = (function(){
     if(mode==='fog') fogF(T, still ? 0 : spd); else if(mode==='space') spaceF(T);
     const v=x.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.78); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.55)'); x.fillStyle=v; x.fillRect(0,0,W,H);
   }
-  function loop(now){ raf = 0; if(document.documentElement.dataset.design !== 'fight') return; frame(now); if(!still && !document.hidden && FH.bg !== 'off') raf = requestAnimationFrame(loop); }
+  function loop(now){ raf = 0; if(document.documentElement.dataset.design !== 'fight' || document.documentElement.dataset.wu) return; frame(now); if(!still && !document.hidden && FH.bg !== 'off') raf = requestAnimationFrame(loop); }
   function restart(){ cancelAnimationFrame(raf); raf = 0; last = 0; if(document.documentElement.dataset.design !== 'fight') return; cols(); build(); raf = requestAnimationFrame(loop); }
   addEventListener('resize', () => { if(document.documentElement.dataset.design === 'fight') restart(); });
   addEventListener('pointermove', e => { tmx=(e.clientX/W-.5)*2; tmy=(e.clientY/H-.5)*2; }, { passive:true });
@@ -39704,6 +39713,883 @@ const FHBG = (function(){
   new MutationObserver(() => { cols(); }).observe(document.documentElement, { attributes:true, attributeFilter:['style','data-backdrop'] });
   setTimeout(restart, 0);
   return { restart };
+})();
+</script>
+
+
+<!-- ═══════════════ WCA UNIVERSE (Fight Hub, Nov 2026) ═══════════════
+     Star Map (/starmap), character Select (/roster), full profile with every match,
+     Relationships web (/relationships) and Rivalries (/rivalries), on one shared 3D universe.
+     Only in the Fight Hub design. The old Roster, Relationships and Rivalries pages are
+     untouched and one click away ("Classic view"). Classic design never sees any of this. -->
+<style id="wu-style">
+  html:not([data-design="fight"]) #wu, html:not([data-design="fight"]) #wu-space, html:not([data-design="fight"]) #wu-newview{display:none !important;}
+  #wu-space{position:fixed; inset:0; width:100%; height:100%; z-index:0; display:none; pointer-events:none;}
+  html[data-design="fight"][data-wu] #wu-space{display:block;}
+  html[data-design="fight"][data-wu] #fh-bg{display:none !important;}
+  html[data-design="fight"][data-wu] .wrap, html[data-design="fight"][data-wu] #siteFoot{display:none !important;}
+  html[data-design="fight"][data-wu] body{overflow:hidden;}
+  html[data-design="fight"][data-wu="map"] #wu-space{pointer-events:auto;}
+  #wu{display:none; --wu-gold:#E9B949; --wu-win:#3ecf8e; --wu-loss:#e8556a; --wu-nowin:#8a8fa3; --wu-panel:rgba(10,12,22,.8); --wu-line:rgba(255,255,255,.1); --wu-line2:rgba(255,255,255,.18);
+    --wu-f:var(--fh-fight,'Barlow Condensed',sans-serif); --wu-d:var(--font-display,'Anton',Impact,sans-serif); font-family:var(--font-body,'Barlow',system-ui,sans-serif); color:var(--txt,#f3f1ea);}
+  html[data-design="fight"][data-wu] #wu{display:block;}
+  #wu button{font:inherit; color:inherit; cursor:pointer; background:none; border:0;}
+  #wu .wu-modes{position:fixed; z-index:31; left:0; right:0; top:var(--wu-top,120px); display:flex; gap:6px; align-items:center; padding:0 22px; flex-wrap:wrap; pointer-events:none;}
+  #wu .wu-modes > *{pointer-events:auto;}
+  #wu .wu-mode{padding:8px 16px; font-family:var(--wu-f); font-style:italic; font-weight:800; font-size:17px; letter-spacing:1.5px; text-transform:uppercase;
+    border:1px solid var(--wu-line2); background:rgba(0,0,0,.55); clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  #wu .wu-mode i{margin-right:6px;}
+  #wu .wu-mode.on{background:var(--gold); color:#16130a; border-color:transparent;}
+  #wu .wu-classic{margin-left:auto; padding:7px 14px; font-family:var(--wu-f); font-weight:700; font-size:15px; letter-spacing:1px; text-transform:uppercase; border:1px dashed var(--wu-line2); background:rgba(0,0,0,.5); color:var(--muted,#9a98a6);}
+  #wu .wu-classic:hover{color:var(--txt); border-color:var(--gold);}
+  #wu .wu-filters{position:fixed; z-index:30; left:22px; right:22px; top:calc(var(--wu-top,120px) + 50px); display:none; flex-wrap:wrap; gap:8px; align-items:center;}
+  html[data-wu="map"] #wu .wu-filters, html[data-wu="sel"] #wu .wu-filters{display:flex;}
+  #wu .wu-chip{display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border:1px solid var(--wu-line2); background:rgba(0,0,0,.55);
+    font-family:var(--wu-f); font-weight:700; font-size:16px; letter-spacing:1px; text-transform:uppercase; border-radius:3px;}
+  #wu .wu-chip .sw{width:12px; height:12px; border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c);}
+  #wu .wu-chip.on{border-color:var(--c,var(--gold)); background:color-mix(in srgb,var(--c,var(--gold)) 24%,rgba(0,0,0,.6));}
+  #wu .wu-chip small{color:var(--muted,#9a98a6); font-weight:600; font-size:14px;}
+  #wu .wu-search{padding:7px 14px; min-width:220px; background:rgba(0,0,0,.6); border:1px solid var(--wu-line2); color:var(--txt); font:600 16px var(--font-body,sans-serif); border-radius:3px;}
+  #wu .wu-tag{position:fixed; z-index:33; pointer-events:none; transform:translate(14px,-50%); padding:6px 12px; background:rgba(4,5,11,.88); border-left:3px solid var(--c,var(--gold));
+    font-family:var(--wu-f); font-weight:700; font-size:17px; display:none; white-space:nowrap;}
+  #wu .wu-tag small{display:block; color:var(--muted,#9a98a6); font-size:14px; font-weight:600;}
+  #wu .wu-tools{position:fixed; z-index:30; left:22px; bottom:18px; display:none; gap:8px;}
+  html[data-wu="map"] #wu .wu-tools{display:flex;}
+  #wu .wu-btn{padding:10px 16px; font-family:var(--wu-f); font-weight:800; font-size:16px; letter-spacing:1.5px; text-transform:uppercase; border:1px solid var(--wu-line2); background:rgba(0,0,0,.6);}
+  #wu .wu-btn:hover{border-color:var(--gold); color:var(--gold);}
+  #wu .wu-big{padding:12px 18px; font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:19px; letter-spacing:2px; text-transform:uppercase;
+    background:var(--gold); color:#16130a; clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%); text-align:center;}
+  #wu .wu-card{position:fixed; z-index:30; right:22px; top:calc(var(--wu-top,120px) + 100px); width:360px; max-height:calc(100vh - var(--wu-top,120px) - 130px); overflow:auto;
+    background:var(--wu-panel); border:1px solid var(--wu-line); border-top:3px solid var(--c,var(--gold)); backdrop-filter:blur(8px); display:none;}
+  html[data-wu="map"] #wu .wu-card.open{display:block;}
+  #wu .wu-card .pic{height:290px; position:relative; background:radial-gradient(ellipse at 50% 70%,color-mix(in srgb,var(--c) 50%,transparent),transparent 70%),#0b0c15;}
+  #wu .wu-card .pic img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
+  #wu .wu-card .pic::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%,rgba(4,5,11,.95));}
+  #wu .wu-ini{position:absolute; inset:0; display:grid; place-items:center; font-family:var(--wu-d); font-size:100px; color:rgba(255,255,255,.2);}
+  #wu .wu-card .nm{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:40px; line-height:.95; text-transform:uppercase; padding:0 18px; margin-top:-48px; position:relative; z-index:1;}
+  #wu .wu-card .nick{padding:4px 18px 0; color:var(--muted,#9a98a6); font-family:var(--wu-f); font-weight:600; font-size:17px;}
+  #wu .wu-card .body{padding:14px 18px 18px; display:grid; gap:12px;}
+  #wu .wu-promo{display:inline-flex; align-items:center; gap:8px; font-family:var(--wu-f); font-weight:800; font-style:italic; font-size:16px; letter-spacing:1px;
+    padding:4px 12px; background:color-mix(in srgb,var(--c) 30%,transparent); border-left:3px solid var(--c); text-transform:uppercase; justify-self:start;}
+  #wu .wu-promo img{width:22px; height:22px; object-fit:contain;}
+  #wu .wu-recs{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px;}
+  #wu .wu-rec{padding:8px 10px; background:rgba(255,255,255,.04); border:1px solid var(--wu-line);}
+  #wu .wu-rec small{display:block; font-family:var(--wu-f); font-weight:700; letter-spacing:1px; color:var(--muted,#9a98a6); font-size:14px; text-transform:uppercase;}
+  #wu .wu-rec b{font-family:var(--wu-d); font-size:24px; font-weight:400;}
+  #wu .wu-legend{position:fixed; z-index:30; left:22px; bottom:72px; display:none; gap:14px; font-family:var(--wu-f); font-weight:600; font-size:15px; color:var(--muted,#9a98a6);
+    background:rgba(0,0,0,.55); padding:8px 14px; border:1px solid var(--wu-line); flex-wrap:wrap; max-width:58%;}
+  html[data-wu="map"] #wu .wu-legend{display:flex;}
+  #wu .wu-legend span{display:inline-flex; align-items:center; gap:6px;}
+  #wu .wu-legend i.d{width:10px; height:10px; border-radius:50%; display:inline-block;}
+  #wu .wu-screen{position:fixed; z-index:29; left:0; right:0; bottom:0; top:calc(var(--wu-top,120px) + 50px); display:none; padding:12px 22px 22px; overflow:auto;}
+  html[data-wu="sel"] #wu-sel, html[data-wu="prof"] #wu-prof, html[data-wu="rel"] #wu-rel, html[data-wu="riv"] #wu-riv, html[data-wu="vs"] #wu-vs{display:block;}
+  #wu .wu-empty{color:var(--muted,#9a98a6); padding:14px 0; font-size:17px;}
+  /* select */
+  #wu-sel{top:calc(var(--wu-top,120px) + 100px) !important; padding:0 !important; overflow:hidden !important;
+    background:linear-gradient(90deg,rgba(4,5,11,.15) 0%,rgba(4,5,11,.5) 38%,rgba(4,5,11,.86) 52%);}
+  #wu-sel .hero{position:absolute; left:0; top:0; bottom:0; width:48%; overflow:hidden; pointer-events:none;}
+  #wu-sel .hero .ph{position:absolute; inset:0; background:radial-gradient(ellipse at 40% 65%,color-mix(in srgb,var(--c) 55%,transparent),transparent 65%);}
+  #wu-sel .hero img{position:absolute; left:4%; bottom:0; height:94%; max-width:92%; object-fit:contain; object-position:bottom left;
+    filter:drop-shadow(0 0 40px color-mix(in srgb,var(--c) 60%,transparent)); animation:wuIn .35s ease-out;}
+  #wu-sel .hero .wu-ini{inset:auto; left:8%; bottom:14%; font-size:260px; line-height:1; color:color-mix(in srgb,var(--c) 45%,transparent);}
+  @keyframes wuIn{from{transform:translateX(-40px); opacity:0} to{transform:none; opacity:1}}
+  #wu-sel .who{position:absolute; left:3%; bottom:5%; max-width:46%; pointer-events:none;}
+  #wu-sel .who .n{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(48px,6.5vw,100px); line-height:.88; text-transform:uppercase; text-shadow:0 4px 30px rgba(0,0,0,.85); animation:wuIn .3s ease-out;}
+  #wu-sel .who .k{font-family:var(--wu-f); font-weight:700; font-size:21px; letter-spacing:3px; color:var(--c); text-transform:uppercase; margin-bottom:6px;}
+  #wu-sel .who .st{display:flex; gap:18px; margin-top:12px; font-family:var(--wu-f); font-weight:700; font-size:20px;}
+  #wu-sel .who .st b{font-family:var(--wu-d); font-weight:400; font-size:30px; margin-right:4px;}
+  #wu-sel .go{position:absolute; left:3%; top:12px; pointer-events:auto;}
+  #wu-sel .grid{position:absolute; right:22px; top:0; bottom:16px; width:min(52%,860px); overflow:auto; padding-right:6px;}
+  #wu .gsec{margin-bottom:18px;}
+  #wu .gsec h3{position:sticky; top:0; z-index:2; margin:0 0 8px; padding:8px 12px; display:flex; align-items:center; gap:10px;
+    font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase;
+    background:linear-gradient(90deg,color-mix(in srgb,var(--c) 45%,#05060c),rgba(5,6,12,.94)); border-left:4px solid var(--c);}
+  #wu .gsec h3 small{margin-left:auto; font-weight:700; font-style:normal; font-size:15px; color:var(--muted,#9a98a6);}
+  #wu .gsec h3 img{width:28px; height:28px; object-fit:contain;}
+  #wu .tiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:6px;}
+  #wu .tile{position:relative; aspect-ratio:3/4; overflow:hidden; background:#11131f; border:2px solid transparent;
+    clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); transition:transform .12s;}
+  #wu .tile img{width:100%; height:100%; object-fit:cover; object-position:center top; filter:saturate(.85);}
+  #wu .tile .wu-ini{font-size:34px; color:rgba(255,255,255,.85); background:linear-gradient(160deg,color-mix(in srgb,var(--c) 70%,#000),#0b0c15);}
+  #wu .tile .tn{position:absolute; left:0; right:0; bottom:0; padding:14px 5px 4px; font-family:var(--wu-f); font-weight:700; font-size:14px; line-height:1.05; text-transform:uppercase; text-align:center; background:linear-gradient(transparent,rgba(0,0,0,.92));}
+  #wu .tile::after{content:''; position:absolute; left:0; right:0; top:0; height:3px; background:var(--c);}
+  #wu .tile:hover, #wu .tile.on{border-color:var(--c); transform:scale(1.05); z-index:1;}
+  #wu .tile:hover img, #wu .tile.on img{filter:none;}
+  #wu .tile .champ{position:absolute; top:6px; right:6px; font-family:var(--wu-f); font-weight:800; font-size:14px; color:var(--wu-gold); background:rgba(0,0,0,.7); padding:0 6px; border:1px solid var(--wu-gold);}
+  /* profile */
+  #wu-prof{background:rgba(4,5,11,.9);}
+  #wu .pf{display:grid; grid-template-columns:minmax(260px,400px) minmax(0,1fr); gap:28px; max-width:1400px; margin:0 auto;}
+  #wu .pf .left{position:sticky; top:0; align-self:start;}
+  #wu .pf .shot{position:relative; aspect-ratio:3/4; background:radial-gradient(ellipse at 50% 70%,color-mix(in srgb,var(--c) 55%,transparent),transparent 70%),#0b0c15; border-bottom:4px solid var(--c); overflow:hidden;}
+  #wu .pf .shot img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
+  #wu .pf h1{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(46px,6vw,86px); line-height:.9; margin:8px 0 6px; text-transform:uppercase;}
+  #wu .facts{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:14px 0;}
+  #wu .fact{padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid var(--wu-line);}
+  #wu .fact small{display:block; font-family:var(--wu-f); font-weight:700; letter-spacing:1.5px; font-size:14px; color:var(--muted,#9a98a6); text-transform:uppercase;}
+  #wu .fact div{font-weight:600; font-size:17px; margin-top:2px;}
+  #wu .bio{font-size:17px; line-height:1.55; color:#d9d6cc; max-width:900px; white-space:pre-line;}
+  #wu .h2{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:28px; letter-spacing:2px; text-transform:uppercase; margin:26px 0 10px; display:flex; align-items:center; gap:10px;}
+  #wu .h2::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--wu-line2),transparent);}
+  #wu .divtabs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  #wu .dtab{padding:9px 16px; border:1px solid var(--wu-line2); background:rgba(0,0,0,.4); font-family:var(--wu-f); font-weight:800; font-size:17px; letter-spacing:1px; text-transform:uppercase;}
+  #wu .dtab b{font-family:var(--wu-d); font-weight:400; margin-left:8px; font-size:17px;}
+  #wu .dtab.on{background:var(--c); color:#0b0b0b; border-color:transparent;}
+  #wu .wlbar{display:flex; height:10px; border-radius:5px; overflow:hidden; background:rgba(255,255,255,.06); margin:6px 0 14px; max-width:520px;}
+  #wu .wlbar i{display:block;}
+  #wu .mrow{display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:14px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--wu-line); background:linear-gradient(90deg,var(--rc) 0,transparent 6px);}
+  #wu .mrow .r{width:40px; height:40px; display:grid; place-items:center; font-family:var(--wu-d); font-size:22px; background:var(--rc); color:#0b0b0b; clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);}
+  #wu .mrow .vs{font-weight:700; font-size:17px;}
+  #wu .mrow .sub{color:var(--muted,#9a98a6); font-size:15px; margin-top:2px;}
+  #wu .mrow .when{font-family:var(--wu-f); font-weight:700; color:var(--muted,#9a98a6); font-size:15px; text-align:right; white-space:nowrap;}
+  #wu .mrow.old{opacity:.7;}
+  #wu .mera{margin:16px 0 4px; font-family:var(--wu-f); font-weight:800; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted,#9a98a6);}
+  /* relationships */
+  #wu-rel{padding:0 !important; overflow:hidden !important;}
+  #wu-rel canvas{position:absolute; inset:0; width:100%; height:100%; touch-action:none;}
+  #wu-rel .worlds{position:absolute; left:22px; top:10px; right:420px; display:flex; flex-wrap:wrap; gap:8px; z-index:2;}
+  #wu-rel .help{position:absolute; left:22px; bottom:18px; z-index:2; font-family:var(--wu-f); font-weight:600; font-size:16px; color:var(--muted,#9a98a6); background:rgba(0,0,0,.55); padding:8px 12px; border:1px solid var(--wu-line);}
+  #wu-rel .side{position:absolute; right:22px; top:10px; width:380px; max-height:calc(100% - 30px); overflow:auto; background:var(--wu-panel); border:1px solid var(--wu-line); backdrop-filter:blur(8px); padding:16px; display:none; z-index:2;}
+  #wu .tie{padding:10px 0; border-bottom:1px solid var(--wu-line);}
+  #wu .tie b{font-family:var(--wu-f); font-weight:800; font-size:19px;}
+  #wu .tie .lv{display:inline-block; margin-left:8px; padding:1px 8px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:1px; text-transform:uppercase; color:#0b0b0b; background:var(--lc);}
+  #wu .tie p{margin:6px 0 0; color:#cfccc2; font-size:15px; line-height:1.45;}
+  /* rivalries */
+  #wu-riv{background:rgba(4,5,11,.72);}
+  #wu .rivgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr)); gap:16px; max-width:1500px; margin:0 auto;}
+  #wu .rcard{position:relative; height:210px; overflow:hidden; border:1px solid var(--wu-line); background:#0a0b14; text-align:left;}
+  #wu .rcard .sA, #wu .rcard .sB{position:absolute; top:0; bottom:0; width:58%; overflow:hidden;}
+  #wu .rcard .sA{left:0; clip-path:polygon(0 0,100% 0,82% 100%,0 100%); background:linear-gradient(120deg,color-mix(in srgb,var(--a) 60%,#000),#07080f);}
+  #wu .rcard .sB{right:0; clip-path:polygon(18% 0,100% 0,100% 100%,0 100%); background:linear-gradient(240deg,color-mix(in srgb,var(--b) 60%,#000),#07080f);}
+  #wu .rcard img{position:absolute; bottom:0; height:100%; width:70%; object-fit:cover; object-position:center top; opacity:.92;}
+  #wu .rcard .sA img{left:0;} #wu .rcard .sB img{right:0;}
+  #wu .rcard .wu-ini{inset:auto; bottom:20px; font-size:80px;} #wu .rcard .sA .wu-ini{left:20px;} #wu .rcard .sB .wu-ini{right:20px;}
+  #wu .rcard .vsx{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:56px; color:#fff; text-shadow:0 0 20px rgba(255,80,60,.9),0 0 40px rgba(255,80,60,.6);}
+  #wu .rcard .names{position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; gap:10px; padding:10px 14px; background:linear-gradient(transparent,rgba(0,0,0,.9));
+    font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:22px; text-transform:uppercase; line-height:1;}
+  #wu .rcard .names span{max-width:46%;} #wu .rcard .names span+span{text-align:right;}
+  #wu .heat{position:absolute; left:50%; top:12px; transform:translateX(-50%); display:flex; gap:2px; font-size:16px;}
+  #wu .heat i{color:rgba(255,255,255,.18);} #wu .heat i.on{color:var(--hc,#ff6a3d); text-shadow:0 0 8px var(--hc,#ff6a3d);}
+  #wu .rcard .stat{position:absolute; top:10px; left:12px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:1.5px; text-transform:uppercase; padding:2px 8px; background:rgba(0,0,0,.6); border:1px solid var(--wu-line2);}
+  #wu .rcard:hover{border-color:#ff6a3d;}
+  #wu-vs{padding:0 !important; background:#05060c;}
+  #wu .vstop{position:relative; height:60vh; min-height:400px; overflow:hidden;}
+  #wu .vstop .A, #wu .vstop .B{position:absolute; top:0; bottom:0; width:56%;}
+  #wu .vstop .A{left:0; clip-path:polygon(0 0,100% 0,86% 100%,0 100%); background:linear-gradient(110deg,color-mix(in srgb,var(--a) 75%,#000),#05060c 80%); animation:wuSlA .45s ease-out;}
+  #wu .vstop .B{right:0; clip-path:polygon(14% 0,100% 0,100% 100%,0 100%); background:linear-gradient(250deg,color-mix(in srgb,var(--b) 75%,#000),#05060c 80%); animation:wuSlB .45s ease-out;}
+  @keyframes wuSlA{from{transform:translateX(-30%)} to{transform:none}} @keyframes wuSlB{from{transform:translateX(30%)} to{transform:none}}
+  #wu .vstop img{position:absolute; bottom:0; height:96%; max-width:80%; object-fit:contain;}
+  #wu .vstop .A img{left:6%; object-position:bottom left;} #wu .vstop .B img{right:6%; object-position:bottom right;}
+  #wu .vstop .nA, #wu .vstop .nB{position:absolute; bottom:26px; font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(40px,5.5vw,84px); line-height:.9; text-transform:uppercase; text-shadow:0 4px 24px #000; max-width:44%;}
+  #wu .vstop .nA{left:4%;} #wu .vstop .nB{right:4%; text-align:right;}
+  #wu .vstop .big{position:absolute; left:50%; top:42%; transform:translate(-50%,-50%); font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:150px; color:#fff; text-shadow:0 0 30px #ff4b2b,0 0 70px #ff4b2b; animation:wuVs .5s .2s both;}
+  @keyframes wuVs{from{transform:translate(-50%,-50%) scale(2.4); opacity:0} to{transform:translate(-50%,-50%) scale(1); opacity:1}}
+  #wu .vstop .h2h{position:absolute; left:50%; top:64%; transform:translateX(-50%); display:flex; gap:22px; align-items:center; font-family:var(--wu-d); font-size:54px;}
+  #wu .vstop .h2h small{font-family:var(--wu-f); font-weight:700; font-size:16px; letter-spacing:2px; color:var(--muted,#9a98a6); display:block; text-align:center;}
+  #wu .vsbody{max-width:1100px; margin:0 auto; padding:10px 22px 60px;}
+  #wu .beat{display:grid; grid-template-columns:120px 18px minmax(0,1fr); gap:14px; padding:10px 0;}
+  #wu .beat .d{font-family:var(--wu-f); font-weight:700; color:var(--muted,#9a98a6); text-align:right; font-size:16px;}
+  #wu .beat .dot{width:14px; height:14px; border-radius:50%; margin-top:4px; background:var(--bc); box-shadow:0 0 12px var(--bc);}
+  #wu .beat .t{font-size:17px; line-height:1.45;} #wu .beat .t small{display:block; font-family:var(--wu-f); font-weight:800; letter-spacing:1.5px; color:var(--muted,#9a98a6); text-transform:uppercase; font-size:14px;}
+  #wu .vsback{position:absolute; left:22px; top:14px; z-index:3;}
+  #wu-newview{position:fixed; z-index:60; right:18px; top:var(--wu-top,120px); display:none; padding:10px 16px; font-family:var(--fh-fight,'Barlow Condensed',sans-serif); font-style:italic; font-weight:900; font-size:17px; letter-spacing:1.5px; text-transform:uppercase;
+    background:var(--gold); color:#16130a; border:0; cursor:pointer; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  html[data-design="fight"][data-wu-classic] #wu-newview{display:block;}
+  #wu .wu-loading{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:28; font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:30px; letter-spacing:4px; text-transform:uppercase; color:var(--muted,#9a98a6);}
+  @media (max-width:900px){
+    #wu .wu-modes{padding:0 12px; flex-wrap:nowrap; overflow-x:auto;}
+    #wu .wu-mode{font-size:15px; padding:7px 12px; white-space:nowrap;}
+    #wu .wu-classic{margin-left:6px; white-space:nowrap;}
+    #wu .wu-filters{left:12px; right:12px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px;}
+    #wu .wu-chip, #wu .wu-search{flex:0 0 auto;} #wu .wu-search{min-width:170px;}
+    #wu .wu-screen{padding:10px 12px 12px;}
+    #wu .wu-card{left:12px; right:12px; width:auto; top:auto; bottom:70px; max-height:52vh;}
+    #wu .wu-card .pic{height:200px;}
+    #wu .wu-legend{display:none !important;}
+    #wu .wu-tools{left:12px; bottom:12px;}
+    #wu-sel .hero, #wu-sel .who, #wu-sel .go{display:none;}
+    #wu-sel .grid{left:12px; right:12px; width:auto;}
+    #wu .pf{grid-template-columns:1fr;} #wu .pf .left{position:static;} #wu .pf .shot{aspect-ratio:auto; height:44vh;}
+    #wu .rivgrid{grid-template-columns:1fr;} #wu .rcard .names{font-size:18px;}
+    #wu .vstop .big{font-size:80px;}
+    #wu-rel .worlds{right:12px; left:12px;}
+    #wu-rel .side{left:12px; right:12px; width:auto; top:auto; bottom:12px; max-height:50%;}
+    #wu-rel .help{display:none;}
+  }
+</style>
+<canvas id="wu-space" aria-hidden="true"></canvas>
+<button type="button" id="wu-newview" onclick="window.WU && WU.newView()">◀ New view</button>
+<div id="wu" aria-live="polite">
+  <div class="wu-modes" id="wu-modes">
+    <button type="button" class="wu-mode" data-m="map"><i class="ti ti-planet"></i>Star Map</button>
+    <button type="button" class="wu-mode" data-m="sel"><i class="ti ti-users"></i>Roster</button>
+    <button type="button" class="wu-mode" data-m="rel"><i class="ti ti-affiliate"></i>Relationships</button>
+    <button type="button" class="wu-mode" data-m="riv"><i class="ti ti-flame"></i>Rivalries</button>
+    <button type="button" class="wu-classic" id="wu-classic" title="The previous version of this page, with every tool it had">Classic view</button>
+  </div>
+  <div class="wu-filters" id="wu-filters"></div>
+  <div class="wu-tag" id="wu-tag"></div>
+  <aside class="wu-card" id="wu-card"></aside>
+  <div class="wu-tools"><button type="button" class="wu-btn" id="wu-recenter"><i class="ti ti-world"></i> Back to the world</button></div>
+  <div class="wu-legend" id="wu-legend"></div>
+  <div class="wu-screen" id="wu-sel"><div class="hero" id="wu-selHero"></div><div class="who" id="wu-selWho"></div><div class="go"><button type="button" class="wu-big" id="wu-selGo">Select</button></div><div class="grid" id="wu-selGrid"></div></div>
+  <div class="wu-screen" id="wu-prof"></div>
+  <div class="wu-screen" id="wu-rel"><canvas id="wu-relCv"></canvas><div class="worlds" id="wu-relWorlds"></div><div class="help">Drag to move · scroll to zoom · click someone to light up their web</div><aside class="side" id="wu-relSide"></aside></div>
+  <div class="wu-screen" id="wu-riv"></div>
+  <div class="wu-screen" id="wu-vs"></div>
+  <div class="wu-loading" id="wu-loading" hidden>Loading the universe…</div>
+</div>
+<script id="wu-script">
+/* WCA Universe. Reads only (wrestlers, factions, promotions, promotion rosters, rankings,
+   champions, story ties, rivalries, match history). It never saves anything. */
+window.WU = (function(){
+  const $ = id => document.getElementById(id);
+  const root = document.documentElement;
+  const isFight = () => root.dataset.design === 'fight';
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+  const norm = s => String(s || '').trim().toLowerCase();
+  const ini = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0]).join('').toUpperCase() || '?';
+  function hashStr(s){ let h = 2166136261; s = String(s||''); for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619); } return h>>>0; }
+  function rng(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a>>>15, 1|a); t = t + Math.imul(t ^ t>>>7, 61|t) ^ t; return ((t ^ t>>>14)>>>0) / 4294967296; }; }
+  const GOLD = '#E9B949';
+  const NY = { lat:40.7128, lon:-74.006, city:'New York' };
+  const hex = (c, d) => /^#[0-9a-f]{6}$/i.test(String(c || '').trim()) ? String(c).trim() : d;
+  const route = () => (typeof wcaRoute === 'function' ? wcaRoute() : { pg:'', qs:'' });
+  const qp = () => new URLSearchParams(route().qs || '');
+  const setAddr = (pg, qs, push) => { try{ if(typeof wcaSetAddress === 'function') wcaSetAddress(pg, qs || '', push); }catch(e){} };
+  const q = async (t, sel, f) => { try{ let x = sb.from(t).select(sel || '*'); if(f) x = f(x); const r = await x; return r.error ? null : (r.data || []); }catch(e){ return null; } };
+
+  /* ═════════════ data, loaded once ═════════════ */
+  let D = null, loading = null;
+  async function load(){
+    if(D) return D; if(loading) return loading;
+    loading = (async () => {
+      let P = await q('promotions','id,name,color,logo_url,short_name,status,slug,pin_lat,pin_lon,pin_city', x => x.eq('status','approved'));
+      if(P === null) P = (await q('promotions','id,name,color,logo_url,short_name,status,slug', x => x.eq('status','approved'))) || [];   // pins not switched on yet
+      const [W, F, PR, PF, RK, CH] = await Promise.all([
+        q('wrestlers','id,name,nickname,gender,image_url,avatar_url,from_loc,height,weight,bio,finishers,signatures,theme_song,is_active,is_draft,status'),
+        q('factions','id,name,members_txt,color,is_hidden,is_active'),
+        q('promotion_roster','id,promotion_id,name,nickname,gender,color,title,bio,details,alignment,sort'),
+        q('promotion_factions','id,promotion_id,name,color,members'),
+        q('v_division_rankings','*'),
+        q('v_current_champions','*')
+      ]);
+      const short = p => { try{ if(typeof peShort === 'function') return peShort(p); }catch(e){} return (p.short_name || '').trim() || ini(p.name); };
+      const PROMOS = [{ id:'wca', name:'WCA', short:'WCA', color:GOLD, logo:'/brand/wca-logo-sm.png', lat:NY.lat, lon:NY.lon, city:NY.city, pin:true }]
+        .concat((P || []).sort((a,b) => a.id - b.id).map(p => ({ id:p.id, name:p.name, short:short(p), color:hex(p.color, '#9aa3c7'), logo:p.logo_url,
+          lat:p.pin_lat, lon:p.pin_lon, city:p.pin_city || '', pin:p.pin_lat != null && p.pin_lon != null && isFinite(p.pin_lat) && isFinite(p.pin_lon) })));
+      const promoById = id => PROMOS.find(p => String(p.id) === String(id));
+      const champs = {}; (CH || []).forEach(c => { champs[norm(c.champion)] = c; });
+      const ranks = {}; (RK || []).forEach(r => { (ranks[norm(r.name)] = ranks[norm(r.name)] || []).push(r); });
+      const off = w => { if(w.is_draft === true) return true; const st = norm(w.status); if(st === 'inactive' || st === 'hidden') return true; return !st && w.is_active === false; };
+      const PEOPLE = [];
+      (W || []).filter(w => !off(w)).forEach(w => PEOPLE.push({ key:'w' + w.id, id:w.id, kind:'wca', promo:PROMOS[0], name:w.name, nick:w.nickname,
+        img:w.image_url || w.avatar_url, avatar:w.avatar_url || w.image_url, from:w.from_loc, height:w.height, weight:w.weight, bio:w.bio,
+        finishers:w.finishers, theme:w.theme_song, champ:champs[norm(w.name)] || null, recs:ranks[norm(w.name)] || [] }));
+      (PR || []).forEach(r => { const p = promoById(r.promotion_id); if(!p) return; const d = r.details || {};
+        PEOPLE.push({ key:'p' + r.id, id:r.id, kind:'promo', promo:p, name:r.name, nick:r.nickname, img:d.portrait_url || d.avatar_url || null, avatar:d.avatar_url || d.portrait_url || null,
+          from:d.hometown || d.from || null, height:d.height || null, weight:d.weight || null, bio:r.bio, title:r.title, recs:[] }); });
+      const byKey = {}; PEOPLE.forEach(p => byKey[p.key] = p);
+      const wcaByName = {}; PEOPLE.filter(p => p.kind === 'wca').forEach(p => wcaByName[norm(p.name)] = p);
+      const GROUPS = [];
+      (F || []).filter(f => !f.is_hidden && f.is_active !== false).forEach(f => {
+        const mem = [...new Set(String(f.members_txt || '').split(/\s*[,&;\n]\s*/).map(s => wcaByName[norm(s)]).filter(Boolean))];
+        if(mem.length > 1) GROUPS.push({ key:'f' + f.id, name:f.name, color:hex(f.color, GOLD), promo:PROMOS[0], members:mem }); });
+      (PF || []).forEach(f => { const p = promoById(f.promotion_id); if(!p) return; const mem = (f.members || []).map(id => byKey['p' + id]).filter(Boolean);
+        if(mem.length > 1) GROUPS.push({ key:'pf' + f.id, name:f.name, color:hex(f.color, p.color), promo:p, members:mem }); });
+      PEOPLE.forEach(p => { p.group = GROUPS.find(g => g.members.includes(p)) || null; });
+      D = { PROMOS, PEOPLE, GROUPS, byKey, wcaByName, promoById };
+      return D;
+    })();
+    return loading;
+  }
+
+  /* ═════════════ filters (Star Map + Roster) ═════════════ */
+  let FILTER = 'all', SEARCH = '';
+  const inF = (p, id) => id === 'all' || (id === 'wca' && p.promo.id === 'wca') || (id === 'other' && p.promo.id !== 'wca') || String(p.promo.id) === id;
+  const shown = p => inF(p, FILTER) && (!SEARCH || norm(p.name).includes(SEARCH) || norm(p.nick).includes(SEARCH));
+  function drawFilters(){
+    const chip = (id, label, c) => `<button type="button" class="wu-chip${FILTER === id ? ' on' : ''}" style="--c:${c}" data-f="${E(id)}"><span class="sw"></span>${E(label)} <small>${D.PEOPLE.filter(p => inF(p, id)).length}</small></button>`;
+    $('wu-filters').innerHTML = chip('all','Everyone','#ffffff') + chip('wca','WCA only',GOLD) + (D.PROMOS.length > 1 ? chip('other','Other promotions','#7ad1e6') : '')
+      + D.PROMOS.slice(1).map(p => chip(String(p.id), p.short, p.color)).join('')
+      + `<input class="wu-search" id="wu-search" placeholder="Find a superstar…" value="${E(SEARCH)}" autocomplete="off">`;
+    $('wu-filters').querySelectorAll('.wu-chip').forEach(b => b.onclick = () => { FILTER = b.dataset.f; drawFilters(); applyFilter(); });
+    const s = $('wu-search'); s.oninput = () => { SEARCH = norm(s.value); applyFilter(); };
+  }
+  function drawLegend(){
+    $('wu-legend').innerHTML = D.PROMOS.map(p => `<span><i class="d" style="background:${p.color};box-shadow:0 0 8px ${p.color}"></i>${E(p.short)}${p.pin ? '' : ' <small>(no pin yet)</small>'}</span>`).join('')
+      + `<span><i class="ti ti-crown" style="color:${GOLD}"></i>Champion</span>`;
+  }
+
+  /* ═════════════ the 3D universe (same look as the Roster star map) ═════════════ */
+  let G = null;   // everything three.js
+  function loadThree(){
+    if(window.THREE) return Promise.resolve();
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
+      s.onload = () => window.THREE ? res() : rej(new Error('3D did not load')); s.onerror = () => rej(new Error('3D did not load')); document.head.appendChild(s); });
+  }
+  function hasGL(){ try{ const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); }catch(e){ return false; } }
+  function buildScene(){
+    const T = THREE, small = matchMedia('(max-width:900px)').matches, low = small || (navigator.hardwareConcurrency || 8) <= 4;
+    const canvas = $('wu-space');
+    const renderer = new T.WebGLRenderer({ canvas, antialias:!low, powerPreference:'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, low ? 1.5 : 2)); renderer.setClearColor(0x04050b, 1);
+    renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.45;
+    const scene = new T.Scene(); scene.fog = new T.FogExp2(0x06070f, 0.00045);
+    const camera = new T.PerspectiveCamera(52, innerWidth/innerHeight, 1, 9000);
+    const ray = new T.Raycaster(); ray.params.Points.threshold = 9;
+    const radial = (stops, size) => { size = size || 128; const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d');
+      const g = x.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2); stops.forEach(s => g.addColorStop(s[0], s[1])); x.fillStyle = g; x.fillRect(0,0,size,size); return new T.CanvasTexture(c); };
+    const GLOW = radial([[0,'rgba(255,255,255,1)'],[.14,'rgba(255,255,255,.85)'],[.32,'rgba(255,255,255,.28)'],[.62,'rgba(255,255,255,.06)'],[1,'rgba(255,255,255,0)']],160);
+    const PT = radial([[0,'rgba(255,255,255,1)'],[.3,'rgba(255,255,255,.55)'],[1,'rgba(255,255,255,0)']],64);
+    const cloud = seed => { const size = 160, r = rng(seed), grids = [];
+      for(let o=0;o<4;o++){ const g = 4<<o, a = new Float32Array(g*g); for(let i=0;i<a.length;i++) a[i] = r(); grids.push({g,a}); }
+      const sm = (Gd,u,v) => { const g = Gd.g, x = u*g, y = v*g, x0 = Math.floor(x)%g, y0 = Math.floor(y)%g, x1 = (x0+1)%g, y1 = (y0+1)%g, fx = x-Math.floor(x), fy = y-Math.floor(y), sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy);
+        return (Gd.a[y0*g+x0]*(1-sx)+Gd.a[y0*g+x1]*sx)*(1-sy)+(Gd.a[y1*g+x0]*(1-sx)+Gd.a[y1*g+x1]*sx)*sy; };
+      const cv = document.createElement('canvas'); cv.width = cv.height = size; const ctx = cv.getContext('2d'), img = ctx.createImageData(size,size);
+      for(let y=0;y<size;y++) for(let x=0;x<size;x++){ const u = x/size, v = y/size; let n = 0, amp = .5, t = 0; for(const Gd of grids){ n += sm(Gd,u,v)*amp; t += amp; amp *= .5; } n /= t;
+        const dx = u-.5, dy = v-.5, fall = Math.max(0, 1-Math.sqrt(dx*dx+dy*dy)*2), a = Math.pow(Math.max(0,n*1.55-.2),1.1)*Math.pow(fall,1.55), i = (y*size+x)*4;
+        img.data[i] = img.data[i+1] = img.data[i+2] = 255; img.data[i+3] = Math.min(255, a*430); }
+      ctx.putImageData(img,0,0); return new T.CanvasTexture(cv); };
+    const drift = [];
+    [[low?1400:3300,1900,3400,10,.95,.004],[low?700:1500,1000,1900,7.5,.8,.009],[low?260:520,500,1000,5,.6,.02]].forEach(([n,a,b,size,op,sp], k) => {
+      const pos = new Float32Array(n*3), col = new Float32Array(n*3), r = rng(1337+k), c = new T.Color();
+      for(let i=0;i<n;i++){ const u = r()*2-1, th = r()*6.283, s = Math.sqrt(1-u*u), R = a + r()*(b-a);
+        pos[i*3] = Math.cos(th)*s*R; pos[i*3+1] = u*R*.78; pos[i*3+2] = Math.sin(th)*s*R;
+        const t = r(); c.setHSL(t<.62?.58:(t<.88?.11:.72), .35+r()*.35, .62+r()*.3); col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b; }
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos,3)); g.setAttribute('color', new T.BufferAttribute(col,3));
+      const pts = new T.Points(g, new T.PointsMaterial({ size, map:PT, vertexColors:true, transparent:true, opacity:op, depthWrite:false, blending:T.AdditiveBlending, fog:false }));
+      scene.add(pts); drift.push({ o:pts, s:sp });
+    });
+    const fogs = [];
+    { const r = rng(90210), tints = [0x4a72c8,0x6a48c0,0x2f7fa8,0xb08a45,0x3560a8,0x8a4fa8], tx = [0,1,2,3].map(i => cloud(700+i*31));
+      for(let i=0;i<(low?12:26);i++){ const size = 800 + r()*1500, m = new T.MeshBasicMaterial({ map:tx[i%4], color:tints[Math.floor(r()*tints.length)], transparent:true, opacity:.05+r()*.11, blending:T.AdditiveBlending, depthWrite:false, side:T.DoubleSide });
+        const s = new T.Mesh(new T.PlaneGeometry(size,size), m), R = 500 + r()*1400, u = r()*2-1, th = r()*6.283, q2 = Math.sqrt(1-u*u);
+        s.position.set(Math.cos(th)*q2*R, u*R*.6, Math.sin(th)*q2*R); s.rotation.set(r()*6.283, r()*6.283, r()*6.283); s.renderOrder = -1; scene.add(s); fogs.push({ m:s, sp:(r()-.5)*.012 }); } }
+    // the world. Everything that belongs to it (pins, beams, every promotion's stars) turns with it.
+    const GR = 150;
+    const ll = (lat, lon, r) => { const u = (lon+180)/360, v = (90-lat)/180, th = v*Math.PI, ph = u*Math.PI*2; return new T.Vector3(-r*Math.cos(ph)*Math.sin(th), r*Math.cos(th), r*Math.sin(ph)*Math.sin(th)); };
+    const earth = new T.Group(); scene.add(earth);
+    const ocean = new T.Mesh(new T.SphereGeometry(GR, low?40:64, low?26:40), new T.MeshBasicMaterial({ color:0x0a1a33 })); earth.add(ocean);
+    const tl = new T.TextureLoader();
+    [['/earth/wca-earth-land.png','#1a2a42',1.001,1,false],['/earth/wca-earth-borders.png',GOLD,1.003,.85,true]].forEach(([u,c,s,o,add]) => {
+      const m = new T.MeshBasicMaterial({ color:new T.Color(c), transparent:true, opacity:o, depthWrite:false, blending:add ? T.AdditiveBlending : T.NormalBlending });
+      const mesh = new T.Mesh(new T.SphereGeometry(GR*s, low?40:64, low?26:40), m); mesh.visible = false; earth.add(mesh);
+      tl.load(u, t => { m.map = t; m.needsUpdate = true; mesh.visible = true; }, undefined, () => {}); });
+    earth.add(new T.Mesh(new T.SphereGeometry(GR*1.1,48,32), new T.MeshBasicMaterial({ color:new T.Color(GOLD), transparent:true, opacity:.1, side:T.BackSide, blending:T.AdditiveBlending, depthWrite:false })));
+    { const g = new T.Sprite(new T.SpriteMaterial({ map:GLOW, color:new T.Color(GOLD), transparent:true, opacity:.16, blending:T.AdditiveBlending, depthWrite:false })); g.scale.setScalar(GR*4.2); earth.add(g); }
+    // promotion pins, and where each promotion's stars float: straight out from its pin
+    const pins = [];
+    D.PROMOS.forEach((p, i) => {
+      const n = D.PEOPLE.filter(x => x.promo === p).length;
+      p.size = 70 + Math.sqrt(n) * 22;
+      let dir;
+      if(p.pin){
+        const col = new T.Color(p.color), surf = ll(+p.lat, +p.lon, GR*1.01);
+        const pin = new T.Group(); pin.position.copy(surf);
+        const tip = surf.clone().normalize().multiplyScalar(14);
+        const head = new T.Mesh(new T.SphereGeometry(3.4,12,12), new T.MeshBasicMaterial({ color:col })); head.position.copy(tip); pin.add(head);
+        pin.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(), tip.clone()]), new T.LineBasicMaterial({ color:col, transparent:true, opacity:.9 })));
+        const halo = new T.Sprite(new T.SpriteMaterial({ map:GLOW, color:col, transparent:true, opacity:.9, blending:T.AdditiveBlending, depthWrite:false })); halo.position.copy(tip); halo.scale.setScalar(26); pin.add(halo);
+        head.userData = { pin:p }; earth.add(pin); pins.push({ p, head, halo });
+        p.surf = surf; dir = surf.clone().normalize();
+      } else {
+        // no pin saved yet: their stars still float in space, just not tied to a place
+        const a = i * 2.399963, y = .55 - (i % 5) * .25; dir = new T.Vector3(Math.cos(a)*Math.sqrt(1-y*y), y, Math.sin(a)*Math.sqrt(1-y*y));
+      }
+      p.center = dir.multiplyScalar(GR*2.3 + p.size + 120 + (i ? 60 : 0));
+    });
+    for(let it=0; it<120; it++) for(let a=0;a<D.PROMOS.length;a++) for(let b=a+1;b<D.PROMOS.length;b++){
+      const A = D.PROMOS[a], B = D.PROMOS[b], d = A.center.clone().sub(B.center), need = (A.size + B.size) * 1.15, L = d.length();
+      if(L < need){ d.setLength((need - L)/2 + .01); A.center.add(d); B.center.sub(d); }
+      [A,B].forEach(X => { const min = GR*2.3 + X.size; if(X.center.length() < min) X.center.setLength(min); });
+    }
+    D.PROMOS.forEach(p => {
+      const col = new T.Color(p.color);
+      if(p.surf){ const beam = new T.Line(new T.BufferGeometry().setFromPoints([p.surf.clone().multiplyScalar(1.09), p.center]),
+          new T.LineDashedMaterial({ color:col, dashSize:8, gapSize:10, transparent:true, opacity:.35, depthWrite:false }));
+        beam.computeLineDistances(); earth.add(beam); p.beam = beam; }
+      const r = rng(hashStr(p.name)), tx = cloud(hashStr(p.name) % 999);
+      for(let k=0;k<(low?2:3);k++){ const m = new T.MeshBasicMaterial({ map:tx, color:col, transparent:true, opacity:.16+r()*.12, blending:T.AdditiveBlending, depthWrite:false, side:T.DoubleSide });
+        const s = new T.Mesh(new T.PlaneGeometry(p.size*3, p.size*3), m); s.position.copy(p.center).add(new T.Vector3((r()-.5)*60,(r()-.5)*40,(r()-.5)*60));
+        s.rotation.set(r()*6.283, r()*6.283, r()*6.283); s.renderOrder = -1; earth.add(s); fogs.push({ m:s, sp:(r()-.5)*.02 }); }
+      const font = 'italic 900 72px ' + (getComputedStyle(root).getPropertyValue('--fh-fight').trim() || '"Barlow Condensed", sans-serif');
+      const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), txt = String(p.short).toUpperCase(); ctx.font = font;
+      cv.width = Math.ceil(ctx.measureText(txt).width) + 60; cv.height = 110; const c2 = cv.getContext('2d'); c2.font = font;
+      c2.textAlign = 'center'; c2.textBaseline = 'middle'; c2.shadowColor = p.color; c2.shadowBlur = 26; c2.fillStyle = '#fff'; c2.fillText(txt, cv.width/2, 58);
+      const lab = new T.Sprite(new T.SpriteMaterial({ map:new T.CanvasTexture(cv), transparent:true, depthWrite:false, opacity:.85 }));
+      lab.scale.set(cv.width/cv.height*34, 34, 1); lab.position.copy(p.center).add(new T.Vector3(0, p.size*.9, 0)); earth.add(lab);
+    });
+    const N = D.PEOPLE.length, POS = new Float32Array(N*3), COL = new Float32Array(N*3), BASE = [];
+    D.PEOPLE.forEach((pp, i) => {
+      const p = pp.promo, r = rng(hashStr(pp.key)); let v;
+      if(pp.group){ const g = pp.group; if(!g.c){ const rg = rng(hashStr(g.key)); g.c = new T.Vector3((rg()-.5),(rg()-.5)*.6,(rg()-.5)).normalize().multiplyScalar(p.size*(.45+rg()*.4)); }
+        v = g.c.clone().add(new T.Vector3((r()-.5)*44,(r()-.5)*30,(r()-.5)*44)); }
+      else { const u = r()*2-1, th = r()*6.283, s = Math.sqrt(1-u*u), R = p.size*(.25+Math.cbrt(r())*.85); v = new T.Vector3(Math.cos(th)*s*R, u*R*.62, Math.sin(th)*s*R); }
+      v.add(p.center); pp.pos = v; POS.set([v.x,v.y,v.z], i*3);
+      const c = new T.Color(p.color); BASE.push(c); COL.set([c.r,c.g,c.b], i*3);
+    });
+    const sGeo = new T.BufferGeometry(); sGeo.setAttribute('position', new T.BufferAttribute(POS,3)); sGeo.setAttribute('color', new T.BufferAttribute(COL,3));
+    const STARS = new T.Points(sGeo, new T.PointsMaterial({ size:15, map:GLOW, vertexColors:true, transparent:true, depthWrite:false, blending:T.AdditiveBlending })); earth.add(STARS);
+    earth.add(new T.Points(sGeo, new T.PointsMaterial({ size:4.5, map:PT, color:0xffffff, transparent:true, opacity:.9, depthWrite:false, blending:T.AdditiveBlending })));
+    D.PEOPLE.filter(p => p.champ).forEach(p => { const s = new T.Sprite(new T.SpriteMaterial({ map:GLOW, color:new T.Color(GOLD), transparent:true, opacity:.75, blending:T.AdditiveBlending, depthWrite:false }));
+      s.position.copy(p.pos); s.scale.setScalar(40); earth.add(s); p.crown = s; });
+    const LINES = [];
+    D.GROUPS.forEach(g => { const pts = []; g.members.forEach((m, i) => { if(g.members.length === 2 && i) return; pts.push(m.pos, g.members[(i+1) % g.members.length].pos); });
+      const l = new T.LineSegments(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color:new T.Color(g.color), transparent:true, opacity:.45, depthWrite:false, blending:T.AdditiveBlending }));
+      earth.add(l); LINES.push({ g, l }); });
+    const ring = new T.Sprite(new T.SpriteMaterial({ map:(() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.strokeStyle = '#fff'; x.lineWidth = 5; x.beginPath(); x.arc(64,64,54,0,6.283); x.stroke(); return new T.CanvasTexture(c); })(), transparent:true, depthWrite:false }));
+    ring.visible = false; ring.scale.setScalar(34); earth.add(ring);
+    G = { renderer, scene, camera, ray, earth, ocean, pins, drift, fogs, STARS, sGeo, BASE, LINES, ring, clock:new T.Clock(),
+      view:{ th:.6, ph:1.2, r:1600, tth:.6, tph:1.2, tr:1250, target:new T.Vector3(), tt:new T.Vector3(), idle:0 }, sel:null, drag:null, moved:0, mouse:{ x:-99, y:-99 } };
+    wireMap(); size(); applyFilter();
+  }
+  function applyFilter(){
+    if(G){ const col = G.sGeo.attributes.color;
+      D.PEOPLE.forEach((p, i) => { const on = shown(p), c = G.BASE[i], k = on ? 1 : .07; col.setXYZ(i, c.r*k, c.g*k, c.b*k); if(p.crown) p.crown.visible = on; });
+      col.needsUpdate = true;
+      G.LINES.forEach(x => x.l.material.opacity = x.g.members.some(shown) ? .45 : .04);
+      D.PROMOS.forEach(p => { if(p.beam) p.beam.material.opacity = D.PEOPLE.some(x => x.promo === p && shown(x)) ? .35 : .05; }); }
+    if(MODE === 'sel') drawSelect();
+  }
+  function size(){ if(!G) return; G.renderer.setSize(innerWidth, innerHeight, false); G.camera.aspect = innerWidth/innerHeight; G.camera.updateProjectionMatrix(); }
+  function worldOf(v){ return v.clone().applyMatrix4(G.earth.matrixWorld); }
+  function flyTo(v, dist){ G.view.tt.copy(worldOf(v)); G.view.tr = dist; G.view.idle = 0; }
+  function recenter(){ if(!G) return; G.sel = null; G.ring.visible = false; $('wu-card').classList.remove('open'); G.view.tt.set(0,0,0); G.view.tr = 1250; G.view.tph = 1.2; G.view.idle = 0; }
+  function hitAt(x, y){
+    const v = new THREE.Vector2(x/innerWidth*2-1, -(y/innerHeight)*2+1); G.ray.setFromCamera(v, G.camera);
+    const ph = G.ray.intersectObjects(G.pins.map(p => p.head)); if(ph.length) return { pin:ph[0].object.userData.pin };
+    const hs = G.ray.intersectObject(G.STARS).filter(h => shown(D.PEOPLE[h.index]));
+    if(hs.length){ hs.sort((a,b) => a.distanceToRay - b.distanceToRay); return { person:D.PEOPLE[hs[0].index] }; }
+    if(G.ray.intersectObject(G.ocean).length) return { world:true };
+    return null;
+  }
+  function wireMap(){
+    const cv = $('wu-space');
+    cv.addEventListener('pointerdown', e => { G.drag = { x:e.clientX, y:e.clientY }; G.moved = 0; });
+    addEventListener('pointerup', e => { if(G.drag && G.moved < 6 && MODE === 'map' && e.target === cv){ const h = hitAt(e.clientX, e.clientY);
+        if(h && h.person) focusPerson(h.person);
+        else if(h && h.pin){ FILTER = String(h.pin.id); drawFilters(); applyFilter(); flyTo(h.pin.center, h.pin.size*3.4); }
+        else if(h && h.world){ FILTER = 'all'; drawFilters(); applyFilter(); recenter(); } }
+      G.drag = null; });
+    addEventListener('pointermove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY;
+      if(G.drag && MODE === 'map'){ const dx = e.clientX - G.drag.x, dy = e.clientY - G.drag.y; G.moved += Math.abs(dx) + Math.abs(dy);
+        G.view.tth -= dx*.005; G.view.tph = clamp(G.view.tph - dy*.004, .25, 2.9); G.drag.x = e.clientX; G.drag.y = e.clientY; G.view.idle = 0; } });
+    cv.addEventListener('wheel', e => { if(MODE !== 'map') return; e.preventDefault(); G.view.tr = clamp(G.view.tr * (1 + Math.sign(e.deltaY)*.12), 140, 3200); G.view.idle = 0; }, { passive:false });
+    addEventListener('resize', size);
+  }
+  function focusPerson(p){ G.sel = p; G.ring.visible = true; G.ring.position.copy(p.pos); flyTo(p.pos, 260); showCard(p); }
+  let raf = 0;
+  function frame(){
+    raf = 0;
+    if(!G || !root.dataset.wu || !isFight() || document.hidden) return;
+    const dt = Math.min(G.clock.getDelta(), .05), t = G.clock.elapsedTime, v = G.view;
+    v.idle += dt;
+    if(MODE === 'map' && v.idle > 4 && !G.sel) v.tth += dt*.03;
+    if(MODE !== 'map') v.tth += dt*.02;
+    v.th += (v.tth - v.th)*.06; v.ph += (v.tph - v.ph)*.06; v.r += (v.tr - v.r)*.06;
+    if(G.sel) v.tt.copy(worldOf(G.sel.pos));
+    v.target.lerp(v.tt, .06);
+    G.camera.position.set(v.target.x + v.r*Math.sin(v.ph)*Math.cos(v.th), v.target.y + v.r*Math.cos(v.ph), v.target.z + v.r*Math.sin(v.ph)*Math.sin(v.th));
+    G.camera.lookAt(v.target);
+    G.earth.rotation.y += dt*.01;
+    G.drift.forEach(d => d.o.rotation.y += d.s*dt);
+    G.fogs.forEach(f => f.m.rotation.z += f.sp*dt);
+    G.pins.forEach((p, i) => { const s = .5 + .5*Math.sin(t*1.9 + i); p.halo.scale.setScalar(20 + 12*s); p.halo.material.opacity = .5 + .45*s; });
+    if(G.ring.visible){ G.ring.material.rotation += dt; G.ring.scale.setScalar(30 + 4*Math.sin(t*3)); }
+    const tag = $('wu-tag');
+    if(MODE === 'map' && !G.drag){ const h = hitAt(G.mouse.x, G.mouse.y);
+      if(h && (h.person || h.pin)){ const who = h.person, pr = h.pin; tag.style.setProperty('--c', (who ? who.promo : pr).color);
+        tag.innerHTML = who ? `${E(who.name)}${who.champ ? ' <span style="color:' + GOLD + '">(C)</span>' : ''}<small>${E(who.promo.name)}${who.group ? ' · ' + E(who.group.name) : ''}</small>` : `${E(pr.name)}<small>${E(pr.city || '')} · click to fly there</small>`;
+        tag.style.left = G.mouse.x + 'px'; tag.style.top = G.mouse.y + 'px'; tag.style.display = 'block'; $('wu-space').style.cursor = 'pointer'; }
+      else { tag.style.display = 'none'; $('wu-space').style.cursor = h && h.world ? 'pointer' : (G.drag ? 'grabbing' : 'grab'); }
+    } else tag.style.display = 'none';
+    G.renderer.render(G.scene, G.camera);
+    if(MODE === 'rel') relFrame();
+    raf = requestAnimationFrame(frame);
+  }
+  function run(){ if(!raf) raf = requestAnimationFrame(frame); }
+
+  /* ═════════════ shared bits ═════════════ */
+  const pic = p => p.img ? `<img src="${E(p.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`;
+  const promoTag = pr => `<span class="wu-promo" style="--c:${pr.color}">${pr.logo ? `<img src="${E(pr.logo)}" alt="" onerror="this.remove()">` : ''}${E(pr.name)}</span>`;
+  const totals = p => p.recs.reduce((a,r) => (a.w += r.wins||0, a.l += r.losses||0, a), { w:0, l:0 });
+  function showCard(p){
+    const c = $('wu-card'); c.style.setProperty('--c', p.promo.color);
+    c.innerHTML = `<div class="pic" style="--c:${p.promo.color}">${pic(p)}</div>
+      <div class="nm">${E(p.name)}${p.champ ? ` <span style="color:${GOLD};font-size:.55em">(C)</span>` : ''}</div>
+      ${p.nick ? `<div class="nick">“${E(p.nick)}”</div>` : ''}
+      <div class="body">${promoTag(p.promo)}
+        ${p.champ ? `<div style="color:${GOLD};font-family:var(--wu-f);font-weight:800;font-size:18px"><i class="ti ti-crown"></i> ${E(p.champ.title)}</div>` : ''}
+        ${p.recs.length ? `<div class="wu-recs">${p.recs.map(r => `<div class="wu-rec"><small>${E(r.division)}</small><b>${r.wins||0}-${r.losses||0}</b></div>`).join('')}</div>` : ''}
+        ${p.group ? `<div style="font-family:var(--wu-f);font-weight:700;font-size:17px;color:var(--muted)">Stable: <b style="color:${p.group.color}">${E(p.group.name)}</b></div>` : ''}
+        <button type="button" class="wu-big" data-go>Full profile &amp; match history</button>
+        <button type="button" class="wu-btn" data-x>Close</button></div>`;
+    c.classList.add('open');
+    c.querySelector('[data-go]').onclick = () => openProfile(p, true);
+    c.querySelector('[data-x]').onclick = () => recenter();   // closing a card goes back to the world
+  }
+
+  /* ═════════════ ROSTER: the select screen ═════════════ */
+  let HOVER = null;
+  function hero(p){
+    if(!p) return; HOVER = p;
+    $('wu-selHero').style.setProperty('--c', p.promo.color); $('wu-selWho').style.setProperty('--c', p.promo.color);
+    $('wu-selHero').innerHTML = `<div class="ph"></div>${p.img ? `<img src="${E(p.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}`;
+    const t = totals(p);
+    $('wu-selWho').innerHTML = `<div class="k">${E(p.promo.short)}${p.group ? ' · ' + E(p.group.name) : ''}</div><div class="n">${E(p.name)}</div>
+      ${p.nick ? `<div style="font-family:var(--wu-f);font-weight:600;font-size:22px;color:#cfccc2;margin-top:6px">“${E(p.nick)}”</div>` : ''}
+      <div class="st">${p.champ ? `<span style="color:${GOLD}"><i class="ti ti-crown"></i> ${E(p.champ.title)}</span>` : ''}${p.recs.length ? `<span><b>${t.w}</b>W</span><span><b>${t.l}</b>L</span>` : ''}</div>`;
+    document.querySelectorAll('#wu-selGrid .tile.on').forEach(x => x.classList.remove('on'));
+    const el = document.querySelector(`#wu-selGrid .tile[data-k="${p.key}"]`); if(el) el.classList.add('on');
+  }
+  function drawSelect(){
+    const html = D.PROMOS.map(pr => {
+      const list = D.PEOPLE.filter(p => p.promo === pr && shown(p)).sort((a,b) => (b.champ?1:0) - (a.champ?1:0) || a.name.localeCompare(b.name));
+      if(!list.length) return '';
+      return `<div class="gsec" style="--c:${pr.color}"><h3>${pr.logo ? `<img src="${E(pr.logo)}" alt="" onerror="this.remove()">` : ''}${E(pr.name)}<small>${list.length} on the roster</small></h3>
+        <div class="tiles">${list.map(p => { const im = p.avatar || p.img;
+          return `<button type="button" class="tile" style="--c:${pr.color}" data-k="${p.key}">${im ? `<img loading="lazy" src="${E(im)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}${p.champ ? '<span class="champ">C</span>' : ''}<span class="tn">${E(p.name)}</span></button>`; }).join('')}</div></div>`;
+    }).join('');
+    $('wu-selGrid').innerHTML = html || '<div class="wu-empty">Nobody matches that.</div>';
+    $('wu-selGrid').querySelectorAll('.tile').forEach(b => { b.onmouseenter = b.onfocus = () => hero(D.byKey[b.dataset.k]); b.onclick = () => openProfile(D.byKey[b.dataset.k], true); });
+    hero(HOVER && shown(HOVER) ? HOVER : D.PEOPLE.find(shown));
+  }
+
+  /* ═════════════ PROFILE: every match on record ═════════════ */
+  async function wcaRows(name){
+    // the same match history the Roster profile uses: ranked matches, plus every other card they were on
+    let rows = (typeof MH_CACHE !== 'undefined') ? MH_CACHE[name] : null;
+    try{ if(typeof loadRecordsRange === 'function') await loadRecordsRange(); }catch(e){}
+    if(!rows){
+      rows = (await q('v_match_history','*', x => x.eq('participant', name).order('event_date', { ascending:false }).order('slot', { ascending:true }))) || [];
+      try{ if(typeof mhExtraMatches === 'function') rows = rows.concat(await mhExtraMatches(name, rows)); }catch(e){}
+      try{ if(typeof MH_CACHE !== 'undefined') MH_CACHE[name] = rows; }catch(e){}
+    }
+    try{ if(typeof recRowSort === 'function') rows = rows.slice().sort(recRowSort); }catch(e){}
+    return rows.map(r => { let era = 0, eraLabel = '';
+      try{ if(typeof recEraOf === 'function' && typeof recEventOfRow === 'function'){ era = recEraOf(recEventOfRow(r)); if(era && typeof recEraLabel === 'function') eraLabel = recEraLabel(era); } }catch(e){}
+      let vs = ''; try{ vs = typeof mhOpponents === 'function' ? mhOpponents(r) : ''; }catch(e){}
+      if(!vs) vs = (r.sides || []).filter((s,i) => i !== r.side_index).map(s => s.team_name || (s.members || []).join(' & ')).filter(Boolean).join(', ');
+      return { div:r.division || 'Other', res:r.result || '?', when:r.event_date, show:r.event_name, type:r.match_type, title:r.match_title, belt:r.championship, vs, era, eraLabel }; });
+  }
+  async function promoRows(p){
+    const [ms, evs] = await Promise.all([q('promotion_matches','*', x => x.eq('promotion_id', p.promo.id)), q('promotion_events','id,name,show_number,event_date', x => x.eq('promotion_id', p.promo.id))]);
+    const ev = {}; (evs || []).forEach(e => ev[e.id] = e);
+    const out = [];
+    (ms || []).forEach(m => { const sides = m.sides || [];
+      const my = sides.findIndex(s => (s.members || []).some(x => x && (typeof x === 'object' ? (String(x.id) === String(p.id) || norm(x.name) === norm(p.name)) : norm(x) === norm(p.name))));
+      if(my < 0) return; const e = ev[m.event_id] || {};
+      const res = m.winner_idx == null ? '?' : Number(m.winner_idx) === my ? 'W' : (sides.length > 2 ? 'N' : 'L');
+      out.push({ div:m.match_type || 'Matches', res, when:e.event_date, show:e.name || (e.show_number ? 'Show ' + e.show_number : 'Show'), type:m.match_type, belt:m.title, era:0,
+        vs:sides.filter((s,i) => i !== my).map(s => s.name || (s.members || []).map(x => (x && x.name) || x).join(' & ')).filter(Boolean).join(', ') }); });
+    return out.sort((a,b) => String(b.when || '').localeCompare(String(a.when || '')));
+  }
+  let PROF = null, PROF_PUSHED = false;
+  const profBack = () => { if(PROF_PUSHED){ PROF_PUSHED = false; history.back(); } else goMode('sel'); };
+  async function openProfile(p, push){
+    if(!p) return;
+    PROF = p; PROF_PUSHED = !!push;
+    setAddr('roster', p.kind === 'wca' ? 'w=' + encodeURIComponent(p.name) : 'pc=' + p.id, push);
+    if(curPage() !== 'roster' && typeof activatePage === 'function') activatePage('roster');
+    setMode('prof');
+    const el = $('wu-prof'), c = p.promo.color;
+    const fin = Array.isArray(p.finishers) ? p.finishers.join(', ') : p.finishers;
+    const facts = [['From', p.from], ['Height', p.height], ['Weight', p.weight], ['Theme', p.theme], ['Finisher', fin], ['Stable', p.group && p.group.name], ['Title', p.title]]
+      .filter(f => f[1] && String(f[1]).trim() && !/^(\?+|n\/a)$/i.test(String(f[1]).trim()));
+    el.innerHTML = `<div class="pf" style="--c:${c}"><div class="left">
+        <button type="button" class="wu-btn" data-back style="margin-bottom:10px"><i class="ti ti-arrow-left"></i> Back</button>
+        <div class="shot">${pic(p)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button type="button" class="wu-btn" data-rel><i class="ti ti-affiliate"></i> Relationships</button>
+          ${p.kind === 'wca' ? '<button type="button" class="wu-btn" data-old title="The previous profile card, with every tool it had">Classic profile</button>' : '<button type="button" class="wu-btn" data-promo>Promotion page</button>'}
+        </div></div>
+      <div><div style="margin-top:6px">${promoTag(p.promo)}</div>
+        <h1>${E(p.name)}${p.champ ? ` <span style="color:${GOLD};font-size:.45em">(C)</span>` : ''}</h1>
+        ${p.nick ? `<div style="font-family:var(--wu-f);font-weight:600;font-size:24px;color:#cfccc2">“${E(p.nick)}”</div>` : ''}
+        ${p.champ ? `<div style="color:${GOLD};font-family:var(--wu-f);font-weight:800;font-size:22px;margin-top:8px"><i class="ti ti-crown"></i> ${E(p.champ.title)}${p.champ.show_won ? ' · since ' + E(p.champ.show_won) : ''}</div>` : ''}
+        ${facts.length ? `<div class="facts">${facts.map(f => `<div class="fact"><small>${f[0]}</small><div>${E(f[1])}</div></div>`).join('')}</div>` : ''}
+        ${p.bio ? `<div class="bio">${E(p.bio)}</div>` : ''}
+        <div class="h2">Match history</div><div id="wu-mh"><div class="wu-empty">Loading every match on record…</div></div></div></div>`;
+    el.scrollTop = 0;
+    el.querySelector('[data-back]').onclick = profBack;
+    el.querySelector('[data-rel]').onclick = () => { REL_SCOPE = p.promo.id === 'wca' ? null : p.promo.id; REL_FOCUS = p.key; goMode('rel'); };
+    const old = el.querySelector('[data-old]'); if(old) old.onclick = () => { const w = typeof wrestlerByName === 'function' ? wrestlerByName(p.name) : null; if(w && typeof window.openProfile === 'function') window.openProfile(w); };
+    const pp = el.querySelector('[data-promo]'); if(pp) pp.onclick = () => { if(typeof pmGo === 'function') pmGo(Number(p.promo.id), 'roster'); };
+    let rows = [];
+    try{ rows = p.kind === 'wca' ? await wcaRows(p.name) : await promoRows(p); }catch(e){ rows = []; }
+    if(PROF !== p) return;
+    const box = $('wu-mh'); if(!box) return;
+    if(!rows.length){ box.innerHTML = '<div class="wu-empty">No matches on file for them yet.</div>'; return; }
+    const divs = {}; rows.forEach(r => (divs[r.div] = divs[r.div] || []).push(r));
+    const names = Object.keys(divs).sort((a,b) => divs[b].length - divs[a].length);
+    let cur = 'All';
+    const RC = { W:'var(--wu-win)', L:'var(--wu-loss)', N:'var(--wu-nowin)', D:'#7ad1e6', '?':'#555a6b' };
+    const fmt = d => { try{ return new Date(d).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' }); }catch(e){ return ''; } };
+    const row = r => `<div class="mrow${r.era ? ' old' : ''}" style="--rc:${RC[r.res] || RC['?']}"><div class="r">${E(r.res)}</div>
+      <div><div class="vs">${r.vs ? 'vs ' + E(r.vs) : E(r.title || 'Match')} ${r.belt ? `<i class="ti ti-crown" style="color:${GOLD}" title="A championship was on the line"></i>` : ''}</div>
+        <div class="sub">${E(r.show || '')}${r.type ? ' · ' + E(r.type) : ''}${cur === 'All' ? ' · ' + E(r.div) + (p.kind === 'wca' ? ' division' : '') : ''}${r.res === '?' ? ' · <b>No winner saved yet</b>' : ''}</div></div>
+      <div class="when">${r.when ? fmt(r.when) : ''}</div></div>`;
+    const draw = () => {
+      const list = cur === 'All' ? rows : divs[cur];
+      const counted = list.filter(r => !r.era), older = list.filter(r => r.era);
+      const n = k => counted.filter(r => r.res === k).length, w = n('W'), l = n('L'), nw = n('N'), d = n('D'), tot = counted.length || 1;
+      box.innerHTML = `<div class="divtabs">${['All'].concat(names).map(dv => { const L = (dv === 'All' ? rows : divs[dv]).filter(r => !r.era);
+          return `<button type="button" class="dtab${cur === dv ? ' on' : ''}" style="--c:${c}" data-d="${E(dv)}">${E(dv)}<b>${L.filter(r => r.res === 'W').length}-${L.filter(r => r.res === 'L').length}</b></button>`; }).join('')}</div>
+        <div style="font-family:var(--wu-f);font-weight:700;font-size:18px;letter-spacing:1px">${w} wins · ${l} losses${nw ? ' · ' + nw + ' no-wins' : ''}${d ? ' · ' + d + ' draws' : ''} · ${list.length} matches</div>
+        <div class="wlbar"><i style="width:${w/tot*100}%;background:var(--wu-win)"></i><i style="width:${nw/tot*100}%;background:var(--wu-nowin)"></i><i style="width:${d/tot*100}%;background:#7ad1e6"></i><i style="width:${l/tot*100}%;background:var(--wu-loss)"></i></div>
+        ${counted.map(row).join('')}
+        ${older.length ? `<div class="mera">${E(older[0].eraLabel || 'Earlier shows')}. Not counted in records or rankings.</div>${older.map(row).join('')}` : ''}`;
+      box.querySelectorAll('.dtab').forEach(b => b.onclick = () => { cur = b.dataset.d; draw(); });
+    };
+    draw();
+  }
+
+  /* ═════════════ RELATIONSHIPS: one promotion at a time, never mixed ═════════════ */
+  let REL_SCOPE = null, REL_FOCUS = null, REL = null;   // REL = { sk, nodes, edges, sel, view, tick }
+  function lvColor(l){ try{ const k = typeof stxLvKey === 'function' ? stxLvKey(l) : l; return (STX_LV[k] && STX_LV[k].color) || '#9aa3c7'; }catch(e){ return '#9aa3c7'; } }
+  function lvLine(l){ try{ return (STX_LV[stxLvKey(l)] || {}).line || 'solid'; }catch(e){ return 'solid'; } }
+  function lvLabel(t, meA){ try{ return stxTieLabel(meA ? t.a_level : (t.b_level || t.a_level), t.relation, meA ? t.a_role : t.b_role, stxRowMore(t, meA)); }catch(e){ return String((meA ? t.a_level : (t.b_level || t.a_level)) || ''); } }
+  async function relOpen(){
+    const scope = REL_SCOPE;
+    $('wu-relWorlds').innerHTML = [{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p =>
+      `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="sw"></span>${E(p.short)}</button>`).join('');
+    $('wu-relWorlds').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { REL_SCOPE = b.dataset.s === 'wca' ? null : Number(b.dataset.s); REL_FOCUS = null; goMode('rel'); });
+    $('wu-relSide').style.display = 'none';
+    if(typeof stxCtx !== 'function' || typeof stxTies !== 'function'){ REL = null; return; }
+    let ctx, ties;
+    try{ [ctx, ties] = await Promise.all([stxCtx(scope), stxTies(scope)]); }catch(e){ REL = null; return; }
+    if(REL_SCOPE !== scope) return;
+    const promo = scope == null ? D.PROMOS[0] : (D.promoById(scope) || { color:'#9aa3c7', short:'' });
+    const nodes = {}, edges = [];
+    const node = k => { if(nodes[k]) return nodes[k]; const it = ctx.byKey[k]; if(!it) return null;
+      const n = { key:k, name:it.name, color:hex(it.color, promo.color), img:it.image || '', kind:it.kind, ring:promo.color };
+      if(it.kind === 'person'){ const pk = (scope == null ? 'w' : 'p') + it.id; const pp = D.byKey[pk]; if(pp){ n.person = pp; if(!n.img) n.img = pp.avatar || pp.img || ''; } }
+      if(it.kind === 'faction'){ const lead = (it.members || []).map(m => ctx.byKey[m]).find(m => m && m.image); if(lead) n.img = lead.image; }
+      if(n.img){ n.im = new Image(); n.im.referrerPolicy = 'no-referrer'; n.im.src = n.img; }
+      return nodes[k] = n; };
+    (ties || []).forEach(t => { const a = node(t.a_kind + ':' + t.a_id), b = node(t.b_kind + ':' + t.b_id); if(a && b && a !== b) edges.push({ a, b, t }); });
+    // stable mates get the gold Same faction line, like the Relationships page
+    (ctx.factions || []).filter(f => !f.off).forEach(f => { const m = (f.members || []).filter(k => nodes[k]);
+      for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(!edges.some(e => (e.a.key === m[i] && e.b.key === m[j]) || (e.a.key === m[j] && e.b.key === m[i]))) edges.push({ a:nodes[m[i]], b:nodes[m[j]], t:null, faction:f.name }); });
+    const list = Object.values(nodes), r0 = rng(7);
+    list.forEach((n, i) => { const a = i/Math.max(1,list.length)*6.283; n.x = Math.cos(a)*260 + (r0()-.5)*40; n.y = Math.sin(a)*260 + (r0()-.5)*40; n.vx = n.vy = 0; });
+    REL = { sk:scope, nodes:list, edges, sel:null, view:{ x:0, y:0, z:1, user:false }, tick:0, drag:null, promo };
+    if(REL_FOCUS && nodes['person:' + String(REL_FOCUS).slice(1)]) relPick(nodes['person:' + String(REL_FOCUS).slice(1)]);
+    if(!list.length){ $('wu-relSide').innerHTML = `<div class="wu-empty">No relationships written for ${E(promo.short || 'this promotion')} yet.</div>`; $('wu-relSide').style.display = 'block'; }
+  }
+  function relStep(){
+    const R = REL; if(!R || R.tick > 700) return; R.tick++;
+    const L = 230, cool = Math.max(.15, 1 - R.tick/700);
+    for(const a of R.nodes){ for(const b of R.nodes){ if(a === b) continue; const dx = a.x-b.x, dy = a.y-b.y, d = Math.max(20, Math.sqrt(dx*dx+dy*dy)), f = (L*L/d)*.014*cool; a.vx += dx/d*f; a.vy += dy/d*f; }
+      a.vx -= a.x*.01; a.vy -= a.y*.01; }
+    for(const e of R.edges){ const dx = e.b.x-e.a.x, dy = e.b.y-e.a.y, d = Math.sqrt(dx*dx+dy*dy)+.01, f = (d-L)*.03*cool; e.a.vx += dx/d*f; e.a.vy += dy/d*f; e.b.vx -= dx/d*f; e.b.vy -= dy/d*f; }
+    for(const n of R.nodes){ if(R.drag && R.drag.n === n) continue; n.vx *= .7; n.vy *= .7; n.x += n.vx; n.y += n.vy; }
+  }
+  function relFrame(){
+    const cv = $('wu-relCv'); if(!cv) return;
+    const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+    if(cv.width !== Math.round(W*dpr) || cv.height !== Math.round(H*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+    const x = cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+    x.fillStyle = 'rgba(4,5,11,.55)'; x.fillRect(0,0,W,H);
+    const R = REL; if(!R) return;
+    relStep();
+    const v = R.view;
+    if(!v.user && R.nodes.length){ let a = 1e9, b = -1e9, c = 1e9, d = -1e9; R.nodes.forEach(n => { a = Math.min(a, n.x); b = Math.max(b, n.x); c = Math.min(c, n.y); d = Math.max(d, n.y); });
+      const z = clamp(Math.min((W-160)/(b-a+160), (H-140)/(d-c+160)), .3, 1.4); v.z += (z - v.z)*.08; v.x += (-(a+b)/2*v.z - v.x)*.08; v.y += (-(c+d)/2*v.z + 20 - v.y)*.08; }
+    x.save(); x.translate(W/2 + v.x, H/2 + v.y); x.scale(v.z, v.z);
+    const sel = R.sel, lit = n => !sel || n === sel || R.edges.some(e => (e.a === sel && e.b === n) || (e.b === sel && e.a === n));
+    const t = performance.now()/1000, fF = getComputedStyle(root).getPropertyValue('--fh-fight').trim() || '"Barlow Condensed", sans-serif';
+    R.edges.forEach(e => { const on = !sel || e.a === sel || e.b === sel, lv = e.t ? e.t.a_level : 'faction', c = lvColor(lv), line = e.t ? lvLine(lv) : 'solid';
+      x.globalAlpha = on ? (e.t ? .9 : .5) : .07; x.strokeStyle = c; x.lineWidth = on && sel ? 4 : (e.t ? 2.5 : 1.5); x.shadowColor = c; x.shadowBlur = on ? 14 : 0;
+      const split = e.t && e.t.b_level && e.t.b_level !== e.t.a_level;
+      x.setLineDash(line === 'dashed' || split ? [10,6] : []); x.lineDashOffset = -t*20;
+      if(line === 'double'){ const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, L = Math.hypot(dx, dy) || 1, ox = -dy/L*3, oy = dx/L*3;
+        [[ox,oy],[-ox,-oy]].forEach(([p,q]) => { x.beginPath(); x.moveTo(e.a.x+p, e.a.y+q); x.lineTo(e.b.x+p, e.b.y+q); x.stroke(); }); }
+      else { x.beginPath(); x.moveTo(e.a.x, e.a.y); x.lineTo(e.b.x, e.b.y); x.stroke(); }
+      x.setLineDash([]);
+      if(on && (sel || R.nodes.length < 40) && e.t){ x.shadowBlur = 0; x.font = '700 15px ' + fF; x.fillStyle = c; x.textAlign = 'center'; x.fillText(String(lvLabel(e.t, true)).toUpperCase(), (e.a.x+e.b.x)/2, (e.a.y+e.b.y)/2 - 6); } });
+    x.shadowBlur = 0;
+    R.nodes.forEach(n => { const on = lit(n), r = n === sel ? 40 : 30; x.globalAlpha = on ? 1 : .18;
+      x.save(); x.beginPath(); x.arc(n.x, n.y, r, 0, 6.283); x.closePath(); x.fillStyle = '#0b0c15'; x.fill(); x.clip();
+      if(n.im && n.im.complete && n.im.naturalWidth){ const s = Math.max(r*2/n.im.naturalWidth, r*2/n.im.naturalHeight); x.drawImage(n.im, n.x - n.im.naturalWidth*s/2, n.y - r, n.im.naturalWidth*s, n.im.naturalHeight*s); }
+      else { x.fillStyle = n.color; x.globalAlpha *= .55; x.fillRect(n.x-r, n.y-r, r*2, r*2); x.globalAlpha = on ? 1 : .18; x.fillStyle = '#fff'; x.font = '400 24px ' + (getComputedStyle(root).getPropertyValue('--font-display').trim() || 'Anton'); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ini(n.name), n.x, n.y); }
+      x.restore(); x.lineWidth = n.kind === 'faction' ? 6 : 4; x.strokeStyle = n.kind === 'faction' ? n.color : n.ring; x.shadowColor = x.strokeStyle; x.shadowBlur = 16; x.beginPath(); x.arc(n.x, n.y, r, 0, 6.283); x.stroke(); x.shadowBlur = 0;
+      x.fillStyle = '#fff'; x.font = 'italic 800 17px ' + fF; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillText(String(n.name).toUpperCase(), n.x, n.y + r + 20); });
+    x.restore(); x.globalAlpha = 1;
+  }
+  function relAt(cx, cy){ const R = REL; if(!R) return null; const cv = $('wu-relCv'), b = cv.getBoundingClientRect();
+    const wx = (cx - b.left - cv.clientWidth/2 - R.view.x)/R.view.z, wy = (cy - b.top - cv.clientHeight/2 - R.view.y)/R.view.z;
+    return R.nodes.find(n => (n.x-wx)**2 + (n.y-wy)**2 < 36*36) || null; }
+  function relPick(n){
+    const R = REL; if(!R) return; R.sel = n; const side = $('wu-relSide');
+    if(!n){ side.style.display = 'none'; return; }
+    const mine = R.edges.filter(e => e.a === n || e.b === n);
+    side.innerHTML = `<span class="wu-promo" style="--c:${R.promo.color}">${E(R.promo.short)}</span>
+      <div style="font-family:var(--wu-f);font-style:italic;font-weight:900;font-size:40px;text-transform:uppercase;line-height:1;margin:10px 0">${E(n.name)}</div>
+      ${mine.map(e => { const o = e.a === n ? e.b : e.a; if(!e.t) return `<div class="tie"><b>${E(o.name)}</b><span class="lv" style="--lc:${lvColor('faction')}">Same faction</span><p>${E(e.faction)}</p></div>`;
+        const meA = e.a === n, lv = meA ? e.t.a_level : (e.t.b_level || e.t.a_level), why = meA ? e.t.a_why : (e.t.b_level ? e.t.b_why : e.t.a_why);
+        return `<div class="tie"><b>${E(o.name)}</b><span class="lv" style="--lc:${lvColor(lv)}">${E(lvLabel(e.t, meA))}</span>${why ? `<p><i>${E(why)}</i></p>` : ''}${e.t.history ? `<p>${E(e.t.history)}</p>` : ''}</div>`; }).join('') || '<div class="wu-empty">No relationships yet.</div>'}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${n.person ? '<button type="button" class="wu-big" data-p>Full profile</button>' : ''}<button type="button" class="wu-btn" data-s>Their full story</button></div>`;
+    side.style.display = 'block';
+    const bp = side.querySelector('[data-p]'); if(bp) bp.onclick = () => openProfile(n.person, true);
+    side.querySelector('[data-s]').onclick = () => { try{ stxOpenWeb(R.sk, n.key); }catch(e){} setTimeout(sync, 0); };
+  }
+  (function wireRel(){
+    const cv = $('wu-relCv'); if(!cv) return;
+    cv.addEventListener('pointerdown', e => { if(!REL) return; REL.drag = { x:e.clientX, y:e.clientY, m:0, n:relAt(e.clientX, e.clientY) }; });
+    addEventListener('pointermove', e => { const R = REL; if(!R || !R.drag) return; const dx = e.clientX - R.drag.x, dy = e.clientY - R.drag.y; R.drag.m += Math.abs(dx) + Math.abs(dy);
+      if(R.drag.n){ R.drag.n.x += dx/R.view.z; R.drag.n.y += dy/R.view.z; R.drag.n.vx = R.drag.n.vy = 0; } else { R.view.user = true; R.view.x += dx; R.view.y += dy; }
+      R.drag.x = e.clientX; R.drag.y = e.clientY; });
+    addEventListener('pointerup', e => { const R = REL; if(!R || !R.drag) return; if(R.drag.m < 5) relPick(relAt(e.clientX, e.clientY)); R.drag = null; });
+    cv.addEventListener('wheel', e => { if(!REL) return; e.preventDefault(); REL.view.user = true; REL.view.z = clamp(REL.view.z * (1 - Math.sign(e.deltaY)*.1), .3, 3); }, { passive:false });
+  })();
+
+  /* ═════════════ RIVALRIES: one promotion at a time too ═════════════ */
+  let RIV_SCOPE = null, RIVS = [];
+  const heatHTML = (h, st) => { let c = '#ff6a3d'; try{ c = rvHeat(h).color || c; }catch(e){} return `<div class="heat" style="--hc:${c};${st || ''}">${Array.from({ length:10 }, (_, i) => `<i class="ti ti-flame${i < (h||0) ? ' on' : ''}"></i>`).join('')}</div>`; };
+  async function rivOpen(){
+    const el = $('wu-riv'), scope = RIV_SCOPE;
+    el.innerHTML = '<div class="wu-empty">Loading…</div>';
+    if(typeof rvList !== 'function' || typeof stxCtx !== 'function'){ el.innerHTML = '<div class="wu-empty">Rivalries are not available right now.</div>'; return; }
+    let ctx, res; try{ [ctx, res] = await Promise.all([stxCtx(scope), rvList(scope)]); }catch(e){ el.innerHTML = '<div class="wu-empty">Rivalries are not available right now.</div>'; return; }
+    if(RIV_SCOPE !== scope) return;
+    const promo = scope == null ? D.PROMOS[0] : (D.promoById(scope) || { color:'#9aa3c7', short:'' });
+    const side = k => { const it = ctx.byKey[k]; if(!it) return null;
+      if(it.kind === 'faction'){ const lead = (it.members || []).map(m => ctx.byKey[m]).find(m => m && m.image); return { name:it.name, color:hex(it.color, promo.color), img:lead && lead.image }; }
+      const pp = D.byKey[(scope == null ? 'w' : 'p') + it.id];
+      return { name:it.name, color:promo.color, img:it.image || (pp && (pp.img || pp.avatar)), person:pp }; };
+    RIVS = (res.rows || []).map(r => { const s = r.members.map(side).filter(Boolean); return s.length >= 2 ? { r, A:s[0], B:s[1], more:s.length - 2 } : null; }).filter(Boolean)
+      .sort((a,b) => (a.r.status === 'active' ? 0 : 1) - (b.r.status === 'active' ? 0 : 1) || (b.r.heat||0) - (a.r.heat||0));
+    const sideHTML = (s, cls) => `<div class="${cls}">${s.img ? `<img src="${E(s.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(s.name))}</div>`}</div>`;
+    el.innerHTML = `<div style="max-width:1500px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <div style="font-family:var(--wu-f);font-style:italic;font-weight:900;font-size:38px;letter-spacing:2px;text-transform:uppercase;margin-right:14px">Rivalries</div>
+        ${[{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p => `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="sw"></span>${E(p.short)}</button>`).join('')}
+        <span style="color:var(--muted);font-family:var(--wu-f);font-weight:700;font-size:16px;margin-left:auto">Hottest first · click one for the whole story</span></div>
+      <div class="rivgrid">${RIVS.map((x, i) => `<button type="button" class="rcard" data-i="${i}" style="--a:${x.A.color};--b:${x.B.color}">${sideHTML(x.A,'sA')}${sideHTML(x.B,'sB')}
+        <span class="stat">${x.r.status === 'active' ? 'Active' : 'Over'}</span>${heatHTML(x.r.heat)}<div class="vsx">VS</div>
+        <div class="names"><span>${E(x.A.name)}</span><span>${E(x.B.name)}${x.more ? ' +' + x.more : ''}</span></div></button>`).join('') || `<div class="wu-empty">No rivalries for ${E(promo.short)} yet.</div>`}</div>`;
+    el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { RIV_SCOPE = b.dataset.s === 'wca' ? null : Number(b.dataset.s); setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE); rivOpen(); });
+    el.querySelectorAll('.rcard').forEach(b => b.onclick = () => { const x = RIVS[+b.dataset.i]; setAddr('rivalries', 'id=' + x.r.id + (RIV_SCOPE == null ? '' : '&promo=' + RIV_SCOPE), true); vsOpen(x); });
+    const want = qp().get('id'); if(want && MODE === 'vs'){ const x = RIVS.find(z => String(z.r.id) === String(want)); if(x) vsOpen(x, true); }
+  }
+  async function vsOpen(x, already){
+    if(!already) setMode('vs');
+    const el = $('wu-vs');
+    let evs = []; try{ if(typeof rvEvents === 'function') evs = await rvEvents(RIV_SCOPE); }catch(e){}
+    const evDate = id => { const e = (evs || []).find(z => String(z.id) === String(id)); return e ? e.date : ''; };
+    const beats = (x.r.beats || []).map(b => Object.assign({}, b, { on:b.on || evDate(b.event_id) })).sort((a,b) => String(a.on || '').localeCompare(String(b.on || '')));
+    const won = s => beats.filter(b => !b.title && norm(b.text).startsWith(norm(s.name) + ' beat')).length;
+    const big = (s, cls, nm) => `<div class="${cls}">${s.img ? `<img src="${E(s.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</div><div class="${nm}">${E(s.name)}</div>`;
+    const fmt = d => { try{ return d ? new Date(d).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' }) : ''; }catch(e){ return ''; } };
+    el.innerHTML = `<div class="vstop" style="--a:${x.A.color};--b:${x.B.color}">${big(x.A,'A','nA')}${big(x.B,'B','nB')}<div class="big">VS</div>
+        <div class="h2h"><div>${won(x.A)}<small>WINS</small></div><div style="font-size:22px">${heatHTML(x.r.heat, 'position:static;transform:none')}<small>HEAT ${x.r.heat || 0} / 10</small></div><div>${won(x.B)}<small>WINS</small></div></div>
+        <button type="button" class="wu-btn vsback" data-b><i class="ti ti-arrow-left"></i> All rivalries</button></div>
+      <div class="vsbody">${x.r.title ? `<div class="h2">${E(x.r.title)}</div>` : ''}${x.r.started_why ? `<div class="h2">How it started</div><div class="bio">${E(x.r.started_why)}</div>` : ''}
+        ${x.r.ended_how ? `<div class="h2">How it ended</div><div class="bio">${E(x.r.ended_how)}</div>` : ''}
+        <div class="h2">The story so far</div>
+        ${beats.map(b => { const aW = norm(b.text).startsWith(norm(x.A.name)), bW = norm(b.text).startsWith(norm(x.B.name)), c = b.title ? '#7ad1e6' : aW ? x.A.color : bW ? x.B.color : '#9aa3c7';
+          return `<div class="beat" style="--bc:${c}"><div class="d">${fmt(b.on)}</div><div class="dot"></div><div class="t"><small>${E(b.title || 'Match')}</small>${E(b.text)}</div></div>`; }).join('') || '<div class="wu-empty">Nothing saved yet.</div>'}
+        <div style="margin-top:20px"><button type="button" class="wu-btn" data-c>Open in the classic Rivalries page</button></div></div>`;
+    el.scrollTop = 0;
+    el.querySelector('[data-b]').onclick = () => { setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); setMode('riv'); };
+    el.querySelector('[data-c]').onclick = () => { CLASSIC.rivalries = true; sync(); };
+  }
+
+  /* ═════════════ which screen, from the page and its address ═════════════ */
+  let MODE = '';
+  const CLASSIC = { roster:false, relationships:false, rivalries:false };
+  const PAGE_OF = { map:'starmap', sel:'roster', prof:'roster', rel:'relationships', riv:'rivalries', vs:'rivalries' };
+  const curPage = () => { const p = document.querySelector('.page.active'); return p ? p.id.replace(/^page-/, '') : ''; };
+  function setTop(){ const pb = $('fh-pagebar'), h = document.querySelector('header'); const b = (pb && pb.offsetParent !== null ? pb : h); if(b) root.style.setProperty('--wu-top', Math.round(b.getBoundingClientRect().bottom + 6) + 'px'); }
+  function setMode(m){
+    MODE = m;
+    if(m){ root.dataset.wu = m; } else delete root.dataset.wu;
+    document.querySelectorAll('#wu .wu-mode').forEach(b => b.classList.toggle('on', b.dataset.m === (m === 'prof' ? 'sel' : m === 'vs' ? 'riv' : m)));
+    if(m === 'map' && G && G.sel) $('wu-card').classList.add('open');
+    setTop(); run();
+  }
+  function goMode(m){
+    const pg = PAGE_OF[m]; if(pg in CLASSIC) CLASSIC[pg] = false;
+    if(m === 'rel'){ setAddr('relationships', REL_SCOPE == null ? '' : 'promo=' + REL_SCOPE, true); }
+    else if(m === 'riv'){ setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); }
+    else setAddr(pg, '', true);
+    if(curPage() !== pg){ if(typeof activatePage === 'function') activatePage(pg); }
+    else sync();
+  }
+  document.querySelectorAll('#wu .wu-mode').forEach(b => b.onclick = () => goMode(b.dataset.m));
+  $('wu-classic').onclick = () => { const pg = curPage(); if(pg === 'starmap'){ CLASSIC.roster = true; setAddr('roster', '', true); if(typeof activatePage === 'function') activatePage('roster'); return; } CLASSIC[pg] = true; sync(); };
+  $('wu-recenter').onclick = () => { FILTER = 'all'; drawFilters(); applyFilter(); recenter(); };
+  $('wu-selGo').onclick = () => HOVER && openProfile(HOVER, true);
+  function newView(){ const pg = curPage(); if(pg in CLASSIC) CLASSIC[pg] = false; sync(); }
+
+  let syncing = 0;
+  async function sync(){
+    const my = ++syncing;
+    const pg = curPage();
+    const wants = isFight() && ['starmap','roster','relationships','rivalries'].includes(pg);
+    let classic = wants && pg !== 'starmap' && CLASSIC[pg];
+    const p = qp();
+    // links into the deeper Relationships pages (a person's story, a faction, the whole roster) use the classic page
+    if(wants && pg === 'relationships' && (p.get('view') || p.get('who') || p.get('ch'))) classic = true;
+    if(classic) root.dataset.wuClassic = pg; else delete root.dataset.wuClassic;
+    if(!wants || classic){
+      if(root.dataset.wu){ setMode(''); try{ if(typeof FHBG !== 'undefined' && FHBG.restart) FHBG.restart(); }catch(e){} }
+      // the classic Roster page needs its own star map started
+      if(classic && pg === 'roster' && ORIG.smEnter) try{ ORIG.smEnter(); }catch(e){}
+      return;
+    }
+    if(!D){ $('wu-loading').hidden = false; root.dataset.wu = 'load'; setTop(); }
+    await load();
+    $('wu-loading').hidden = true;
+    if(my !== syncing) return;
+    if(!G && hasGL()){ try{ await loadThree(); buildScene(); }catch(e){ console.warn('[universe]', e); } }
+    drawFilters(); drawLegend();
+    if(pg === 'starmap'){ setMode('map'); return; }
+    if(pg === 'roster'){
+      const w = p.get('w'), pc = p.get('pc');
+      const who = w ? D.wcaByName[norm(w)] || D.PEOPLE.find(x => x.kind === 'wca' && norm(x.name) === norm(w)) : pc ? D.byKey['p' + pc] : null;
+      if(who){ if(PROF !== who || MODE !== 'prof') openProfile(who, false); else setMode('prof'); }
+      else { setMode('sel'); drawSelect(); }
+      return;
+    }
+    if(pg === 'relationships'){ const s = p.get('promo'); REL_SCOPE = s && /^\d+$/.test(s) ? Number(s) : null; setMode('rel'); relOpen(); return; }
+    if(pg === 'rivalries'){ const s = p.get('promo'); RIV_SCOPE = s && /^\d+$/.test(s) ? Number(s) : null; setMode(p.get('id') ? 'vs' : 'riv'); rivOpen(); return; }
+  }
+
+  /* ── hooks into the site (nothing removed; Classic design and Classic view use the originals) ── */
+  const ORIG = { smEnter:window.smEnter, focus:window.rosterFocusName };
+  function hook(){
+    if(window.smEnter && !window.smEnter.__wu){ ORIG.smEnter = window.smEnter;
+      const f = function(){ if(isFight() && !CLASSIC.roster) return; return ORIG.smEnter.apply(this, arguments); }; f.__wu = 1; window.smEnter = f; }
+    // the classic Relationships page keeps its address in step with what it draws; not while the new web is showing
+    if(window.stxSyncAddress && !window.stxSyncAddress.__wu){ const o = window.stxSyncAddress;
+      const f = function(){ if(isFight() && root.dataset.wu) return; return o.apply(this, arguments); }; f.__wu = 1; window.stxSyncAddress = f; }
+    if(window.rosterFocusName && !window.rosterFocusName.__wu){ ORIG.focus = window.rosterFocusName;
+      const f = function(name){ if(isFight() && !CLASSIC.roster){ setTimeout(sync, 0); return true; } return ORIG.focus.apply(this, arguments); }; f.__wu = 1; window.rosterFocusName = f; }
+  }
+  function init(){
+    hook(); setTimeout(hook, 1500);
+    const mo = new MutationObserver(() => { hook(); sync(); });
+    document.querySelectorAll('.page').forEach(pg => mo.observe(pg, { attributes:true, attributeFilter:['class'] }));
+    new MutationObserver(() => sync()).observe(root, { attributes:true, attributeFilter:['data-design'] });
+    addEventListener(typeof WCA_PATHS !== 'undefined' && WCA_PATHS ? 'popstate' : 'hashchange', () => setTimeout(sync, 0));
+    addEventListener('resize', setTop);
+    document.addEventListener('visibilitychange', () => { if(!document.hidden) run(); });
+    addEventListener('keydown', e => {
+      if(!root.dataset.wu) return;
+      if(e.key === 'Escape' && MODE === 'prof'){ e.stopImmediatePropagation(); profBack(); return; }
+      if(e.key === 'Escape' && MODE === 'vs'){ e.stopImmediatePropagation(); setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); setMode('riv'); return; }
+      if(MODE === 'sel' && ['ArrowRight','ArrowLeft','ArrowDown','ArrowUp','Enter'].includes(e.key) && !/input|textarea/i.test((e.target && e.target.tagName) || '')){
+        if(e.key === 'Enter'){ if(HOVER) openProfile(HOVER, true); return; }
+        const list = [...document.querySelectorAll('#wu-selGrid .tile')], i = list.findIndex(t => t.classList.contains('on'));
+        const cols = Math.max(1, Math.round($('wu-selGrid').clientWidth / 98)), step = { ArrowRight:1, ArrowLeft:-1, ArrowDown:cols, ArrowUp:-cols }[e.key];
+        const nx = list[clamp(i + step, 0, list.length - 1)]; if(nx){ hero(D.byKey[nx.dataset.k]); nx.scrollIntoView({ block:'nearest' }); e.preventDefault(); } }
+    }, true);
+    sync();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  return { sync, newView, recenter, openProfile:p => openProfile(p, true), get data(){ return D; } };
 })();
 </script>
 
