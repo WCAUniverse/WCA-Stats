@@ -39725,7 +39725,13 @@ const FHBG = (function(){
 <style id="wu-style">
   html:not([data-design="fight"]) #wu, html:not([data-design="fight"]) #wu-space, html:not([data-design="fight"]) #wu-newview{display:none !important;}
   #wu-space{position:fixed; inset:0; width:100%; height:100%; z-index:0; display:none; pointer-events:none;}
-  html[data-design="fight"][data-wu] #wu-space{display:block;}
+  html[data-design="fight"][data-wu="map"] #wu-space{display:block;}
+  /* every page but the Star Map gets its own still background: nothing moving behind it */
+  #wu-bg{position:fixed; inset:0; z-index:1; display:none; pointer-events:none;
+    background:radial-gradient(ellipse 60% 70% at 18% 85%, color-mix(in srgb,var(--wu-acc,#E9B949) 20%,transparent), transparent 70%),
+      radial-gradient(ellipse 50% 50% at 92% 8%, rgba(255,255,255,.035), transparent 70%), linear-gradient(180deg,#06070d 0%,#0a0b14 100%);}
+  html[data-design="fight"][data-wu]:not([data-wu="map"]) #wu-bg{display:block;}
+  html[data-design="fight"][data-wu]:not([data-wu="map"]) body{background:#07080f !important;}
   html[data-design="fight"][data-wu] #fh-bg{display:none !important;}
   html[data-design="fight"][data-wu] .wrap, html[data-design="fight"][data-wu] #siteFoot{display:none !important;}
   html[data-design="fight"][data-wu] body{overflow:hidden;}
@@ -39746,7 +39752,7 @@ const FHBG = (function(){
   html[data-wu="map"] #wu .wu-filters, html[data-wu="sel"] #wu .wu-filters{display:flex;}
   #wu .wu-chip{display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border:1px solid var(--wu-line2); background:rgba(0,0,0,.55);
     font-family:var(--wu-f); font-weight:700; font-size:16px; letter-spacing:1px; text-transform:uppercase; border-radius:3px;}
-  #wu .wu-chip .sw{width:12px; height:12px; border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c);}
+  #wu .wu-chip .wu-sw{width:12px; height:12px; border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c);}
   #wu .wu-chip.on{border-color:var(--c,var(--gold)); background:color-mix(in srgb,var(--c,var(--gold)) 24%,rgba(0,0,0,.6));}
   #wu .wu-chip small{color:var(--muted,#9a98a6); font-weight:600; font-size:14px;}
   #wu .wu-search{padding:7px 14px; min-width:220px; background:rgba(0,0,0,.6); border:1px solid var(--wu-line2); color:var(--txt); font:600 16px var(--font-body,sans-serif); border-radius:3px;}
@@ -39762,13 +39768,13 @@ const FHBG = (function(){
   #wu .wu-card{position:fixed; z-index:30; right:22px; top:calc(var(--wu-top,120px) + 100px); width:360px; max-height:calc(100vh - var(--wu-top,120px) - 130px); overflow:auto;
     background:var(--wu-panel); border:1px solid var(--wu-line); border-top:3px solid var(--c,var(--gold)); backdrop-filter:blur(8px); display:none;}
   html[data-wu="map"] #wu .wu-card.open{display:block;}
-  #wu .wu-card .pic{height:290px; position:relative; background:radial-gradient(ellipse at 50% 70%,color-mix(in srgb,var(--c) 50%,transparent),transparent 70%),#0b0c15;}
-  #wu .wu-card .pic img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
-  #wu .wu-card .pic::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%,rgba(4,5,11,.95));}
+  #wu .wu-card .wu-pic{height:290px; position:relative; background:radial-gradient(ellipse at 50% 70%,color-mix(in srgb,var(--c) 50%,transparent),transparent 70%),#0b0c15;}
+  #wu .wu-card .wu-pic img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
+  #wu .wu-card .wu-pic::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%,rgba(4,5,11,.95));}
   #wu .wu-ini{position:absolute; inset:0; display:grid; place-items:center; font-family:var(--wu-d); font-size:100px; color:rgba(255,255,255,.2);}
-  #wu .wu-card .nm{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:40px; line-height:.95; text-transform:uppercase; padding:0 18px; margin-top:-48px; position:relative; z-index:1;}
-  #wu .wu-card .nick{padding:4px 18px 0; color:var(--muted,#9a98a6); font-family:var(--wu-f); font-weight:600; font-size:17px;}
-  #wu .wu-card .body{padding:14px 18px 18px; display:grid; gap:12px;}
+  #wu .wu-card .wu-nm{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:40px; line-height:.95; text-transform:uppercase; padding:0 18px; margin-top:-48px; position:relative; z-index:1;}
+  #wu .wu-card .wu-nick{padding:4px 18px 0; color:var(--muted,#9a98a6); font-family:var(--wu-f); font-weight:600; font-size:17px;}
+  #wu .wu-card .wu-body{padding:14px 18px 18px; display:grid; gap:12px;}
   #wu .wu-promo{display:inline-flex; align-items:center; gap:8px; font-family:var(--wu-f); font-weight:800; font-style:italic; font-size:16px; letter-spacing:1px;
     padding:4px 12px; background:color-mix(in srgb,var(--c) 30%,transparent); border-left:3px solid var(--c); text-transform:uppercase; justify-self:start;}
   #wu .wu-promo img{width:22px; height:22px; object-fit:contain;}
@@ -39780,117 +39786,116 @@ const FHBG = (function(){
     background:rgba(0,0,0,.55); padding:8px 14px; border:1px solid var(--wu-line); flex-wrap:wrap; max-width:58%;}
   html[data-wu="map"] #wu .wu-legend{display:flex;}
   #wu .wu-legend span{display:inline-flex; align-items:center; gap:6px;}
-  #wu .wu-legend i.d{width:10px; height:10px; border-radius:50%; display:inline-block;}
+  #wu .wu-legend i.wu-d{width:10px; height:10px; border-radius:50%; display:inline-block;}
   #wu .wu-screen{position:fixed; z-index:29; left:0; right:0; bottom:0; top:calc(var(--wu-top,120px) + 50px); display:none; padding:12px 22px 22px; overflow:auto;}
   html[data-wu="sel"] #wu-sel, html[data-wu="prof"] #wu-prof, html[data-wu="rel"] #wu-rel, html[data-wu="riv"] #wu-riv, html[data-wu="vs"] #wu-vs{display:block;}
   #wu .wu-empty{color:var(--muted,#9a98a6); padding:14px 0; font-size:17px;}
   /* select */
-  #wu-sel{top:calc(var(--wu-top,120px) + 100px) !important; padding:0 !important; overflow:hidden !important;
-    background:linear-gradient(90deg,rgba(4,5,11,.15) 0%,rgba(4,5,11,.5) 38%,rgba(4,5,11,.86) 52%);}
-  #wu-sel .hero{position:absolute; left:0; top:0; bottom:0; width:48%; overflow:hidden; pointer-events:none;}
-  #wu-sel .hero .ph{position:absolute; inset:0; background:radial-gradient(ellipse at 40% 65%,color-mix(in srgb,var(--c) 55%,transparent),transparent 65%);}
-  #wu-sel .hero img{position:absolute; left:4%; bottom:0; height:94%; max-width:92%; object-fit:contain; object-position:bottom left;
+  #wu-sel{top:calc(var(--wu-top,120px) + 100px) !important; padding:0 !important; overflow:hidden !important; background:none;}
+  #wu-sel .wu-hero{position:absolute; left:0; top:0; bottom:0; right:min(58%,1180px); overflow:hidden; pointer-events:none;}
+  #wu-sel .wu-hero .wu-ph{position:absolute; inset:0; background:radial-gradient(ellipse at 40% 65%,color-mix(in srgb,var(--c) 55%,transparent),transparent 65%);}
+  #wu-sel .wu-hero img{position:absolute; left:4%; bottom:0; height:94%; max-width:92%; object-fit:contain; object-position:bottom left;
     filter:drop-shadow(0 0 40px color-mix(in srgb,var(--c) 60%,transparent)); animation:wuIn .35s ease-out;}
-  #wu-sel .hero .wu-ini{inset:auto; left:8%; bottom:14%; font-size:260px; line-height:1; color:color-mix(in srgb,var(--c) 45%,transparent);}
+  #wu-sel .wu-hero .wu-ini{inset:auto; left:8%; bottom:14%; font-size:260px; line-height:1; color:color-mix(in srgb,var(--c) 45%,transparent);}
   @keyframes wuIn{from{transform:translateX(-40px); opacity:0} to{transform:none; opacity:1}}
-  #wu-sel .who{position:absolute; left:3%; bottom:5%; max-width:46%; pointer-events:none;}
-  #wu-sel .who .n{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(48px,6.5vw,100px); line-height:.88; text-transform:uppercase; text-shadow:0 4px 30px rgba(0,0,0,.85); animation:wuIn .3s ease-out;}
-  #wu-sel .who .k{font-family:var(--wu-f); font-weight:700; font-size:21px; letter-spacing:3px; color:var(--c); text-transform:uppercase; margin-bottom:6px;}
-  #wu-sel .who .st{display:flex; gap:18px; margin-top:12px; font-family:var(--wu-f); font-weight:700; font-size:20px;}
-  #wu-sel .who .st b{font-family:var(--wu-d); font-weight:400; font-size:30px; margin-right:4px;}
-  #wu-sel .go{position:absolute; left:3%; top:12px; pointer-events:auto;}
-  #wu-sel .grid{position:absolute; right:22px; top:0; bottom:16px; width:min(52%,860px); overflow:auto; padding-right:6px;}
-  #wu .gsec{margin-bottom:18px;}
-  #wu .gsec h3{position:sticky; top:0; z-index:2; margin:0 0 8px; padding:8px 12px; display:flex; align-items:center; gap:10px;
+  #wu-sel .wu-who{position:absolute; left:3%; bottom:5%; max-width:calc(100% - min(58%,1180px) - 4%); pointer-events:none;}
+  #wu-sel .wu-who .wu-n{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(48px,6.5vw,100px); line-height:.88; text-transform:uppercase; text-shadow:0 4px 30px rgba(0,0,0,.85); animation:wuIn .3s ease-out;}
+  #wu-sel .wu-who .wu-k{font-family:var(--wu-f); font-weight:700; font-size:21px; letter-spacing:3px; color:var(--c); text-transform:uppercase; margin-bottom:6px;}
+  #wu-sel .wu-who .wu-st{display:flex; gap:18px; margin-top:12px; font-family:var(--wu-f); font-weight:700; font-size:20px;}
+  #wu-sel .wu-who .wu-st b{font-family:var(--wu-d); font-weight:400; font-size:30px; margin-right:4px;}
+  #wu-sel .wu-go{position:absolute; left:3%; top:12px; pointer-events:auto;}
+  #wu-sel .wu-grid{position:absolute; right:22px; top:0; bottom:16px; width:calc(min(58%,1180px) - 22px); overflow:auto; padding-right:6px;}
+  #wu .wu-gsec{margin-bottom:18px;}
+  #wu .wu-gsec h3{position:sticky; top:0; z-index:2; margin:0 0 8px; padding:8px 12px; display:flex; align-items:center; gap:10px;
     font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase;
     background:linear-gradient(90deg,color-mix(in srgb,var(--c) 45%,#05060c),rgba(5,6,12,.94)); border-left:4px solid var(--c);}
-  #wu .gsec h3 small{margin-left:auto; font-weight:700; font-style:normal; font-size:15px; color:var(--muted,#9a98a6);}
-  #wu .gsec h3 img{width:28px; height:28px; object-fit:contain;}
-  #wu .tiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:6px;}
-  #wu .tile{position:relative; aspect-ratio:3/4; overflow:hidden; background:#11131f; border:2px solid transparent;
+  #wu .wu-gsec h3 small{margin-left:auto; font-weight:700; font-style:normal; font-size:15px; color:var(--muted,#9a98a6);}
+  #wu .wu-gsec h3 img{width:28px; height:28px; object-fit:contain;}
+  #wu .wu-tiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:6px;}
+  #wu .wu-tile{position:relative; aspect-ratio:3/4; overflow:hidden; background:#11131f; border:2px solid transparent;
     clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); transition:transform .12s;}
-  #wu .tile img{width:100%; height:100%; object-fit:cover; object-position:center top; filter:saturate(.85);}
-  #wu .tile .wu-ini{font-size:34px; color:rgba(255,255,255,.85); background:linear-gradient(160deg,color-mix(in srgb,var(--c) 70%,#000),#0b0c15);}
-  #wu .tile .tn{position:absolute; left:0; right:0; bottom:0; padding:14px 5px 4px; font-family:var(--wu-f); font-weight:700; font-size:14px; line-height:1.05; text-transform:uppercase; text-align:center; background:linear-gradient(transparent,rgba(0,0,0,.92));}
-  #wu .tile::after{content:''; position:absolute; left:0; right:0; top:0; height:3px; background:var(--c);}
-  #wu .tile:hover, #wu .tile.on{border-color:var(--c); transform:scale(1.05); z-index:1;}
-  #wu .tile:hover img, #wu .tile.on img{filter:none;}
-  #wu .tile .champ{position:absolute; top:6px; right:6px; font-family:var(--wu-f); font-weight:800; font-size:14px; color:var(--wu-gold); background:rgba(0,0,0,.7); padding:0 6px; border:1px solid var(--wu-gold);}
+  #wu .wu-tile img{width:100%; height:100%; object-fit:cover; object-position:center top; filter:saturate(.85);}
+  #wu .wu-tile .wu-ini{font-size:34px; color:rgba(255,255,255,.85); background:linear-gradient(160deg,color-mix(in srgb,var(--c) 70%,#000),#0b0c15);}
+  #wu .wu-tile .wu-tn{position:absolute; left:0; right:0; bottom:0; padding:14px 5px 4px; font-family:var(--wu-f); font-weight:700; font-size:14px; line-height:1.05; text-transform:uppercase; text-align:center; background:linear-gradient(transparent,rgba(0,0,0,.92));}
+  #wu .wu-tile::after{content:''; position:absolute; left:0; right:0; top:0; height:3px; background:var(--c);}
+  #wu .wu-tile:hover, #wu .wu-tile.on{border-color:var(--c); transform:scale(1.05); z-index:1;}
+  #wu .wu-tile:hover img, #wu .wu-tile.on img{filter:none;}
+  #wu .wu-tile .wu-champ{position:absolute; top:6px; right:6px; font-family:var(--wu-f); font-weight:800; font-size:14px; color:var(--wu-gold); background:rgba(0,0,0,.7); padding:0 6px; border:1px solid var(--wu-gold);}
   /* profile */
-  #wu-prof{background:rgba(4,5,11,.9);}
-  #wu .pf{display:grid; grid-template-columns:minmax(260px,400px) minmax(0,1fr); gap:28px; max-width:1400px; margin:0 auto;}
-  #wu .pf .left{position:sticky; top:0; align-self:start;}
-  #wu .pf .shot{position:relative; aspect-ratio:3/4; background:radial-gradient(ellipse at 50% 70%,color-mix(in srgb,var(--c) 55%,transparent),transparent 70%),#0b0c15; border-bottom:4px solid var(--c); overflow:hidden;}
-  #wu .pf .shot img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
-  #wu .pf h1{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(46px,6vw,86px); line-height:.9; margin:8px 0 6px; text-transform:uppercase;}
-  #wu .facts{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:14px 0;}
-  #wu .fact{padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid var(--wu-line);}
-  #wu .fact small{display:block; font-family:var(--wu-f); font-weight:700; letter-spacing:1.5px; font-size:14px; color:var(--muted,#9a98a6); text-transform:uppercase;}
-  #wu .fact div{font-weight:600; font-size:17px; margin-top:2px;}
-  #wu .bio{font-size:17px; line-height:1.55; color:#d9d6cc; max-width:900px; white-space:pre-line;}
-  #wu .h2{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:28px; letter-spacing:2px; text-transform:uppercase; margin:26px 0 10px; display:flex; align-items:center; gap:10px;}
-  #wu .h2::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--wu-line2),transparent);}
-  #wu .divtabs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
-  #wu .dtab{padding:9px 16px; border:1px solid var(--wu-line2); background:rgba(0,0,0,.4); font-family:var(--wu-f); font-weight:800; font-size:17px; letter-spacing:1px; text-transform:uppercase;}
-  #wu .dtab b{font-family:var(--wu-d); font-weight:400; margin-left:8px; font-size:17px;}
-  #wu .dtab.on{background:var(--c); color:#0b0b0b; border-color:transparent;}
-  #wu .wlbar{display:flex; height:10px; border-radius:5px; overflow:hidden; background:rgba(255,255,255,.06); margin:6px 0 14px; max-width:520px;}
-  #wu .wlbar i{display:block;}
-  #wu .mrow{display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:14px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--wu-line); background:linear-gradient(90deg,var(--rc) 0,transparent 6px);}
-  #wu .mrow .r{width:40px; height:40px; display:grid; place-items:center; font-family:var(--wu-d); font-size:22px; background:var(--rc); color:#0b0b0b; clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);}
-  #wu .mrow .vs{font-weight:700; font-size:17px;}
-  #wu .mrow .sub{color:var(--muted,#9a98a6); font-size:15px; margin-top:2px;}
-  #wu .mrow .when{font-family:var(--wu-f); font-weight:700; color:var(--muted,#9a98a6); font-size:15px; text-align:right; white-space:nowrap;}
-  #wu .mrow.old{opacity:.7;}
-  #wu .mera{margin:16px 0 4px; font-family:var(--wu-f); font-weight:800; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted,#9a98a6);}
+  #wu-prof{background:none;}
+  #wu .wu-pf{display:grid; grid-template-columns:minmax(260px,400px) minmax(0,1fr); gap:28px; max-width:1400px; margin:0 auto;}
+  #wu .wu-pf .wu-left{position:sticky; top:0; align-self:start;}
+  #wu .wu-pf .wu-shot{position:relative; aspect-ratio:3/4; background:radial-gradient(ellipse at 50% 70%,color-mix(in srgb,var(--c) 55%,transparent),transparent 70%),#0b0c15; border-bottom:4px solid var(--c); overflow:hidden;}
+  #wu .wu-pf .wu-shot img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
+  #wu .wu-pf h1{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(46px,6vw,86px); line-height:.9; margin:8px 0 6px; text-transform:uppercase;}
+  #wu .wu-facts{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin:14px 0;}
+  #wu .wu-fact{padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid var(--wu-line);}
+  #wu .wu-fact small{display:block; font-family:var(--wu-f); font-weight:700; letter-spacing:1.5px; font-size:14px; color:var(--muted,#9a98a6); text-transform:uppercase;}
+  #wu .wu-fact div{font-weight:600; font-size:17px; margin-top:2px;}
+  #wu .wu-bio{font-size:17px; line-height:1.55; color:#d9d6cc; max-width:900px; white-space:pre-line;}
+  #wu .wu-h2{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:28px; letter-spacing:2px; text-transform:uppercase; margin:26px 0 10px; display:flex; align-items:center; gap:10px;}
+  #wu .wu-h2::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--wu-line2),transparent);}
+  #wu .wu-divtabs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  #wu .wu-dtab{padding:9px 16px; border:1px solid var(--wu-line2); background:rgba(0,0,0,.4); font-family:var(--wu-f); font-weight:800; font-size:17px; letter-spacing:1px; text-transform:uppercase;}
+  #wu .wu-dtab b{font-family:var(--wu-d); font-weight:400; margin-left:8px; font-size:17px;}
+  #wu .wu-dtab.on{background:var(--c); color:#0b0b0b; border-color:transparent;}
+  #wu .wu-wlbar{display:flex; height:10px; border-radius:5px; overflow:hidden; background:rgba(255,255,255,.06); margin:6px 0 14px; max-width:520px;}
+  #wu .wu-wlbar i{display:block;}
+  #wu .wu-mrow{display:grid; grid-template-columns:44px minmax(0,1fr) auto; gap:14px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--wu-line); background:linear-gradient(90deg,var(--rc) 0,transparent 6px);}
+  #wu .wu-mrow .wu-r{width:40px; height:40px; display:grid; place-items:center; font-family:var(--wu-d); font-size:22px; background:var(--rc); color:#0b0b0b; clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);}
+  #wu .wu-mrow .wu-vs{font-weight:700; font-size:17px;}
+  #wu .wu-mrow .wu-sub{color:var(--muted,#9a98a6); font-size:15px; margin-top:2px;}
+  #wu .wu-mrow .wu-when{font-family:var(--wu-f); font-weight:700; color:var(--muted,#9a98a6); font-size:15px; text-align:right; white-space:nowrap;}
+  #wu .wu-mrow.wu-old{opacity:.7;}
+  #wu .wu-mera{margin:16px 0 4px; font-family:var(--wu-f); font-weight:800; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted,#9a98a6);}
   /* relationships */
   #wu-rel{padding:0 !important; overflow:hidden !important;}
   #wu-rel canvas{position:absolute; inset:0; width:100%; height:100%; touch-action:none;}
-  #wu-rel .worlds{position:absolute; left:22px; top:10px; right:420px; display:flex; flex-wrap:wrap; gap:8px; z-index:2;}
-  #wu-rel .help{position:absolute; left:22px; bottom:18px; z-index:2; font-family:var(--wu-f); font-weight:600; font-size:16px; color:var(--muted,#9a98a6); background:rgba(0,0,0,.55); padding:8px 12px; border:1px solid var(--wu-line);}
-  #wu-rel .side{position:absolute; right:22px; top:10px; width:380px; max-height:calc(100% - 30px); overflow:auto; background:var(--wu-panel); border:1px solid var(--wu-line); backdrop-filter:blur(8px); padding:16px; display:none; z-index:2;}
-  #wu .tie{padding:10px 0; border-bottom:1px solid var(--wu-line);}
-  #wu .tie b{font-family:var(--wu-f); font-weight:800; font-size:19px;}
-  #wu .tie .lv{display:inline-block; margin-left:8px; padding:1px 8px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:1px; text-transform:uppercase; color:#0b0b0b; background:var(--lc);}
-  #wu .tie p{margin:6px 0 0; color:#cfccc2; font-size:15px; line-height:1.45;}
+  #wu-rel .wu-worlds{position:absolute; left:22px; top:10px; right:420px; display:flex; flex-wrap:wrap; gap:8px; z-index:2;}
+  #wu-rel .wu-help{position:absolute; left:22px; bottom:18px; z-index:2; font-family:var(--wu-f); font-weight:600; font-size:16px; color:var(--muted,#9a98a6); background:rgba(0,0,0,.55); padding:8px 12px; border:1px solid var(--wu-line);}
+  #wu-rel .wu-side{position:absolute; right:22px; top:10px; width:380px; max-height:calc(100% - 30px); overflow:auto; background:var(--wu-panel); border:1px solid var(--wu-line); backdrop-filter:blur(8px); padding:16px; display:none; z-index:2;}
+  #wu .wu-tie{padding:10px 0; border-bottom:1px solid var(--wu-line);}
+  #wu .wu-tie b{font-family:var(--wu-f); font-weight:800; font-size:19px;}
+  #wu .wu-tie .wu-lv{display:inline-block; margin-left:8px; padding:1px 8px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:1px; text-transform:uppercase; color:#0b0b0b; background:var(--lc);}
+  #wu .wu-tie p{margin:6px 0 0; color:#cfccc2; font-size:15px; line-height:1.45;}
   /* rivalries */
-  #wu-riv{background:rgba(4,5,11,.72);}
-  #wu .rivgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr)); gap:16px; max-width:1500px; margin:0 auto;}
-  #wu .rcard{position:relative; height:210px; overflow:hidden; border:1px solid var(--wu-line); background:#0a0b14; text-align:left;}
-  #wu .rcard .sA, #wu .rcard .sB{position:absolute; top:0; bottom:0; width:58%; overflow:hidden;}
-  #wu .rcard .sA{left:0; clip-path:polygon(0 0,100% 0,82% 100%,0 100%); background:linear-gradient(120deg,color-mix(in srgb,var(--a) 60%,#000),#07080f);}
-  #wu .rcard .sB{right:0; clip-path:polygon(18% 0,100% 0,100% 100%,0 100%); background:linear-gradient(240deg,color-mix(in srgb,var(--b) 60%,#000),#07080f);}
-  #wu .rcard img{position:absolute; bottom:0; height:100%; width:70%; object-fit:cover; object-position:center top; opacity:.92;}
-  #wu .rcard .sA img{left:0;} #wu .rcard .sB img{right:0;}
-  #wu .rcard .wu-ini{inset:auto; bottom:20px; font-size:80px;} #wu .rcard .sA .wu-ini{left:20px;} #wu .rcard .sB .wu-ini{right:20px;}
-  #wu .rcard .vsx{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:56px; color:#fff; text-shadow:0 0 20px rgba(255,80,60,.9),0 0 40px rgba(255,80,60,.6);}
-  #wu .rcard .names{position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; gap:10px; padding:10px 14px; background:linear-gradient(transparent,rgba(0,0,0,.9));
+  #wu-riv{background:none;}
+  #wu .wu-rivgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(420px,1fr)); gap:16px; max-width:1500px; margin:0 auto;}
+  #wu .wu-rcard{position:relative; height:210px; overflow:hidden; border:1px solid var(--wu-line); background:#0a0b14; text-align:left;}
+  #wu .wu-rcard .wu-sA, #wu .wu-rcard .wu-sB{position:absolute; top:0; bottom:0; width:58%; overflow:hidden;}
+  #wu .wu-rcard .wu-sA{left:0; clip-path:polygon(0 0,100% 0,82% 100%,0 100%); background:linear-gradient(120deg,color-mix(in srgb,var(--a) 60%,#000),#07080f);}
+  #wu .wu-rcard .wu-sB{right:0; clip-path:polygon(18% 0,100% 0,100% 100%,0 100%); background:linear-gradient(240deg,color-mix(in srgb,var(--b) 60%,#000),#07080f);}
+  #wu .wu-rcard img{position:absolute; bottom:0; height:100%; width:70%; object-fit:cover; object-position:center top; opacity:.92;}
+  #wu .wu-rcard .wu-sA img{left:0;} #wu .wu-rcard .wu-sB img{right:0;}
+  #wu .wu-rcard .wu-ini{inset:auto; bottom:20px; font-size:80px;} #wu .wu-rcard .wu-sA .wu-ini{left:20px;} #wu .wu-rcard .wu-sB .wu-ini{right:20px;}
+  #wu .wu-rcard .wu-vsx{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:56px; color:#fff; text-shadow:0 0 20px rgba(255,80,60,.9),0 0 40px rgba(255,80,60,.6);}
+  #wu .wu-rcard .wu-names{position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; gap:10px; padding:10px 14px; background:linear-gradient(transparent,rgba(0,0,0,.9));
     font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:22px; text-transform:uppercase; line-height:1;}
-  #wu .rcard .names span{max-width:46%;} #wu .rcard .names span+span{text-align:right;}
-  #wu .heat{position:absolute; left:50%; top:12px; transform:translateX(-50%); display:flex; gap:2px; font-size:16px;}
-  #wu .heat i{color:rgba(255,255,255,.18);} #wu .heat i.on{color:var(--hc,#ff6a3d); text-shadow:0 0 8px var(--hc,#ff6a3d);}
-  #wu .rcard .stat{position:absolute; top:10px; left:12px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:1.5px; text-transform:uppercase; padding:2px 8px; background:rgba(0,0,0,.6); border:1px solid var(--wu-line2);}
-  #wu .rcard:hover{border-color:#ff6a3d;}
-  #wu-vs{padding:0 !important; background:#05060c;}
-  #wu .vstop{position:relative; height:60vh; min-height:400px; overflow:hidden;}
-  #wu .vstop .A, #wu .vstop .B{position:absolute; top:0; bottom:0; width:56%;}
-  #wu .vstop .A{left:0; clip-path:polygon(0 0,100% 0,86% 100%,0 100%); background:linear-gradient(110deg,color-mix(in srgb,var(--a) 75%,#000),#05060c 80%); animation:wuSlA .45s ease-out;}
-  #wu .vstop .B{right:0; clip-path:polygon(14% 0,100% 0,100% 100%,0 100%); background:linear-gradient(250deg,color-mix(in srgb,var(--b) 75%,#000),#05060c 80%); animation:wuSlB .45s ease-out;}
+  #wu .wu-rcard .wu-names span{max-width:46%;} #wu .wu-rcard .wu-names span+span{text-align:right;}
+  #wu .wu-heat{position:absolute; left:50%; top:12px; transform:translateX(-50%); display:flex; gap:2px; font-size:16px;}
+  #wu .wu-heat i{color:rgba(255,255,255,.18);} #wu .wu-heat i.on{color:var(--hc,#ff6a3d); text-shadow:0 0 8px var(--hc,#ff6a3d);}
+  #wu .wu-rcard .wu-stat{position:absolute; top:10px; left:12px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:1.5px; text-transform:uppercase; padding:2px 8px; background:rgba(0,0,0,.6); border:1px solid var(--wu-line2);}
+  #wu .wu-rcard:hover{border-color:#ff6a3d;}
+  #wu-vs{padding:0 !important; background:none;}
+  #wu .wu-vstop{position:relative; height:60vh; min-height:400px; overflow:hidden;}
+  #wu .wu-vstop .wu-A, #wu .wu-vstop .wu-B{position:absolute; top:0; bottom:0; width:56%;}
+  #wu .wu-vstop .wu-A{left:0; clip-path:polygon(0 0,100% 0,86% 100%,0 100%); background:linear-gradient(110deg,color-mix(in srgb,var(--a) 75%,#000),#05060c 80%); animation:wuSlA .45s ease-out;}
+  #wu .wu-vstop .wu-B{right:0; clip-path:polygon(14% 0,100% 0,100% 100%,0 100%); background:linear-gradient(250deg,color-mix(in srgb,var(--b) 75%,#000),#05060c 80%); animation:wuSlB .45s ease-out;}
   @keyframes wuSlA{from{transform:translateX(-30%)} to{transform:none}} @keyframes wuSlB{from{transform:translateX(30%)} to{transform:none}}
-  #wu .vstop img{position:absolute; bottom:0; height:96%; max-width:80%; object-fit:contain;}
-  #wu .vstop .A img{left:6%; object-position:bottom left;} #wu .vstop .B img{right:6%; object-position:bottom right;}
-  #wu .vstop .nA, #wu .vstop .nB{position:absolute; bottom:26px; font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(40px,5.5vw,84px); line-height:.9; text-transform:uppercase; text-shadow:0 4px 24px #000; max-width:44%;}
-  #wu .vstop .nA{left:4%;} #wu .vstop .nB{right:4%; text-align:right;}
-  #wu .vstop .big{position:absolute; left:50%; top:42%; transform:translate(-50%,-50%); font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:150px; color:#fff; text-shadow:0 0 30px #ff4b2b,0 0 70px #ff4b2b; animation:wuVs .5s .2s both;}
+  #wu .wu-vstop img{position:absolute; bottom:0; height:96%; max-width:80%; object-fit:contain;}
+  #wu .wu-vstop .wu-A img{left:6%; object-position:bottom left;} #wu .wu-vstop .wu-B img{right:6%; object-position:bottom right;}
+  #wu .wu-vstop .wu-nA, #wu .wu-vstop .wu-nB{position:absolute; bottom:26px; font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:clamp(40px,5.5vw,84px); line-height:.9; text-transform:uppercase; text-shadow:0 4px 24px #000; max-width:44%;}
+  #wu .wu-vstop .wu-nA{left:4%;} #wu .wu-vstop .wu-nB{right:4%; text-align:right;}
+  #wu .wu-vstop .wu-vsbig{position:absolute; left:50%; top:42%; transform:translate(-50%,-50%); font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:150px; color:#fff; text-shadow:0 0 30px #ff4b2b,0 0 70px #ff4b2b; animation:wuVs .5s .2s both;}
   @keyframes wuVs{from{transform:translate(-50%,-50%) scale(2.4); opacity:0} to{transform:translate(-50%,-50%) scale(1); opacity:1}}
-  #wu .vstop .h2h{position:absolute; left:50%; top:64%; transform:translateX(-50%); display:flex; gap:22px; align-items:center; font-family:var(--wu-d); font-size:54px;}
-  #wu .vstop .h2h small{font-family:var(--wu-f); font-weight:700; font-size:16px; letter-spacing:2px; color:var(--muted,#9a98a6); display:block; text-align:center;}
-  #wu .vsbody{max-width:1100px; margin:0 auto; padding:10px 22px 60px;}
-  #wu .beat{display:grid; grid-template-columns:120px 18px minmax(0,1fr); gap:14px; padding:10px 0;}
-  #wu .beat .d{font-family:var(--wu-f); font-weight:700; color:var(--muted,#9a98a6); text-align:right; font-size:16px;}
-  #wu .beat .dot{width:14px; height:14px; border-radius:50%; margin-top:4px; background:var(--bc); box-shadow:0 0 12px var(--bc);}
-  #wu .beat .t{font-size:17px; line-height:1.45;} #wu .beat .t small{display:block; font-family:var(--wu-f); font-weight:800; letter-spacing:1.5px; color:var(--muted,#9a98a6); text-transform:uppercase; font-size:14px;}
-  #wu .vsback{position:absolute; left:22px; top:14px; z-index:3;}
+  #wu .wu-vstop .wu-h2h{position:absolute; left:50%; top:64%; transform:translateX(-50%); display:flex; gap:22px; align-items:center; font-family:var(--wu-d); font-size:54px;}
+  #wu .wu-vstop .wu-h2h small{font-family:var(--wu-f); font-weight:700; font-size:16px; letter-spacing:2px; color:var(--muted,#9a98a6); display:block; text-align:center;}
+  #wu .wu-vsbody{max-width:1100px; margin:0 auto; padding:10px 22px 60px;}
+  #wu .wu-beat{display:grid; grid-template-columns:120px 18px minmax(0,1fr); gap:14px; padding:10px 0;}
+  #wu .wu-beat .wu-d{font-family:var(--wu-f); font-weight:700; color:var(--muted,#9a98a6); text-align:right; font-size:16px;}
+  #wu .wu-beat .wu-dot{width:14px; height:14px; border-radius:50%; margin-top:4px; background:var(--bc); box-shadow:0 0 12px var(--bc);}
+  #wu .wu-beat .wu-t{font-size:17px; line-height:1.45;} #wu .wu-beat .wu-t small{display:block; font-family:var(--wu-f); font-weight:800; letter-spacing:1.5px; color:var(--muted,#9a98a6); text-transform:uppercase; font-size:14px;}
+  #wu .wu-vsback{position:absolute; left:22px; top:14px; z-index:3;}
   #wu-newview{position:fixed; z-index:60; right:18px; top:var(--wu-top,120px); display:none; padding:10px 16px; font-family:var(--fh-fight,'Barlow Condensed',sans-serif); font-style:italic; font-weight:900; font-size:17px; letter-spacing:1.5px; text-transform:uppercase;
     background:var(--gold); color:#16130a; border:0; cursor:pointer; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
   html[data-design="fight"][data-wu-classic] #wu-newview{display:block;}
@@ -39903,20 +39908,21 @@ const FHBG = (function(){
     #wu .wu-chip, #wu .wu-search{flex:0 0 auto;} #wu .wu-search{min-width:170px;}
     #wu .wu-screen{padding:10px 12px 12px;}
     #wu .wu-card{left:12px; right:12px; width:auto; top:auto; bottom:70px; max-height:52vh;}
-    #wu .wu-card .pic{height:200px;}
+    #wu .wu-card .wu-pic{height:200px;}
     #wu .wu-legend{display:none !important;}
     #wu .wu-tools{left:12px; bottom:12px;}
-    #wu-sel .hero, #wu-sel .who, #wu-sel .go{display:none;}
-    #wu-sel .grid{left:12px; right:12px; width:auto;}
-    #wu .pf{grid-template-columns:1fr;} #wu .pf .left{position:static;} #wu .pf .shot{aspect-ratio:auto; height:44vh;}
-    #wu .rivgrid{grid-template-columns:1fr;} #wu .rcard .names{font-size:18px;}
-    #wu .vstop .big{font-size:80px;}
-    #wu-rel .worlds{right:12px; left:12px;}
-    #wu-rel .side{left:12px; right:12px; width:auto; top:auto; bottom:12px; max-height:50%;}
-    #wu-rel .help{display:none;}
+    #wu-sel .wu-hero, #wu-sel .wu-who, #wu-sel .wu-go{display:none;}
+    #wu-sel .wu-grid{left:12px; right:12px; width:auto;}
+    #wu .wu-pf{grid-template-columns:1fr;} #wu .wu-pf .wu-left{position:static;} #wu .wu-pf .wu-shot{aspect-ratio:auto; height:44vh;}
+    #wu .wu-rivgrid{grid-template-columns:1fr;} #wu .wu-rcard .wu-names{font-size:18px;}
+    #wu .wu-vstop .wu-vsbig{font-size:80px;}
+    #wu-rel .wu-worlds{right:12px; left:12px;}
+    #wu-rel .wu-side{left:12px; right:12px; width:auto; top:auto; bottom:12px; max-height:50%;}
+    #wu-rel .wu-help{display:none;}
   }
 </style>
 <canvas id="wu-space" aria-hidden="true"></canvas>
+<div id="wu-bg" aria-hidden="true"></div>
 <button type="button" id="wu-newview" onclick="window.WU && WU.newView()">◀ New view</button>
 <div id="wu" aria-live="polite">
   <div class="wu-modes" id="wu-modes">
@@ -39931,9 +39937,9 @@ const FHBG = (function(){
   <aside class="wu-card" id="wu-card"></aside>
   <div class="wu-tools"><button type="button" class="wu-btn" id="wu-recenter"><i class="ti ti-world"></i> Back to the world</button></div>
   <div class="wu-legend" id="wu-legend"></div>
-  <div class="wu-screen" id="wu-sel"><div class="hero" id="wu-selHero"></div><div class="who" id="wu-selWho"></div><div class="go"><button type="button" class="wu-big" id="wu-selGo">Select</button></div><div class="grid" id="wu-selGrid"></div></div>
+  <div class="wu-screen" id="wu-sel"><div class="wu-hero" id="wu-selHero"></div><div class="wu-who" id="wu-selWho"></div><div class="wu-go"><button type="button" class="wu-big" id="wu-selGo">Select</button></div><div class="wu-grid" id="wu-selGrid"></div></div>
   <div class="wu-screen" id="wu-prof"></div>
-  <div class="wu-screen" id="wu-rel"><canvas id="wu-relCv"></canvas><div class="worlds" id="wu-relWorlds"></div><div class="help">Drag to move · scroll to zoom · click someone to light up their web</div><aside class="side" id="wu-relSide"></aside></div>
+  <div class="wu-screen" id="wu-rel"><canvas id="wu-relCv"></canvas><div class="wu-worlds" id="wu-relWorlds"></div><div class="wu-help">Drag to move · scroll to zoom · click someone to light up their web</div><aside class="wu-side" id="wu-relSide"></aside></div>
   <div class="wu-screen" id="wu-riv"></div>
   <div class="wu-screen" id="wu-vs"></div>
   <div class="wu-loading" id="wu-loading" hidden>Loading the universe…</div>
@@ -40009,7 +40015,7 @@ window.WU = (function(){
   const inF = (p, id) => id === 'all' || (id === 'wca' && p.promo.id === 'wca') || (id === 'other' && p.promo.id !== 'wca') || String(p.promo.id) === id;
   const shown = p => inF(p, FILTER) && (!SEARCH || norm(p.name).includes(SEARCH) || norm(p.nick).includes(SEARCH));
   function drawFilters(){
-    const chip = (id, label, c) => `<button type="button" class="wu-chip${FILTER === id ? ' on' : ''}" style="--c:${c}" data-f="${E(id)}"><span class="sw"></span>${E(label)} <small>${D.PEOPLE.filter(p => inF(p, id)).length}</small></button>`;
+    const chip = (id, label, c) => `<button type="button" class="wu-chip${FILTER === id ? ' on' : ''}" style="--c:${c}" data-f="${E(id)}"><span class="wu-sw"></span>${E(label)} <small>${D.PEOPLE.filter(p => inF(p, id)).length}</small></button>`;
     $('wu-filters').innerHTML = chip('all','Everyone','#ffffff') + chip('wca','WCA only',GOLD) + (D.PROMOS.length > 1 ? chip('other','Other promotions','#7ad1e6') : '')
       + D.PROMOS.slice(1).map(p => chip(String(p.id), p.short, p.color)).join('')
       + `<input class="wu-search" id="wu-search" placeholder="Find a superstar…" value="${E(SEARCH)}" autocomplete="off">`;
@@ -40017,7 +40023,7 @@ window.WU = (function(){
     const s = $('wu-search'); s.oninput = () => { SEARCH = norm(s.value); applyFilter(); };
   }
   function drawLegend(){
-    $('wu-legend').innerHTML = D.PROMOS.map(p => `<span><i class="d" style="background:${p.color};box-shadow:0 0 8px ${p.color}"></i>${E(p.short)}${p.pin ? '' : ' <small>(no pin yet)</small>'}</span>`).join('')
+    $('wu-legend').innerHTML = D.PROMOS.map(p => `<span><i class="wu-d" style="background:${p.color};box-shadow:0 0 8px ${p.color}"></i>${E(p.short)}${p.pin ? '' : ' <small>(no pin yet)</small>'}</span>`).join('')
       + `<span><i class="ti ti-crown" style="color:${GOLD}"></i>Champion</span>`;
   }
 
@@ -40182,11 +40188,12 @@ window.WU = (function(){
   let raf = 0;
   function frame(){
     raf = 0;
-    if(!G || !root.dataset.wu || !isFight() || document.hidden) return;
+    if(!root.dataset.wu || !isFight() || document.hidden) return;
+    if(MODE === 'rel'){ relFrame(); raf = requestAnimationFrame(frame); return; }   // the web is drawn on its own, nothing behind it
+    if(MODE !== 'map' || !G) return;                                                // only the Star Map runs the 3D
     const dt = Math.min(G.clock.getDelta(), .05), t = G.clock.elapsedTime, v = G.view;
     v.idle += dt;
     if(MODE === 'map' && v.idle > 4 && !G.sel) v.tth += dt*.03;
-    if(MODE !== 'map') v.tth += dt*.02;
     v.th += (v.tth - v.th)*.06; v.ph += (v.tph - v.ph)*.06; v.r += (v.tr - v.r)*.06;
     if(G.sel) v.tt.copy(worldOf(G.sel.pos));
     v.target.lerp(v.tt, .06);
@@ -40205,7 +40212,6 @@ window.WU = (function(){
       else { tag.style.display = 'none'; $('wu-space').style.cursor = h && h.world ? 'pointer' : (G.drag ? 'grabbing' : 'grab'); }
     } else tag.style.display = 'none';
     G.renderer.render(G.scene, G.camera);
-    if(MODE === 'rel') relFrame();
     raf = requestAnimationFrame(frame);
   }
   function run(){ if(!raf) raf = requestAnimationFrame(frame); }
@@ -40216,10 +40222,10 @@ window.WU = (function(){
   const totals = p => p.recs.reduce((a,r) => (a.w += r.wins||0, a.l += r.losses||0, a), { w:0, l:0 });
   function showCard(p){
     const c = $('wu-card'); c.style.setProperty('--c', p.promo.color);
-    c.innerHTML = `<div class="pic" style="--c:${p.promo.color}">${pic(p)}</div>
-      <div class="nm">${E(p.name)}${p.champ ? ` <span style="color:${GOLD};font-size:.55em">(C)</span>` : ''}</div>
-      ${p.nick ? `<div class="nick">“${E(p.nick)}”</div>` : ''}
-      <div class="body">${promoTag(p.promo)}
+    c.innerHTML = `<div class="wu-pic" style="--c:${p.promo.color}">${pic(p)}</div>
+      <div class="wu-nm">${E(p.name)}${p.champ ? ` <span style="color:${GOLD};font-size:.55em">(C)</span>` : ''}</div>
+      ${p.nick ? `<div class="wu-nick">“${E(p.nick)}”</div>` : ''}
+      <div class="wu-body">${promoTag(p.promo)}
         ${p.champ ? `<div style="color:${GOLD};font-family:var(--wu-f);font-weight:800;font-size:18px"><i class="ti ti-crown"></i> ${E(p.champ.title)}</div>` : ''}
         ${p.recs.length ? `<div class="wu-recs">${p.recs.map(r => `<div class="wu-rec"><small>${E(r.division)}</small><b>${r.wins||0}-${r.losses||0}</b></div>`).join('')}</div>` : ''}
         ${p.group ? `<div style="font-family:var(--wu-f);font-weight:700;font-size:17px;color:var(--muted)">Stable: <b style="color:${p.group.color}">${E(p.group.name)}</b></div>` : ''}
@@ -40234,25 +40240,25 @@ window.WU = (function(){
   let HOVER = null;
   function hero(p){
     if(!p) return; HOVER = p;
-    $('wu-selHero').style.setProperty('--c', p.promo.color); $('wu-selWho').style.setProperty('--c', p.promo.color);
-    $('wu-selHero').innerHTML = `<div class="ph"></div>${p.img ? `<img src="${E(p.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}`;
+    $('wu-selHero').style.setProperty('--c', p.promo.color); root.style.setProperty('--wu-acc', p.promo.color); $('wu-selWho').style.setProperty('--c', p.promo.color);
+    $('wu-selHero').innerHTML = `<div class="wu-ph"></div>${p.img ? `<img src="${E(p.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}`;
     const t = totals(p);
-    $('wu-selWho').innerHTML = `<div class="k">${E(p.promo.short)}${p.group ? ' · ' + E(p.group.name) : ''}</div><div class="n">${E(p.name)}</div>
+    $('wu-selWho').innerHTML = `<div class="wu-k">${E(p.promo.short)}${p.group ? ' · ' + E(p.group.name) : ''}</div><div class="wu-n">${E(p.name)}</div>
       ${p.nick ? `<div style="font-family:var(--wu-f);font-weight:600;font-size:22px;color:#cfccc2;margin-top:6px">“${E(p.nick)}”</div>` : ''}
-      <div class="st">${p.champ ? `<span style="color:${GOLD}"><i class="ti ti-crown"></i> ${E(p.champ.title)}</span>` : ''}${p.recs.length ? `<span><b>${t.w}</b>W</span><span><b>${t.l}</b>L</span>` : ''}</div>`;
-    document.querySelectorAll('#wu-selGrid .tile.on').forEach(x => x.classList.remove('on'));
-    const el = document.querySelector(`#wu-selGrid .tile[data-k="${p.key}"]`); if(el) el.classList.add('on');
+      <div class="wu-st">${p.champ ? `<span style="color:${GOLD}"><i class="ti ti-crown"></i> ${E(p.champ.title)}</span>` : ''}${p.recs.length ? `<span><b>${t.w}</b>W</span><span><b>${t.l}</b>L</span>` : ''}</div>`;
+    document.querySelectorAll('#wu-selGrid .wu-tile.on').forEach(x => x.classList.remove('on'));
+    const el = document.querySelector(`#wu-selGrid .wu-tile[data-k="${p.key}"]`); if(el) el.classList.add('on');
   }
   function drawSelect(){
     const html = D.PROMOS.map(pr => {
       const list = D.PEOPLE.filter(p => p.promo === pr && shown(p)).sort((a,b) => (b.champ?1:0) - (a.champ?1:0) || a.name.localeCompare(b.name));
       if(!list.length) return '';
-      return `<div class="gsec" style="--c:${pr.color}"><h3>${pr.logo ? `<img src="${E(pr.logo)}" alt="" onerror="this.remove()">` : ''}${E(pr.name)}<small>${list.length} on the roster</small></h3>
-        <div class="tiles">${list.map(p => { const im = p.avatar || p.img;
-          return `<button type="button" class="tile" style="--c:${pr.color}" data-k="${p.key}">${im ? `<img loading="lazy" src="${E(im)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}${p.champ ? '<span class="champ">C</span>' : ''}<span class="tn">${E(p.name)}</span></button>`; }).join('')}</div></div>`;
+      return `<div class="wu-gsec" style="--c:${pr.color}"><h3>${pr.logo ? `<img src="${E(pr.logo)}" alt="" onerror="this.remove()">` : ''}${E(pr.name)}<small>${list.length} on the roster</small></h3>
+        <div class="wu-tiles">${list.map(p => { const im = p.avatar || p.img;
+          return `<button type="button" class="wu-tile" style="--c:${pr.color}" data-k="${p.key}">${im ? `<img loading="lazy" src="${E(im)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}${p.champ ? '<span class="wu-champ">C</span>' : ''}<span class="wu-tn">${E(p.name)}</span></button>`; }).join('')}</div></div>`;
     }).join('');
     $('wu-selGrid').innerHTML = html || '<div class="wu-empty">Nobody matches that.</div>';
-    $('wu-selGrid').querySelectorAll('.tile').forEach(b => { b.onmouseenter = b.onfocus = () => hero(D.byKey[b.dataset.k]); b.onclick = () => openProfile(D.byKey[b.dataset.k], true); });
+    $('wu-selGrid').querySelectorAll('.wu-tile').forEach(b => { b.onmouseenter = b.onfocus = () => hero(D.byKey[b.dataset.k]); b.onclick = () => openProfile(D.byKey[b.dataset.k], true); });
     hero(HOVER && shown(HOVER) ? HOVER : D.PEOPLE.find(shown));
   }
 
@@ -40289,7 +40295,7 @@ window.WU = (function(){
   const profBack = () => { if(PROF_PUSHED){ PROF_PUSHED = false; history.back(); } else goMode('sel'); };
   async function openProfile(p, push){
     if(!p) return;
-    PROF = p; PROF_PUSHED = !!push;
+    PROF = p; PROF_PUSHED = !!push; root.style.setProperty('--wu-acc', p.promo.color);
     setAddr('roster', p.kind === 'wca' ? 'w=' + encodeURIComponent(p.name) : 'pc=' + p.id, push);
     if(curPage() !== 'roster' && typeof activatePage === 'function') activatePage('roster');
     setMode('prof');
@@ -40297,9 +40303,9 @@ window.WU = (function(){
     const fin = Array.isArray(p.finishers) ? p.finishers.join(', ') : p.finishers;
     const facts = [['From', p.from], ['Height', p.height], ['Weight', p.weight], ['Theme', p.theme], ['Finisher', fin], ['Stable', p.group && p.group.name], ['Title', p.title]]
       .filter(f => f[1] && String(f[1]).trim() && !/^(\?+|n\/a)$/i.test(String(f[1]).trim()));
-    el.innerHTML = `<div class="pf" style="--c:${c}"><div class="left">
+    el.innerHTML = `<div class="wu-pf" style="--c:${c}"><div class="wu-left">
         <button type="button" class="wu-btn" data-back style="margin-bottom:10px"><i class="ti ti-arrow-left"></i> Back</button>
-        <div class="shot">${pic(p)}</div>
+        <div class="wu-shot">${pic(p)}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
           <button type="button" class="wu-btn" data-rel><i class="ti ti-affiliate"></i> Relationships</button>
           ${p.kind === 'wca' ? '<button type="button" class="wu-btn" data-old title="The previous profile card, with every tool it had">Classic profile</button>' : '<button type="button" class="wu-btn" data-promo>Promotion page</button>'}
@@ -40308,9 +40314,9 @@ window.WU = (function(){
         <h1>${E(p.name)}${p.champ ? ` <span style="color:${GOLD};font-size:.45em">(C)</span>` : ''}</h1>
         ${p.nick ? `<div style="font-family:var(--wu-f);font-weight:600;font-size:24px;color:#cfccc2">“${E(p.nick)}”</div>` : ''}
         ${p.champ ? `<div style="color:${GOLD};font-family:var(--wu-f);font-weight:800;font-size:22px;margin-top:8px"><i class="ti ti-crown"></i> ${E(p.champ.title)}${p.champ.show_won ? ' · since ' + E(p.champ.show_won) : ''}</div>` : ''}
-        ${facts.length ? `<div class="facts">${facts.map(f => `<div class="fact"><small>${f[0]}</small><div>${E(f[1])}</div></div>`).join('')}</div>` : ''}
-        ${p.bio ? `<div class="bio">${E(p.bio)}</div>` : ''}
-        <div class="h2">Match history</div><div id="wu-mh"><div class="wu-empty">Loading every match on record…</div></div></div></div>`;
+        ${facts.length ? `<div class="wu-facts">${facts.map(f => `<div class="wu-fact"><small>${f[0]}</small><div>${E(f[1])}</div></div>`).join('')}</div>` : ''}
+        ${p.bio ? `<div class="wu-bio">${E(p.bio)}</div>` : ''}
+        <div class="wu-h2">Match history</div><div id="wu-mh"><div class="wu-empty">Loading every match on record…</div></div></div></div>`;
     el.scrollTop = 0;
     el.querySelector('[data-back]').onclick = profBack;
     el.querySelector('[data-rel]').onclick = () => { REL_SCOPE = p.promo.id === 'wca' ? null : p.promo.id; REL_FOCUS = p.key; goMode('rel'); };
@@ -40326,21 +40332,21 @@ window.WU = (function(){
     let cur = 'All';
     const RC = { W:'var(--wu-win)', L:'var(--wu-loss)', N:'var(--wu-nowin)', D:'#7ad1e6', '?':'#555a6b' };
     const fmt = d => { try{ return new Date(d).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' }); }catch(e){ return ''; } };
-    const row = r => `<div class="mrow${r.era ? ' old' : ''}" style="--rc:${RC[r.res] || RC['?']}"><div class="r">${E(r.res)}</div>
-      <div><div class="vs">${r.vs ? 'vs ' + E(r.vs) : E(r.title || 'Match')} ${r.belt ? `<i class="ti ti-crown" style="color:${GOLD}" title="A championship was on the line"></i>` : ''}</div>
-        <div class="sub">${E(r.show || '')}${r.type ? ' · ' + E(r.type) : ''}${cur === 'All' ? ' · ' + E(r.div) + (p.kind === 'wca' ? ' division' : '') : ''}${r.res === '?' ? ' · <b>No winner saved yet</b>' : ''}</div></div>
-      <div class="when">${r.when ? fmt(r.when) : ''}</div></div>`;
+    const row = r => `<div class="wu-mrow${r.era ? ' wu-old' : ''}" style="--rc:${RC[r.res] || RC['?']}"><div class="wu-r">${E(r.res)}</div>
+      <div><div class="wu-vs">${r.vs ? 'vs ' + E(r.vs) : E(r.title || 'Match')} ${r.belt ? `<i class="ti ti-crown" style="color:${GOLD}" title="A championship was on the line"></i>` : ''}</div>
+        <div class="wu-sub">${E(r.show || '')}${r.type ? ' · ' + E(r.type) : ''}${cur === 'All' ? ' · ' + E(r.div) + (p.kind === 'wca' ? ' division' : '') : ''}${r.res === '?' ? ' · <b>No winner saved yet</b>' : ''}</div></div>
+      <div class="wu-when">${r.when ? fmt(r.when) : ''}</div></div>`;
     const draw = () => {
       const list = cur === 'All' ? rows : divs[cur];
       const counted = list.filter(r => !r.era), older = list.filter(r => r.era);
       const n = k => counted.filter(r => r.res === k).length, w = n('W'), l = n('L'), nw = n('N'), d = n('D'), tot = counted.length || 1;
-      box.innerHTML = `<div class="divtabs">${['All'].concat(names).map(dv => { const L = (dv === 'All' ? rows : divs[dv]).filter(r => !r.era);
-          return `<button type="button" class="dtab${cur === dv ? ' on' : ''}" style="--c:${c}" data-d="${E(dv)}">${E(dv)}<b>${L.filter(r => r.res === 'W').length}-${L.filter(r => r.res === 'L').length}</b></button>`; }).join('')}</div>
+      box.innerHTML = `<div class="wu-divtabs">${['All'].concat(names).map(dv => { const L = (dv === 'All' ? rows : divs[dv]).filter(r => !r.era);
+          return `<button type="button" class="wu-dtab${cur === dv ? ' on' : ''}" style="--c:${c}" data-d="${E(dv)}">${E(dv)}<b>${L.filter(r => r.res === 'W').length}-${L.filter(r => r.res === 'L').length}</b></button>`; }).join('')}</div>
         <div style="font-family:var(--wu-f);font-weight:700;font-size:18px;letter-spacing:1px">${w} wins · ${l} losses${nw ? ' · ' + nw + ' no-wins' : ''}${d ? ' · ' + d + ' draws' : ''} · ${list.length} matches</div>
-        <div class="wlbar"><i style="width:${w/tot*100}%;background:var(--wu-win)"></i><i style="width:${nw/tot*100}%;background:var(--wu-nowin)"></i><i style="width:${d/tot*100}%;background:#7ad1e6"></i><i style="width:${l/tot*100}%;background:var(--wu-loss)"></i></div>
+        <div class="wu-wlbar"><i style="width:${w/tot*100}%;background:var(--wu-win)"></i><i style="width:${nw/tot*100}%;background:var(--wu-nowin)"></i><i style="width:${d/tot*100}%;background:#7ad1e6"></i><i style="width:${l/tot*100}%;background:var(--wu-loss)"></i></div>
         ${counted.map(row).join('')}
-        ${older.length ? `<div class="mera">${E(older[0].eraLabel || 'Earlier shows')}. Not counted in records or rankings.</div>${older.map(row).join('')}` : ''}`;
-      box.querySelectorAll('.dtab').forEach(b => b.onclick = () => { cur = b.dataset.d; draw(); });
+        ${older.length ? `<div class="wu-mera">${E(older[0].eraLabel || 'Earlier shows')}. Not counted in records or rankings.</div>${older.map(row).join('')}` : ''}`;
+      box.querySelectorAll('.wu-dtab').forEach(b => b.onclick = () => { cur = b.dataset.d; draw(); });
     };
     draw();
   }
@@ -40353,7 +40359,7 @@ window.WU = (function(){
   async function relOpen(){
     const scope = REL_SCOPE;
     $('wu-relWorlds').innerHTML = [{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p =>
-      `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="sw"></span>${E(p.short)}</button>`).join('');
+      `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="wu-sw"></span>${E(p.short)}</button>`).join('');
     $('wu-relWorlds').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { REL_SCOPE = b.dataset.s === 'wca' ? null : Number(b.dataset.s); REL_FOCUS = null; goMode('rel'); });
     $('wu-relSide').style.display = 'none';
     if(typeof stxCtx !== 'function' || typeof stxTies !== 'function'){ REL = null; return; }
@@ -40374,6 +40380,7 @@ window.WU = (function(){
       for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(!edges.some(e => (e.a.key === m[i] && e.b.key === m[j]) || (e.a.key === m[j] && e.b.key === m[i]))) edges.push({ a:nodes[m[i]], b:nodes[m[j]], t:null, faction:f.name }); });
     const list = Object.values(nodes), r0 = rng(7);
     list.forEach((n, i) => { const a = i/Math.max(1,list.length)*6.283; n.x = Math.cos(a)*260 + (r0()-.5)*40; n.y = Math.sin(a)*260 + (r0()-.5)*40; n.vx = n.vy = 0; });
+    root.style.setProperty('--wu-acc', promo.color);
     REL = { sk:scope, nodes:list, edges, sel:null, view:{ x:0, y:0, z:1, user:false }, tick:0, drag:null, promo };
     if(REL_FOCUS && nodes['person:' + String(REL_FOCUS).slice(1)]) relPick(nodes['person:' + String(REL_FOCUS).slice(1)]);
     if(!list.length){ $('wu-relSide').innerHTML = `<div class="wu-empty">No relationships written for ${E(promo.short || 'this promotion')} yet.</div>`; $('wu-relSide').style.display = 'block'; }
@@ -40391,7 +40398,6 @@ window.WU = (function(){
     const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
     if(cv.width !== Math.round(W*dpr) || cv.height !== Math.round(H*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
     const x = cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
-    x.fillStyle = 'rgba(4,5,11,.55)'; x.fillRect(0,0,W,H);
     const R = REL; if(!R) return;
     relStep();
     const v = R.view;
@@ -40427,9 +40433,9 @@ window.WU = (function(){
     const mine = R.edges.filter(e => e.a === n || e.b === n);
     side.innerHTML = `<span class="wu-promo" style="--c:${R.promo.color}">${E(R.promo.short)}</span>
       <div style="font-family:var(--wu-f);font-style:italic;font-weight:900;font-size:40px;text-transform:uppercase;line-height:1;margin:10px 0">${E(n.name)}</div>
-      ${mine.map(e => { const o = e.a === n ? e.b : e.a; if(!e.t) return `<div class="tie"><b>${E(o.name)}</b><span class="lv" style="--lc:${lvColor('faction')}">Same faction</span><p>${E(e.faction)}</p></div>`;
+      ${mine.map(e => { const o = e.a === n ? e.b : e.a; if(!e.t) return `<div class="wu-tie"><b>${E(o.name)}</b><span class="wu-lv" style="--lc:${lvColor('faction')}">Same faction</span><p>${E(e.faction)}</p></div>`;
         const meA = e.a === n, lv = meA ? e.t.a_level : (e.t.b_level || e.t.a_level), why = meA ? e.t.a_why : (e.t.b_level ? e.t.b_why : e.t.a_why);
-        return `<div class="tie"><b>${E(o.name)}</b><span class="lv" style="--lc:${lvColor(lv)}">${E(lvLabel(e.t, meA))}</span>${why ? `<p><i>${E(why)}</i></p>` : ''}${e.t.history ? `<p>${E(e.t.history)}</p>` : ''}</div>`; }).join('') || '<div class="wu-empty">No relationships yet.</div>'}
+        return `<div class="wu-tie"><b>${E(o.name)}</b><span class="wu-lv" style="--lc:${lvColor(lv)}">${E(lvLabel(e.t, meA))}</span>${why ? `<p><i>${E(why)}</i></p>` : ''}${e.t.history ? `<p>${E(e.t.history)}</p>` : ''}</div>`; }).join('') || '<div class="wu-empty">No relationships yet.</div>'}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${n.person ? '<button type="button" class="wu-big" data-p>Full profile</button>' : ''}<button type="button" class="wu-btn" data-s>Their full story</button></div>`;
     side.style.display = 'block';
     const bp = side.querySelector('[data-p]'); if(bp) bp.onclick = () => openProfile(n.person, true);
@@ -40447,7 +40453,7 @@ window.WU = (function(){
 
   /* ═════════════ RIVALRIES: one promotion at a time too ═════════════ */
   let RIV_SCOPE = null, RIVS = [];
-  const heatHTML = (h, st) => { let c = '#ff6a3d'; try{ c = rvHeat(h).color || c; }catch(e){} return `<div class="heat" style="--hc:${c};${st || ''}">${Array.from({ length:10 }, (_, i) => `<i class="ti ti-flame${i < (h||0) ? ' on' : ''}"></i>`).join('')}</div>`; };
+  const heatHTML = (h, st) => { let c = '#ff6a3d'; try{ c = rvHeat(h).color || c; }catch(e){} return `<div class="wu-heat" style="--hc:${c};${st || ''}">${Array.from({ length:10 }, (_, i) => `<i class="ti ti-flame${i < (h||0) ? ' on' : ''}"></i>`).join('')}</div>`; };
   async function rivOpen(){
     const el = $('wu-riv'), scope = RIV_SCOPE;
     el.innerHTML = '<div class="wu-empty">Loading…</div>';
@@ -40455,6 +40461,7 @@ window.WU = (function(){
     let ctx, res; try{ [ctx, res] = await Promise.all([stxCtx(scope), rvList(scope)]); }catch(e){ el.innerHTML = '<div class="wu-empty">Rivalries are not available right now.</div>'; return; }
     if(RIV_SCOPE !== scope) return;
     const promo = scope == null ? D.PROMOS[0] : (D.promoById(scope) || { color:'#9aa3c7', short:'' });
+    root.style.setProperty('--wu-acc', promo.color);
     const side = k => { const it = ctx.byKey[k]; if(!it) return null;
       if(it.kind === 'faction'){ const lead = (it.members || []).map(m => ctx.byKey[m]).find(m => m && m.image); return { name:it.name, color:hex(it.color, promo.color), img:lead && lead.image }; }
       const pp = D.byKey[(scope == null ? 'w' : 'p') + it.id];
@@ -40464,13 +40471,13 @@ window.WU = (function(){
     const sideHTML = (s, cls) => `<div class="${cls}">${s.img ? `<img src="${E(s.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(s.name))}</div>`}</div>`;
     el.innerHTML = `<div style="max-width:1500px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         <div style="font-family:var(--wu-f);font-style:italic;font-weight:900;font-size:38px;letter-spacing:2px;text-transform:uppercase;margin-right:14px">Rivalries</div>
-        ${[{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p => `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="sw"></span>${E(p.short)}</button>`).join('')}
+        ${[{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p => `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="wu-sw"></span>${E(p.short)}</button>`).join('')}
         <span style="color:var(--muted);font-family:var(--wu-f);font-weight:700;font-size:16px;margin-left:auto">Hottest first · click one for the whole story</span></div>
-      <div class="rivgrid">${RIVS.map((x, i) => `<button type="button" class="rcard" data-i="${i}" style="--a:${x.A.color};--b:${x.B.color}">${sideHTML(x.A,'sA')}${sideHTML(x.B,'sB')}
-        <span class="stat">${x.r.status === 'active' ? 'Active' : 'Over'}</span>${heatHTML(x.r.heat)}<div class="vsx">VS</div>
-        <div class="names"><span>${E(x.A.name)}</span><span>${E(x.B.name)}${x.more ? ' +' + x.more : ''}</span></div></button>`).join('') || `<div class="wu-empty">No rivalries for ${E(promo.short)} yet.</div>`}</div>`;
+      <div class="wu-rivgrid">${RIVS.map((x, i) => `<button type="button" class="wu-rcard" data-i="${i}" style="--a:${x.A.color};--b:${x.B.color}">${sideHTML(x.A,'wu-sA')}${sideHTML(x.B,'wu-sB')}
+        <span class="wu-stat">${x.r.status === 'active' ? 'Active' : 'Over'}</span>${heatHTML(x.r.heat)}<div class="wu-vsx">VS</div>
+        <div class="wu-names"><span>${E(x.A.name)}</span><span>${E(x.B.name)}${x.more ? ' +' + x.more : ''}</span></div></button>`).join('') || `<div class="wu-empty">No rivalries for ${E(promo.short)} yet.</div>`}</div>`;
     el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { RIV_SCOPE = b.dataset.s === 'wca' ? null : Number(b.dataset.s); setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE); rivOpen(); });
-    el.querySelectorAll('.rcard').forEach(b => b.onclick = () => { const x = RIVS[+b.dataset.i]; setAddr('rivalries', 'id=' + x.r.id + (RIV_SCOPE == null ? '' : '&promo=' + RIV_SCOPE), true); vsOpen(x); });
+    el.querySelectorAll('.wu-rcard').forEach(b => b.onclick = () => { const x = RIVS[+b.dataset.i]; setAddr('rivalries', 'id=' + x.r.id + (RIV_SCOPE == null ? '' : '&promo=' + RIV_SCOPE), true); vsOpen(x); });
     const want = qp().get('id'); if(want && MODE === 'vs'){ const x = RIVS.find(z => String(z.r.id) === String(want)); if(x) vsOpen(x, true); }
   }
   async function vsOpen(x, already){
@@ -40482,14 +40489,14 @@ window.WU = (function(){
     const won = s => beats.filter(b => !b.title && norm(b.text).startsWith(norm(s.name) + ' beat')).length;
     const big = (s, cls, nm) => `<div class="${cls}">${s.img ? `<img src="${E(s.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</div><div class="${nm}">${E(s.name)}</div>`;
     const fmt = d => { try{ return d ? new Date(d).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' }) : ''; }catch(e){ return ''; } };
-    el.innerHTML = `<div class="vstop" style="--a:${x.A.color};--b:${x.B.color}">${big(x.A,'A','nA')}${big(x.B,'B','nB')}<div class="big">VS</div>
-        <div class="h2h"><div>${won(x.A)}<small>WINS</small></div><div style="font-size:22px">${heatHTML(x.r.heat, 'position:static;transform:none')}<small>HEAT ${x.r.heat || 0} / 10</small></div><div>${won(x.B)}<small>WINS</small></div></div>
-        <button type="button" class="wu-btn vsback" data-b><i class="ti ti-arrow-left"></i> All rivalries</button></div>
-      <div class="vsbody">${x.r.title ? `<div class="h2">${E(x.r.title)}</div>` : ''}${x.r.started_why ? `<div class="h2">How it started</div><div class="bio">${E(x.r.started_why)}</div>` : ''}
-        ${x.r.ended_how ? `<div class="h2">How it ended</div><div class="bio">${E(x.r.ended_how)}</div>` : ''}
-        <div class="h2">The story so far</div>
+    el.innerHTML = `<div class="wu-vstop" style="--a:${x.A.color};--b:${x.B.color}">${big(x.A,'wu-A','wu-nA')}${big(x.B,'wu-B','wu-nB')}<div class="wu-vsbig">VS</div>
+        <div class="wu-h2h"><div>${won(x.A)}<small>WINS</small></div><div style="font-size:22px">${heatHTML(x.r.heat, 'position:static;transform:none')}<small>HEAT ${x.r.heat || 0} / 10</small></div><div>${won(x.B)}<small>WINS</small></div></div>
+        <button type="button" class="wu-btn wu-vsback" data-b><i class="ti ti-arrow-left"></i> All rivalries</button></div>
+      <div class="wu-vsbody">${x.r.title ? `<div class="wu-h2">${E(x.r.title)}</div>` : ''}${x.r.started_why ? `<div class="wu-h2">How it started</div><div class="wu-bio">${E(x.r.started_why)}</div>` : ''}
+        ${x.r.ended_how ? `<div class="wu-h2">How it ended</div><div class="wu-bio">${E(x.r.ended_how)}</div>` : ''}
+        <div class="wu-h2">The story so far</div>
         ${beats.map(b => { const aW = norm(b.text).startsWith(norm(x.A.name)), bW = norm(b.text).startsWith(norm(x.B.name)), c = b.title ? '#7ad1e6' : aW ? x.A.color : bW ? x.B.color : '#9aa3c7';
-          return `<div class="beat" style="--bc:${c}"><div class="d">${fmt(b.on)}</div><div class="dot"></div><div class="t"><small>${E(b.title || 'Match')}</small>${E(b.text)}</div></div>`; }).join('') || '<div class="wu-empty">Nothing saved yet.</div>'}
+          return `<div class="wu-beat" style="--bc:${c}"><div class="wu-d">${fmt(b.on)}</div><div class="wu-dot"></div><div class="wu-t"><small>${E(b.title || 'Match')}</small>${E(b.text)}</div></div>`; }).join('') || '<div class="wu-empty">Nothing saved yet.</div>'}
         <div style="margin-top:20px"><button type="button" class="wu-btn" data-c>Open in the classic Rivalries page</button></div></div>`;
     el.scrollTop = 0;
     el.querySelector('[data-b]').onclick = () => { setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); setMode('riv'); };
@@ -40582,7 +40589,7 @@ window.WU = (function(){
       if(e.key === 'Escape' && MODE === 'vs'){ e.stopImmediatePropagation(); setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); setMode('riv'); return; }
       if(MODE === 'sel' && ['ArrowRight','ArrowLeft','ArrowDown','ArrowUp','Enter'].includes(e.key) && !/input|textarea/i.test((e.target && e.target.tagName) || '')){
         if(e.key === 'Enter'){ if(HOVER) openProfile(HOVER, true); return; }
-        const list = [...document.querySelectorAll('#wu-selGrid .tile')], i = list.findIndex(t => t.classList.contains('on'));
+        const list = [...document.querySelectorAll('#wu-selGrid .wu-tile')], i = list.findIndex(t => t.classList.contains('on'));
         const cols = Math.max(1, Math.round($('wu-selGrid').clientWidth / 98)), step = { ArrowRight:1, ArrowLeft:-1, ArrowDown:cols, ArrowUp:-cols }[e.key];
         const nx = list[clamp(i + step, 0, list.length - 1)]; if(nx){ hero(D.byKey[nx.dataset.k]); nx.scrollIntoView({ block:'nearest' }); e.preventDefault(); } }
     }, true);
