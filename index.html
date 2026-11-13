@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-backdrop="space-fire" data-surface="solid">
+<html lang="en" data-backdrop="space-fire" data-surface="solid" data-design="fight">
 <head>
 <meta charset="UTF-8">
 <script>
+window.__wcaLanding = (location.search ? '' : location.pathname);   // Fight Hub: was this the front door?
 /* ===== ADDRESSES =====================================================
    The site uses real addresses: wcauniverse.com/roster, /feed,
    /archive?event=52, /roster?w=Ivan. No # in links any more.
@@ -10883,6 +10884,9 @@ async function applyTheme(){
     if(typeof spaceRefresh === 'function') spaceRefresh();
     document.documentElement.dataset.surface  = (t && t.surface)  || 'solid';
     document.documentElement.dataset.backdrop = (t && t.backdrop) || 'space';
+    // Site design (Admin > Appearance > Site design): classic, 2k or fight. Look only.
+    window.__wcaTheme = t;
+    try{ if(typeof wcaApplyDesign === 'function') wcaApplyDesign(t); }catch(e){}
     // Vice bottom scenery: a painted picture that replaces the drawn skyline (Admin > Appearance > Site style)
     window.SITE_GROUND = /^https?:\/\//i.test(String(t.ground_url||''))
       ? { url:String(t.ground_url), key:t.ground_key !== false, h:Math.max(15, Math.min(70, Number(t.ground_h) || 50)) } : null;
@@ -13924,9 +13928,11 @@ function mdElimHTML(m, winnerLabel){
     <ol class="elog-list">${rows}</ol></details>${pts}`;
 }
 
-function boutHTML(m, isMain, ctx){
+function boutHTML(m, isMain, ctx, ord){
   const sides=parseSides(m);
   const label = m.match_title || (m.match_type && m.match_type!=='Singles' ? m.match_type : (isMain?'Main Event':'Match'));
+  // Running order, top of the card to the bottom: Main Event ... Opening Match (look only)
+  const orderLabel = ord ? (isMain ? 'Main Event' : (ord.n===1 && ord.total>1 ? 'Opening Match' : 'Match '+ord.n)) : '';
   const divName = matchDivision(m);
   REC_CTX = { division: divName, map: (ctx && ctx.records) || REC_NOW, past:false };
   const divTag = divName
@@ -14034,8 +14040,10 @@ function boutHTML(m, isMain, ctx){
       <div class="bb-list">${rows}</div></details>`;
   }
 
-  return `<div class="bout ${isMain?'main':''} sides-${sides.length}">
-    <div class="bout-label">${esc(label)}${ribbon}</div>
+  const fhSum = (typeof fhBoutSummary==='function' && !isMain) ? fhBoutSummary(m, sides, { label, orderLabel, status, signedIn:ctx.signedIn, titleTag }) : '';
+  return `<div class="bout ${isMain?'main':'fh-fold'} sides-${sides.length}">
+    ${fhSum}
+    <div class="bout-label">${orderLabel && orderLabel!==label ? `<span class="bout-order">${esc(orderLabel)}</span>` : ''}${esc(label)}${ribbon}</div>
     ${divTag}
     ${titleTag}
     <div class="vs-row">${vsRow}</div>
@@ -14405,13 +14413,13 @@ function sideCellInner(side, isMain){
   const members = sideMembers(side);
   const pics = mpRowFor(members, side.team_name);
   if(side.team_name){
-    let h=pics+`<div class="fname">${esc(side.team_name)}</div>`+factionParentHTML(side.team_name);
+    let h=pics+`<div class="fname">${esc(side.team_name)}${typeof wcaChampC==='function'?wcaChampC(side.team_name,true):''}</div>`+factionParentHTML(side.team_name);
     if(members.length) h+=`<div class="fmembers">${members.map(nameLink).join(' &amp; ')}</div>`;
     return h + recTeamBlock(side.team_name, members);
   }
   if(members.length && recIsFactionDiv())   // names, then the one faction record they share
-    return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>`).join('<div class="amp">&amp;</div>') + recFactionSideBlock(members, '');
-  if(members.length) return pics + members.map(m=>`<div class="fname">${nameLink(m)}</div>${recBlock(m)}`).join('<div class="amp">&amp;</div>');
+    return pics + members.map(m=>`<div class="fname">${nameLink(m)}${typeof wcaChampC==='function'?wcaChampC(m):''}</div>`).join('<div class="amp">&amp;</div>') + recFactionSideBlock(members, '');
+  if(members.length) return pics + members.map(m=>`<div class="fname">${nameLink(m)}${typeof wcaChampC==='function'?wcaChampC(m):''}</div>${recBlock(m)}`).join('<div class="amp">&amp;</div>');
   return `<div class="fname">TBD</div>`;
 }
 let CURRENT_EVENT = null;       // featured event row
@@ -14516,7 +14524,7 @@ async function loadEvents(){
   let cardHTML='';
   if(list.length){
     cardHTML='<div class="section-title">Fight Card</div><div class="card-list">'+
-      list.map((m,i)=>boutHTML(m, m.slot===1 || (i===0 && !list.some(x=>x.slot===1)), ctx)).join('')+
+      list.map((m,i)=>boutHTML(m, m.slot===1 || (i===0 && !list.some(x=>x.slot===1)), ctx, { n:list.length-i, total:list.length })).join('')+
       '</div>';
   }else{
     cardHTML='<div class="event-empty" style="padding:30px">Card to be announced.</div>';
@@ -38951,6 +38959,679 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
 /* ===================== end PROMOTION PLAYERS AND INJURIES ===================== */
 </script>
 
+
+<!-- =====================================================================
+     SITE DESIGNS (Nov 2026 redesign) — LOOK ONLY
+     Admin > Appearance > Site design picks one, saved on the theme record:
+       theme.design   'fight' (Fight Hub, the default) | 'classic' | '2k'
+       theme.bg_style 'fog' | 'space' | 'off'      (Fight Hub background)
+       theme.bg_amount, theme.bg_speed  0 to 100
+     Classic is the site exactly as it was. Everything below is scoped to
+     html[data-design="fight"], so Classic never sees it. Nothing here
+     changes how a page works: the hub menu only calls the site's own
+     goPage(), activatePage(), wcaSetAddress() and pmGo().
+     For testing, add ?design=classic or ?design=fight to any address.
+     2K Menu is not built yet and shows Classic until it is.
+     ===================================================================== -->
+<style id="fh-style">
+  /* always, every design: Timeline is hidden from the Events modes (Nov 2026), not deleted */
+  .pe-mode[href="/timeline"]{display:none !important;}
+  /* the gold (C) next to a champion's name, every design */
+  .champ-c{display:inline-block; margin-left:6px; font-family:var(--font-cond); font-style:normal; font-weight:700;
+    font-size:.62em; letter-spacing:.5px; color:var(--gold); vertical-align:.25em; text-transform:none; white-space:nowrap;
+    text-shadow:0 0 10px rgba(var(--gold-rgb),.45);}
+  /* Fight Hub parts stay out of every other design */
+  html:not([data-design="fight"]) .fh-sum,
+  html:not([data-design="fight"]) .bout-order,
+  html:not([data-design="fight"]) #fh-bg,
+  html:not([data-design="fight"]) #fh-hub,
+  html:not([data-design="fight"]) #fh-pagebar,
+  html:not([data-design="fight"]) #fh-menu,
+  html:not([data-design="fight"]) #fh-loader{display:none !important;}
+
+  /* ───────── FIGHT HUB ───────── */
+  html[data-design="fight"]{ --fh-bet:#3EF0A0; --fh-bet-rgb:62,240,160; --fh-fight:'Barlow Condensed', var(--font-cond); }
+  html[data-design="fight"][data-backdrop="vice"]{ --fh-bet:#5FFFE0; --fh-bet-rgb:95,255,224; }
+
+  /* background: the new animated canvas replaces the old space and Vice pictures */
+  html[data-design="fight"] body{background:var(--bg) !important; background-image:none !important;}
+  html[data-design="fight"] body::before,
+  html[data-design="fight"] body::after{background-image:none !important;}
+  html[data-design="fight"] #wca-space{display:none !important;}
+  html[data-design="fight"] .hm-cover{display:none !important;}
+  #fh-bg{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; display:block;}
+
+  /* header: logo, menu button, money and account. The old menu row is hidden, not removed. */
+  html[data-design="fight"] header{background:linear-gradient(180deg,rgba(0,0,0,.9),rgba(0,0,0,.72)) !important;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid rgba(var(--gold-rgb),.28) !important; box-shadow:none !important;}
+  html[data-design="fight"] header::after{display:none !important;}
+  html[data-design="fight"] header .head-inner{display:flex !important; flex-wrap:nowrap !important; align-items:center; gap:12px;
+    padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px)) !important; max-width:none !important; margin:0 !important;}
+  html[data-design="fight"] header .head-right{display:contents !important;}
+  html[data-design="fight"] header nav,
+  html[data-design="fight"] header #nav-firepro,
+  html[data-design="fight"] header .nav-toggle,
+  html[data-design="fight"] header .socials,
+  html[data-design="fight"] header .head-actions .donate-btn{display:none !important;}
+  html[data-design="fight"] header .brand{order:1; flex:0 0 auto; cursor:pointer;}
+  html[data-design="fight"] header .brand .logo-img{height:46px !important;}
+  html[data-design="fight"] #fh-menu{order:0;}
+  html[data-design="fight"] header .head-actions{order:3; margin-left:auto; display:flex !important; align-items:center; gap:10px; min-width:0;}
+  html[data-design="fight"] header .notif-btn{order:4; margin:0;}
+  #fh-menu{display:flex; align-items:center; gap:10px; padding:9px 18px 9px 14px; border:1px solid rgba(var(--gold-rgb),.45); background:rgba(0,0,0,.55); color:var(--txt);
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+    clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  #fh-menu:hover{background:var(--gold); color:var(--on-gold);}
+  #fh-menu i{font-size:20px; font-style:normal;}
+
+  /* the page bar: where you are, and the way back to the main menu */
+  #fh-pagebar{position:relative; z-index:2; display:flex; align-items:center; gap:16px; max-width:1400px; margin:0 auto;
+    padding:14px max(16px,env(safe-area-inset-right,0px)) 4px max(16px,env(safe-area-inset-left,0px));}
+  .fh-back{display:flex; align-items:center; gap:10px; padding:8px 18px 8px 12px; background:rgba(0,0,0,.6); border:1px solid var(--line); color:var(--txt); cursor:pointer;
+    clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%); font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; letter-spacing:1.5px; text-transform:uppercase;}
+  .fh-back:hover{border-color:var(--gold); color:var(--gold);}
+  .fh-back kbd{font-style:normal; font-family:var(--font-body); font-size:11px; font-weight:700; border:1.5px solid var(--loss); color:var(--loss); border-radius:5px; padding:1px 5px;}
+  .fh-ptitle small{display:block; font-family:var(--fh-fight); font-weight:700; font-size:12px; letter-spacing:3px; color:var(--muted); text-transform:uppercase;}
+  .fh-ptitle b{display:block; font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:30px; line-height:1; text-transform:uppercase;
+    background:linear-gradient(180deg,#fff 0%,#dfe3ea 45%,#8d94a4 56%,#f0f2f6 100%); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  html[data-design="fight"] .wrap{position:relative; z-index:1;}
+
+  /* shared look on every page */
+  html[data-design="fight"] .section-title{font-family:var(--fh-fight) !important; font-style:italic; font-weight:900 !important; font-size:clamp(24px,2.6vw,34px) !important;
+    letter-spacing:1.5px !important; text-transform:uppercase; color:var(--txt) !important;}
+  html[data-design="fight"] .section-title::after{content:""; flex:1; height:3px; max-width:140px; background:var(--gold); box-shadow:0 0 12px var(--gold); transform:skewX(-20deg);}
+  html[data-design="fight"] .rfilter,
+  html[data-design="fight"] .pe-chip{font-family:var(--fh-fight) !important; font-weight:700; font-style:italic; letter-spacing:1.2px; text-transform:uppercase; border-radius:2px !important;
+    transform:skewX(-10deg);}
+  html[data-design="fight"] .rfilter > *, html[data-design="fight"] .pe-chip > *{transform:skewX(10deg);}
+  html[data-design="fight"] .rfilter.active, html[data-design="fight"] .pe-chip.on{background:var(--gold) !important; color:var(--on-gold) !important; border-color:transparent !important;}
+
+  /* ── fight card ── */
+  html[data-design="fight"] .bout{position:relative; border-radius:4px !important; border:1px solid var(--line) !important; overflow:visible;
+    background:linear-gradient(160deg,rgba(26,26,32,.94),rgba(10,10,14,.94)) !important;}
+  html[data-design="fight"] .bout::before{content:""; position:absolute; left:0; top:0; width:120px; height:3px; background:var(--gold); box-shadow:0 0 14px var(--gold);}
+  html[data-design="fight"] .bout .bout-label{font-family:var(--fh-fight) !important; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold);}
+  html[data-design="fight"] .bout .fighter .fname{font-family:var(--fh-fight) !important; font-style:italic; font-weight:900 !important; text-transform:uppercase; letter-spacing:.5px;}
+  html[data-design="fight"] .bout .vs{font-family:var(--fh-fight) !important; font-style:italic; font-weight:900; color:var(--muted) !important;}
+  .bout-order{display:inline-block; margin-right:10px; padding:2px 10px; background:var(--gold); color:var(--on-gold); font-style:italic; letter-spacing:1.5px; transform:skewX(-12deg);}
+  /* the main event: big, with bigger portraits and belts */
+  html[data-design="fight"] .bout.main{padding:22px 22px 18px !important; background:
+      linear-gradient(110deg,rgba(var(--gold-rgb),.20),transparent 45%), linear-gradient(250deg,rgba(var(--loss-rgb,226,75,74),.16),transparent 45%), linear-gradient(160deg,rgba(26,26,32,.96),rgba(10,10,14,.96)) !important;}
+  html[data-design="fight"] .bout.main .mp{--mp-size:clamp(150px,16vw,220px);}
+  html[data-design="fight"] .bout.main .fighter .fname{font-size:clamp(22px,3.6vw,52px) !important; line-height:.95; overflow-wrap:anywhere;}
+  html[data-design="fight"] .bout .fighter{min-width:0;}
+  html[data-design="fight"] .bout.main .vs{font-size:clamp(44px,6vw,90px) !important; color:#fff !important;
+    text-shadow:0 0 30px rgba(var(--gold-rgb),.9),0 0 60px rgba(var(--gold-rgb),.4); transform:skewX(-10deg);}
+  html[data-design="fight"] .bout.main .title-on-line{font-family:var(--fh-fight); font-weight:800; letter-spacing:1.5px; text-transform:uppercase; font-size:18px;}
+  html[data-design="fight"] .bout.main .title-belt{height:46px;}
+  html[data-design="fight"] .bout.main .side-mult{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:22px;}
+  /* bet buttons: their own color and a slow pulse so nobody misses them */
+  html[data-design="fight"] .pick-btn{border:0 !important; background:var(--fh-bet) !important; color:#04140c !important; border-radius:0 !important;
+    font-family:var(--fh-fight) !important; font-style:italic; font-weight:900 !important; font-size:17px !important; letter-spacing:1.5px; text-transform:uppercase;
+    padding:10px 22px !important; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%); animation:fhBet 1.8s ease-in-out infinite;}
+  html[data-design="fight"] .pick-btn:hover{animation:none; filter:drop-shadow(0 0 18px rgba(var(--fh-bet-rgb),1)) brightness(1.08);}
+  html[data-design="fight"] .pick-btn.picked{background:var(--gold) !important; color:var(--on-gold) !important; animation:none;}
+  @keyframes fhBet{0%,100%{filter:drop-shadow(0 0 5px rgba(var(--fh-bet-rgb),.5)); transform:scale(1);}50%{filter:drop-shadow(0 0 18px rgba(var(--fh-bet-rgb),1)); transform:scale(1.04);}}
+
+  /* every other match: a summary row you can open. Big fields (Rumbles, 3 on 3) summarise until opened. */
+  html[data-design="fight"] .bout.fh-fold:not(.fh-open) > :not(.fh-sum){display:none !important;}
+  html[data-design="fight"] .bout.fh-fold{padding:0 !important;}
+  html[data-design="fight"] .bout.fh-fold.fh-open{padding:0 0 16px !important;}
+  html[data-design="fight"] .bout.fh-fold.fh-open > :not(.fh-sum){margin-left:16px; margin-right:16px;}
+  .fh-sum{display:grid; grid-template-columns:170px minmax(0,1fr) auto; gap:16px; align-items:center; width:100%; padding:14px 18px; background:none; border:0; color:var(--txt); text-align:left; cursor:pointer; font:inherit;}
+  .fh-sum:hover{background:rgba(255,255,255,.03);}
+  .fh-open .fh-sum{border-bottom:1px solid var(--line); margin-bottom:14px;}
+  .fh-sum-k b{display:block; font-family:var(--fh-fight); font-weight:800; letter-spacing:2px; text-transform:uppercase; font-size:16px; color:var(--gold);}
+  .fh-sum-k small{display:block; color:var(--muted); font-family:var(--fh-fight); font-weight:700; letter-spacing:1px; font-size:13px; text-transform:uppercase; margin-top:2px;}
+  .fh-sum-k .fh-sum-belt{display:flex; align-items:center; gap:6px; margin-top:4px; font-size:12px; color:var(--txt-2); font-family:var(--fh-fight); font-weight:700; letter-spacing:1px; text-transform:uppercase;}
+  .fh-sum-k .fh-sum-belt img{height:20px; width:auto;}
+  .fh-sum-sides{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; min-width:0;}
+  .fh-sum-v{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:18px; color:var(--muted);}
+  .fh-who{display:flex; align-items:center; gap:10px; min-width:0;}
+  .fh-faces{display:flex;}
+  .fh-face{width:52px; height:52px; flex:0 0 52px; overflow:hidden; background:linear-gradient(160deg,var(--panel2),#000); display:grid; place-items:center;
+    clip-path:polygon(14% 0,100% 0,86% 100%,0 100%); font-family:var(--fh-fight); font-weight:900; color:rgba(255,255,255,.5); font-size:16px;}
+  .fh-faces .fh-face + .fh-face{margin-left:-14px;}
+  .fh-face img{width:100%; height:100%; object-fit:cover; object-position:center top; display:block;}
+  .fh-who b{display:block; font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:21px; text-transform:uppercase; line-height:1.05; overflow-wrap:anywhere;}
+  .fh-who small{display:block; color:var(--txt-2); font-size:14px; margin-top:2px; font-variant-numeric:tabular-nums;}
+  .fh-who .fh-belts{display:flex; gap:4px; margin-top:3px;} .fh-who .fh-belts img{height:18px; width:auto;}
+  .fh-sum-big{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:22px; text-transform:uppercase;}
+  .fh-sum-big small{display:block; font-style:normal; font-weight:600; font-size:14px; color:var(--txt-2); text-transform:none; letter-spacing:0;}
+  .fh-sum-r{display:flex; align-items:center; gap:12px; justify-self:end;}
+  .fh-sum-bet{padding:8px 16px; background:var(--fh-bet); color:#04140c; font-family:var(--fh-fight); font-style:italic; font-weight:900; letter-spacing:1.5px; text-transform:uppercase;
+    clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%); animation:fhBet 1.8s ease-in-out infinite;}
+  .fh-sum-more{font-family:var(--fh-fight); font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--txt-2); white-space:nowrap;}
+  /* an opened big field (more than 4 sides): a tidy grid instead of one long row */
+  html[data-design="fight"] .bout:not(.sides-1):not(.sides-2):not(.sides-3):not(.sides-4) .vs-row{display:grid !important; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px 10px;}
+  html[data-design="fight"] .bout:not(.sides-1):not(.sides-2):not(.sides-3):not(.sides-4) .vs-row > .vs{display:none !important;}
+  html[data-design="fight"] .bout:not(.sides-1):not(.sides-2):not(.sides-3):not(.sides-4) .mp{--mp-size:96px; --mp-size-sm:84px;}
+  html[data-design="fight"] .bout:not(.sides-1):not(.sides-2):not(.sides-3):not(.sides-4) .fighter .fname{font-size:18px !important; overflow-wrap:anywhere;}
+  html[data-design="fight"] .bout.sides-3 .mp, html[data-design="fight"] .bout.sides-4 .mp{--mp-size:110px;}
+  html[data-design="fight"] .bout:not(.sides-1):not(.sides-2):not(.sides-3):not(.sides-4) .pick-btn{font-size:14px !important; padding:8px 12px !important;}
+  html[data-design="fight"] #fh-hub{z-index:490;}
+  .fh-sum-more .c{display:none;} .fh-open .fh-sum-more .o{display:none;} .fh-open .fh-sum-more .c{display:inline;}
+  @media(max-width:760px){
+    .fh-sum{grid-template-columns:minmax(0,1fr) auto;}
+    .fh-sum-k{grid-column:1/-1;}
+    .fh-who b{font-size:18px;}
+    .fh-face{width:44px; height:44px; flex-basis:44px;}
+  }
+
+  /* ── the hub (main menu) ── */
+  #fh-hub{position:fixed; left:0; right:0; bottom:0; top:var(--fh-top,70px); z-index:45; display:none; grid-template-rows:1fr auto;
+    background:radial-gradient(1200px 600px at 70% 0%,rgba(var(--gold-rgb),.10),transparent 60%), rgba(4,4,7,.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
+  #fh-hub.open{display:grid; animation:fhIn .25s ease both;}
+  @keyframes fhIn{from{opacity:0}to{opacity:1}}
+  .fh-body{display:grid; grid-template-columns:auto auto minmax(0,1fr); min-height:0;}
+  .fh-col{display:flex; flex-direction:column; gap:2px; padding:22px 0 22px max(16px,env(safe-area-inset-left,0px)); overflow-y:auto; scrollbar-width:none;}
+  .fh-col::-webkit-scrollbar{display:none;}
+  .fh-col1{width:300px; transition:width .3s ease;}
+  .fh-sub .fh-col1{width:250px;}
+  .fh-sub .fh-col1 .fh-mi:not(.sel){opacity:.45;}
+  .fh-sub .fh-col1 .fh-mi{font-size:22px;}
+  .fh-col2{width:0; opacity:0; overflow:hidden; padding-left:0; transition:width .3s ease, opacity .3s;}
+  .fh-sub .fh-col2{width:270px; opacity:1; padding-left:10px; border-left:1px solid rgba(255,255,255,.08);}
+  .fh-head{font-family:var(--fh-fight); font-weight:700; font-size:13px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); padding:0 0 10px 14px;}
+  .fh-mi{position:relative; z-index:0; display:flex; align-items:center; gap:10px; text-align:left; padding:9px 18px 9px 16px; background:none; border:0; cursor:pointer; white-space:nowrap;
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:29px; line-height:1.05; letter-spacing:1px; text-transform:uppercase; color:var(--txt-2); transition:color .15s, transform .15s;}
+  .fh-col2 .fh-mi{font-size:23px;}
+  .fh-mi::before{content:""; position:absolute; inset:3px 0; z-index:-1; transform:skewX(-14deg); background:linear-gradient(90deg,var(--gold),rgba(var(--gold-rgb),.25) 70%,transparent); opacity:0; transition:opacity .15s;}
+  .fh-mi:hover,.fh-mi:focus-visible{color:var(--txt); transform:translateX(6px);}
+  .fh-mi:hover::before,.fh-mi:focus-visible::before{opacity:.35;}
+  .fh-mi.sel{color:var(--on-gold);} .fh-mi.sel::before{opacity:1; box-shadow:0 0 24px rgba(var(--gold-rgb),.45);}
+  .fh-mi .tri{width:0; height:0; border-left:9px solid currentColor; border-top:7px solid transparent; border-bottom:7px solid transparent; opacity:0;}
+  .fh-mi.sel .tri{opacity:1;}
+  .fh-mi .pl{width:26px; height:26px; flex:0 0 26px; display:grid; place-items:center; overflow:hidden; transform:skewX(-12deg); background:var(--pc,#555); font-size:11px; font-style:normal; color:#fff;}
+  .fh-mi .pl img{width:100%; height:100%; object-fit:cover;}
+  .fh-mi.back{font-size:18px; color:var(--muted); margin-bottom:6px;}
+  .fh-stage{min-width:0; overflow-y:auto; padding:22px max(16px,env(safe-area-inset-right,0px)) 30px 22px;}
+  .fh-prompts{display:flex; align-items:center; gap:22px; padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    background:linear-gradient(0deg,rgba(0,0,0,.92),rgba(0,0,0,.6)); border-top:1px solid rgba(var(--gold-rgb),.3);}
+  .fh-help{flex:1; min-width:0; color:var(--txt-2); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .fh-pr{display:flex; align-items:center; gap:8px; font-family:var(--fh-fight); font-weight:700; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--txt-2); background:none; border:0; cursor:pointer;}
+  .fh-pr kbd{min-width:34px; height:26px; padding:0 7px; display:grid; place-items:center; border:1.5px solid var(--txt-2); border-radius:6px; font-family:var(--font-body); font-size:12px; font-weight:700; color:var(--txt);}
+  .fh-pr.close kbd{border-color:var(--loss); color:var(--loss);}
+  /* hub panels */
+  .fh-panel{position:relative; background:linear-gradient(160deg,rgba(26,26,32,.92),rgba(10,10,14,.92)); border:1px solid var(--line);
+    clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);}
+  .fh-panel::before{content:""; position:absolute; left:0; top:0; width:120px; height:3px; background:var(--gold); box-shadow:0 0 14px var(--gold);}
+  .fh-kick{font-family:var(--fh-fight); font-weight:700; font-size:14px; letter-spacing:3px; text-transform:uppercase; color:var(--gold);}
+  .fh-splash{min-height:380px; padding:28px; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden; cursor:pointer;}
+  .fh-splash .fh-pics{position:absolute; inset:0; pointer-events:none;}
+  .fh-splash .fh-pics img{position:absolute; top:0; height:100%; width:44%; object-fit:cover; object-position:center top;}
+  .fh-splash .fh-pics img.a{right:28%; -webkit-mask-image:linear-gradient(90deg,transparent,#000 40%,#000 60%,transparent); mask-image:linear-gradient(90deg,transparent,#000 40%,#000 60%,transparent); opacity:.6;}
+  .fh-splash .fh-pics img.b{right:-4%; -webkit-mask-image:linear-gradient(90deg,transparent,#000 40%); mask-image:linear-gradient(90deg,transparent,#000 40%); opacity:.8;}
+  .fh-splash::after{content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(10,10,14,.96) 25%,rgba(10,10,14,.4) 70%,transparent); pointer-events:none;}
+  .fh-splash > :not(.fh-pics){position:relative; z-index:1;}
+  .fh-big{font-family:var(--fh-fight); font-style:italic; font-weight:900; text-transform:uppercase; line-height:.9; letter-spacing:1px; font-size:clamp(46px,6.4vw,92px); margin:6px 0 10px;}
+  .fh-big em{color:var(--gold); font-style:italic;}
+  .fh-timer{display:flex; gap:6px; margin-top:12px;}
+  .fh-timer div{padding:8px 14px; background:rgba(0,0,0,.6); border:1px solid var(--line); transform:skewX(-12deg); text-align:center;}
+  .fh-timer b,.fh-timer small{display:block; transform:skewX(12deg);}
+  .fh-timer b{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:32px; line-height:1; font-variant-numeric:tabular-nums;}
+  .fh-timer small{font-family:var(--fh-fight); font-size:11px; letter-spacing:2px; color:var(--muted); font-weight:700;}
+  .fh-cta{display:inline-flex; align-items:center; gap:10px; margin-top:16px; padding:12px 26px; background:var(--gold); color:var(--on-gold); border:0; cursor:pointer;
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:20px; letter-spacing:1.5px; text-transform:uppercase; clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);}
+  .fh-tags{display:flex; flex-wrap:wrap; gap:8px;}
+  .fh-tag{display:inline-block; padding:3px 10px; font-family:var(--fh-fight); font-weight:700; font-size:13px; letter-spacing:2px; text-transform:uppercase; background:rgba(255,255,255,.06); border:1px solid var(--line); transform:skewX(-12deg);}
+  .fh-tag.gold{background:var(--gold); color:var(--on-gold); border-color:transparent;}
+  .fh-slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
+  .fh-slot{position:relative; aspect-ratio:1/1; display:grid; place-items:center; border:0; cursor:pointer; overflow:hidden; color:#fff;
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:clamp(24px,2.6vw,38px); text-transform:uppercase;
+    background:linear-gradient(150deg,var(--pc,#666),#000 85%); clip-path:polygon(12% 0,100% 0,88% 100%,0 100%); filter:saturate(.8) brightness(.85); transition:transform .15s, filter .15s;}
+  .fh-slot img{position:absolute; inset:14%; width:72%; height:72%; object-fit:contain;}
+  .fh-slot span{position:relative; text-shadow:0 2px 10px #000; align-self:end; margin-bottom:10%;}
+  .fh-slot:hover,.fh-slot:focus-visible{filter:none; transform:scale(1.04);}
+  .fh-note{color:var(--txt-2); line-height:1.5; margin:8px 0 16px; max-width:70ch;}
+  @media(max-width:900px){
+    .fh-body{grid-template-columns:1fr; overflow-y:auto;}
+    .fh-col1,.fh-sub .fh-col1{width:auto; padding-right:16px; overflow:visible;}
+    .fh-col2{overflow:visible;}
+    .fh-sub .fh-col1{display:none;}
+    .fh-col2{display:none;}
+    .fh-sub .fh-col2{display:flex; width:auto; padding-right:16px; border-left:0;}
+    .fh-stage{padding-left:max(16px,env(safe-area-inset-left,0px)); overflow:visible;}
+    .fh-help,.fh-pr.sel{display:none;}
+    .fh-splash{min-height:300px;}
+    .fh-splash .fh-pics img.a{display:none;} .fh-splash .fh-pics img.b{width:70%;}
+    #fh-menu span{display:none;}
+    #fh-pagebar{padding-top:10px;}
+    .fh-ptitle b{font-size:24px;}
+    .fh-back span{display:none;}
+  }
+
+  /* loading screen */
+  #fh-loader{position:fixed; inset:0; z-index:700; display:grid; place-items:center; background:#000; overflow:hidden; cursor:pointer; animation:fhLdIn .18s ease both;}
+  #fh-loader.out{animation:fhLdOut .25s ease both;}
+  @keyframes fhLdIn{from{clip-path:polygon(0 0,0 0,-20% 100%,-20% 100%)}to{clip-path:polygon(0 0,120% 0,100% 100%,-20% 100%)}}
+  @keyframes fhLdOut{to{opacity:0; transform:scale(1.03)}}
+  #fh-loader::before{content:""; position:absolute; inset:-20%; background:linear-gradient(115deg,transparent 40%,rgba(var(--gold-rgb),.25) 50%,transparent 60%); animation:fhSweep 1s linear infinite;}
+  @keyframes fhSweep{from{transform:translateX(-30%)}to{transform:translateX(30%)}}
+  .fh-ld{position:relative; text-align:center; padding:24px; max-width:900px;}
+  .fh-ld-t{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:clamp(54px,10vw,130px); line-height:.9; text-transform:uppercase;
+    background:linear-gradient(180deg,#fff 0%,#dfe3ea 45%,#7d8494 55%,#eef0f4 100%); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .fh-ld-bar{width:min(460px,80vw); height:6px; margin:22px auto 16px; background:rgba(255,255,255,.1); transform:skewX(-20deg); overflow:hidden;}
+  .fh-ld-bar span{display:block; height:100%; width:0; background:var(--gold); box-shadow:0 0 12px var(--gold); animation:fhFill .6s ease-out forwards;}
+  @keyframes fhFill{to{width:100%}}
+  .fh-ld-tip{color:var(--txt-2); font-size:16px; line-height:1.5;}
+  .fh-ld-tip b{color:var(--gold); font-family:var(--fh-fight); letter-spacing:2px; text-transform:uppercase; margin-right:8px;}
+  @media (prefers-reduced-motion:reduce){
+    html[data-design="fight"] .pick-btn,.fh-sum-bet{animation:none !important;}
+    #fh-loader::before{display:none;}
+  }
+</style>
+
+<canvas id="fh-bg" aria-hidden="true"></canvas>
+<div id="fh-hub" role="dialog" aria-label="Main menu" aria-modal="false">
+  <div class="fh-body" id="fh-body">
+    <nav class="fh-col fh-col1" id="fh-col1" aria-label="Main menu"></nav>
+    <nav class="fh-col fh-col2" id="fh-col2" aria-label="Section menu"></nav>
+    <div class="fh-stage" id="fh-stage"></div>
+  </div>
+  <div class="fh-prompts"><div class="fh-help" id="fh-help">Choose where to go.</div>
+    <span class="fh-pr sel"><kbd>Enter</kbd>Select</span>
+    <button type="button" class="fh-pr close" id="fh-close"><kbd>Esc</kbd>Close menu</button></div>
+</div>
+
+<script>
+/* ===================== FIGHT HUB (look only) ===================== */
+(function(){
+  const root = document.documentElement;
+  const FH = { design:'fight', bg:'fog', amount:60, speed:50, open:false };
+  window.FH = FH;
+  const $ = id => document.getElementById(id);
+  const escH = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const qsDesign = () => { try{ const m = location.search.match(/[?&]design=(fight|classic|2k)\b/i); return m ? m[1].toLowerCase() : ''; }catch(e){ return ''; } };
+
+  /* Called by applyTheme() with the saved theme record */
+  window.wcaApplyDesign = function(t){
+    t = t || {};
+    let d = qsDesign() || String(t.design||'fight').toLowerCase();
+    if(d === '2k') d = 'classic';                 // 2K Menu isn't built yet
+    if(['fight','classic'].indexOf(d) < 0) d = 'fight';
+    FH.design = d; root.dataset.design = d;
+    FH.bg = ['fog','space','off'].indexOf(t.bg_style) >= 0 ? t.bg_style : 'fog';
+    FH.amount = isFinite(+t.bg_amount) && t.bg_amount !== '' && t.bg_amount != null ? Math.max(0, Math.min(100, +t.bg_amount)) : 60;
+    FH.speed  = isFinite(+t.bg_speed)  && t.bg_speed  !== '' && t.bg_speed  != null ? Math.max(0, Math.min(100, +t.bg_speed))  : 50;
+    if(d !== 'fight') fhHubClose();
+    try{ FHBG.restart(); }catch(e){}
+    fhPageBar();
+  };
+  { const q = qsDesign(); if(q) root.dataset.design = q === '2k' ? 'classic' : q; FH.design = root.dataset.design; }
+  const isFight = () => root.dataset.design === 'fight';
+
+  /* ── the gold (C) for champions ── */
+  window.wcaChampC = function(name, isTeam){
+    try{
+      if(!name) return '';
+      let champ = false;
+      if(isTeam){
+        if(typeof MP_ASOF !== 'undefined' && MP_ASOF) champ = typeof mpSamePerson==='function' && mpSamePerson(MP_ASOF['Faction'], name);
+        else if(typeof CHAMP_DIVS_BY_NAME !== 'undefined'){
+          const k = String(name).trim().toLowerCase();
+          champ = (CHAMP_DIVS_BY_NAME[k]||[]).indexOf('Faction') >= 0;
+          if(!champ && typeof mpSamePerson==='function') for(const n in CHAMP_DIVS_BY_NAME){ if((CHAMP_DIVS_BY_NAME[n]||[]).indexOf('Faction')>=0 && mpSamePerson(n, name)){ champ = true; break; } }
+        }
+      } else if(typeof mpBeltsFor === 'function'){
+        champ = mpBeltsFor(name).length > 0;
+      }
+      return champ ? '<span class="champ-c" title="Champion">(C)</span>' : '';
+    }catch(e){ return ''; }
+  };
+
+  /* ── summary row for every match below the main event ── */
+  function fhFace(n){
+    const src = (typeof mpPhotoFor === 'function') ? mpPhotoFor(n) : '';
+    const ini = String(n||'?').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    return `<span class="fh-face">${src ? `<img src="${escH(src)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${ini.replace(/'/g,'')}'))">` : escH(ini)}</span>`;
+  }
+  function fhBeltsSmall(n){
+    try{ const d = mpBeltsFor(n); return d.length ? `<span class="fh-belts">${mpBeltImgs(d)}</span>` : ''; }catch(e){ return ''; }
+  }
+  window.fhBoutSummary = function(m, sides, o){
+    try{
+      const div = (typeof matchDivision === 'function') ? matchDivision(m) : '';
+      let belt = '';
+      if(m.championship){
+        const b = (typeof beltFor === 'function') ? beltFor(m.championship) : null;
+        belt = `<span class="fh-sum-belt">${b && b.image_url ? `<img src="${escH(b.image_url)}" alt="">` : ''}${escH(m.championship)} title</span>`;
+      }
+      const kLabel = escH(o.orderLabel || 'Match');
+      const kSub = [o.label && o.label !== 'Match' && o.label !== 'Main Event' ? o.label : '', div ? div + ' Division' : ''].filter(Boolean).map(escH).join(' · ');
+      const allNames = [];
+      sides.forEach(s => (typeof sideMembers==='function' ? sideMembers(s) : (s && s.members) || []).forEach(n => n && allNames.push(n)));
+      let body;
+      if(sides.length > 4){
+        // a big field: Royal Rumble, Battle Royal, Gauntlet ...
+        const champs = allNames.filter(n => { try{ return mpBeltsFor(n).length > 0; }catch(e){ return false; } });
+        body = `<span class="fh-sum-big">${sides.length} entrants<small>${escH(allNames.slice(0,4).join(', '))}${allNames.length>4?` and ${allNames.length-4} more`:''}${champs.length?` · ${champs.length} champion${champs.length>1?'s':''} in it`:''}</small></span>`;
+      } else {
+        body = sides.map((s, i) => {
+          const mem = (typeof sideMembers==='function' ? sideMembers(s) : (s && s.members) || []).filter(Boolean);
+          let name, faces, belts = '';
+          if(s && s.team_name){
+            name = escH(s.team_name) + wcaChampC(s.team_name, true);
+            faces = mem.slice(0,3).map(fhFace).join('');
+            if(mem.length > 3) name += ` <small>${mem.length} members</small>`;
+          } else if(mem.length <= 2){
+            name = mem.map(n => escH(n) + wcaChampC(n)).join(' &amp; ') || 'TBD';
+            faces = mem.map(fhFace).join('');
+            belts = mem.map(fhBeltsSmall).join('');
+          } else {
+            name = escH(mem[0]) + wcaChampC(mem[0]) + ` <small>and ${mem.length-1} more</small>`;
+            faces = mem.slice(0,3).map(fhFace).join('');
+          }
+          return (i ? '<span class="fh-sum-v">VS</span>' : '') + `<span class="fh-who"><span class="fh-faces">${faces || fhFace('?')}</span><span><b>${name}</b>${belts}</span></span>`;
+        }).join('');
+      }
+      const bet = (o.status === 'open') ? `<span class="fh-sum-bet">Bet</span>` : '';
+      return `<button type="button" class="fh-sum" aria-expanded="false" onclick="fhFold(this)">
+        <span class="fh-sum-k"><b>${kLabel}</b>${kSub ? `<small>${kSub}</small>` : ''}${belt}</span>
+        <span class="fh-sum-sides">${body}</span>
+        <span class="fh-sum-r">${bet}<span class="fh-sum-more"><span class="o">Open ▾</span><span class="c">Close ▴</span></span></span>
+      </button>`;
+    }catch(e){ return ''; }
+  };
+  window.fhFold = function(btn){
+    const b = btn && btn.closest('.bout'); if(!b) return;
+    const open = !b.classList.contains('fh-open');
+    b.classList.toggle('fh-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  };
+
+  /* ── page names for the page bar and the loading screen ── */
+  const NAMES = { storylines:'Feed', events:'Events', archive:'Past Events', live:'Watch Live', roster:'Roster', rivalries:'Rivalries', rankings:'Rankings',
+    leaderboard:'Betting', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'Welcome', dash:'Dashboard',
+    account:'Account', mypromo:'My Promotion', relationships:'Relationships', showdown:'Showdown', timeline:'Timeline' };
+  const TIPS = [
+    'When you bet, you can hide your pick. The amount always shows.',
+    'Every promotion has its own currency. Your balance in the top corner follows the one you are looking at.',
+    'The Betting Champion resets everyone to zero each show, so every event is a fresh start.',
+    'Follow a promotion and its posts show up under Following in the Feed.',
+    'Vote for Match of the Night to earn a small payout.',
+    'A gold (C) next to a name means that person is a champion.'
+  ];
+  let tipN = Math.floor(Math.random()*TIPS.length);
+  const curPage = () => { const p = document.querySelector('.page.active'); return p ? p.id.replace(/^page-/,'') : ''; };
+  function pageTitle(pg){
+    if(pg === 'promotion'){ const h = document.querySelector('#pmpage-body h1, #pmpage-body .pm-name, #pmpage-body h2'); if(h && h.textContent.trim()) return h.textContent.trim(); }
+    const a = document.querySelector('header nav [data-page="'+pg+'"]');
+    return NAMES[pg] || (a ? a.textContent.trim() : pg);
+  }
+
+  /* ── loading screen ── */
+  function fhLoad(title, go){
+    if(!isFight()){ go(); return; }
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const el = document.createElement('div'); el.id = 'fh-loader'; el.setAttribute('role','status');
+    el.innerHTML = `<div class="fh-ld"><div class="fh-kick">Loading</div><div class="fh-ld-t">${escH(title)}</div><div class="fh-ld-bar"><span></span></div><div class="fh-ld-tip"><b>Tip</b>${escH(TIPS[tipN++ % TIPS.length])}</div></div>`;
+    const old = $('fh-loader'); if(old) old.remove();
+    document.body.appendChild(el);
+    let done = false;
+    const fin = () => { if(done) return; done = true; fhHubClose(); try{ go(); }catch(e){ console.warn(e); } el.classList.add('out'); setTimeout(() => el.remove(), 260); };
+    el.onclick = fin; setTimeout(fin, reduce ? 120 : 700);
+  }
+  window.fhLoad = fhLoad;
+
+  /* ── page bar ── */
+  function fhPageBar(){
+    const bar = $('fh-pagebar'); if(!bar) return;
+    const pg = curPage();
+    $('fh-ptitle-b').textContent = pageTitle(pg);
+    $('fh-ptitle-s').textContent = 'Main Menu ▸';
+  }
+
+  /* ── the hub ── */
+  let sub = null;   // null | 'events' | {promo} | 'promotions' | 'more'
+  function navItems(){
+    const seen = {}, out = [];
+    document.querySelectorAll('header nav [data-page]').forEach(a => {
+      const pg = a.dataset.page; if(!pg || seen[pg]) return;
+      if(a.classList.contains('nav-off')) return;
+      seen[pg] = 1; out.push({ pg, t:(a.textContent||'').replace(/\s+/g,' ').trim() || NAMES[pg] || pg });
+    });
+    return out;
+  }
+  const HELP = { storylines:'What every promotion is saying right now.', events:'Pick a promotion, then pick its upcoming show or past events.',
+    live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable.', rivalries:'Who is at war right now.',
+    rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', promotions:'Every promotion in the WCA Universe.',
+    more:'Apply, Sponsors, Donate, Get the App and more.' };
+  function mi(label, o){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'fh-mi' + (o.sel ? ' sel' : '') + (o.back ? ' back' : '');
+    b.innerHTML = (o.pl != null ? `<span class="pl" style="--pc:${escH(o.pc||'#555')}">${o.pl}</span>` : (o.back ? '' : '<span class="tri"></span>')) + escH(label);
+    b.onclick = o.go;
+    if(o.help) b.onmouseenter = b.onfocus = () => { $('fh-help').textContent = o.help; };
+    return b;
+  }
+  async function promos(){ try{ return (typeof peLoadPromoList === 'function') ? (await peLoadPromoList()) : []; }catch(e){ return []; } }
+  function promoBadge(p){
+    if(p === 'wca') return '<img src="/brand/wca-logo-sm.png" alt="">';
+    const logo = p.logo_url || p.logo || '';
+    return /^https?:\/\//i.test(String(logo)) ? `<img src="${escH(logo)}" alt="">` : escH(String((typeof peShort==='function'?peShort(p):p.name)||'?').slice(0,1));
+  }
+  const pcol = p => (typeof pmColor === 'function') ? pmColor(p.color) : '#e9b949';
+  const pshort = p => (typeof peShort === 'function') ? peShort(p) : p.name;
+
+  function goEvents(pg, v){
+    fhLoad(pg === 'archive' ? 'Past Events' : pg === 'showdown' ? 'Showdown' : 'Events', () => {
+      try{ localStorage.setItem('wca-events-promo', String(v)); }catch(e){}
+      if(pg === 'showdown'){ goPage('showdown'); return; }
+      if(typeof wcaSetAddress === 'function') wcaSetAddress(pg, v === 'wca' ? '' : 'promo=' + Number(v), true);
+      activatePage(pg); window.scrollTo({ top:0 });
+    });
+  }
+  function goSimple(pg){ fhLoad(pageTitle(pg), () => goPage(pg)); }
+
+  async function renderHub(){
+    const c1 = $('fh-col1'), c2 = $('fh-col2'), st = $('fh-stage');
+    const cur = curPage();
+    c1.innerHTML = '<div class="fh-head">Main Menu</div>';
+    const items = navItems().filter(x => x.pg !== 'apply' && x.pg !== 'sponsors');
+    items.forEach(x => {
+      const isSub = x.pg === 'events' || x.pg === 'promotions';
+      const active = sub ? (sub === x.pg || (sub && sub.promo && x.pg === 'events')) : (cur === x.pg || (x.pg === 'events' && (cur === 'archive' || cur === 'showdown')));
+      c1.appendChild(mi(x.t, { sel:active, help:HELP[x.pg], go: () => { if(isSub){ sub = x.pg; renderHub(); } else goSimple(x.pg); } }));
+    });
+    c1.appendChild(mi('More', { sel:sub === 'more', help:HELP.more, go: () => { sub = 'more'; renderHub(); } }));
+    $('fh-body').classList.toggle('fh-sub', !!sub);
+    c2.innerHTML = '';
+    if(!sub){ renderSplash(st); return; }
+    const back = (label, to) => c2.appendChild(mi('◀ ' + label, { back:true, help:'Go back.', go: () => { sub = to; renderHub(); } }));
+    const head = t => { const h = document.createElement('div'); h.className = 'fh-head'; h.textContent = t; c2.appendChild(h); };
+    if(sub === 'events' || sub === 'promotions'){
+      back('Main Menu', null); head(sub === 'events' ? 'Events · pick a promotion' : 'Promotions');
+      const list = await promos();
+      const pick = p => sub === 'events' ? () => { sub = { promo:p }; renderHub(); } : () => fhLoad(p === 'wca' ? 'WCA' : pshort(p), () => (p === 'wca' ? goPage('events') : pmGo(Number(p.id))));
+      if(sub === 'events') c2.appendChild(mi('WCA', { pl:promoBadge('wca'), pc:'#333', help:'World Championship Alliance', go:pick('wca') }));
+      list.forEach(p => c2.appendChild(mi(pshort(p), { pl:promoBadge(p), pc:pcol(p), help:p.name, go:pick(p) })));
+      if(sub === 'promotions') c2.appendChild(mi('See all promotions', { help:'The full list, and sign up your own.', go: () => goSimple('promotions') }));
+      st.innerHTML = `<div class="fh-kick" style="margin-bottom:10px">${sub === 'events' ? 'Choose a promotion' : 'Choose a promotion to open its page'}</div>
+        <div class="fh-slots">${(sub === 'events' ? [{ id:'wca', name:'World Championship Alliance', _w:1 }] : []).concat(list).map(p =>
+          `<button type="button" class="fh-slot" style="--pc:${p._w ? '#555' : escH(pcol(p))}" data-p="${escH(p.id)}">${p._w ? '<img src="/brand/wca-logo-sm.png" alt="">' : (/^https?:\/\//i.test(String(p.logo_url||p.logo||'')) ? `<img src="${escH(p.logo_url||p.logo)}" alt="">` : '')}<span>${escH(p._w ? 'WCA' : pshort(p))}</span></button>`).join('')}</div>`;
+      st.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { const id = b.dataset.p; const p = id === 'wca' ? 'wca' : list.find(x => String(x.id) === id); if(p) pick(p)(); });
+      return;
+    }
+    if(sub && sub.promo){
+      const p = sub.promo, isW = p === 'wca', nm = isW ? 'WCA' : pshort(p), v = isW ? 'wca' : p.id;
+      back('Events', 'events'); head(nm);
+      c2.appendChild(mi('Upcoming', { help:'The next show, its card and the betting.', go: () => goEvents('events', v) }));
+      c2.appendChild(mi('Past Events', { help:'Every show ' + nm + ' has finished, with results and bets.', go: () => goEvents('archive', v) }));
+      if(isW) c2.appendChild(mi('Showdown', { help:'The spin off, HEAT vs OVERDRIVE.', go: () => goEvents('showdown', 'wca') }));
+      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">${escH(isW ? 'World Championship Alliance' : p.name)}</div><div class="fh-big" style="font-size:clamp(44px,6vw,80px)">${escH(nm)}</div>
+        <p class="fh-note">Pick Upcoming for the next show and its betting, or Past Events for everything ${escH(nm)} has done so far.</p></section>`;
+      return;
+    }
+    if(sub === 'more'){
+      back('Main Menu', null); head('More');
+      const extra = [];
+      if(document.querySelector('header nav [data-page="apply"]')) extra.push(['Apply', () => goSimple('apply')]);
+      if(document.querySelector('header nav [data-page="sponsors"]')) extra.push(['Sponsors', () => goSimple('sponsors')]);
+      extra.push(['About WCA', () => fhLoad('Welcome', () => goPage('home'))]);
+      if(typeof openDonate === 'function') extra.push(['Donate', () => { fhHubClose(); openDonate(); }]);
+      const app = $('appBtn'); if(app && !app.hidden && typeof wcaInstall === 'function') extra.push(['Get the App', () => { fhHubClose(); wcaInstall(); }]);
+      const fp = $('nav-firepro'); if(fp && fp.style.display && fp.style.display !== 'none' && typeof fpEnter === 'function') extra.push([fp.textContent.replace(/⚡/,'').trim() || 'Enter Fire Pro', () => { fhHubClose(); fpEnter(); }]);
+      extra.forEach(([t, go]) => c2.appendChild(mi(t, { help:t, go })));
+      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">More</div><div class="fh-big" style="font-size:clamp(40px,5vw,70px)">Everything else</div><p class="fh-note">Apply to join the roster, our sponsors, the WCA intro, and ways to support the site.</p></section>`;
+    }
+  }
+
+  /* the main menu's headline: the next WCA show and its main event */
+  let cdTimer = null;
+  async function renderSplash(st){
+    st.innerHTML = '';
+    try{ if(typeof CURRENT_EVENT !== 'undefined' && !CURRENT_EVENT && typeof loadFeaturedData === 'function' && typeof sb !== 'undefined' && sb) await loadFeaturedData(); }catch(e){}
+    const ev = (typeof CURRENT_EVENT !== 'undefined') ? CURRENT_EVENT : null;
+    if(!ev){ st.innerHTML = `<section class="fh-panel fh-splash" style="cursor:default"><div class="fh-kick">WCA Universe</div><div class="fh-big">Choose where to go</div><p class="fh-note">Pick anything from the menu on the left.</p></section>`; return; }
+    const list = (typeof CURRENT_MATCHES !== 'undefined' && CURRENT_MATCHES) || [];
+    const main = list.find(m => m.slot === 1) || list[0];
+    let head = escH(ev.name), pics = '', tags = '';
+    if(main && typeof parseSides === 'function'){
+      const sides = parseSides(main);
+      const lab = s => (typeof sideLabel === 'function') ? sideLabel(s) : '';
+      if(sides.length === 2) head = `${escH(lab(sides[0]))}${wcaChampC(lab(sides[0]), !!sides[0].team_name)} <em>vs</em><br>${escH(lab(sides[1]))}${wcaChampC(lab(sides[1]), !!sides[1].team_name)}`;
+      else if(sides.length > 2) head = escH(main.match_type || (sides.length + ' Way')) + ' <em>·</em> ' + sides.length + ' in it';
+      const firsts = sides.slice(0,2).map(s => ((typeof sideMembers==='function' ? sideMembers(s) : s.members) || [])[0]).filter(Boolean);
+      pics = firsts.map((n,i) => { const u = typeof mpPhotoFor === 'function' ? mpPhotoFor(n) : ''; return u ? `<img class="${i ? 'b' : 'a'}" src="${escH(u)}" alt="" onerror="this.remove()">` : ''; }).join('');
+      if(main.championship) tags += `<span class="fh-tag gold">${escH(main.championship)} Championship</span>`;
+    }
+    const when = ev.event_date ? new Date(ev.event_date) : null;
+    st.innerHTML = `<section class="fh-panel fh-splash" id="fh-splash"><div class="fh-pics">${pics}</div>
+      <div class="fh-kick">Next show · ${escH(ev.name)}${when && typeof fmtEventDate === 'function' ? ' · ' + escH(fmtEventDate(ev.event_date)) : ''}</div>
+      <div class="fh-big">${head}</div>
+      <div class="fh-tags"><span class="fh-tag">Main Event</span>${tags}</div>
+      ${when && when.getTime() > Date.now() ? '<div class="fh-timer" id="fh-timer"></div>' : ''}
+      <div><button type="button" class="fh-cta">See the card ▶</button></div></section>`;
+    $('fh-splash').onclick = () => goEvents('events', 'wca');
+    clearInterval(cdTimer);
+    const tick = () => { const el = $('fh-timer'); if(!el){ clearInterval(cdTimer); return; }
+      const s = Math.max(0, Math.floor((when - Date.now())/1000)), v = [Math.floor(s/86400), Math.floor(s%86400/3600), Math.floor(s%3600/60), s%60];
+      el.innerHTML = ['DAYS','HRS','MIN','SEC'].map((l,i) => `<div><b>${String(v[i]).padStart(2,'0')}</b><small>${l}</small></div>`).join(''); };
+    if(when){ tick(); cdTimer = setInterval(tick, 1000); }
+  }
+
+  function fhTop(){ const h = document.querySelector('header'); if(h) root.style.setProperty('--fh-top', Math.round(h.getBoundingClientRect().bottom) + 'px'); }
+  function fhHubOpen(){ if(!isFight()) return; sub = null; fhTop(); $('fh-hub').classList.add('open'); FH.open = true; $('fh-help').textContent = 'Choose where to go.'; renderHub(); }
+  function fhHubClose(){ const h = $('fh-hub'); if(h) h.classList.remove('open'); FH.open = false; clearInterval(cdTimer); }
+  window.fhHubOpen = fhHubOpen; window.fhHubClose = fhHubClose;
+
+  /* ── wire it into the header (nothing removed) ── */
+  function fhInit(){
+    const inner = document.querySelector('header .head-inner');
+    if(inner && !$('fh-menu')){
+      const b = document.createElement('button'); b.type = 'button'; b.id = 'fh-menu'; b.setAttribute('aria-label','Main menu');
+      b.innerHTML = '<i aria-hidden="true">☰</i><span>Menu</span>';
+      b.onclick = () => (FH.open ? fhHubClose() : fhHubOpen());
+      inner.insertBefore(b, inner.firstChild);
+    }
+    const header = document.querySelector('header');
+    if(header && !$('fh-pagebar')){
+      const bar = document.createElement('div'); bar.id = 'fh-pagebar';
+      bar.innerHTML = `<button type="button" class="fh-back" id="fh-back"><kbd>ESC</kbd>◀ <span>Main Menu</span></button><div class="fh-ptitle"><small id="fh-ptitle-s">Main Menu ▸</small><b id="fh-ptitle-b"></b></div>`;
+      header.insertAdjacentElement('afterend', bar);
+      $('fh-back').onclick = fhHubOpen;
+    }
+    // the logo opens the main menu in Fight Hub (capture, so the old logo click doesn't run)
+    const brand = document.querySelector('header .brand');
+    if(brand) brand.addEventListener('click', e => { if(!isFight()) return; e.preventDefault(); e.stopImmediatePropagation(); fhHubOpen(); }, true);
+    $('fh-close').onclick = fhHubClose;
+    document.addEventListener('keydown', e => {
+      if(!isFight() || e.key !== 'Escape') return;
+      if(FH.open){ e.preventDefault(); if(sub){ sub = (sub && sub.promo) ? 'events' : null; renderHub(); } else fhHubClose(); }
+    });
+    // whenever the site switches page: close the menu and update the page bar
+    const mo = new MutationObserver(() => { fhPageBar(); });
+    document.querySelectorAll('.page').forEach(p => mo.observe(p, { attributes:true, attributeFilter:['class'] }));
+    fhPageBar();
+    // landing on the front door (no address) opens the main menu
+    try{ const lp = window.__wcaLanding || ''; if(isFight() && (lp === '/' || lp === '/index.html' || lp === '/404.html')) setTimeout(fhHubOpen, 400); }catch(e){}
+    addEventListener('resize', fhTop);
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fhInit); else fhInit();
+  // the theme may have loaded before this script ran
+  if(window.__wcaTheme) window.wcaApplyDesign(window.__wcaTheme);
+})();
+
+/* ── Fight Hub background: fog and particles, or the 3D star map. Colors from the theme. ── */
+const FHBG = (function(){
+  const cv = document.getElementById('fh-bg'); if(!cv) return { restart(){} };
+  const x = cv.getContext('2d');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W=0, H=0, a='233,185,73', h='120,150,230', bg='#0d0d0f', raf=0, fog=[], dust=[], faint=[], stars=[], named=[], links=[], mx=0, my=0, tmx=0, tmy=0, t0=0, T=0, last=0;
+  const rnd = (m,n) => m + Math.random()*(n-m);
+  const hexRgb = v => { v = String(v||'').trim().replace('#',''); if(v.length===3) v=v[0]+v[0]+v[1]+v[1]+v[2]+v[2]; if(!/^[0-9a-f]{6}$/i.test(v)) return null; return parseInt(v.slice(0,2),16)+','+parseInt(v.slice(2,4),16)+','+parseInt(v.slice(4,6),16); };
+  function cols(){
+    const cs = getComputedStyle(document.documentElement);
+    a = cs.getPropertyValue('--gold-rgb').trim() || a;
+    h = hexRgb(cs.getPropertyValue('--teal')) || hexRgb(cs.getPropertyValue('--accent')) || h;
+    if(h === a) h = '120,150,230';
+    bg = cs.getPropertyValue('--bg').trim() || bg;
+  }
+  function build(){
+    const d = Math.min(2, devicePixelRatio||1); W = innerWidth; H = innerHeight;
+    cv.width = W*d; cv.height = H*d; x.setTransform(d,0,0,d,0,0);
+    const k = (window.FH ? FH.amount : 60) / 60, area = W*H;
+    fog = Array.from({length:14}, (_,i) => ({ x:rnd(-.2,1.2), y:rnd(.15,1.1), r:rnd(.25,.55), sp:rnd(.000006,.000018)*(i%2?1:-1), ph:rnd(0,6.28), c:i%3===0, al:rnd(.05,.11), layer:i%3 }));
+    dust = Array.from({length:Math.round(Math.min(160, area/9000)*k)}, () => ({ x:rnd(0,W), y:rnd(0,H), z:rnd(.2,1), s:rnd(0,6.28) }));
+    faint = Array.from({length:Math.round(Math.min(220, area/6000)*k)}, () => ({ x:rnd(0,W), y:rnd(0,H*.75), r:rnd(.3,1.1), s:rnd(0,6.28) }));
+    stars = Array.from({length:Math.round(Math.min(1400, area/900)*k)}, () => { const u=rnd(-1,1), th=rnd(0,6.283), rr=Math.cbrt(rnd(.15,1)), q=Math.sqrt(1-u*u)*rr; return { x:q*Math.cos(th), y:u*rr*.7, z:q*Math.sin(th), m:rnd(.4,1.4), s:rnd(0,6.28), c:Math.random()<.15 }; });
+    named = []; links = [];
+    for(let c=0;c<7;c++){ const cx=rnd(-.8,.8), cy=rnd(-.45,.45), cz=rnd(-.8,.8), st=named.length, n=Math.floor(rnd(3,7));
+      for(let i=0;i<n;i++) named.push({ x:cx+rnd(-.14,.14), y:cy+rnd(-.1,.1), z:cz+rnd(-.14,.14), s:rnd(0,6.28), c:c%3===0 });
+      for(let i=st+1;i<named.length;i++) links.push([i-1,i]); }
+  }
+  function cloud(px,py,r,col,al){ const g=x.createRadialGradient(px,py,0,px,py,r); g.addColorStop(0,`rgba(${col},${al})`); g.addColorStop(.5,`rgba(${col},${al*.45})`); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(px-r,py-r,r*2,r*2); }
+  function fogF(t, mv){
+    faint.forEach(s => { x.fillStyle=`rgba(255,255,255,${.12+.18*(.5+.5*Math.sin(t*.0012+s.s))})`; x.fillRect(s.x,s.y,s.r,s.r); });
+    x.globalCompositeOperation='lighter';
+    const M=Math.max(W,H);
+    fog.forEach(f => { const px=((f.x+Math.sin(t*f.sp*20+f.ph)*.08+t*f.sp)%1.4+1.4)%1.4-.2, py=f.y+Math.sin(t*.00007+f.ph)*.03;
+      cloud(px*W+mx*(f.layer+1)*6, py*H+my*(f.layer+1)*4, f.r*M, f.c?h:a, f.al); });
+    const g=x.createLinearGradient(0,H*.55,0,H); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(${a},.10)`); x.fillStyle=g; x.fillRect(0,H*.55,W,H*.45);
+    dust.forEach(p => { if(mv){ p.y-=(.15+p.z*.45)*mv; p.x+=Math.sin(t*.0007+p.s)*.25*p.z*mv; if(p.y<-6){ p.y=H+6; p.x=rnd(0,W); } }
+      const al=(.15+.45*p.z)*(.6+.4*Math.sin(t*.002+p.s)), r=.5+p.z*1.8, px=p.x+mx*p.z*14, py=p.y+my*p.z*10;
+      if(p.z>.8) cloud(px,py,r*5,a,al*.25);
+      x.fillStyle=`rgba(${a},${al})`; x.beginPath(); x.arc(px,py,r,0,6.283); x.fill(); });
+    x.globalCompositeOperation='source-over';
+  }
+  function proj(p, ry, rx){
+    const X=p.x*Math.cos(ry)-p.z*Math.sin(ry), Z=p.x*Math.sin(ry)+p.z*Math.cos(ry), Y=p.y;
+    const Y2=Y*Math.cos(rx)-Z*Math.sin(rx), Z2=Y*Math.sin(rx)+Z*Math.cos(rx), k=Math.min(W,H)*.95/(1.9-Z2);
+    return { sx:W/2+X*k*1.35, sy:H/2+Y2*k, d:(Z2+1)/2 };
+  }
+  function spaceF(t){
+    x.globalCompositeOperation='lighter';
+    const M=Math.max(W,H);
+    cloud(W*.25+mx*8,H*.35+my*6,M*.45,h,.09); cloud(W*.75+mx*12,H*.6+my*8,M*.5,a,.07); cloud(W*.55+mx*5,H*.2+my*4,M*.3,h,.05);
+    const ry=t*.000045+mx*.04, rx=-.18+my*.03;
+    stars.forEach(s => { const p=proj(s,ry,rx); if(p.sx<-10||p.sx>W+10||p.sy<-10||p.sy>H+10) return;
+      const al=Math.min(1,(.15+.85*p.d*p.d)*s.m*(.75+.25*Math.sin(t*.002+s.s))), r=(.35+p.d*1.5)*s.m;
+      x.fillStyle=s.c?`rgba(${h},${al})`:`rgba(235,240,255,${al})`; x.beginPath(); x.arc(p.sx,p.sy,r,0,6.283); x.fill(); });
+    const P=named.map(n=>proj(n,ry,rx)); x.lineWidth=1;
+    links.forEach(([i,j]) => { const A=P[i], B=P[j]; x.strokeStyle=`rgba(${a},${.08+.25*Math.min(A.d,B.d)})`; x.beginPath(); x.moveTo(A.sx,A.sy); x.lineTo(B.sx,B.sy); x.stroke(); });
+    named.forEach((n,i) => { const p=P[i], pul=.75+.25*Math.sin(t*.0018+n.s), col=n.c?h:a, r=1.4+p.d*3.2;
+      cloud(p.sx,p.sy,r*9,col,.22*p.d*pul); x.fillStyle=`rgba(255,255,255,${.5+.5*p.d})`; x.beginPath(); x.arc(p.sx,p.sy,r*.7,0,6.283); x.fill(); });
+    x.globalCompositeOperation='source-over';
+  }
+  function frame(now){
+    const mode = window.FH ? FH.bg : 'fog', spd = window.FH ? FH.speed/50 : 1;
+    const dt = last ? Math.min(64, now-last) : 16; last = now; T += dt*spd;
+    mx+=(tmx-mx)*.03; my+=(tmy-my)*.03;
+    x.globalCompositeOperation='source-over'; x.fillStyle=bg; x.fillRect(0,0,W,H);
+    if(mode==='fog') fogF(T, still ? 0 : spd); else if(mode==='space') spaceF(T);
+    const v=x.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.78); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.55)'); x.fillStyle=v; x.fillRect(0,0,W,H);
+  }
+  function loop(now){ raf = 0; if(document.documentElement.dataset.design !== 'fight') return; frame(now); if(!still && !document.hidden && FH.bg !== 'off') raf = requestAnimationFrame(loop); }
+  function restart(){ cancelAnimationFrame(raf); raf = 0; last = 0; if(document.documentElement.dataset.design !== 'fight') return; cols(); build(); raf = requestAnimationFrame(loop); }
+  addEventListener('resize', () => { if(document.documentElement.dataset.design === 'fight') restart(); });
+  addEventListener('pointermove', e => { tmx=(e.clientX/W-.5)*2; tmy=(e.clientY/H-.5)*2; }, { passive:true });
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) restart(); });
+  // colors change when the theme or a season repaints: follow them
+  new MutationObserver(() => { cols(); }).observe(document.documentElement, { attributes:true, attributeFilter:['style','data-backdrop'] });
+  setTimeout(restart, 0);
+  return { restart };
+})();
+</script>
 
 </body>
 </html>
