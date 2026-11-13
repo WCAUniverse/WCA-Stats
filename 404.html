@@ -39225,6 +39225,24 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     .fh-back span{display:none;}
   }
 
+
+  /* ── bigger text (Nov 2026): nothing in Fight Hub should need squinting ── */
+  .fh-kick{font-size:16px !important;}
+  .fh-tag{font-size:15px !important; padding:4px 12px !important;}
+  .fh-timer b{font-size:38px !important;} .fh-timer small{font-size:14px !important; letter-spacing:1.5px !important;}
+  .fh-head{font-size:15px !important;}
+  .fh-help{font-size:17px !important;}
+  .fh-pr{font-size:16px !important;} .fh-pr kbd{font-size:13px !important;}
+  .fh-ptitle small{font-size:14px !important;}
+  .fh-back kbd{font-size:13px !important;}
+  .fh-sum-k b{font-size:18px !important;} .fh-sum-k small{font-size:15px !important;}
+  .fh-sum-k .fh-sum-belt{font-size:14px !important;}
+  .fh-who small{font-size:16px !important;}
+  .fh-sum-big small{font-size:16px !important;}
+  .fh-sum-more{font-size:16px;}
+  .fh-ld-tip{font-size:19px !important;}
+  .fh-note{font-size:17px;}
+
   /* loading screen */
   #fh-loader{position:fixed; inset:0; z-index:700; display:grid; place-items:center; background:#000; overflow:hidden; cursor:pointer; animation:fhLdIn .18s ease both;}
   #fh-loader.out{animation:fhLdOut .25s ease both;}
@@ -39279,6 +39297,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     FH.amount = isFinite(+t.bg_amount) && t.bg_amount !== '' && t.bg_amount != null ? Math.max(0, Math.min(100, +t.bg_amount)) : 60;
     FH.speed  = isFinite(+t.bg_speed)  && t.bg_speed  !== '' && t.bg_speed  != null ? Math.max(0, Math.min(100, +t.bg_speed))  : 50;
     if(d !== 'fight') fhHubClose();
+    try{ if(window.fhFsSoon) fhFsSoon(); }catch(e){}
     try{ FHBG.restart(); }catch(e){}
     fhPageBar();
   };
@@ -39516,7 +39535,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
       if(sides.length === 2) head = `${escH(lab(sides[0]))}${wcaChampC(lab(sides[0]), !!sides[0].team_name)} <em>vs</em><br>${escH(lab(sides[1]))}${wcaChampC(lab(sides[1]), !!sides[1].team_name)}`;
       else if(sides.length > 2) head = escH(main.match_type || (sides.length + ' Way')) + ' <em>·</em> ' + sides.length + ' in it';
       const firsts = sides.slice(0,2).map(s => ((typeof sideMembers==='function' ? sideMembers(s) : s.members) || [])[0]).filter(Boolean);
-      pics = firsts.map((n,i) => { const u = typeof mpPhotoFor === 'function' ? mpPhotoFor(n) : ''; return u ? `<img class="${i ? 'b' : 'a'}" src="${escH(u)}" alt="" onerror="this.remove()">` : ''; }).join('');
+      pics = '';   // Nov 2026: no portraits on the menu headline, they show on the event page itself
       if(main.championship) tags += `<span class="fh-tag gold">${escH(main.championship)} Championship</span>`;
     }
     const when = ev.event_date ? new Date(ev.event_date) : null;
@@ -39538,6 +39557,32 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   function fhHubOpen(){ if(!isFight()) return; sub = null; fhTop(); $('fh-hub').classList.add('open'); FH.open = true; $('fh-help').textContent = 'Choose where to go.'; renderHub(); }
   function fhHubClose(){ const h = $('fh-hub'); if(h) h.classList.remove('open'); FH.open = false; clearInterval(cdTimer); }
   window.fhHubOpen = fhHubOpen; window.fhHubClose = fhHubClose;
+
+  /* ── minimum text size: any text smaller than 14px is raised to 14px in Fight Hub.
+     Only the size changes, and it is put back if the design is switched. ── */
+  const FS_MIN = 14;
+  function fhFsPass(rootEl){
+    if(!isFight() || !rootEl) return;
+    const seen = new Set();
+    const w = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.nodeValue && n.nodeValue.trim()) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP });
+    let n;
+    while((n = w.nextNode())){
+      const el = n.parentElement;
+      if(!el || seen.has(el)) continue; seen.add(el);
+      if(el.dataset.fhFs || el.closest('svg,canvas,script,style,.ti,i[class*="ti-"]')) continue;
+      const fs = parseFloat(getComputedStyle(el).fontSize);
+      if(fs >= 6 && fs < FS_MIN){ el.dataset.fhFs = el.style.fontSize || '-'; el.style.fontSize = FS_MIN + 'px'; }
+    }
+  }
+  function fhFsUndo(){
+    document.querySelectorAll('[data-fh-fs]').forEach(el => { const v = el.dataset.fhFs; el.style.fontSize = v === '-' ? '' : v; delete el.dataset.fhFs; });
+  }
+  let fsT = null;
+  function fhFsSoon(){ clearTimeout(fsT); fsT = setTimeout(() => {
+    if(!isFight()){ fhFsUndo(); return; }
+    fhFsPass(document.querySelector('.page.active')); fhFsPass(document.querySelector('header')); fhFsPass($('fh-pagebar'));
+  }, 350); }
+  window.fhFsSoon = fhFsSoon;
 
   /* ── wire it into the header (nothing removed) ── */
   function fhInit(){
@@ -39564,8 +39609,12 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
       if(FH.open){ e.preventDefault(); if(sub){ sub = (sub && sub.promo) ? 'events' : null; renderHub(); } else fhHubClose(); }
     });
     // whenever the site switches page: close the menu and update the page bar
-    const mo = new MutationObserver(() => { fhPageBar(); });
+    const mo = new MutationObserver(() => { fhPageBar(); fhFsSoon(); });
     document.querySelectorAll('.page').forEach(p => mo.observe(p, { attributes:true, attributeFilter:['class'] }));
+    // pages fill in after they open (feed posts, cards, lists): check new text as it arrives
+    const wrap = document.querySelector('.wrap');
+    if(wrap) new MutationObserver(muts => { if(isFight() && muts.some(m => m.addedNodes.length)) fhFsSoon(); }).observe(wrap, { childList:true, subtree:true });
+    fhFsSoon();
     fhPageBar();
     // landing on the front door (no address) opens the main menu
     try{ const lp = window.__wcaLanding || ''; if(isFight() && (lp === '/' || lp === '/index.html' || lp === '/404.html')) setTimeout(fhHubOpen, 400); }catch(e){}
