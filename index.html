@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <script>
 window.__wcaLanding = (location.search ? '' : location.pathname);   // Fight Hub: was this the front door?
+try{ window.__wcaFirstVisit = !localStorage.getItem('wca-seen-home'); }catch(e){ window.__wcaFirstVisit = false; }   // first visit lands on About WCA
 /* ===== ADDRESSES =====================================================
    The site uses real addresses: wcauniverse.com/roster, /feed,
    /archive?event=52, /roster?w=Ivan. No # in links any more.
@@ -39013,7 +39014,8 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   html[data-design="fight"] header .nav-toggle,
   html[data-design="fight"] header .socials,
   html[data-design="fight"] header .head-actions .donate-btn{display:none !important;}
-  html[data-design="fight"] header .brand{order:1; flex:0 0 auto; cursor:pointer;}
+  html[data-design="fight"] header .head-inner{position:relative;}
+  html[data-design="fight"] header .brand{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; cursor:pointer;}
   html[data-design="fight"] header .brand .logo-img{height:46px !important;}
   html[data-design="fight"] #fh-menu{order:0;}
   html[data-design="fight"] header .head-actions{order:3; margin-left:auto; display:flex !important; align-items:center; gap:10px; min-width:0;}
@@ -39385,7 +39387,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
 
   /* ── page names for the page bar and the loading screen ── */
   const NAMES = { storylines:'Feed', events:'Events', archive:'Past Events', live:'Watch Live', roster:'Roster', rivalries:'Rivalries', rankings:'Rankings',
-    leaderboard:'Betting', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'Welcome', dash:'Dashboard',
+    leaderboard:'Betting', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'About WCA', dash:'Dashboard',
     account:'Account', mypromo:'My Promotion', relationships:'Relationships', showdown:'Showdown', timeline:'Timeline' };
   const TIPS = [
     'When you bet, you can hide your pick. The amount always shows.',
@@ -39436,7 +39438,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     });
     return out;
   }
-  const HELP = { storylines:'What every promotion is saying right now.', events:'Pick a promotion, then pick its upcoming show or past events.',
+  const HELP = { home:'What WCA is, the intro video, and how to get started.', storylines:'What every promotion is saying right now.', events:'Pick a promotion, then pick its upcoming show or past events.',
     live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable.', rivalries:'Who is at war right now.',
     rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', promotions:'Every promotion in the WCA Universe.',
     more:'Apply, Sponsors, Donate, Get the App and more.' };
@@ -39470,7 +39472,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     const c1 = $('fh-col1'), c2 = $('fh-col2'), st = $('fh-stage');
     const cur = curPage();
     c1.innerHTML = '<div class="fh-head">Main Menu</div>';
-    const items = navItems().filter(x => x.pg !== 'apply' && x.pg !== 'sponsors');
+    const items = [{ pg:'home', t:'About WCA' }].concat(navItems().filter(x => x.pg !== 'apply' && x.pg !== 'sponsors' && x.pg !== 'home'));
     items.forEach(x => {
       const isSub = x.pg === 'events' || x.pg === 'promotions';
       const active = sub ? (sub === x.pg || (sub && sub.promo && x.pg === 'events')) : (cur === x.pg || (x.pg === 'events' && (cur === 'archive' || cur === 'showdown')));
@@ -39510,12 +39512,11 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
       const extra = [];
       if(document.querySelector('header nav [data-page="apply"]')) extra.push(['Apply', () => goSimple('apply')]);
       if(document.querySelector('header nav [data-page="sponsors"]')) extra.push(['Sponsors', () => goSimple('sponsors')]);
-      extra.push(['About WCA', () => fhLoad('Welcome', () => goPage('home'))]);
       if(typeof openDonate === 'function') extra.push(['Donate', () => { fhHubClose(); openDonate(); }]);
       const app = $('appBtn'); if(app && !app.hidden && typeof wcaInstall === 'function') extra.push(['Get the App', () => { fhHubClose(); wcaInstall(); }]);
       const fp = $('nav-firepro'); if(fp && fp.style.display && fp.style.display !== 'none' && typeof fpEnter === 'function') extra.push([fp.textContent.replace(/⚡/,'').trim() || 'Enter Fire Pro', () => { fhHubClose(); fpEnter(); }]);
       extra.forEach(([t, go]) => c2.appendChild(mi(t, { help:t, go })));
-      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">More</div><div class="fh-big" style="font-size:clamp(40px,5vw,70px)">Everything else</div><p class="fh-note">Apply to join the roster, our sponsors, the WCA intro, and ways to support the site.</p></section>`;
+      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">More</div><div class="fh-big" style="font-size:clamp(40px,5vw,70px)">Everything else</div><p class="fh-note">Apply to join the roster, our sponsors, and ways to support the site.</p></section>`;
     }
   }
 
@@ -39602,7 +39603,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     }
     // the logo opens the main menu in Fight Hub (capture, so the old logo click doesn't run)
     const brand = document.querySelector('header .brand');
-    if(brand) brand.addEventListener('click', e => { if(!isFight()) return; e.preventDefault(); e.stopImmediatePropagation(); fhHubOpen(); }, true);
+    if(brand){ brand.setAttribute('title','About WCA'); brand.addEventListener('click', e => { if(!isFight()) return; e.preventDefault(); e.stopImmediatePropagation(); fhHubClose(); fhLoad('About WCA', () => goPage('home')); }, true); }
     $('fh-close').onclick = fhHubClose;
     document.addEventListener('keydown', e => {
       if(!isFight() || e.key !== 'Escape') return;
@@ -39617,7 +39618,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     fhFsSoon();
     fhPageBar();
     // landing on the front door (no address) opens the main menu
-    try{ const lp = window.__wcaLanding || ''; if(isFight() && (lp === '/' || lp === '/index.html' || lp === '/404.html')) setTimeout(fhHubOpen, 400); }catch(e){}
+    try{ const lp = window.__wcaLanding || ''; if(isFight() && !window.__wcaFirstVisit && (lp === '/' || lp === '/index.html' || lp === '/404.html')) setTimeout(fhHubOpen, 400); }catch(e){}
     addEventListener('resize', fhTop);
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fhInit); else fhInit();
