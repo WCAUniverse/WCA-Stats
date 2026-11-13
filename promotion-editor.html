@@ -7607,6 +7607,42 @@ let sb = supabase.createClient('https://dmfbhszvrbaknaevdhxh.supabase.co', 'sb_p
   auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false, flowType:'pkce' }
 });
 </script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;1,700;1,800;1,900&display=swap">
+<style id="fh-tool-style">
+/* ===== Promotion Editor: Fight Hub look (Nov 2026) — LOOK ONLY ===== */
+  html[data-design="fight"]{ --fh-fight:'Barlow Condensed', var(--font-cond, 'Barlow Condensed'), sans-serif; --fh-bet:#3EF0A0; }
+  #fh-bg{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; display:block;}
+  html:not([data-design="fight"]) #fh-bg{display:none !important;}
+  .fh-chrome{background:linear-gradient(180deg,#fff 0%,#dfe3ea 45%,#8d94a4 56%,#f0f2f6 100%); -webkit-background-clip:text; background-clip:text; color:transparent;}
+
+  html[data-design="fight"] body.pe{background:var(--bg) !important;}
+  html[data-design="fight"] .pe-main{position:relative; z-index:1;}
+  html[data-design="fight"] .pe-top{z-index:50; background:linear-gradient(180deg,rgba(0,0,0,.92),rgba(0,0,0,.76)) !important; border-bottom:1px solid rgba(var(--gold-rgb),.3) !important;}
+  html[data-design="fight"] .pe-brand span{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:24px; letter-spacing:1.5px;
+    background:linear-gradient(180deg,#fff 0%,#dfe3ea 45%,#8d94a4 56%,#f0f2f6 100%); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  html[data-design="fight"] .pe-kind{font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; letter-spacing:2px;}
+  html[data-design="fight"] .pe-links a{font-family:var(--fh-fight); font-style:italic; font-weight:800; text-transform:uppercase; letter-spacing:1px; font-size:17px;}
+  /* the editor's own header: which promotion you're editing */
+  html[data-design="fight"] .ed-head{border-radius:4px !important; background:linear-gradient(110deg,rgba(var(--gold-rgb),.10),rgba(12,12,16,.96) 45%) !important;}
+  html[data-design="fight"] .ed-title small{font-family:var(--fh-fight); font-size:15px; letter-spacing:2.5px;}
+  html[data-design="fight"] .ed-title b{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:clamp(26px,3vw,38px);}
+  /* the section menu on the left: slanted game menu, the open section lit */
+  html[data-design="fight"] .ed-nav button{position:relative; z-index:0; border:0 !important; border-radius:0 !important; background:none !important;
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:19px; letter-spacing:1px; transition:transform .15s, color .15s;}
+  html[data-design="fight"] .ed-nav button::before{content:""; position:absolute; inset:2px 0; z-index:-1; transform:skewX(-14deg); background:linear-gradient(90deg,var(--gold),rgba(var(--gold-rgb),.25) 70%,transparent); opacity:0; transition:opacity .15s;}
+  html[data-design="fight"] .ed-nav button:hover{transform:translateX(5px); color:var(--txt);}
+  html[data-design="fight"] .ed-nav button:hover::before{opacity:.3;}
+  html[data-design="fight"] .ed-nav button.on{color:var(--on-gold) !important;}
+  html[data-design="fight"] .ed-nav button.on::before{opacity:1; box-shadow:0 0 22px rgba(var(--gold-rgb),.4);}
+  html[data-design="fight"] .ed-nav button.on i{color:var(--on-gold) !important;}
+  /* cards and headings */
+  html[data-design="fight"] .pe-main .pm-card{position:relative; border-radius:4px !important; background:linear-gradient(160deg,rgba(26,26,32,.94),rgba(10,10,14,.94)) !important;}
+  html[data-design="fight"] .pe-main .pm-card::before{content:""; position:absolute; left:0; top:0; width:120px; height:3px; background:var(--gold); box-shadow:0 0 12px var(--gold);}
+  html[data-design="fight"] .pe-main h2, html[data-design="fight"] .pe-main h3, html[data-design="fight"] .pe-main .pm-h, html[data-design="fight"] .pe-main .section-title{font-family:var(--fh-fight) !important; font-style:italic; font-weight:900 !important; letter-spacing:1px !important;}
+  html[data-design="fight"] .pe-main .spc-post-btn{border-radius:0 !important; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%); font-family:var(--fh-fight) !important; font-style:italic; font-weight:900 !important; letter-spacing:1.5px; text-transform:uppercase; padding-left:22px !important; padding-right:22px !important;}
+  html[data-design="fight"] .pe-main .spc-mini{font-family:var(--fh-fight); font-weight:700; letter-spacing:.5px;}
+  html[data-design="fight"] .pe-signin h1{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:44px;}
+</style>
 </head>
 <body class="pe">
 <header class="pe-top">
@@ -22538,6 +22574,73 @@ async function mpLtDownload(btn){
     mpMsg('mplt_msg', 'The broadcast kit is not ready to download yet. Please check back soon!', false);
   }finally{ if(btn) btn.disabled = false; }
 }
+</script>
+<!-- ===== Fight Hub look (Nov 2026): background and minimum text size. Look only. ===== -->
+<script>
+window.FH_LITE = { minText:14, bg:true, scope:'body' };
+/* ===== Fight Hub look for the side tools (Nov 2026) — LOOK ONLY =====
+   An animated fog background (optional) and a minimum text size.
+   Add ?design=classic to the address to turn this whole look off. */
+(function(){
+  var OFF = /[?&]design=classic\b/i.test(location.search);
+  var root = document.documentElement;
+  root.setAttribute('data-design', OFF ? 'classic' : 'fight');
+  if(OFF) return;
+  var CFG = window.FH_LITE || { minText:14, bg:true, scope:'body' };
+
+  /* minimum text size: anything smaller is raised, only the size changes */
+  function pass(el){
+    if(!el) return;
+    var seen = new Set(), w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode:function(n){ return n.nodeValue && n.nodeValue.trim() ? 1 : 3; } }), n;
+    while((n = w.nextNode())){
+      var p = n.parentElement;
+      if(!p || seen.has(p)) continue; seen.add(p);
+      if(p.hasAttribute('data-fh-fs') || p.closest('svg,canvas,script,style,.ti,i[class*="ti-"]' + (CFG.skip ? ',' + CFG.skip : ''))) continue;
+      var fs = parseFloat(getComputedStyle(p).fontSize);
+      if(fs >= 6 && fs < CFG.minText){ p.setAttribute('data-fh-fs', p.style.fontSize || '-'); p.style.fontSize = CFG.minText + 'px'; }
+    }
+  }
+  var t = null;
+  function soon(){ clearTimeout(t); t = setTimeout(function(){ document.querySelectorAll(CFG.scope).forEach(pass); }, 300); }
+  function start(){
+    soon();
+    new MutationObserver(function(m){ for(var i=0;i<m.length;i++){ if(m[i].addedNodes.length){ soon(); return; } } }).observe(document.body, { childList:true, subtree:true });
+    if(CFG.bg) bg();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+
+  /* fog and particles behind the page, colored by the page's gold */
+  function bg(){
+    var cv = document.createElement('canvas'); cv.id = 'fh-bg'; cv.setAttribute('aria-hidden','true');
+    document.body.insertBefore(cv, document.body.firstChild);
+    var x = cv.getContext('2d'), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W, H, a = '233,185,73', h = '120,150,230', base = '#0d0d0f', fog = [], dust = [], T = 0, last = 0;
+    function rnd(m,n){ return m + Math.random()*(n-m); }
+    function hexRgb(v){ v = String(v||'').trim().replace('#',''); if(v.length===3) v=v[0]+v[0]+v[1]+v[1]+v[2]+v[2]; if(!/^[0-9a-f]{6}$/i.test(v)) return null; return parseInt(v.slice(0,2),16)+','+parseInt(v.slice(2,4),16)+','+parseInt(v.slice(4,6),16); }
+    function cols(){ var cs = getComputedStyle(root); a = (cs.getPropertyValue('--gold-rgb').trim()) || hexRgb(cs.getPropertyValue('--gold')) || a; base = cs.getPropertyValue('--bg').trim() || base; }
+    function build(){
+      var d = Math.min(2, devicePixelRatio||1); W = innerWidth; H = innerHeight; cv.width = W*d; cv.height = H*d; x.setTransform(d,0,0,d,0,0);
+      fog = []; for(var i=0;i<12;i++) fog.push({ x:rnd(-.2,1.2), y:rnd(.15,1.1), r:rnd(.25,.55), sp:rnd(.000006,.000016)*(i%2?1:-1), ph:rnd(0,6.28), c:i%3===0, al:rnd(.04,.09) });
+      dust = []; var n = Math.round(Math.min(110, W*H/12000)); for(var j=0;j<n;j++) dust.push({ x:rnd(0,W), y:rnd(0,H), z:rnd(.2,1), s:rnd(0,6.28) });
+    }
+    function cloud(px,py,r,c,al){ var g = x.createRadialGradient(px,py,0,px,py,r); g.addColorStop(0,'rgba('+c+','+al+')'); g.addColorStop(.5,'rgba('+c+','+(al*.45)+')'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(px-r,py-r,r*2,r*2); }
+    function frame(now){
+      var dt = last ? Math.min(64, now-last) : 16; last = now; T += dt;
+      x.globalCompositeOperation = 'source-over'; x.fillStyle = base; x.fillRect(0,0,W,H);
+      x.globalCompositeOperation = 'lighter';
+      var M = Math.max(W,H);
+      fog.forEach(function(f){ var px = ((f.x + Math.sin(T*f.sp*20+f.ph)*.08 + T*f.sp)%1.4+1.4)%1.4-.2; cloud(px*W, (f.y+Math.sin(T*.00007+f.ph)*.03)*H, f.r*M, f.c?h:a, f.al); });
+      dust.forEach(function(p){ if(!still){ p.y -= .15+p.z*.4; p.x += Math.sin(T*.0007+p.s)*.2*p.z; if(p.y < -6){ p.y = H+6; p.x = rnd(0,W); } }
+        x.fillStyle = 'rgba('+a+','+((.12+.4*p.z)*(.6+.4*Math.sin(T*.002+p.s)))+')'; x.beginPath(); x.arc(p.x,p.y,.5+p.z*1.6,0,6.283); x.fill(); });
+      x.globalCompositeOperation = 'source-over';
+      var v = x.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.78); v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.55)'); x.fillStyle = v; x.fillRect(0,0,W,H);
+      if(!still && !document.hidden) requestAnimationFrame(frame);
+    }
+    addEventListener('resize', build);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden){ last = 0; requestAnimationFrame(frame); } });
+    cols(); build(); requestAnimationFrame(frame);
+  }
+})();
 </script>
 </body>
 </html>
