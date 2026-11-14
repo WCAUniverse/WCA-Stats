@@ -444,7 +444,7 @@ const DEFAULTS = {
     // secret boss (Nov 14): a % chance after beating a tower. name '' = a random wrestler. mult = times the money per floor
     secret:{ easy:{ name:'', chance:10, mult:5 }, normal:{ name:'', chance:10, mult:5 }, hard:{ name:'', chance:10, mult:5 } }, secretHp:20,
     seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 } },   // levelSpeed: % arrow speed for each difficulty
-    pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 } },
+    pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 }, closeAt:25, closeChance:30 },   // closeAt/closeChance: when a kick out at two is "so close" (Nov 14)
     sub:{ rounds:3, tapAt:25, seqLen:5 },
     mom:{ sigCost:50, finCost:100 },
     maxMovesPerPos:4,
@@ -893,10 +893,10 @@ class Match {
     att.pinBoost = 0; def.zoneBonus = 0;
     // the count: every miss of the needle is one count. Three and it's over.
     // A person plays the needle (it counts as it goes); for the computer the count is shown here.
-    let out = !!ctx.kickout, counts = out ? 2 : 3, played = false;
+    let out = !!ctx.kickout, counts = out ? 2 : 3, played = false, close = false;
     if(!out && def.hp > 0){
       const r = await def.brain.kickout(this, def, zone);
-      if(r && typeof r === 'object'){ out = !!r.out; counts = r.count; played = true; }
+      if(r && typeof r === 'object'){ out = !!r.out; counts = r.count; played = true; close = counts === 2 && (+r.left || 0) <= (+CFG.settings.pin.closeAt || 0); }
       else { out = !!r; counts = out ? (Math.random() < .4 ? 1 : 2) : 3; }
     }
     if(!played) for(let c = 1; c <= counts; c++){ await this.wait(c === 1 ? 500 : 650); if(this.ui.voiceIdle) await this.ui.voiceIdle(); this.fx('count', def, { n:c }); }   // the count waits for the narrator (game only)
@@ -904,7 +904,8 @@ class Match {
     if(out){
       if(def.hp <= 0) def.hp = 1;
       this.say(ctx.kickout ? `${COUNT[counts]} ${def.name} kicks out thanks to an ability!` : counts ? `${COUNT[counts]} KICK OUT!` : `${def.name} kicks out right away!`, 'call');
-      this.fx('kickout', def, { n:counts }); att.mom = Math.max(0, att.mom - 10); this.ctrl = null; this.pos = null; return;
+      if(!played && counts === 2 && !ctx.kickout) close = Math.random() * 100 < (+CFG.settings.pin.closeChance || 0);   // the computer: sometimes a two is "so close"
+      this.fx('kickout', def, { n:counts, close }); att.mom = Math.max(0, att.mom - 10); this.ctrl = null; this.pos = null; return;
     }
     this.say(COUNT[3], 'big');
     this.end(att, 'pinfall');
@@ -1102,7 +1103,10 @@ const SOUNDS = [
   { id:'vo-count-1',    cat:'Narrator', n:1, line:'"One!"' },
   { id:'vo-count-2',    cat:'Narrator', n:1, line:'"Two!"' },
   { id:'vo-count-3',    cat:'Narrator', n:1, line:'"Three!"' },
-  { id:'vo-kickout',    cat:'Narrator', n:3, line:'1: "Kick out!"   2: "Not yet!"   3: "So close!"' },
+  { id:'vo-kickout-0',  cat:'Narrator', n:1, line:'"Right away!" (NEW, your own line: they kick out before the referee even counts one)' },
+  { id:'vo-kickout-1',  cat:'Narrator', n:1, line:'"Kick out!" (they kick out after a one count)' },
+  { id:'vo-kickout-2',  cat:'Narrator', n:1, line:'"Not yet!" (they kick out after a two count)' },
+  { id:'vo-kickout-3',  cat:'Narrator', n:1, line:'"So close!" (they kick out at two at the very last second, almost three)' },
   { id:'vo-win',        cat:'Narrator', n:2, line:'1: "You win!"   2: "Victory!"' },
   { id:'vo-lose',       cat:'Narrator', n:1, line:'"You lose."' },
   { id:'vo-tower',      cat:'Narrator', n:1, line:'"Tower conquered!"' }
@@ -1134,7 +1138,7 @@ const SND = {
   // the narrator: one line at a time. A more important line cuts in, a less important one waits its turn or is skipped.
   // Nov 14: "must finish" lines (the cover, the counts, kick out, tap out, win/lose) are never cut off or skipped:
   // if someone is talking they wait in line and play right after, in order.
-  MUST:{ 'vo-cover':1, 'vo-count-1':1, 'vo-count-2':1, 'vo-count-3':1, 'vo-kickout':1, 'vo-tap':1, 'vo-win':1, 'vo-lose':1, 'vo-tower':1 },
+  MUST:{ 'vo-cover':1, 'vo-count-1':1, 'vo-count-2':1, 'vo-count-3':1, 'vo-kickout-0':1, 'vo-kickout-1':1, 'vo-kickout-2':1, 'vo-kickout-3':1, 'vo-tap':1, 'vo-win':1, 'vo-lose':1, 'vo-tower':1 },
   q:[], voiceMust:false,
   talking(){ return !!((this.voice && !this.voice.ended && !this.voice.paused) || SYN.talking()); },
   idle(){ return !this.talking() && !this.q.length; },
@@ -1312,7 +1316,8 @@ function needleGame(zone){
       if(!done) raf = requestAnimationFrame(loop); };
     const finish = (out) => { done = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
       ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${out?'good':'bad'}">${out ? (count ? 'Kick out at ' + count + '!' : 'Kick out!') : 'Three!'}</div>`);
-      setTimeout(() => { ov.remove(); res({ out, count }); }, out ? 800 : 1000); };
+      const left = Math.max(0, Math.min(100, (deadline - performance.now()) / win0 * 100));   // % of the count timer left (a last second kick out = "so close")
+      setTimeout(() => { ov.remove(); res({ out, count, left }); }, out ? 800 : 1000); };
     function miss(){ if(done) return; count++;
       ov.querySelectorAll('#rc span').forEach((s, i) => s.classList.toggle('on', i < count));
       SND.fx('sfx-mat'); SND.vo('vo-count-' + count, 5);
@@ -1617,7 +1622,8 @@ function soundFx(kind, who, data){
   if(kind === 'escape') SND.vo('vo-escape', 2);
   if(kind === 'ropebreak') SND.vo('vo-ropes', 2);
   if(kind === 'pin'){ SND.vo('vo-cover', 2); }
-  if(kind === 'kickout'){ SND.vo('vo-kickout', 3); SND.swell(data && data.n >= 2 ? 'crowd-pop' : 'crowd-gasp'); }
+  if(kind === 'kickout'){ const n = data ? +data.n || 0 : 1;   // the kick out line matches the count: none, one, two, or two at the last second
+    SND.vo(n <= 0 ? 'vo-kickout-0' : n === 1 ? 'vo-kickout-1' : data.close ? 'vo-kickout-3' : 'vo-kickout-2', 3); SND.swell(data && data.n >= 2 ? 'crowd-pop' : 'crowd-gasp'); }
   if(kind === 'end' && data){ if(data.how === 'submission') SND.vo('vo-tap', 4); SND.fx('sfx-bell'); setTimeout(() => SND.swell(who === MT.a ? 'crowd-pop' : 'crowd-boo'), 300); }
   // your own warnings
   const me = MT.a;
