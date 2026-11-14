@@ -648,6 +648,16 @@ body.fit #app[data-screen="pick"]{padding-left:max(18px,calc((100% - 1800px) / 2
   .pk-arr{width:42px;height:42px}
 }
 .pkc b{font-size:14px;letter-spacing:.2px}
+/* the play-by-play (Nov 14): newest on top, colors */
+.log .lg-me{color:var(--blue);font-weight:700}
+.log .lg-op{color:#ff9f43;font-weight:700}
+.log .lg-dmg{color:#ff6b6b;font-weight:700}
+.log .lg-good{color:var(--win);font-weight:700}
+.log .lg-bad{color:#ff6b6b;font-weight:800}
+.log > div:first-child{background:rgba(var(--gold-rgb),.08);margin:0 -14px;padding:2px 14px;border-left:3px solid var(--gold)}
+.log-key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-top:4px}
+.log-key b{font-weight:700}
+.log .l-big,.log .l-bighit{color:#fff;font-weight:700}
 
 </style>
 </head>
@@ -1886,9 +1896,21 @@ function posLine(m){ if(!m.ctrl) return 'Both standing'; const op = m.other(m.ct
 function setStage(t, sub){ const a = document.getElementById('stage'), b = document.getElementById('stageSub'); if(a) a.textContent = t; if(b) b.textContent = sub || ''; }
 
 /* the play by play: the big line on top, everything in the log */
+/* the play-by-play colors: names first, then damage in red and good news in green */
+const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function logColor(t){ let h = esc(t);
+  if(MT){ const names = [[MT.a.name, 'lg-me'], [MT.b.name, 'lg-op']].filter(x => x[0]).sort((x, y) => y[0].length - x[0].length);
+    const re = new RegExp('(' + names.map(x => reEsc(esc(x[0]))).join('|') + ')', 'g'), cls = {}; names.forEach(x => cls[esc(x[0])] = x[1]);
+    h = h.replace(re, m => `<b class="${cls[m]}">${m}</b>`); }
+  h = h.replace(/(\d+) damage/g, '<span class="lg-dmg">$1 damage</span>')
+    .replace(/(\+\d+ health)/g, '<span class="lg-good">$1</span>')
+    .replace(/(KICK OUT!|kicks out[^.!<]*|fights out of[^.!<]*|breaks out of the combo|fights back to their feet|gets a reversal back[^.!<]*|gets to the ropes|rolls out of the way|REVERSAL!)/g, '<span class="lg-good">$1</span>')
+    .replace(/(TAPS OUT!|ONE\.\.\. TWO\.\.\. THREE!|crashes and burns!)/g, '<span class="lg-bad">$1</span>');
+  return h; }
 function say(t, kind){
   const log = document.getElementById('log'); if(!log) return;
-  const d = document.createElement('div'); d.className = 'l-' + (kind || 'info'); d.textContent = t; log.appendChild(d); log.scrollTop = log.scrollHeight;
+  // Nov 14: newest line on top, and colors: your wrestler, the opponent, damage (red), good news (green)
+  const d = document.createElement('div'); d.className = 'l-' + (kind || 'info'); d.innerHTML = logColor(t); log.prepend(d); log.scrollTop = 0;
   if(['call','big','bighit','hit','move','ability'].includes(kind)){
     const c = document.getElementById('call');
     if(kind === 'ability') c.insertAdjacentHTML('beforeend', `<span class="ab-pop">⚡ ${esc(t.split(':')[0].replace('⚡','').trim())}</span>`);
