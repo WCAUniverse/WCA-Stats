@@ -59,6 +59,33 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .saved{color:var(--win);font-weight:600;font-size:15px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
+/* the mini games: shared by the game and the admin's Mini games tab */
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:10px;font-size:15px;color:var(--muted)}
+.mg{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.72);backdrop-filter:blur(3px);padding:16px}
+.mg-box{width:min(760px,100%);padding:22px;text-align:center;background:linear-gradient(160deg,#1c1c24,#0b0b0f);border:1px solid rgba(var(--gold-rgb),.5);box-shadow:0 0 40px rgba(var(--gold-rgb),.25)}
+.mg-t{font-size:clamp(28px,4vw,46px);margin:4px 0 14px}
+.lane{position:relative;height:84px;background:rgba(0,0,0,.5);border:1px solid var(--line);overflow:hidden;border-radius:6px}
+.target{position:absolute;left:16%;top:50%;width:74px;height:74px;transform:translate(-50%,-50%);border:4px solid var(--gold);border-radius:50%;box-shadow:0 0 18px rgba(var(--gold-rgb),.6),inset 0 0 14px rgba(var(--gold-rgb),.3)}
+.lnote{position:absolute;left:0;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;display:grid;place-items:center;font-size:36px;font-weight:900;color:#04121f;background:#fff;border-radius:12px;will-change:transform;transition:opacity .25s}
+.lnote.hitn{background:var(--win);box-shadow:0 0 20px var(--win)}.lnote.missn{background:var(--hot);color:#fff}.lnote.gone{opacity:0}
+.mg-score{display:flex;justify-content:center;gap:24px;margin:10px 0;font-family:var(--fight);font-weight:800;font-size:20px}
+.mg-score .ok{color:var(--win)}.mg-score .no{color:var(--hot)}
+.pads{display:grid;grid-template-columns:repeat(4,minmax(0,90px));gap:10px;justify-content:center}
+.pad{height:72px;font-size:38px;font-weight:900;border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:10px;touch-action:manipulation}
+.pad.pressed{animation:press .2s}@keyframes press{0%{background:var(--gold);color:#000}100%{background:rgba(255,255,255,.08)}}
+.mg-res{font-size:44px;margin-top:10px}.mg-res.good{color:var(--win)}.mg-res.bad{color:var(--hot)}
+.needlebar{position:relative;height:56px;background:linear-gradient(90deg,#3a1414,#1a1a1a 50%,#3a1414);border:1px solid var(--line);border-radius:6px;cursor:pointer;overflow:hidden}
+.needlebar .green{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,#46f0a0,#1fa86a);box-shadow:0 0 18px rgba(62,240,160,.6)}
+.needle{position:absolute;top:-6px;bottom:-6px;width:6px;margin-left:-3px;background:#fff;box-shadow:0 0 10px #fff}
+.refcount{display:flex;justify-content:center;gap:14px;margin:6px 0 12px}
+.refcount span{width:56px;height:56px;display:grid;place-items:center;font-size:36px;border:2px solid var(--line);color:var(--muted);border-radius:8px}
+.refcount span.on{background:var(--hot);border-color:var(--hot);color:#fff;box-shadow:0 0 18px var(--hot)}
+.ctimer{height:6px;margin-top:8px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.ctimer span{display:block;height:100%;background:var(--gold)}
+.needle.missed{animation:nmiss .35s}
+@keyframes nmiss{0%,100%{background:#fff}50%{background:var(--hot);box-shadow:0 0 18px var(--hot)}}
+@media(max-width:640px){ .pads{grid-template-columns:repeat(4,1fr)} }
+
 .wallet{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 8px;background:rgba(0,0,0,.6);border:1px solid var(--line);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
 .wallet .coin{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--on-gold);font-weight:800}
 .wallet b{font-family:var(--fight);font-style:italic;font-size:22px;font-variant-numeric:tabular-nums;line-height:1}
@@ -180,28 +207,11 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .mvo.back{border-left-color:#555;opacity:.8}
 .ready{animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{filter:drop-shadow(0 0 4px rgba(255,255,255,.3))}50%{filter:drop-shadow(0 0 16px rgba(255,255,255,.9))}}
-.legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:10px;font-size:15px;color:var(--muted)}
 .waiting{text-align:center;color:var(--muted);padding:20px;font-size:22px}
 .incoming{text-align:center;padding:10px}.incoming .big{font-size:clamp(24px,3.4vw,38px);color:var(--hot)}
 .log{max-height:170px;overflow-y:auto;margin-top:12px;padding:10px 14px;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:4px;font-size:15px;line-height:1.55;color:var(--txt2)}
 .log .l-ability{color:var(--blue)}.log .l-big,.log .l-bighit{color:var(--gold);font-weight:600}.log .l-call{color:var(--txt)}
 /* mini games */
-.mg{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.72);backdrop-filter:blur(3px);padding:16px}
-.mg-box{width:min(760px,100%);padding:22px;text-align:center;background:linear-gradient(160deg,#1c1c24,#0b0b0f);border:1px solid rgba(var(--gold-rgb),.5);box-shadow:0 0 40px rgba(var(--gold-rgb),.25)}
-.mg-t{font-size:clamp(28px,4vw,46px);margin:4px 0 14px}
-.lane{position:relative;height:84px;background:rgba(0,0,0,.5);border:1px solid var(--line);overflow:hidden;border-radius:6px}
-.target{position:absolute;left:16%;top:50%;width:74px;height:74px;transform:translate(-50%,-50%);border:4px solid var(--gold);border-radius:50%;box-shadow:0 0 18px rgba(var(--gold-rgb),.6),inset 0 0 14px rgba(var(--gold-rgb),.3)}
-.lnote{position:absolute;left:0;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;display:grid;place-items:center;font-size:36px;font-weight:900;color:#04121f;background:#fff;border-radius:12px;will-change:transform;transition:opacity .25s}
-.lnote.hitn{background:var(--win);box-shadow:0 0 20px var(--win)}.lnote.missn{background:var(--hot);color:#fff}.lnote.gone{opacity:0}
-.mg-score{display:flex;justify-content:center;gap:24px;margin:10px 0;font-family:var(--fight);font-weight:800;font-size:20px}
-.mg-score .ok{color:var(--win)}.mg-score .no{color:var(--hot)}
-.pads{display:grid;grid-template-columns:repeat(4,minmax(0,90px));gap:10px;justify-content:center}
-.pad{height:72px;font-size:38px;font-weight:900;border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:10px;touch-action:manipulation}
-.pad.pressed{animation:press .2s}@keyframes press{0%{background:var(--gold);color:#000}100%{background:rgba(255,255,255,.08)}}
-.mg-res{font-size:44px;margin-top:10px}.mg-res.good{color:var(--win)}.mg-res.bad{color:var(--hot)}
-.needlebar{position:relative;height:56px;background:linear-gradient(90deg,#3a1414,#1a1a1a 50%,#3a1414);border:1px solid var(--line);border-radius:6px;cursor:pointer;overflow:hidden}
-.needlebar .green{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,#46f0a0,#1fa86a);box-shadow:0 0 18px rgba(62,240,160,.6)}
-.needle{position:absolute;top:-6px;bottom:-6px;width:6px;margin-left:-3px;background:#fff;box-shadow:0 0 10px #fff}
 @media(max-width:900px){
   .modes,.howto{grid-template-columns:1fr}
   .pick-side{grid-template-columns:1fr}.preview{position:static}
@@ -247,13 +257,6 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 /* the referee count */
 .count{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:150px;line-height:1;color:#fff;text-shadow:0 0 30px var(--hot),0 0 60px var(--hot);pointer-events:none;animation:countIn .9s ease-out forwards;z-index:5}
 @keyframes countIn{0%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}20%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.9)}}
-.refcount{display:flex;justify-content:center;gap:14px;margin:6px 0 12px}
-.refcount span{width:56px;height:56px;display:grid;place-items:center;font-size:36px;border:2px solid var(--line);color:var(--muted);border-radius:8px}
-.refcount span.on{background:var(--hot);border-color:var(--hot);color:#fff;box-shadow:0 0 18px var(--hot)}
-.ctimer{height:6px;margin-top:8px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
-.ctimer span{display:block;height:100%;background:var(--gold)}
-.needle.missed{animation:nmiss .35s}
-@keyframes nmiss{0%,100%{background:#fff}50%{background:var(--hot);box-shadow:0 0 18px var(--hot)}}
 /* silhouettes (no picture) and the mystery opponent */
 .sil{position:relative;display:grid;place-items:end center;width:100%;height:100%;color:rgba(255,255,255,.16);background:linear-gradient(160deg,#2a2a33,#0b0b0e);overflow:hidden}
 .sil svg{width:78%;height:88%}
@@ -381,7 +384,7 @@ const DEFAULTS = {
     chain:{ rounds:3, techDmg:3, winMom:8 },
     control:{ recoverBase:20, recoverStep:15 },
     reversal:{ slots:3, refillTurns:5, counterDmg:4, ai:{ easy:30, normal:45, hard:60 } },
-    seq:{ base:3, perLevel:1, speed:100, sigExtra:1, finExtra:2 },
+    seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 } },   // levelSpeed: % arrow speed for each difficulty
     pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 } },
     sub:{ rounds:3, tapAt:25, seqLen:5 },
     mom:{ sigCost:50, finCost:100 },
@@ -471,7 +474,7 @@ function mergeDeep(base, over){ if(!over || typeof over !== 'object' || Array.is
   const out = Array.isArray(base) ? base.slice() : Object.assign({}, base); for(const k in over){ out[k] = (base && typeof base[k] === 'object' && !Array.isArray(base[k])) ? mergeDeep(base[k], over[k]) : over[k]; } return out; }
 function loadCfg(){
   let c = null; if(LIVE) c = PUBLISHED ? deep(PUBLISHED) : null; else { try{ c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); }catch(e){} }
-  const d = deep(DEFAULTS); if(!c){ d.v = 4; return d; }
+  const d = deep(DEFAULTS); if(!c){ d.v = 5; return d; }
   const out = { v:c.v || 1, settings:mergeDeep(d.settings, c.settings || {}), moves:Array.isArray(c.moves) && c.moves.length ? c.moves : d.moves,
     styles:Array.isArray(c.styles) && c.styles.length ? c.styles : d.styles, abilities:Array.isArray(c.abilities) ? c.abilities : d.abilities, wrestlers:c.wrestlers || {},
     towers:Array.isArray(c.towers) ? c.towers : [] };
@@ -482,6 +485,9 @@ function loadCfg(){
     const fl = out.styles.find(x => x.id === 'flyer');
     if(fl && +fl.hp === -8){ Object.assign(fl, d.styles.find(x => x.id === 'flyer')); }
     out.v = 4;
+  }
+  // Nov 14: at least 5 arrows, and faster arrows on Normal and Hard
+  if(out.v < 5){ if(+out.settings.seq.base === 3) out.settings.seq.base = 5; out.v = 5;
   }
   return out;
 }
@@ -555,8 +561,8 @@ function kickZone(f, opp){   // width of the green zone in %, from health
 function seqLen(move, defender, kind){   // how many arrows to hit for a reversal
   const s = CFG.settings.seq; let n = s.base + Math.max(0, (move && move.rev || 1) - 1) * s.perLevel;
   if(kind === 'sig') n += s.sigExtra; if(kind === 'fin') n += s.finExtra;
-  if(defender && defender.easyNext){ n = Math.max(2, n - 1); }
-  return Math.max(2, Math.min(9, n));
+  if(defender && defender.easyNext){ n = n - 1; }
+  return Math.max(Math.max(2, +s.base || 5), Math.min(12, n));
 }
 
 /* =====================================================================
@@ -839,7 +845,7 @@ function aiBrain(level){
       return moves[Math.floor(Math.random()*moves.length)]; },
     reversal(m, f, move, len, kind){ const worth = kind !== 'move' || move.dmg >= 10 || move.kind === 'highrisk';
       if(!worth && Math.random() > .25) return null;
-      return Math.random()*100 < revSkill(f) - (len - 3) * 6; },
+      return Math.random()*100 < revSkill(f) - (len - (+s().seq.base || 5)) * 6; },
     kickout(m, f, zone){ const tries = (s().pin.ai[level] || 1.5); return Math.random() < 1 - Math.pow(1 - zone/100, tries * 1.6); },
     escape(m, f, move, len){ return Math.random()*100 < revSkill(f) - (len - 4) * 5; }
   };
@@ -1070,6 +1076,92 @@ const SYN = {
   talking(){ return !!(window.speechSynthesis && speechSynthesis.speaking); },
   hush(){ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} }
 };
+
+/* =====================================================================
+   THE MINI GAMES (used by the game AND the admin's Mini games tab, so they're always the same)
+   ===================================================================== */
+/* ---------- mini game 1: the arrow sequence (reversals and submissions) ---------- */
+const ARROWS = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→' };
+function seqGame(titleText, len, level){   // level: easy / normal / hard, how fast the arrows come
+  return new Promise(res => {
+    const keys = Object.keys(ARROWS), seq = Array.from({length:len}, () => keys[Math.floor(Math.random()*4)]);
+    const ov = document.createElement('div'); ov.className = 'mg';
+    ov.innerHTML = `<div class="mg-box"><div class="kick">Hit each arrow as it reaches the ring</div><div class="f mg-t">${esc(titleText)}</div>
+      <div class="lane" id="lane"><div class="target"></div></div>
+      <div class="mg-score"><span class="ok" id="sOk">0 hit</span><span class="no" id="sNo">0 missed</span></div>
+      <div class="pads">${keys.map(k => `<button class="pad" data-k="${k}">${ARROWS[k]}</button>`).join('')}</div>
+      <div class="legend">Arrow keys or tap the buttons. Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
+    document.body.appendChild(ov);
+    const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(30, W * .045);
+    const ls = CFG.settings.seq.levelSpeed || {}, pace = (CFG.settings.seq.speed / 100) * ((+ls[level || 'easy'] || 100) / 100);
+    const speed = (W * .55) * pace;       // pixels per second
+    const gap = .62 / pace;                // seconds between arrows
+    const notes = seq.map((k, i) => { const n = document.createElement('div'); n.className = 'lnote'; n.textContent = ARROWS[k]; lane.appendChild(n); return { k, el:n, t0:i * gap + .5, done:false }; });
+    let ok = 0, no = 0, start = performance.now(), raf;
+    const xOf = (nt, t) => W + 30 - (t - nt.t0) * speed;
+    const judge = (nt, hit) => { nt.done = true; nt.el.classList.add(hit ? 'hitn' : 'missn'); if(hit) ok++; else no++;
+      ov.querySelector('#sOk').textContent = ok + ' hit'; ov.querySelector('#sNo').textContent = no + ' missed';
+      if(notes.every(x => x.done)) end(); };
+    const press = k => { const t = (performance.now() - start) / 1000;
+      const nt = notes.find(x => !x.done); if(!nt) return;
+      const d = Math.abs(xOf(nt, t) - targetX);
+      if(d <= tol) judge(nt, nt.k === k); else if(d <= tol * 2.4) judge(nt, false);
+      const pad = ov.querySelector(`[data-k="${k}"]`); if(pad){ pad.classList.remove('pressed'); void pad.offsetWidth; pad.classList.add('pressed'); } };
+    const kd = e => { if(ARROWS[e.key]){ e.preventDefault(); press(e.key); } };
+    document.addEventListener('keydown', kd);
+    ov.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); press(b.dataset.k); }));
+    const loop = () => { const t = (performance.now() - start) / 1000;
+      notes.forEach(nt => { if(nt.done && !nt.el.classList.contains('gone')){ if(!nt.fade){ nt.fade = 1; setTimeout(() => nt.el.classList.add('gone'), 250); } return; }
+        const x = xOf(nt, t); nt.el.style.transform = `translateX(${x}px)`; if(!nt.done && x < targetX - tol) judge(nt, false); });
+      raf = requestAnimationFrame(loop); };
+    let ended = false;
+    function end(){ if(ended) return; ended = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
+      const win = ok > len / 2; ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${win?'good':'bad'}">${win ? 'Success!' : 'Failed!'}</div>`);
+      setTimeout(() => { ov.remove(); res(win); }, 750); }
+    raf = requestAnimationFrame(loop);
+  });
+}
+
+/* ---------- mini game 2: the kick out needle ----------
+   Every miss is a count. Miss once: ONE. Twice: TWO. Three times: THREE, it's over.
+   Waiting too long also counts. Stop the needle in the green to kick out.
+   The needle speeds up a little after each count. */
+function needleGame(zone){
+  return new Promise(res => {
+    const P = CFG.settings.pin, ov = document.createElement('div'); ov.className = 'mg';
+    const left = 50 - zone / 2;
+    ov.innerHTML = `<div class="mg-box"><div class="kick">Stop the needle in the green</div><div class="f mg-t">Kick out!</div>
+      <div class="refcount f" id="rc"><span>1</span><span>2</span><span>3</span></div>
+      <div class="needlebar" id="nb"><div class="green" style="left:${left}%;width:${zone}%"></div><div class="needle" id="nd"></div></div>
+      <div class="ctimer"><span id="ct"></span></div>
+      <div class="row" style="justify-content:center;margin-top:14px"><button class="cta" id="stop">STOP (space or tap)</button></div>
+      <div class="legend">Every miss is a count, and so is waiting too long. Three and it's over. The green gets smaller the more damage you've taken. It's ${Math.round(zone)}% wide right now.</div></div>`;
+    document.body.appendChild(ov);
+    const nd = ov.querySelector('#nd'), ct = ov.querySelector('#ct'), win0 = Math.max(.8, +P.countTime || 1.8) * 1000;
+    let period = 1500, phase = 0, last = performance.now(), raf, done = false, x = 0, count = 0, ready = false, deadline = performance.now() + win0 + 350;
+    const loop = now => { phase = (phase + (now - last) / period) % 1; last = now; x = phase < .5 ? phase * 200 : (1 - phase) * 200; nd.style.left = x + '%';
+      const left2 = Math.max(0, deadline - now); ct.style.width = (left2 / win0 * 100) + '%';
+      if(ready && now >= deadline) miss();
+      if(!done) raf = requestAnimationFrame(loop); };
+    const finish = (out) => { done = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
+      ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${out?'good':'bad'}">${out ? (count ? 'Kick out at ' + count + '!' : 'Kick out!') : 'Three!'}</div>`);
+      setTimeout(() => { ov.remove(); res({ out, count }); }, out ? 800 : 1000); };
+    function miss(){ if(done) return; count++;
+      ov.querySelectorAll('#rc span').forEach((s, i) => s.classList.toggle('on', i < count));
+      SND.fx('sfx-mat'); SND.vo('vo-count-' + count, 5);
+      const a = document.getElementById('arena'); if(a){ const c = document.createElement('div'); c.className = 'count f'; c.textContent = count; a.appendChild(c); setTimeout(() => c.remove(), 900); }
+      nd.classList.remove('missed'); void nd.offsetWidth; nd.classList.add('missed');
+      if(count >= 3){ finish(false); return; }
+      period = period / (1 + (+P.speedUp || 0) / 100); deadline = performance.now() + win0; }
+    const stop = () => { if(done || !ready) return;
+      if(x >= left && x <= left + zone) finish(true); else miss(); };
+    const kd = e => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); stop(); } };
+    // a short beat before the needle can be stopped, so a held key doesn't stop it at once
+    setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop; ov.querySelector('#nb').onclick = stop; }, 350);
+    raf = requestAnimationFrame(loop);
+  });
+}
+
 
 /* =====================================================================
    TOWER OF CHAMPIONS — the game screens
@@ -1403,92 +1495,11 @@ function humanBrain(){
         <div class="row" style="justify-content:center;margin-top:10px"><button class="cta" data-v='true'>${verb} it! (${f.revs} left)</button><button class="cta ghost" data-v='false'>Take it</button></div>
         <div class="legend">${len} arrows. Hit more than you miss.${move.kind==='highrisk'?' If you dodge, they crash and hurt themselves.':''}</div></div>`, { 'Enter':true, ' ':true, 'Escape':false });
       if(!go) return null;
-      return await seqGame(`${verb} the ${move.name}!`, len);
+      return await seqGame(`${verb} the ${move.name}!`, len, LEVEL());
     },
     kickout(m, f, zone){ return needleGame(zone); },
-    escape(m, f, move, len){ return seqGame(`Fight out of the ${move.name}!`, len); }
+    escape(m, f, move, len){ return seqGame(`Fight out of the ${move.name}!`, len, LEVEL()); }
   };
-}
-
-/* ---------- mini game 1: the arrow sequence (reversals and submissions) ---------- */
-const ARROWS = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→' };
-function seqGame(titleText, len){
-  return new Promise(res => {
-    const keys = Object.keys(ARROWS), seq = Array.from({length:len}, () => keys[Math.floor(Math.random()*4)]);
-    const ov = document.createElement('div'); ov.className = 'mg';
-    ov.innerHTML = `<div class="mg-box"><div class="kick">Hit each arrow as it reaches the ring</div><div class="f mg-t">${esc(titleText)}</div>
-      <div class="lane" id="lane"><div class="target"></div></div>
-      <div class="mg-score"><span class="ok" id="sOk">0 hit</span><span class="no" id="sNo">0 missed</span></div>
-      <div class="pads">${keys.map(k => `<button class="pad" data-k="${k}">${ARROWS[k]}</button>`).join('')}</div>
-      <div class="legend">Arrow keys or tap the buttons. Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
-    document.body.appendChild(ov);
-    const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(30, W * .045);
-    const speed = (W * .55) * (CFG.settings.seq.speed / 100);       // pixels per second
-    const gap = .62 / (CFG.settings.seq.speed / 100);                // seconds between arrows
-    const notes = seq.map((k, i) => { const n = document.createElement('div'); n.className = 'lnote'; n.textContent = ARROWS[k]; lane.appendChild(n); return { k, el:n, t0:i * gap + .5, done:false }; });
-    let ok = 0, no = 0, start = performance.now(), raf;
-    const xOf = (nt, t) => W + 30 - (t - nt.t0) * speed;
-    const judge = (nt, hit) => { nt.done = true; nt.el.classList.add(hit ? 'hitn' : 'missn'); if(hit) ok++; else no++;
-      ov.querySelector('#sOk').textContent = ok + ' hit'; ov.querySelector('#sNo').textContent = no + ' missed';
-      if(notes.every(x => x.done)) end(); };
-    const press = k => { const t = (performance.now() - start) / 1000;
-      const nt = notes.find(x => !x.done); if(!nt) return;
-      const d = Math.abs(xOf(nt, t) - targetX);
-      if(d <= tol) judge(nt, nt.k === k); else if(d <= tol * 2.4) judge(nt, false);
-      const pad = ov.querySelector(`[data-k="${k}"]`); if(pad){ pad.classList.remove('pressed'); void pad.offsetWidth; pad.classList.add('pressed'); } };
-    const kd = e => { if(ARROWS[e.key]){ e.preventDefault(); press(e.key); } };
-    document.addEventListener('keydown', kd);
-    ov.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); press(b.dataset.k); }));
-    const loop = () => { const t = (performance.now() - start) / 1000;
-      notes.forEach(nt => { if(nt.done && !nt.el.classList.contains('gone')){ if(!nt.fade){ nt.fade = 1; setTimeout(() => nt.el.classList.add('gone'), 250); } return; }
-        const x = xOf(nt, t); nt.el.style.transform = `translateX(${x}px)`; if(!nt.done && x < targetX - tol) judge(nt, false); });
-      raf = requestAnimationFrame(loop); };
-    let ended = false;
-    function end(){ if(ended) return; ended = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
-      const win = ok > len / 2; ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${win?'good':'bad'}">${win ? 'Success!' : 'Failed!'}</div>`);
-      setTimeout(() => { ov.remove(); res(win); }, 750); }
-    raf = requestAnimationFrame(loop);
-  });
-}
-
-/* ---------- mini game 2: the kick out needle ----------
-   Every miss is a count. Miss once: ONE. Twice: TWO. Three times: THREE, it's over.
-   Waiting too long also counts. Stop the needle in the green to kick out.
-   The needle speeds up a little after each count. */
-function needleGame(zone){
-  return new Promise(res => {
-    const P = CFG.settings.pin, ov = document.createElement('div'); ov.className = 'mg';
-    const left = 50 - zone / 2;
-    ov.innerHTML = `<div class="mg-box"><div class="kick">Stop the needle in the green</div><div class="f mg-t">Kick out!</div>
-      <div class="refcount f" id="rc"><span>1</span><span>2</span><span>3</span></div>
-      <div class="needlebar" id="nb"><div class="green" style="left:${left}%;width:${zone}%"></div><div class="needle" id="nd"></div></div>
-      <div class="ctimer"><span id="ct"></span></div>
-      <div class="row" style="justify-content:center;margin-top:14px"><button class="cta" id="stop">STOP (space or tap)</button></div>
-      <div class="legend">Every miss is a count, and so is waiting too long. Three and it's over. The green gets smaller the more damage you've taken. It's ${Math.round(zone)}% wide right now.</div></div>`;
-    document.body.appendChild(ov);
-    const nd = ov.querySelector('#nd'), ct = ov.querySelector('#ct'), win0 = Math.max(.8, +P.countTime || 1.8) * 1000;
-    let period = 1500, phase = 0, last = performance.now(), raf, done = false, x = 0, count = 0, ready = false, deadline = performance.now() + win0 + 350;
-    const loop = now => { phase = (phase + (now - last) / period) % 1; last = now; x = phase < .5 ? phase * 200 : (1 - phase) * 200; nd.style.left = x + '%';
-      const left2 = Math.max(0, deadline - now); ct.style.width = (left2 / win0 * 100) + '%';
-      if(ready && now >= deadline) miss();
-      if(!done) raf = requestAnimationFrame(loop); };
-    const finish = (out) => { done = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
-      ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${out?'good':'bad'}">${out ? (count ? 'Kick out at ' + count + '!' : 'Kick out!') : 'Three!'}</div>`);
-      setTimeout(() => { ov.remove(); res({ out, count }); }, out ? 800 : 1000); };
-    function miss(){ if(done) return; count++;
-      ov.querySelectorAll('#rc span').forEach((s, i) => s.classList.toggle('on', i < count));
-      SND.fx('sfx-mat'); SND.vo('vo-count-' + count, 5);
-      const a = document.getElementById('arena'); if(a){ const c = document.createElement('div'); c.className = 'count f'; c.textContent = count; a.appendChild(c); setTimeout(() => c.remove(), 900); }
-      nd.classList.remove('missed'); void nd.offsetWidth; nd.classList.add('missed');
-      if(count >= 3){ finish(false); return; }
-      period = period / (1 + (+P.speedUp || 0) / 100); deadline = performance.now() + win0; }
-    const stop = () => { if(done || !ready) return;
-      if(x >= left && x <= left + zone) finish(true); else miss(); };
-    const kd = e => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); stop(); } };
-    // a short beat before the needle can be stopped, so a held key doesn't stop it at once
-    setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop; ov.querySelector('#nb').onclick = stop; }, 350);
-    raf = requestAnimationFrame(loop);
-  });
 }
 
 /* ---------- after the match ---------- */
