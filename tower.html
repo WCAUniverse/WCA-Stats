@@ -328,6 +328,12 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .combo-m i{width:22px;height:10px;border-radius:3px;background:rgba(255,255,255,.1);border:1px solid var(--line)}
 .combo-m i.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(var(--gold-rgb),.6)}
 .combo-m b{color:var(--txt)}.combo-m em{font-style:normal;color:var(--hot);margin-left:6px}
+/* secret boss (Nov 14) */
+.secret-box{margin:14px 0;padding:18px;border:2px solid #b06bff;border-radius:10px;background:linear-gradient(160deg,rgba(176,107,255,.18),rgba(0,0,0,.3));text-align:center;box-shadow:0 0 30px rgba(176,107,255,.35);animation:secin .6s ease-out}
+.secret-t{font-size:clamp(30px,5vw,48px);color:#d6b3ff;text-shadow:0 0 20px rgba(176,107,255,.8)}
+.secret-sil{position:relative;width:130px;height:130px;margin:10px auto;border-radius:10px;overflow:hidden;box-shadow:0 0 24px rgba(176,107,255,.7)}
+.secret-sil .sil{width:100%;height:100%;display:block}
+@keyframes secin{0%{transform:scale(.9);opacity:0}100%{transform:none;opacity:1}}
 
 </style>
 </head>
@@ -353,6 +359,8 @@ async function loadPublished(){ try{ const c = sbc(); if(!c) return; const r = a
   if(!r.error && r.data){ PUBLISHED = r.data.cfg; PUBLISHED_AT = r.data.updated_at; } }catch(e){} }
 
 const POS = { standing:'Standing', ropes:'Off the ropes', corner:'In the corner', behind:'Behind them', ground:'On the ground', top:'Top rope' };
+const MOVE_KIND_ORDER = ['strike','grapple','highrisk','submission','pin','whip','pickup','climb','other'];
+const KIND_GROUP = { strike:'Strikes', grapple:'Grapples', highrisk:'High risk', submission:'Submissions', pin:'Pins', whip:'Whips / position', pickup:'Pick up', climb:'Climb' };
 const KINDS = { strike:'Strike', grapple:'Grapple', whip:'Whip / position', submission:'Submission', pin:'Pin', highrisk:'High risk', climb:'Climb', pickup:'Pick up' };
 
 /* move: id, name, from (where the opponent is), kind, dmg, to (where it leaves them),
@@ -411,7 +419,11 @@ const DEFAULTS = {
     neutral:{ slug:7, slugWinnerTakes:60, strikeFirst:7, blockMom:12, circleMom:5, winMom:10 },
     chain:{ rounds:3, techDmg:3, winMom:8 },
     control:{ recoverBase:20, recoverStep:15, quickStep:8, maxCombo:5, healthResist:10 },
-    reversal:{ slots:3, refillTurns:5, counterDmg:4, ai:{ easy:30, normal:45, hard:60 } },
+    reversal:{ slots:3, refillTurns:8, counterDmg:4, ai:{ easy:30, normal:45, hard:60 }, refillMode:'turns', maxHold:3, bigHit:12 },
+    // getting health back (Nov 14): big moves and blocks heal a little, more when you're hurt
+    heal:{ on:true, bigDmg:10, pct:35, lowAt:35, lowMult:2, block:4 },
+    // secret boss (Nov 14): a % chance after beating a tower. name '' = a random wrestler. mult = times the money per floor
+    secret:{ easy:{ name:'', chance:10, mult:5 }, normal:{ name:'', chance:10, mult:5 }, hard:{ name:'', chance:10, mult:5 } }, secretHp:20,
     seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 } },   // levelSpeed: % arrow speed for each difficulty
     pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 } },
     sub:{ rounds:3, tapAt:25, seqLen:5 },
@@ -502,7 +514,7 @@ function mergeDeep(base, over){ if(!over || typeof over !== 'object' || Array.is
   const out = Array.isArray(base) ? base.slice() : Object.assign({}, base); for(const k in over){ out[k] = (base && typeof base[k] === 'object' && !Array.isArray(base[k])) ? mergeDeep(base[k], over[k]) : over[k]; } return out; }
 function loadCfg(){
   let c = null; if(LIVE) c = PUBLISHED ? deep(PUBLISHED) : null; else { try{ c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); }catch(e){} }
-  const d = deep(DEFAULTS); if(!c){ d.v = 5; return d; }
+  const d = deep(DEFAULTS); if(!c){ d.v = 6; return d; }
   const out = { v:c.v || 1, settings:mergeDeep(d.settings, c.settings || {}), moves:Array.isArray(c.moves) && c.moves.length ? c.moves : d.moves,
     styles:Array.isArray(c.styles) && c.styles.length ? c.styles : d.styles, abilities:Array.isArray(c.abilities) ? c.abilities : d.abilities, wrestlers:c.wrestlers || {},
     towers:Array.isArray(c.towers) ? c.towers : [] };
@@ -517,6 +529,8 @@ function loadCfg(){
   // Nov 14: at least 5 arrows, and faster arrows on Normal and Hard
   if(out.v < 5){ if(+out.settings.seq.base === 3) out.settings.seq.base = 5; out.v = 5;
   }
+  // Nov 14: reversals come back slower (every 8 turns instead of 5)
+  if(out.v < 6){ if(+out.settings.reversal.refillTurns === 5) out.settings.reversal.refillTurns = 8; out.v = 6; }
   return out;
 }
 let CFG = loadCfg();
@@ -683,7 +697,8 @@ class Match {
     let guard = 0;
     while(!this.over && guard++ < 400){
       this.turn++;
-      if(this.turn % CFG.settings.reversal.refillTurns === 0){ [this.a, this.b].forEach(f => { if(f.revs < CFG.settings.reversal.slots) f.revs++; }); }
+      const rv = CFG.settings.reversal;
+      if(rv.refillMode !== 'big' && +rv.refillTurns > 0 && this.turn % rv.refillTurns === 0){ [this.a, this.b].forEach(f => this.revBack(f)); }
       if(this.ctrl) await this.control(); else await this.neutral();
       this.fx('state', null, { stage:this.ctrl ? 'control' : 'neutral' });
     }
@@ -711,6 +726,7 @@ class Match {
     if((r = pick('grapple','block'))){ const [g, bl] = r; this.fire('neutralwin', g); this.fire('neutrallose', bl);
       return this.takeControl(g, 'standing', `${g.name} grabs ${bl.name}. A block can't stop a grab.`); }
     if((r = pick('block','strike'))){ const [bl, s] = r; this.gain(bl, n.blockMom); this.fx('block', bl); this.fire('neutralwin', bl); this.fire('neutrallose', s);
+      this.healBack(bl, +CFG.settings.heal.block || 0, 'catches their breath.');
       return this.takeControl(bl, 'standing', `${bl.name} blocks the strike and takes the opening!`); }
   }
   async slugfest(){
@@ -746,6 +762,12 @@ class Match {
     }
     this.say('They break the hold and reset.', 'call');
   }
+  // one reversal back, never more than the most you can hold
+  revBack(f, line){ const rv = CFG.settings.reversal, cap = +rv.maxHold || +rv.slots || 3; if(f.revs >= cap) return false; f.revs++; if(line) this.say(line, 'call'); this.fx('revback', f); return true; }
+  // getting health back from a big move or a block
+  healBack(f, amount, why){ const h = CFG.settings.heal; if(!h || !h.on || f.hp <= 0 || f.hp >= f.max) return 0;
+    let n = amount; if(f.hp / f.max * 100 <= (+h.lowAt || 0)) n *= (+h.lowMult || 1);
+    n = Math.min(f.max - f.hp, Math.round(n)); if(n < 1) return 0; f.hp += n; this.fx('heal', f, n); if(why) this.say(`${f.name} ${why} +${n} health.`, 'call'); return n; }
   takeControl(f, pos, line){ this.ctrl = f; this.pos = pos; this.chainN = 0; this.combo = 0; if(line) this.say(line, 'call'); this.fx('control', f, { pos }); }
 
   /* ---- one wrestler on offense ---- */
@@ -817,6 +839,12 @@ class Match {
     this.gain(att, move.mom || 0); this.gain(def, 3);
     if(kind === 'fin') att.pinBoost = Math.max(att.pinBoost, CFG.settings.pin.finisherShrink);
     this.say(kind === 'move' ? `${move.name} connects! ${d} damage.` : `${move.name.toUpperCase()}! ${d} damage!`, kind === 'move' ? 'hit' : 'bighit');
+    // big moves pay you back: some health for the attacker, and maybe a reversal
+    const big = kind !== 'move' || (+move.dmg || 0) >= (+CFG.settings.heal.bigDmg || 999);
+    if(big && def.hp > 0) this.healBack(att, d * (+CFG.settings.heal.pct || 0) / 100, 'feeds off the big move!');
+    const rv = CFG.settings.reversal;
+    if(rv.refillMode !== 'turns' && (kind !== 'move' || (+move.dmg || 0) >= (+rv.bigHit || 999))){
+      this.revBack(def, `${def.name} gets a reversal back after that big hit.`); this.revBack(att); }
     this.pos = move.to;
     if(ctx.control){ return; }
     // does the defender recover and get back to their feet?
@@ -930,9 +958,9 @@ function builtinSlots(d){ const s = CFG.settings;
   return defaultSlots(d); }
 function customSlots(t){ return slotsOf(t.slots && t.slots.length ? t.slots : t.stack); }
 function towerDefs(){
-  const s = CFG.settings, out = ['easy','normal','hard'].map(d => ({ key:d, name:d, level:d, reward:+s.reward[d] || 0, color:DIFF_COL[d], builtin:true, slots:builtinSlots(d) }));
+  const s = CFG.settings, out = ['easy','normal','hard'].map(d => ({ key:d, name:d, level:d, reward:+s.reward[d] || 0, color:DIFF_COL[d], builtin:true, slots:builtinSlots(d), secret:secretOf(s.secret && s.secret[d]) }));
   (CFG.towers || []).filter(t => t && t.on !== false).forEach(t => { const sl = customSlots(t); if(sl.length) out.push({ key:'c:' + t.id, name:t.name || 'Custom tower', level:AI_LEVEL[t.level] ? t.level : 'normal',
-    reward:+t.reward || 0, color:t.color || '#5FB4FF', builtin:false, slots:sl, about:t.about || '' }); });
+    reward:+t.reward || 0, color:t.color || '#5FB4FF', builtin:false, slots:sl, about:t.about || '', secret:secretOf(t.secret) }); });
   out.forEach(t => { t.stack = t.slots.map(x => x.lock && W(x.name) ? x.name : ''); });   // '' = changes every climb
   return out;
 }
@@ -950,6 +978,10 @@ function rollSlots(slots, me){
   return out.filter(Boolean);
 }
 function towerFloors(key, me){ return rollSlots(towerDef(key).slots, me); }
+function secretOf(x){ x = x || {}; return { name:x.name || '', chance:Math.max(0, Math.min(100, +x.chance || 0)), mult:Math.max(0, +x.mult || 0) }; }
+// who the secret boss is for this climb: the one you set, or a random wrestler who wasn't in the climb
+function secretFoe(key, me, climb){ const sc = towerDef(key).secret; if(sc.name && W(sc.name) && sc.name !== me) return sc.name;
+  const pool = ROSTER.map(w => w.name).filter(n => n !== me && !(climb || []).includes(n)); return pool[Math.floor(Math.random() * pool.length)] || null; }
 function towerFor(diff, me){ const rnd = seeded('wca-tower|' + today() + '|' + diff), boss = bossFor(diff);
   const pool = ROSTER.map(w => w.name).filter(n => n !== boss && n !== me);
   for(let i = pool.length - 1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
@@ -1261,7 +1293,7 @@ function needleGame(zone){
 const app = document.getElementById('app');
 let S = { screen:'title', tk:'normal', qdiff:'normal', me:null, foe:null, tower:[], floor:0, quick:false, askAll:false };
 const TW = () => towerDef(S.tk);                       // the tower being climbed
-const LEVEL = () => S.quick ? S.qdiff : TW().level;   // how good the computer is
+const LEVEL = () => S.quick ? S.qdiff : S.inSecret ? 'hard' : TW().level;   // the secret boss always fights on Hard   // how good the computer is
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- practice wallet ---------- */
@@ -1277,7 +1309,7 @@ let TODAY = null;
 async function refreshToday(){ if(!LIVE) return; try{ const r = await sbc().rpc('tower_today'); if(!r.error) TODAY = r.data; }catch(e){} drawWallet(); }
 const SIGNED = () => !!(LIVE && TODAY && TODAY.signed_in);
 async function beginClimb(){
-  S.tower = towerFloors(S.tk, S.me); S.floor = 0; S.run = null; S.runErr = '';
+  S.tower = towerFloors(S.tk, S.me); S.floor = 0; S.run = null; S.runErr = ''; S.secret = null; S.inSecret = false;
   if(SIGNED()){ try{ const r = await sbc().rpc('tower_start', { p_tower:S.tk }); if(r.error) throw r.error; S.run = r.data && r.data.run; }
     catch(e){ S.runErr = String(e.message || e); } }
   startBattle();
@@ -1356,7 +1388,7 @@ function moveset(){
   const draw = () => {
     app.innerHTML = `<div class="kick">${esc(n)} · step 2</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Choose your moves</h1>
     <p class="note">Pick up to ${max} moves for each spot. These are what you'll be able to do when you're in control. Pins, whips, picking them up and climbing are always there. Your Signature (<b>${esc(su.sigName)}</b>, ${esc(POS[su.sigFrom].toLowerCase())}) and Finisher (<b>${esc(su.finName)}</b>, ${esc(POS[su.finFrom].toLowerCase())}) are set by the admin.</p>
-    <div class="ms">${Object.keys(POS).map(p => { const moves = CFG.moves.filter(m => m.from === p); if(!moves.length) return '';
+    <div class="ms">${Object.keys(POS).map(p => { const moves = CFG.moves.filter(m => m.from === p).sort((a, b) => MOVE_KIND_ORDER.indexOf(a.kind) - MOVE_KIND_ORDER.indexOf(b.kind) || (+a.dmg||0) - (+b.dmg||0)); if(!moves.length) return '';
       const count = moves.filter(m => !fixed(m) && chosen.has(m.id)).length;
       return `<section class="panel ms-pos"><div class="ms-h"><b class="f">${esc(POS[p])}</b><span class="muted">${count} / ${max}</span></div>
         <div class="ms-list">${moves.map(m => { const on = fixed(m) || chosen.has(m.id);
@@ -1407,9 +1439,9 @@ function towerScreen(){
    ===================================================================== */
 let MT = null;
 function startBattle(){
-  const foe = S.quick ? S.foe : S.tower[S.floor], level = LEVEL(), lv = AI_LEVEL[level] || AI_LEVEL.normal;
+  const foe = S.quick ? S.foe : S.inSecret ? S.secret : S.tower[S.floor], level = LEVEL(), lv = AI_LEVEL[level] || AI_LEVEL.normal;
   const me = makeFighter(S.me, { brain:humanBrain(), loadout:loadoutOf(S.me) });
-  const op = makeFighter(foe, { brain:slowAI(aiBrain(level)), level, hpScale:lv.hp, dmgScale:lv.dmg, loadout:defaultLoadout() });
+  const op = makeFighter(foe, { brain:slowAI(aiBrain(level)), level, hpScale:lv.hp * (S.inSecret ? 1 + (+CFG.settings.secretHp || 0) / 100 : 1), dmgScale:lv.dmg, loadout:defaultLoadout() });
   me.side = 'L'; op.side = 'R';
   S.screen = 'battle'; battleScreen();
   MT = new Match(me, op, uiHooks());
@@ -1579,6 +1611,9 @@ function humanBrain(){
       if(f.mom >= s.mom.finCost && f.su.finFrom !== m.pos) need.push(`Finisher is ready: get them ${POS[f.su.finFrom].toLowerCase()}`);
       const cmb = m.combo || 0, mx = maxCombo();
       const meter = `<div class="combo-m"><span>Combo</span>${Array.from({length:mx}, (_, i) => `<i class="${i < cmb ? 'on' : ''}"></i>`).join('')}<b>${cmb}/${mx}</b>${cmb >= mx ? '<em>Last chance: cover them or lock in a hold!</em>' : ''}</div>`;
+      // strikes first, then grapples, high risk, holds, pins, then moving them around; Signature/Finisher up front, Back off last
+      const rank = o => o.type === 'fin' ? -2 : o.type === 'sig' ? -1 : o.type === 'backoff' ? 99 : MOVE_KIND_ORDER.indexOf(o.move.kind) < 0 ? 50 : MOVE_KIND_ORDER.indexOf(o.move.kind);
+      opts = opts.map((o, i) => [o, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(x => x[0]);
       return choose(`${meter}<div class="mvgrid">${opts.map(btn).join('')}</div>${need.length ? `<div class="legend">${need.map(esc).join(' · ')}</div>` : ''}`).then(i => opts[i]);
     },
     async reversal(m, f, move, len, kind){
@@ -1599,25 +1634,29 @@ function humanBrain(){
 /* ---------- after the match ---------- */
 async function finish(won, how){
   if(!MT || MT.ui.say === undefined) return;
-  let paid = 0, note = '';
+  let paid = 0, note = '', secretNow = false; const wasSecret = !!S.inSecret, sc = !S.quick ? TW().secret : null;
   if(LIVE && !S.quick){
     // real money: the database decides and pays, inside the daily limit
     if(!SIGNED()) note = 'Sign in on WCAUniverse.com to earn money for every floor.';
     else if(!S.run) note = S.runErr ? 'No money this climb: ' + S.runErr : 'No money this climb.';
     else if(won){ try{ const r = await sbc().rpc('tower_win', { p_run:S.run }); if(r.error) throw r.error; const d = r.data || {};
-        paid = +d.paid || 0; TODAY = Object.assign(TODAY || {}, { earned:d.earned, cap:d.cap, balance:d.balance, signed_in:true });
+        paid = +d.paid || 0; secretNow = !!d.secret; TODAY = Object.assign(TODAY || {}, { earned:d.earned, cap:d.cap, balance:d.balance, signed_in:true });
         if(d.why === 'too_fast') note = 'That match was too quick to pay. Matches have to last a little longer to earn money.';
         else if(d.why === 'cap') note = paid ? `You hit today's $${Number(d.cap).toLocaleString()} limit, so you got $${paid}.` : `You've reached today's $${Number(d.cap).toLocaleString()} limit. Keep playing for fun!`;
         if(d.balance != null) note = (note ? note + ' ' : '') + `Your WCA balance: $${Number(d.balance).toLocaleString()}.`;
       }catch(e){ note = 'Could not pay this floor: ' + (e.message || e); } }
     else { try{ await sbc().rpc('tower_lose', { p_run:S.run }); }catch(e){} }
-    if(won) S.floor++;
+    if(won && !wasSecret) S.floor++;
     drawWallet();
   }
-  else if(won && !S.quick){ const boss = S.floor === S.tower.length - 1, amount = TW().reward * (boss ? 3 : 1);
-    paid = pay(amount); if(paid < amount) note = paid ? `You hit today's $${CFG.settings.dailyCap.toLocaleString()} limit, so you got $${paid}.` : `You've reached today's $${CFG.settings.dailyCap.toLocaleString()} limit. Keep playing for fun!`; S.floor++; }
-  S.last = { won, how, paid, note, foe:MT.b.name, topped:won && !S.quick && S.floor >= S.tower.length };
-  setTimeout(() => { SOUNDS_ON.stop(); SND.vo(S.last.topped ? 'vo-tower' : won ? 'vo-win' : 'vo-lose', 6); go('result'); }, 1500);
+  else if(won && !S.quick){ const boss = S.floor === S.tower.length - 1, amount = wasSecret ? Math.round(TW().reward * sc.mult) : TW().reward * (boss ? 3 : 1);
+    paid = pay(amount); if(paid < amount) note = paid ? `You hit today's $${CFG.settings.dailyCap.toLocaleString()} limit, so you got $${paid}.` : `You've reached today's $${CFG.settings.dailyCap.toLocaleString()} limit. Keep playing for fun!`; if(!wasSecret) S.floor++;
+    // the secret boss: a chance after beating the whole tower (on the website the database rolls it)
+    if(!wasSecret && S.floor >= S.tower.length && Math.random() * 100 < sc.chance) secretNow = true; }
+  S.last = { won, how, paid, note, foe:MT.b.name, topped:won && !S.quick && !wasSecret && S.floor >= S.tower.length, secretFight:wasSecret };
+  S.inSecret = false;
+  if(secretNow){ S.secret = secretFoe(S.tk, S.me, S.tower); S.last.secret = !!S.secret; }
+  setTimeout(() => { SOUNDS_ON.stop(); SND.vo(S.last.topped || (wasSecret && won) ? 'vo-tower' : won ? 'vo-win' : 'vo-lose', 6); go('result'); }, 1500);
 }
 function result(){
   const r = S.last, how = { pinfall:'by pinfall', submission:'by submission', decision:'on the scorecards' }[r.how] || '';
@@ -1625,14 +1664,17 @@ function result(){
   app.innerHTML = `<div class="panel result${r.won ? ' won' : ' lost'}">
     <div class="res-pics"><div class="res-win">${face(W(champ))}<span class="res-tag f">Winner</span></div><div class="res-lose">${face(W(loser))}</div></div>
     <div class="res-body"><div class="kick">${r.won ? 'Victory' : 'Defeat'} ${esc(how)}</div>
-    <h1 class="big f chrome">${r.topped ? 'Tower conquered!' : `${esc(champ)} wins!`}</h1>
+    <h1 class="big f chrome">${r.secretFight ? (r.won ? 'Secret boss defeated!' : 'The secret boss wins') : r.topped ? 'Tower conquered!' : `${esc(champ)} wins!`}</h1>
     ${r.paid ? `<p class="f" style="font-size:40px;color:var(--bet);margin:6px 0">+$${r.paid.toLocaleString()}</p>` : ''}${r.note ? `<p class="note res-note">${esc(r.note)}</p>` : ''}
-    <p class="note res-note">${S.quick ? 'Quick matches are just for fun.' : r.topped ? 'You beat the champion at the top of the tower.' : r.won ? `Next up, floor ${S.floor+1} of ${S.tower.length}${S.floor === S.tower.length - 1 ? ', the boss' : ''}: ${esc(S.tower[S.floor])}.` : `The climb is over on floor ${S.floor+1}. Try again from the bottom, or change your moves.`}</p>
+    ${r.secret ? `<div class="secret-box"><div class="kick">Wait… someone's coming down the ramp!</div><div class="f secret-t">A secret boss appears!</div>
+      <div class="secret-sil">${sil(true)}</div><p class="note">Beat the secret boss for a big bonus${TW().secret.mult ? `: <b style="color:var(--bet)">$${Math.round(TW().reward * TW().secret.mult).toLocaleString()}</b>` : ''}. They fight on Hard. Lose and you keep the money you already won.</p>
+      <button class="cta big-go" onclick="S.inSecret=true;startBattle()">Fight the secret boss ▶</button></div>` : ''}
+    <p class="note res-note">${S.quick ? 'Quick matches are just for fun.' : r.secretFight ? (r.won ? 'You beat the secret boss. Not many people ever see them.' : 'So close. The secret boss only shows up sometimes, so climb again for another shot.') : r.topped ? 'You beat the champion at the top of the tower.' : r.won ? `Next up, floor ${S.floor+1} of ${S.tower.length}${S.floor === S.tower.length - 1 ? ', the boss' : ''}: ${esc(S.tower[S.floor])}.` : `The climb is over on floor ${S.floor+1}. Try again from the bottom, or change your moves.`}</p>
     ${!S.quick ? `<div class="climb">${S.tower.map((n, i) => `<span class="cf${i < S.floor ? ' done' : ''}${i === S.floor && !r.topped ? ' next' : ''}${i === S.tower.length - 1 ? ' boss' : ''}" title="${esc(n)}">${face(W(n))}</span>`).join('')}</div>` : ''}
     <div class="row res-btns">
       ${!S.quick && r.won && !r.topped ? `<button class="cta big-go" onclick="startBattle()">Next fight ▶</button>` : ''}
-      ${!S.quick && !r.won ? `<button class="cta big-go" onclick="beginClimb()">Try again ▶</button><button class="cta ghost" onclick="go('moveset')">Change moves</button>` : ''}
-      ${!S.quick && r.topped ? `<button class="cta big-go" onclick="beginClimb()">Climb again ▶</button>` : ''}
+      ${!S.quick && !r.won && !r.secretFight ? `<button class="cta big-go" onclick="beginClimb()">Try again ▶</button><button class="cta ghost" onclick="go('moveset')">Change moves</button>` : ''}
+      ${!S.quick && ((r.topped && !r.secret) || r.secretFight) ? `<button class="cta${r.secret ? ' ghost' : ' big-go'}" onclick="beginClimb()">Climb again ▶</button>` : ''}
       ${S.quick ? `<button class="cta big-go" onclick="startBattle()">Rematch ▶</button><button class="cta ghost" onclick="S.me=null;S.pickFoe=false;go('pick')">New match</button>` : ''}
       <button class="cta ghost" onclick="go('title')">Main menu</button></div></div></div>`;
 
