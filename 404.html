@@ -23,7 +23,7 @@ try{ window.__wcaFirstVisit = !localStorage.getItem('wca-seen-home'); }catch(e){
 var WCA_PATHS = /^https?:$/.test(location.protocol);
 var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
                  'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate',
-                 'promotions','promotion','my-promotion','mypromo','relationships','starmap'];
+                 'promotions','promotion','my-promotion','mypromo','relationships','starmap','games'];
 var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };                       // tab id -> address
 var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };   // address -> tab id
 (function(){
@@ -47,7 +47,7 @@ var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'myprom
   // Editor, crew). /firepro/builder and /crew are their clean addresses. GitHub
   // normally opens builder.html for them by itself; if it ever doesn't, this
   // page (404.html) is what loads, so send them to the file.
-  if(/^\/firepro\/[a-z0-9-]+$/i.test(path) || /^\/(crew|edit-wrestler|ytlen|promotion-editor|promotion-graphics)$/i.test(path)){
+  if(/^\/firepro\/[a-z0-9-]+$/i.test(path) || /^\/(crew|edit-wrestler|ytlen|promotion-editor|promotion-graphics|tower)$/i.test(path)){
     location.replace(path + '.html' + location.search + h); return;
   }
   // anything deeper than one level isn't a page on this site
@@ -9847,6 +9847,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
         <a href="/rivalries" data-page="rivalries">Rivalries</a>
         <a href="/rankings" data-page="rankings">Rankings</a>
         <a href="/leaderboard" data-page="leaderboard">Betting</a>
+        <a href="/games" data-page="games">Games</a>
         <a href="/promotions" data-page="promotions">Promotions</a>
         <a href="/timeline" data-page="timeline" class="nav-off" tabindex="-1" aria-hidden="true">Timeline</a>
         <a href="/showdown" data-page="showdown" class="nav-off" tabindex="-1" aria-hidden="true">Showdown</a>
@@ -10112,6 +10113,12 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
   </div>
 
   <!-- LEADERBOARD (points: recent event standings + all-time winnings) -->
+  <!-- GAMES (Nov 2026): Tower of Champions. The game is its own file (tower.html, next to this one) shown in a frame.
+       It pays real WCA money through the database (SUPABASE_SETUP_tower.sql), never from this page. -->
+  <div class="page" id="page-games">
+    <iframe id="games-frame" title="Tower of Champions" src="about:blank" allow="autoplay; fullscreen"
+      style="display:block;width:100%;height:calc(100vh - 170px);min-height:620px;border:0;border-radius:6px;background:#0b0b0e"></iframe>
+  </div>
   <div class="page" id="page-leaderboard">
     <div class="section-title">Betting Leaderboard</div>
     <p class="sl-intro">Who's the sharpest bettor in the WCA? Everyone starts each event level, so these standings rank pure betting skill, not who's been around longest.</p>
@@ -25856,6 +25863,9 @@ function activatePage(pg){
   if(pg==='promotion' && typeof pmPageOpen==='function') pmPageOpen();
   if(pg==='relationships' && typeof stxPageOpen==='function') stxPageOpen();
   if(pg==='rivalries' && typeof rvPageOpen==='function') rvPageOpen();
+  // Games: load the Tower when the page opens, and unload it when leaving (stops its sound mid match)
+  { const gf = document.getElementById('games-frame');
+    if(gf){ if(pg==='games'){ if(!/tower\.html/.test(gf.src)) gf.src = WCA_PATHS ? '/tower.html' : 'tower.html'; } else if(gf.src && !/about:blank/.test(gf.src)) gf.src = 'about:blank'; } }
   if(pg==='mypromo' && typeof mpOpen==='function') mpOpen();
   // Roster star map: only run its render loop while the tab is actually open,
   // and drop out of fullscreen when navigating away.
@@ -39410,7 +39420,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
 
   /* ── page names for the page bar and the loading screen ── */
   const NAMES = { storylines:'Feed', events:'Events', archive:'Past Events', live:'Watch Live', roster:'Roster', rivalries:'Rivalries', rankings:'Rankings',
-    leaderboard:'Betting', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'About WCA', dash:'Dashboard',
+    leaderboard:'Betting', games:'Games', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'About WCA', dash:'Dashboard',
     account:'Account', mypromo:'My Promotion', relationships:'Relationships', showdown:'Showdown', timeline:'Timeline', starmap:'Star Map' };
   const TIPS = [
     'When you bet, you can hide your pick. The amount always shows.',
@@ -39464,7 +39474,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   const HELP = { home:'What WCA is, the intro video, and how to get started.', storylines:'What every promotion is saying right now.', events:'Pick a promotion, then pick its upcoming show or past events.',
     live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable, from every promotion.', rivalries:'Who is at war right now.',
     starmap:'The whole WCA Universe in the stars. Every promotion, every superstar.',
-    rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', promotions:'Every promotion in the WCA Universe.',
+    rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', games:'Tower of Champions: climb the tower and earn WCA money.', promotions:'Every promotion in the WCA Universe.',
     more:'Apply, Sponsors, Donate, Get the App and more.' };
   function mi(label, o){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'fh-mi' + (o.sel ? ' sel' : '') + (o.back ? ' back' : '');
