@@ -501,6 +501,122 @@ body.fit .wrap{max-width:none;margin:0;padding:0;overflow:hidden;position:relati
   .cl-nm b{font-size:18px}
 }
 
+/* =====================================================================
+   Nov 14: the other screens fit too (pick, moves, opponent, VS, match, result)
+   #app has data-screen and --apph (its height). Long lists scroll inside their own box.
+   If a screen is very short the game box scrolls, never the page.
+   ===================================================================== */
+body.fit #app:not([data-screen="title"]):not([data-screen="climb"]){display:flex;flex-direction:column;box-sizing:border-box;overflow-y:auto;
+  padding:14px max(18px,calc((100% - 1240px) / 2)) 14px}
+body.fit #app h1.big{font-size:clamp(30px,5.2vh,64px) !important;margin:2px 0 8px}
+/* choose your wrestler */
+#app[data-screen="pick"] .pick-side{flex:1;min-height:0;align-items:stretch;margin-top:8px}
+#app[data-screen="pick"] .roster{margin-top:0;overflow-y:auto;align-content:start;padding:4px 6px 4px 2px;min-height:0}
+#app[data-screen="pick"] .preview{position:static;overflow-y:auto;min-height:0}
+#app[data-screen="pick"] .preview .ph{max-height:calc(var(--apph) * .3)}
+/* choose your moves */
+#app[data-screen="moveset"] .msbar{position:static;margin-bottom:8px}
+#app[data-screen="moveset"] .note{font-size:15px;margin:0 0 4px}
+#app[data-screen="moveset"] .ms{flex:1;min-height:0;overflow-y:auto;align-content:start;margin-top:8px;padding-right:4px}
+#app[data-screen="moveset"] > .row{margin-top:10px !important}
+/* quick match opponent and VS */
+#app[data-screen="foe"] .foec .fpic{width:min(220px,60%,calc((var(--apph) - 360px) * .75))}
+#app[data-screen="vs"]{justify-content:center}
+#app[data-screen="vs"] .vsw{margin-top:0}
+#app[data-screen="vs"] .vpic{width:min(320px,100%,calc((var(--apph) - 210px) * .75))}
+/* result */
+#app[data-screen="result"]{justify-content:center}
+#app[data-screen="result"] .result{grid-template-columns:auto minmax(0,1fr);padding:20px 24px;max-height:100%;box-sizing:border-box}
+#app[data-screen="result"] .res-pics{width:min(380px,calc((var(--apph) - 100px) * .75))}
+#app[data-screen="result"] .res-body{max-height:calc(var(--apph) - 70px);overflow-y:auto}
+#app[data-screen="result"] h1.big{font-size:clamp(30px,6vh,72px) !important}
+/* the match */
+#app[data-screen="battle"]{padding-top:10px;padding-bottom:10px}
+#app[data-screen="battle"] .portrait{width:min(100%,290px,calc(var(--apph) * .25))}
+#app[data-screen="battle"] .fighter{gap:4px}
+#app[data-screen="battle"] .fighter .nm{font-size:clamp(20px,3.6vh,40px)}
+#app[data-screen="battle"] .call{min-height:0;margin:8px 0;padding:10px 16px}
+#app[data-screen="battle"] .call .big{font-size:clamp(20px,3.4vh,34px)}
+#app[data-screen="battle"] .call .big.huge{font-size:clamp(26px,4.8vh,52px)}
+#app[data-screen="battle"] #ctl{flex:none}
+#app[data-screen="battle"] .mv{padding:clamp(8px,1.9vh,18px) 10px}
+#app[data-screen="battle"] .mvo{padding:clamp(6px,1.2vh,12px) 12px}
+#app[data-screen="battle"] .mvo b{font-size:clamp(16px,2.3vh,21px)}
+#app[data-screen="battle"] .combo-m{margin-bottom:6px}
+#app[data-screen="battle"] .symkey{margin-top:6px}
+#app[data-screen="battle"] .log{flex:1 1 60px;min-height:44px;max-height:none;margin-top:8px}
+#app[data-screen="battle"] > .row{margin-top:6px !important}
+@media(max-width:900px){
+  #app[data-screen="battle"] .portrait{width:min(100%,calc(var(--apph) * .2))}
+  #app[data-screen="pick"] .pick-side{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  #app[data-screen="pick"] .preview{max-height:calc(var(--apph) * .42)}
+  #app[data-screen="pick"] .preview .ph{display:none}
+  #app[data-screen="result"] .result{grid-template-columns:minmax(0,1fr)}
+  #app[data-screen="result"] .res-pics{width:min(240px,calc(var(--apph) * .3));margin:0 auto}
+  #app[data-screen="result"] .res-body{max-height:none}
+}
+/* phones: a smaller top bar so the game gets more room */
+@media(max-width:640px){
+  .top{padding:6px 10px;gap:6px}.top .title{font-size:18px}
+  .tbtn{font-size:13px;padding:6px 9px}
+  .wallet{padding:3px 10px 3px 4px}.wallet .coin{width:24px;height:24px}.wallet b{font-size:18px}
+}
+/* Nov 14: the tower blocks grow with the screen, the text and pictures grow with them */
+.t2-blk{gap:calc(var(--bh,62px) * .14);padding:0 3px 0 calc(var(--bh,62px) * .16)}
+.t2-blk i{width:auto;flex:0 0 calc(var(--bh,62px) * .62);font-size:clamp(12px,calc(var(--bh,62px) * .2),22px)}
+.t2-blk b{font-size:clamp(13px,calc(var(--bh,62px) * .3),34px)}
+.t2-twr[data-d="0"] .t2-col{gap:5px}
+.t2-pos{padding-top:12px}
+.t2-fc{width:calc(var(--bh,62px) * 1.25);height:calc(var(--bh,62px) - 6px)}
+.t2-blk b{font-size:clamp(13px,calc(var(--bh,62px) * .26),30px)}
+.t2-ring{padding-top:4px}
+/* the match: the move buttons get their own scroll box when space is tight; the log shrinks first */
+#app[data-screen="battle"] #ctl{flex:0 1 auto;min-height:0;overflow-y:auto}
+#app[data-screen="battle"] .log{flex:1 1 0;min-height:0}
+@media(max-height:760px){
+  #app[data-screen="battle"] .portrait{width:min(100%,220px,calc(var(--apph) * .2))}
+  #app[data-screen="battle"] .fighter .chips{display:none}
+  #app[data-screen="battle"] .bar{height:14px}#app[data-screen="battle"] .bar.mo{height:8px}
+  #app[data-screen="battle"] .barlbl{font-size:13px}
+}
+@media(max-width:900px){
+  /* opponent choice: side by side, smaller pictures */
+  #app[data-screen="foe"] .foe2{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #app[data-screen="foe"] .foec{padding:14px 10px}
+  #app[data-screen="foe"] .foec .fpic{width:min(140px,80%,calc((var(--apph) - 300px) * .75))}
+  #app[data-screen="foe"] .foec b{font-size:22px}#app[data-screen="foe"] .foec span:last-child{font-size:14px}
+  /* VS: keep the two pictures side by side */
+  #app[data-screen="vs"] .vsw{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px}
+  #app[data-screen="vs"] .vpic{width:min(40vw,calc((var(--apph) - 200px) * .75))}
+  #app[data-screen="vs"] .vsp b{font-size:22px;text-align:center}
+  #app[data-screen="vs"] .vsx{font-size:44px}
+  /* result: a smaller picture, tighter text */
+  #app[data-screen="result"] .result{padding:12px;gap:10px}
+  #app[data-screen="result"] .res-pics{width:min(150px,calc(var(--apph) * .2))}
+  #app[data-screen="result"] .res-tag{font-size:15px}
+  #app[data-screen="result"] .res-note{font-size:14px;margin-top:4px}
+  #app[data-screen="result"] .carry{margin:6px 0;gap:6px}#app[data-screen="result"] .carry > div{padding:6px 10px;min-width:120px}
+  #app[data-screen="result"] .carry b{font-size:18px}
+  #app[data-screen="result"] .climb{margin-top:6px}#app[data-screen="result"] .cf{width:34px;height:34px}
+  #app[data-screen="result"] .res-btns{margin-top:10px}
+  #app[data-screen="result"] .secret-box{margin:8px 0;padding:10px}#app[data-screen="result"] .secret-sil{width:70px;height:70px;margin:6px auto}
+  #app[data-screen="result"] .secret-box .note{font-size:14px;margin:4px 0}
+  /* the match on a phone */
+  #app[data-screen="battle"] .arena{gap:8px}
+  #app[data-screen="battle"] .fighter .chips{display:none}
+  #app[data-screen="battle"] .fighter .nm{font-size:18px}
+  #app[data-screen="battle"] .barlbl{font-size:12px}
+  #app[data-screen="battle"] .stage{font-size:22px}#app[data-screen="battle"] .stage-sub{font-size:13px;margin-top:2px}
+  #app[data-screen="battle"] .call{margin:6px 0;padding:8px 10px}
+  #app[data-screen="battle"] > .row label{font-size:13px !important}
+  #app[data-screen="battle"] .mvo small{font-size:12px}
+}
+@media(max-width:900px){ #app[data-screen="result"] .res-pics{width:min(110px,calc(var(--apph) * .16))} }
+#app[data-screen="battle"] > *{flex-shrink:0}
+#app[data-screen="battle"] > #ctl{flex:0 1 auto}
+#app[data-screen="battle"] > .log{flex:1 1 0}
+@media(max-width:900px){ #app[data-screen="battle"] .call .big{font-size:18px}#app[data-screen="battle"] .call .big.huge{font-size:22px} }
+
 </style>
 </head>
 <body>
@@ -1931,11 +2047,15 @@ function result(){
    - the climb: the camera drops to floor 1 with your wrestler beside it, VS, and climbs as you win.
      Floors that change every climb stay a mystery (?) until you reach them. Floor 1 is always shown.
    ===================================================================== */
-const FIT_SCREENS = ['title', 'climb'];
+const FIT_SCREENS = ['title', 'climb', 'pick', 'moveset', 'foe', 'vs', 'tower', 'battle', 'result'];   // every screen fits (Nov 14)
 function fitMode(){ const fit = FIT_SCREENS.includes(S.screen); document.body.classList.toggle('fit', fit); fitSize(); }
-function fitSize(){ const top = document.querySelector('.top');
-  app.style.height = document.body.classList.contains('fit') ? Math.max(360, window.innerHeight - (top ? top.offsetHeight : 0)) + 'px' : ''; }
+function fitSize(){ const top = document.querySelector('.top'), fit = document.body.classList.contains('fit'), h = Math.max(360, window.innerHeight - (top ? top.offsetHeight : 0));
+  app.style.height = fit ? h + 'px' : ''; app.style.setProperty('--apph', h + 'px'); app.dataset.screen = S.screen; }
 window.addEventListener('resize', () => { fitSize(); if(S.screen === 'title') t2Fit(); if(S.screen === 'climb') clFit(); });
+// the top bar can change height (fonts loading, buttons wrapping): measure again when it does
+function refit(){ fitSize(); if(S.screen === 'title') t2Fit(); if(S.screen === 'climb') clFit(); }
+try{ const tb = document.querySelector('.top'); if(tb && window.ResizeObserver) new ResizeObserver(() => refit()).observe(tb); }catch(e){}
+try{ if(document.fonts && document.fonts.ready) document.fonts.ready.then(refit); }catch(e){}
 
 /* full screen: the game fills the whole monitor (the website's frame allows it); Esc comes back */
 const FS_OK = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
@@ -1987,12 +2107,14 @@ function title(){
   if(m !== 'tower') return;
   app.querySelectorAll('.t2-twr, .t2-dot').forEach(b => b.onclick = () => { if(b.classList.contains('t2-twr') && b.dataset.t === towerSel){ t2Go(); return; } towerSel = b.dataset.t; t2Spin(); });
   document.getElementById('t2Prev').onclick = () => t2Turn(-1); document.getElementById('t2Next').onclick = () => t2Turn(1);
-  t2Fit(); t2Spin();
+  t2Spin(); t2Fit();   // fill the info panel first, then measure the space that's left for the tower
+  try{ const ring = document.getElementById('t2Ring'); if(window.ResizeObserver) new ResizeObserver(() => t2Fit()).observe(ring); }catch(e){}
 }
 // one tower: big blocks, bottom floor last in the markup so it sits at the bottom. '' = changes every climb (a ? until you reach it)
 function t2Tower(t){ const fl = floorsOf(t);
   return `<button class="t2-twr" data-t="${esc(t.key)}" style="--c:${esc(t.color)}" aria-label="${esc(t.name)} tower"><span class="t2-col">${fl.map((n, i) => { const boss = i === fl.length - 1;
-    return `<span class="t2-blk${boss ? ' boss' : ''}"><i class="f">${boss ? 'BOSS' : 'F' + (i + 1)}</i><b class="f">${n ? esc(n) : '???'}</b><span class="t2-fc">${n ? face(W(n)) : sil(true)}</span></span>`; }).reverse().join('')}</span>
+    const show = n && i === 0;   // Nov 14: nobody is revealed until you face them; floor 1 is the only one shown
+    return `<span class="t2-blk${boss ? ' boss' : ''}"><i class="f">${boss ? 'BOSS' : 'F' + (i + 1)}</i><b class="f">${show ? esc(n) : '???'}</b><span class="t2-fc">${show ? face(W(n)) : sil(true)}</span></span>`; }).reverse().join('')}</span>
     <span class="t2-nm f">${esc(t.name)}</span></button>`; }
 function t2Turn(dir){ const defs = towerDefs(), i = defs.findIndex(t => t.key === towerSel); towerSel = defs[((i < 0 ? 0 : i) + dir + defs.length) % defs.length].key; t2Spin(); }
 function t2Go(){ S.custom = false; S.tk = towerSel; S.quick = false; S.me = null; S.pickFoe = false; go('pick'); }
@@ -2008,7 +2130,7 @@ function t2Info(){ const box = document.getElementById('t2Info'); if(!box) retur
   box.style.setProperty('--c', t.color);
   box.innerHTML = `<div class="t2-bar"></div><div class="kick" style="color:${esc(t.color)}">${t.builtin ? 'Daily tower' : esc(t.level) + ' difficulty'}${rot ? ' · ' + (rot === fl.length ? 'new opponents every climb' : rot + ' floors change every climb') : ' · set by WCA'}</div>
     <div class="f t2-tn">${esc(t.name)} tower</div>
-    <p class="t2-desc">${fl.length - 1} floors, then ${boss ? esc(boss) + (champOf(boss).length ? ' (C)' : '') : 'a champion'} at the top.${rot ? ' The ? floors are a mystery until you reach them.' : ''}${t.about ? ' ' + esc(t.about) : ''}</p>
+    <p class="t2-desc">${fl.length - 1} floors, then the boss at the top. Every opponent is a mystery until you face them.${t.about ? ' ' + esc(t.about) : ''}</p>
     <div class="t2-stats"><div><small>Each floor</small><b class="f">$${t.reward.toLocaleString()}</b></div><div><small>The boss</small><b class="f">$${(t.reward * 3).toLocaleString()}</b></div></div>
     ${sc.chance > 0 ? `<div class="t2-sec"><span class="f">?</span><span>Beat the boss and a secret boss might come down the ramp.</span></div>` : ''}
     <span class="t2-sp"></span>
@@ -2016,13 +2138,14 @@ function t2Info(){ const box = document.getElementById('t2Info'); if(!box) retur
 // size the blocks so the tallest tower fits the screen
 function t2Fit(){ const ring = document.getElementById('t2Ring'); if(!ring) return;
   const maxB = Math.max(...towerDefs().map(t => floorsOf(t).length), 1), h = ring.clientHeight, w = ring.clientWidth;
-  const bh = Math.max(26, Math.min(66, Math.floor((h - 76) / maxB) - 4));
-  ring.style.setProperty('--bh', bh + 'px'); ring.style.setProperty('--bw', Math.round(Math.min(260, Math.max(170, bh * 4))) + 'px');
-  ring.style.setProperty('--side', Math.round(Math.min(330, w * .3)) + 'px'); }
+  const bh = Math.max(26, Math.min(150, Math.floor((h - 104) / maxB) - 6));   // as big as the screen allows (Nov 14: bigger pictures)
+  const bw = Math.round(Math.min(w * .5, Math.max(190, bh * 5.4)));
+  ring.style.setProperty('--bh', bh + 'px'); ring.style.setProperty('--bw', bw + 'px');
+  ring.style.setProperty('--side', Math.round(Math.min(w * .4, bw * .78 + 40)) + 'px'); }
 
 /* ---------- the climb: the camera on the tower between fights ---------- */
 let CL = null;
-const clMystery = i => i > 0 && !(TW().stack || [])[i];   // a floor that changes every climb, and isn't floor 1
+const clMystery = i => i > 0;   // every floor but floor 1 is a mystery until you reach it (Nov 14)
 const clHidden = i => !S.quick && clMystery(i) && !(S.revealed || {})[i];   // still a mystery: not reached yet (result screen never spoils it)
 function climb(){
   const t = TW(), n = S.tower.length, f = Math.min(S.floor, n - 1), me = W(S.me);
