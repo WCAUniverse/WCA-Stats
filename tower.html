@@ -334,6 +334,21 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .secret-sil{position:relative;width:130px;height:130px;margin:10px auto;border-radius:10px;overflow:hidden;box-shadow:0 0 24px rgba(176,107,255,.7)}
 .secret-sil .sil{width:100%;height:100%;display:block}
 @keyframes secin{0%{transform:scale(.9);opacity:0}100%{transform:none;opacity:1}}
+/* Nov 14: reversible mark, symbol key, tired buttons, carry over, sticky moves bar */
+.mvo,.mvpick{position:relative}
+.rvmark{position:absolute;top:6px;right:8px;font-size:13px;font-weight:900;color:#c99bff;letter-spacing:1px;text-shadow:0 0 6px rgba(176,107,255,.6)}
+.symkey .rvmark,.symkey-g .rvmark{position:static;display:inline-block;min-width:44px}
+.symkey{margin-top:12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03)}
+.symkey summary{cursor:pointer;padding:9px 14px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:var(--txt2)}
+.symkey-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px 18px;padding:4px 14px 14px;font-size:14px;color:var(--txt2)}
+.symkey-g .mtag{margin:0 6px 0 0;vertical-align:middle}
+.combo-k{display:inline-flex;gap:3px;vertical-align:middle;margin-right:6px}.combo-k i{width:16px;height:8px;border-radius:2px;background:rgba(255,255,255,.12)}.combo-k i.on{background:var(--gold)}
+.mv.tired{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
+.carry{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+.carry > div{flex:1;min-width:180px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.04);display:flex;flex-direction:column}
+.carry b{font-size:24px;color:var(--txt)}.carry small{color:var(--win);font-weight:700}
+.msbar{position:sticky;top:78px;z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;margin:0 0 14px;background:rgba(10,10,14,.92);backdrop-filter:blur(8px);border:1px solid rgba(var(--gold-rgb),.4);border-radius:10px}
+.msbar .f{font-size:24px}.msbar .sp{flex:1}.msbar .cta{padding:10px 22px;font-size:18px}
 
 </style>
 </head>
@@ -416,10 +431,14 @@ const DEFAULTS = {
   settings: {
     dailyCap:2500, minMatchSecs:45, reward:{ easy:100, normal:200, hard:300 }, floors:{ easy:4, normal:6, hard:8 }, boss:{ easy:'', normal:'', hard:'' },
     hp:100,
-    neutral:{ slug:7, slugWinnerTakes:60, strikeFirst:7, blockMom:12, circleMom:5, winMom:10 },
+    neutral:{ slug:7, slugWinnerTakes:60, strikeFirst:7, blockMom:12, circleMom:5, winMom:10, samePick:3 },
     chain:{ rounds:3, techDmg:3, winMom:8 },
     control:{ recoverBase:20, recoverStep:15, quickStep:8, maxCombo:5, healthResist:10 },
-    reversal:{ slots:3, refillTurns:8, counterDmg:4, ai:{ easy:30, normal:45, hard:60 }, refillMode:'turns', maxHold:3, bigHit:12 },
+    reversal:{ slots:3, refillTurns:8, counterDmg:4, ai:{ easy:30, normal:45, hard:60 }, refillMode:'big', maxHold:3, bigHit:15 },
+    // between tower floors (Nov 14): health and reversals carry over. heal = % of full health back, revs = reversals back
+    carry:{ easy:{ heal:25, revs:1 }, normal:{ heal:25, revs:1 }, hard:{ heal:25, revs:1 } },
+    // wrestlers who can never show up on a tower's rotating floors (champs = no champions either)
+    ban:{ easy:{ names:[], champs:false }, normal:{ names:[], champs:false }, hard:{ names:[], champs:false } },
     // getting health back (Nov 14): big moves and blocks heal a little, more when you're hurt
     heal:{ on:true, bigDmg:10, pct:35, lowAt:35, lowMult:2, block:4 },
     // secret boss (Nov 14): a % chance after beating a tower. name '' = a random wrestler. mult = times the money per floor
@@ -514,7 +533,7 @@ function mergeDeep(base, over){ if(!over || typeof over !== 'object' || Array.is
   const out = Array.isArray(base) ? base.slice() : Object.assign({}, base); for(const k in over){ out[k] = (base && typeof base[k] === 'object' && !Array.isArray(base[k])) ? mergeDeep(base[k], over[k]) : over[k]; } return out; }
 function loadCfg(){
   let c = null; if(LIVE) c = PUBLISHED ? deep(PUBLISHED) : null; else { try{ c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); }catch(e){} }
-  const d = deep(DEFAULTS); if(!c){ d.v = 6; return d; }
+  const d = deep(DEFAULTS); if(!c){ d.v = 7; return d; }
   const out = { v:c.v || 1, settings:mergeDeep(d.settings, c.settings || {}), moves:Array.isArray(c.moves) && c.moves.length ? c.moves : d.moves,
     styles:Array.isArray(c.styles) && c.styles.length ? c.styles : d.styles, abilities:Array.isArray(c.abilities) ? c.abilities : d.abilities, wrestlers:c.wrestlers || {},
     towers:Array.isArray(c.towers) ? c.towers : [] };
@@ -531,6 +550,8 @@ function loadCfg(){
   }
   // Nov 14: reversals come back slower (every 8 turns instead of 5)
   if(out.v < 6){ if(+out.settings.reversal.refillTurns === 5) out.settings.reversal.refillTurns = 8; out.v = 6; }
+  // Nov 14: stricter reversals. Only big hits give one back (no more free ones every few turns)
+  if(out.v < 7){ const rv = out.settings.reversal; if(rv.refillMode === 'turns') rv.refillMode = 'big'; if(+rv.bigHit === 12) rv.bigHit = 15; out.v = 7; }
   return out;
 }
 let CFG = loadCfg();
@@ -602,6 +623,7 @@ function saveLoadout(name, ids){ const l = loadouts(); l[name] = ids; try{ local
 function defaultLoadout(){ const out = [], per = {}; CFG.moves.forEach(m => { per[m.from] = per[m.from] || 0;
   const always = m.kind === 'pin' || m.kind === 'pickup' || m.kind === 'climb' || m.kind === 'whip';
   if(always || per[m.from] < CFG.settings.maxMovesPerPos){ out.push(m.id); if(!always) per[m.from]++; } }); return out; }
+function hasLoadout(name){ const l = loadouts()[name]; return Array.isArray(l) && l.some(moveOf); }
 function loadoutOf(name){ const l = loadouts()[name]; const ids = Array.isArray(l) ? l.filter(moveOf) : null; return ids && ids.length ? ids : defaultLoadout(); }
 
 /* ---------- abilities in plain words ---------- */
@@ -844,7 +866,7 @@ class Match {
     if(big && def.hp > 0) this.healBack(att, d * (+CFG.settings.heal.pct || 0) / 100, 'feeds off the big move!');
     const rv = CFG.settings.reversal;
     if(rv.refillMode !== 'turns' && (kind !== 'move' || (+move.dmg || 0) >= (+rv.bigHit || 999))){
-      this.revBack(def, `${def.name} gets a reversal back after that big hit.`); this.revBack(att); }
+      this.revBack(def, `${def.name} gets a reversal back after that big hit.`); }
     this.pos = move.to;
     if(ctx.control){ return; }
     // does the defender recover and get back to their feet?
@@ -958,30 +980,35 @@ function builtinSlots(d){ const s = CFG.settings;
   return defaultSlots(d); }
 function customSlots(t){ return slotsOf(t.slots && t.slots.length ? t.slots : t.stack); }
 function towerDefs(){
-  const s = CFG.settings, out = ['easy','normal','hard'].map(d => ({ key:d, name:d, level:d, reward:+s.reward[d] || 0, color:DIFF_COL[d], builtin:true, slots:builtinSlots(d), secret:secretOf(s.secret && s.secret[d]) }));
+  const s = CFG.settings, out = ['easy','normal','hard'].map(d => ({ key:d, name:d, level:d, reward:+s.reward[d] || 0, color:DIFF_COL[d], builtin:true, slots:builtinSlots(d), secret:secretOf(s.secret && s.secret[d]), carry:carryOf(s.carry && s.carry[d]), ban:banOf(s.ban && s.ban[d]) }));
   (CFG.towers || []).filter(t => t && t.on !== false).forEach(t => { const sl = customSlots(t); if(sl.length) out.push({ key:'c:' + t.id, name:t.name || 'Custom tower', level:AI_LEVEL[t.level] ? t.level : 'normal',
-    reward:+t.reward || 0, color:t.color || '#5FB4FF', builtin:false, slots:sl, about:t.about || '', secret:secretOf(t.secret) }); });
+    reward:+t.reward || 0, color:t.color || '#5FB4FF', builtin:false, slots:sl, about:t.about || '', secret:secretOf(t.secret), carry:carryOf(t.carry), ban:banOf(t.ban) }); });
   out.forEach(t => { t.stack = t.slots.map(x => x.lock && W(x.name) ? x.name : ''); });   // '' = changes every climb
   return out;
 }
 const towerDef = key => towerDefs().find(t => t.key === key) || towerDefs()[1];
 // the actual opponents for one climb (new random ones every time for the unlocked floors)
-function rollSlots(slots, me){
+function rollSlots(slots, me, ban){
   const locked = slots.filter(x => x.lock && W(x.name) && x.name !== me).map(x => x.name);
-  const pool = ROSTER.map(w => w.name).filter(n => n !== me && !locked.includes(n));
+  let pool = ROSTER.map(w => w.name).filter(n => n !== me && !locked.includes(n));
+  if(ban){ const keep = pool.filter(n => !banned(ban, n)); if(keep.length) pool = keep; }   // never on this tower (if that leaves nobody, ignore it)
   const take = list => { const ok = list.filter(n => pool.includes(n)); const from = ok.length ? ok : pool; const n = from[Math.floor(Math.random() * from.length)]; const i = pool.indexOf(n); if(i >= 0) pool.splice(i, 1); return n; };
-  const champs = Object.values(CHAMPS).filter(n => W(n));
+  const champs = Object.values(CHAMPS).filter(n => W(n) && pool.includes(n));
   const out = new Array(slots.length), last = slots.length - 1;
   [last].concat(slots.map((_, i) => i).filter(i => i !== last)).forEach(i => { const x = slots[i];   // the boss is picked first, so a champion is free for it
     if(x.lock && W(x.name) && x.name !== me) out[i] = x.name;
     else out[i] = i === last ? (take(champs) || take([])) : take([]); });
   return out.filter(Boolean);
 }
-function towerFloors(key, me){ return rollSlots(towerDef(key).slots, me); }
+function towerFloors(key, me){ const t = towerDef(key); return rollSlots(t.slots, me, t.ban); }
+function carryOf(x){ x = x || {}; return { heal:Math.max(0, Math.min(100, x.heal === undefined ? 25 : +x.heal || 0)), revs:Math.max(0, x.revs === undefined ? 1 : +x.revs || 0) }; }
+function banOf(x){ x = x || {}; return { names:Array.isArray(x.names) ? x.names.filter(Boolean) : [], champs:!!x.champs }; }
+const banned = (ban, n) => !!ban && (ban.names.includes(n) || (ban.champs && champOf(n).length > 0));
 function secretOf(x){ x = x || {}; return { name:x.name || '', chance:Math.max(0, Math.min(100, +x.chance || 0)), mult:Math.max(0, +x.mult || 0) }; }
 // who the secret boss is for this climb: the one you set, or a random wrestler who wasn't in the climb
 function secretFoe(key, me, climb){ const sc = towerDef(key).secret; if(sc.name && W(sc.name) && sc.name !== me) return sc.name;
-  const pool = ROSTER.map(w => w.name).filter(n => n !== me && !(climb || []).includes(n)); return pool[Math.floor(Math.random() * pool.length)] || null; }
+  const ban = towerDef(key).ban; let pool = ROSTER.map(w => w.name).filter(n => n !== me && !(climb || []).includes(n));
+  const keep = pool.filter(n => !banned(ban, n)); if(keep.length) pool = keep; return pool[Math.floor(Math.random() * pool.length)] || null; }
 function towerFor(diff, me){ const rnd = seeded('wca-tower|' + today() + '|' + diff), boss = bossFor(diff);
   const pool = ROSTER.map(w => w.name).filter(n => n !== boss && n !== me);
   for(let i = pool.length - 1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
@@ -1309,7 +1336,7 @@ let TODAY = null;
 async function refreshToday(){ if(!LIVE) return; try{ const r = await sbc().rpc('tower_today'); if(!r.error) TODAY = r.data; }catch(e){} drawWallet(); }
 const SIGNED = () => !!(LIVE && TODAY && TODAY.signed_in);
 async function beginClimb(){
-  S.tower = towerFloors(S.tk, S.me); S.floor = 0; S.run = null; S.runErr = ''; S.secret = null; S.inSecret = false;
+  S.tower = towerFloors(S.tk, S.me); S.floor = 0; S.run = null; S.runErr = ''; S.secret = null; S.inSecret = false; S.carry = null;
   if(SIGNED()){ try{ const r = await sbc().rpc('tower_start', { p_tower:S.tk }); if(r.error) throw r.error; S.run = r.data && r.data.run; }
     catch(e){ S.runErr = String(e.message || e); } }
   startBattle();
@@ -1335,8 +1362,10 @@ function title(){
       <span class="col">${fl.map((n, i) => `<span class="blk${i === fl.length - 1 ? ' boss' : ''}"><span class="bfc">${n ? face(W(n)) : sil(true)}</span></span>`).reverse().join('')}</span>
       <span class="twr-n f">${esc(t.name)}</span><span class="twr-s">${fl.length - 1} floors + boss</span></button>`; }).join('')}</div>
   <div class="panel twr-info" id="twInfo"></div>
+  <div class="panel quick"><div><b class="f">Customize your moves</b><span class="muted">Optional. Pick the moves a wrestler takes into every match. Everyone else just plays with their saved or default moves.</span></div>
+    <div class="row"><button class="qbtn" style="--c:#5FB4FF" onclick="S.custom=true;S.quick=false;S.me=null;S.pickFoe=false;go('pick')">Customize moves</button></div></div>
   <div class="panel quick"><div><b class="f">Quick match</b><span class="muted">One match, no money, just for fun. Pick how good the computer is:</span></div>
-    <div class="row">${['easy','normal','hard'].map(d => `<button class="qbtn" style="--c:${DIFF_COL[d]}" onclick="S.quick=true;S.qdiff='${d}';S.me=null;S.pickFoe=false;go('pick')">${d}</button>`).join('')}</div></div>
+    <div class="row">${['easy','normal','hard'].map(d => `<button class="qbtn" style="--c:${DIFF_COL[d]}" onclick="S.custom=false;S.quick=true;S.qdiff='${d}';S.me=null;S.pickFoe=false;go('pick')">${d}</button>`).join('')}</div></div>
   <div class="howto">
     <div><b>1. Circling</b>Strike beats Grapple. Grapple beats Block. Block stops a Strike. Both strike: a slugfest. Both grapple: a tie-up.</div>
     <div><b>2. Take control</b>Win the exchange and pick your offense from where they are: standing, off the ropes, in the corner, behind them, on the ground or from the top rope.</div>
@@ -1347,8 +1376,8 @@ function title(){
       <div class="f" style="font-size:44px;line-height:1">${esc(t.name)} tower</div>
       <p class="note" style="margin:6px 0 0">${fl.length - 1} floors, then ${boss ? esc(boss) + (champOf(boss).length ? ' (C)' : '') : 'a champion'} at the top.${rot ? ' The ? floors are a surprise.' : ''}${t.about ? ' ' + esc(t.about) : ''}</p>
       <div class="rw">$${t.reward} a floor · the boss pays $${t.reward * 3}</div></div>
-      <button class="cta big-go" onclick="S.tk=towerSel;S.quick=false;S.me=null;S.pickFoe=false;go('pick')">Choose your wrestler ▶</button></div>`; };
-  app.querySelectorAll('.twr').forEach(b => { b.onclick = () => { if(towerSel === b.dataset.t){ S.tk = towerSel; S.quick = false; S.me = null; S.pickFoe = false; go('pick'); return; }
+      <button class="cta big-go" onclick="S.custom=false;S.tk=towerSel;S.quick=false;S.me=null;S.pickFoe=false;go('pick')">Choose your wrestler ▶</button></div>`; };
+  app.querySelectorAll('.twr').forEach(b => { b.onclick = () => { if(towerSel === b.dataset.t){ S.custom = false; S.tk = towerSel; S.quick = false; S.me = null; S.pickFoe = false; go('pick'); return; }
     towerSel = b.dataset.t; app.querySelectorAll('.twr').forEach(x => x.classList.toggle('on', x === b)); info(); }; });
   info();
 }
@@ -1360,7 +1389,7 @@ function pick(){
   if(!pickSel || !W(pickSel) || (step2 && pickSel === S.me)) pickSel = (ROSTER.find(w => w.name !== S.me) || ROSTER[0]).name;
   const list = ROSTER.filter(w => (!pickQ || w.name.toLowerCase().includes(pickQ.toLowerCase())) && !(step2 && w.name === S.me));
   const card = n => { const w = W(n), st = styleOf(setupOf(n).style); return `<button class="slot${n===pickSel?' sel':''}" data-n="${esc(n)}">${face(w)}${st.id!=='allround'?`<span class="st">${esc(st.name)}</span>`:''}<span class="nm">${esc(n)}${champOf(n).length?' (C)':''}</span></button>`; };
-  app.innerHTML = `<div class="kick">${S.quick ? 'Quick match · ' + esc(S.qdiff) : esc(TW().name) + ' tower'} · step ${step2 ? 2 : 1}</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">${step2 ? 'Choose the opponent' : 'Choose your wrestler'}</h1>
+  app.innerHTML = `<div class="kick">${S.custom ? 'Customize your moves' : S.quick ? 'Quick match · ' + esc(S.qdiff) : esc(TW().name) + ' tower'}${S.custom ? '' : ' · step ' + (step2 ? 2 : 1)}</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">${step2 ? 'Choose the opponent' : 'Choose your wrestler'}</h1>
   <input class="search" id="q" placeholder="Find a wrestler" value="${esc(pickQ)}">
   <div class="pick-side"><div class="roster">${list.map(w => card(w.name)).join('')}</div><aside class="panel preview" id="pv"></aside></div>`;
   const q = document.getElementById('q'); q.oninput = () => { pickQ = q.value; const p = q.selectionStart; pick(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(p,p); };
@@ -1377,7 +1406,10 @@ function drawPv(){
     <p style="margin:6px 0;font-size:16px"><b>Signature:</b> ${esc(su.sigName)} <span class="muted">(${esc(POS[su.sigFrom])})</span><br><b>Finisher:</b> ${esc(su.finName)} <span class="muted">(${esc(POS[su.finFrom])})</span></p>
     ${ab.map(a => `<p class="muted" style="margin:6px 0;font-size:15px"><b style="color:var(--blue)">${esc(a.name)}:</b> ${esc(sentence(a))}</p>`).join('')}
     ${step2 ? `<button class="cta" style="margin-top:12px;width:100%;justify-content:center" onclick="S.foe=pickSel;startBattle()">Fight ▶</button>`
-      : `<button class="cta" style="margin-top:12px;width:100%;justify-content:center" onclick="S.me=pickSel;go('moveset')">Choose moves ▶</button>`}`;
+      : S.custom ? `<button class="cta" style="margin-top:12px;width:100%;justify-content:center" onclick="S.me=pickSel;go('moveset')">Customize moves ▶</button>`
+      : `<button class="cta big-go" style="margin-top:12px;width:100%;justify-content:center" onclick="S.me=pickSel;${S.quick ? "go('foe')" : 'beginClimb()'}">${S.quick ? 'Next: your opponent ▶' : 'Fight! ▶'}</button>
+        <p class="muted" style="font-size:14px;margin:8px 0 0;text-align:center">Using ${hasLoadout(n) ? 'your saved moves' : 'the default moves'}. <a href="#" onclick="S.me=pickSel;S.custom=true;S.backToPick=true;go('moveset');return false" style="color:var(--blue)">Customize</a></p>`}
+    <button class="cta ghost" style="margin-top:8px;width:100%;justify-content:center" onclick="go('title')">Back</button>`;
 }
 
 /* ---------- moveset ---------- */
@@ -1386,14 +1418,15 @@ function moveset(){
   let chosen = new Set(loadoutOf(n));
   const fixed = m => ['pin','pickup','climb','whip'].includes(m.kind);
   const draw = () => {
-    app.innerHTML = `<div class="kick">${esc(n)} · step 2</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Choose your moves</h1>
+    app.innerHTML = `<div class="msbar"><span class="f">${esc(n)}</span><span class="sp"></span><button class="cta ghost" id="msDef">Use the default moves</button><button class="cta big-go" id="msGo">${S.custom ? 'Done ✓' : S.quick ? 'Next: your opponent ▶' : 'Fight! ▶'}</button></div>
+    <div class="kick">${esc(n)} · customize</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Choose your moves</h1>
     <p class="note">Pick up to ${max} moves for each spot. These are what you'll be able to do when you're in control. Pins, whips, picking them up and climbing are always there. Your Signature (<b>${esc(su.sigName)}</b>, ${esc(POS[su.sigFrom].toLowerCase())}) and Finisher (<b>${esc(su.finName)}</b>, ${esc(POS[su.finFrom].toLowerCase())}) are set by the admin.</p>
     <div class="ms">${Object.keys(POS).map(p => { const moves = CFG.moves.filter(m => m.from === p).sort((a, b) => MOVE_KIND_ORDER.indexOf(a.kind) - MOVE_KIND_ORDER.indexOf(b.kind) || (+a.dmg||0) - (+b.dmg||0)); if(!moves.length) return '';
       const count = moves.filter(m => !fixed(m) && chosen.has(m.id)).length;
       return `<section class="panel ms-pos"><div class="ms-h"><b class="f">${esc(POS[p])}</b><span class="muted">${count} / ${max}</span></div>
         <div class="ms-list">${moves.map(m => { const on = fixed(m) || chosen.has(m.id);
-          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}><b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}${m.rev?' · '+'◆'.repeat(m.rev)+' to reverse':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(m))}</button>`; }).join('')}</div></section>`; }).join('')}</div>
-    <div class="row" style="margin-top:16px"><button class="cta big-go" id="msGo">${S.quick ? 'Next: your opponent ▶' : 'Fight! ▶'}</button><button class="cta ghost" id="msDef">Use the default moves</button><button class="cta ghost" onclick="pickSel=S.me;S.pickFoe=false;go('pick')">Back</button></div>`;
+          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}><b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(m))}${revMark(m)}</button>`; }).join('')}</div></section>`; }).join('')}</div>
+    <div class="row" style="margin-top:16px"><button class="cta ghost" onclick="pickSel=S.me;S.pickFoe=false;if(S.backToPick){ S.custom = false; S.backToPick = false; } go('pick')">Back</button></div>`;
     app.querySelectorAll('.mvpick:not(.fixed)').forEach(b => b.onclick = () => {
       const m = moveOf(b.dataset.m), here = CFG.moves.filter(x => x.from === m.from && !fixed(x) && chosen.has(x.id)).length;
       if(chosen.has(m.id)){ if(here <= 1) return; chosen.delete(m.id); } else { if(here >= max) return; chosen.add(m.id); }
@@ -1401,6 +1434,7 @@ function moveset(){
     });
     document.getElementById('msDef').onclick = () => { chosen = new Set(defaultLoadout()); saveLoadout(n, [...chosen]); draw(); };
     document.getElementById('msGo').onclick = () => { saveLoadout(n, [...chosen]);
+      if(S.custom){ S.custom = false; if(S.backToPick){ S.backToPick = false; pickSel = S.me; go('pick'); } else go('title'); return; }
       if(S.quick){ go('foe'); return; } beginClimb(); };
   };
   draw();
@@ -1411,7 +1445,7 @@ function foe(){
   app.innerHTML = `<div class="kick">Quick match · ${esc(S.qdiff)} · step 3</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Your opponent</h1>
   <div class="foe2"><button class="foec" onclick="S.pickFoe=true;S.foeHidden=false;go('pick')"><span class="fpic">${sil()}</span><b class="f">Choose your opponent</b><span>Pick exactly who you want to face.</span></button>
     <button class="foec" onclick="randomFoe()"><span class="fpic">${sil(true)}</span><b class="f">Random opponent</b><span>You won't know who it is until the bell rings.</span></button></div>
-  <div class="row" style="margin-top:16px"><button class="cta ghost" onclick="go('moveset')">Back</button></div>`;
+  <div class="row" style="margin-top:16px"><button class="cta ghost" onclick="pickSel=S.me;S.pickFoe=false;go('pick')">Back</button></div>`;
 }
 function randomFoe(){ const all = ROSTER.filter(w => w.name !== S.me); S.foe = all[Math.floor(Math.random() * all.length)].name; S.foeHidden = true; go('vs'); }
 /* the last stop before the bell: press Fight and the match starts */
@@ -1443,6 +1477,8 @@ function startBattle(){
   const me = makeFighter(S.me, { brain:humanBrain(), loadout:loadoutOf(S.me) });
   const op = makeFighter(foe, { brain:slowAI(aiBrain(level)), level, hpScale:lv.hp * (S.inSecret ? 1 + (+CFG.settings.secretHp || 0) / 100 : 1), dmgScale:lv.dmg, loadout:defaultLoadout() });
   me.side = 'L'; op.side = 'R';
+  // in a tower, health and reversals carry over from the last floor
+  if(!S.quick && S.carry){ me.hp = Math.max(1, Math.min(me.max, S.carry.hp)); me.revs = S.carry.revs; }
   S.screen = 'battle'; battleScreen();
   MT = new Match(me, op, uiHooks());
   drawBars(); SOUNDS_ON.start();
@@ -1583,14 +1619,25 @@ function choose(html, keys){
     document.addEventListener('keydown', kd);
   });
 }
+/* the reversible mark: ⟲ plus one ◆ per difficulty (more ◆ = more arrows for them) */
+function revMark(mv){ const r = +(mv && mv.rev) || 0; if(!r) return ''; return `<span class="rvmark" title="${mv.kind === 'highrisk' ? 'Can be dodged' : 'Can be reversed'}">⟲${'◆'.repeat(Math.min(3, r))}</span>`; }
+/* the symbol key under the move buttons (opened or closed, it remembers) */
+function symbolKey(){ return `<details class="symkey"${S.keyOpen ? ' open' : ''} ontoggle="S.keyOpen=this.open"><summary>Symbol key</summary><div class="symkey-g">
+  <div><span class="mtag t-combo">Combo</span> Quick strike. Keeps them in place, hard to escape. Chain it.</div>
+  <div><span class="mtag t-down">Knockdown</span> Puts them on the ground. The standing combo is over.</div>
+  <div><span class="mtag t-pos">Sends them…</span> Moves them to a new spot (ropes, corner, behind, top).</div>
+  <div><span class="mtag t-same">Stays</span> They stay put, but it's easier for them to get up.</div>
+  <div><span class="rvmark">⟲◆</span> They can reverse it (or dodge it). More ◆ means more arrows, so it's harder to reverse. No ⟲ = they can't reverse it.</div>
+  <div><span class="combo-k"><i class="on"></i><i></i></span> Combo meter. ${maxCombo()} attacks in a row and they break free.</div></div></details>`; }
 function humanBrain(){
   return {
     neutral(m, f){ setStage('Circling', 'Both standing. Pick your move.');
-      return choose(`<div class="moves">
-        <button class="mv s" data-v='"strike"'>Strike<small>beats Grapple · key 1</small></button>
-        <button class="mv g" data-v='"grapple"'>Grapple<small>beats Block · key 2</small></button>
-        <button class="mv b" data-v='"block"'>Block<small>stops a Strike · key 3</small></button></div>
-        <div class="legend">Both Strike: slugfest, you both get hit. Both Grapple: tie-up and chain wrestling. Both Block: you circle.</div>`, { '1':'strike', '2':'grapple', '3':'block' }); },
+      // you can't pick the same thing too many times in a row (stops Block spamming)
+      const lim = +CFG.settings.neutral.samePick || 0, last = f.hist.slice(-lim), tired = lim && last.length === lim && last.every(x => x === last[0]) ? last[0] : null;
+      const b = (k, cls, label, sub, key) => tired === k ? `<button class="mv ${cls} tired" disabled>${label}<small>picked ${lim} times in a row · try something else</small></button>` : `<button class="mv ${cls}" data-v='"${k}"'>${label}<small>${sub} · key ${key}</small></button>`;
+      const keys = { '1':'strike', '2':'grapple', '3':'block' }; for(const k in keys) if(keys[k] === tired) delete keys[k];
+      return choose(`<div class="moves">${b('strike','s','Strike','beats Grapple',1)}${b('grapple','g','Grapple','beats Block',2)}${b('block','b','Block','stops a Strike',3)}</div>
+        <div class="legend">Both Strike: slugfest, you both get hit. Both Grapple: tie-up and chain wrestling. Both Block: you circle.${lim ? ` You can't pick the same one more than ${lim} times in a row.` : ''}</div>`, keys); },
     chain(m, f, r){ setStage('Tie-up', `Chain wrestling, round ${r}`);
       return choose(`<div class="moves">
         <button class="mv s" data-v='"power"'>Power<small>shove into the corner · beats Speed</small></button>
@@ -1600,10 +1647,10 @@ function humanBrain(){
       setStage('You are in control', posLine(m));
       const btn = (o, i) => {
         if(o.type === 'backoff') return `<button class="mvo back" data-v='${JSON.stringify(i)}'><b>Back off</b><small>go back to circling</small></button>`;
-        if(o.type === 'sig') return `<button class="mvo sig ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.sigName)}</b><small>Signature · ${f.su.sigDmg} dmg</small></button>`;
-        if(o.type === 'fin') return `<button class="mvo fin ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.finName)}</b><small>Finisher · ${f.su.finDmg} dmg</small></button>`;
+        if(o.type === 'sig') return `<button class="mvo sig ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.sigName)}</b><small>Signature · ${f.su.sigDmg} dmg</small>${revMark({ rev:2 })}</button>`;
+        if(o.type === 'fin') return `<button class="mvo fin ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.finName)}</b><small>Finisher · ${f.su.finDmg} dmg</small>${revMark({ rev:3 })}</button>`;
         const mv = o.move;
-        return `<button class="mvo k-${mv.kind}" data-v='${JSON.stringify(i)}'><b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(mv))}</button>`;
+        return `<button class="mvo k-${mv.kind}" data-v='${JSON.stringify(i)}'><b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(mv))}${revMark(mv)}</button>`;
       };
       const s = CFG.settings, need = [];
       if(f.mom < s.mom.sigCost) need.push(`Signature at ${s.mom.sigCost} momentum (${POS[f.su.sigFrom].toLowerCase()})`);
@@ -1614,7 +1661,7 @@ function humanBrain(){
       // strikes first, then grapples, high risk, holds, pins, then moving them around; Signature/Finisher up front, Back off last
       const rank = o => o.type === 'fin' ? -2 : o.type === 'sig' ? -1 : o.type === 'backoff' ? 99 : MOVE_KIND_ORDER.indexOf(o.move.kind) < 0 ? 50 : MOVE_KIND_ORDER.indexOf(o.move.kind);
       opts = opts.map((o, i) => [o, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(x => x[0]);
-      return choose(`${meter}<div class="mvgrid">${opts.map(btn).join('')}</div>${need.length ? `<div class="legend">${need.map(esc).join(' · ')}</div>` : ''}`).then(i => opts[i]);
+      return choose(`${meter}<div class="mvgrid">${opts.map(btn).join('')}</div>${need.length ? `<div class="legend">${need.map(esc).join(' · ')}</div>` : ''}${symbolKey()}`).then(i => opts[i]);
     },
     async reversal(m, f, move, len, kind){
       const big = kind !== 'move' || move.kind === 'highrisk' || move.rev >= 2;
@@ -1655,6 +1702,10 @@ async function finish(won, how){
     if(!wasSecret && S.floor >= S.tower.length && Math.random() * 100 < sc.chance) secretNow = true; }
   S.last = { won, how, paid, note, foe:MT.b.name, topped:won && !S.quick && !wasSecret && S.floor >= S.tower.length, secretFight:wasSecret };
   S.inSecret = false;
+  // what you take into the next floor: the health you had left plus some back, and your reversals plus some back
+  if(won && !S.quick && MT.a && (!S.last.topped || secretNow) && !wasSecret){ const c = TW().carry, me = MT.a, rv = CFG.settings.reversal;
+    const back = Math.round(me.max * c.heal / 100), hp = Math.min(me.max, Math.max(1, me.hp) + back), revs = Math.min(+rv.maxHold || +rv.slots || 3, me.revs + c.revs);
+    S.carry = { hp, revs, max:me.max, gotHp:hp - Math.max(1, me.hp), gotRevs:revs - me.revs }; S.last.carry = S.carry; }
   if(secretNow){ S.secret = secretFoe(S.tk, S.me, S.tower); S.last.secret = !!S.secret; }
   setTimeout(() => { SOUNDS_ON.stop(); SND.vo(S.last.topped || (wasSecret && won) ? 'vo-tower' : won ? 'vo-win' : 'vo-lose', 6); go('result'); }, 1500);
 }
@@ -1670,6 +1721,8 @@ function result(){
       <div class="secret-sil">${sil(true)}</div><p class="note">Beat the secret boss for a big bonus${TW().secret.mult ? `: <b style="color:var(--bet)">$${Math.round(TW().reward * TW().secret.mult).toLocaleString()}</b>` : ''}. They fight on Hard. Lose and you keep the money you already won.</p>
       <button class="cta big-go" onclick="S.inSecret=true;startBattle()">Fight the secret boss ▶</button></div>` : ''}
     <p class="note res-note">${S.quick ? 'Quick matches are just for fun.' : r.secretFight ? (r.won ? 'You beat the secret boss. Not many people ever see them.' : 'So close. The secret boss only shows up sometimes, so climb again for another shot.') : r.topped ? 'You beat the champion at the top of the tower.' : r.won ? `Next up, floor ${S.floor+1} of ${S.tower.length}${S.floor === S.tower.length - 1 ? ', the boss' : ''}: ${esc(S.tower[S.floor])}.` : `The climb is over on floor ${S.floor+1}. Try again from the bottom, or change your moves.`}</p>
+    ${r.carry ? `<div class="carry"><div><span class="muted">Health for the next fight</span><b>${r.carry.hp} / ${r.carry.max}</b><small>${r.carry.gotHp ? '+' + r.carry.gotHp + ' recovered' : 'already full'}</small></div>
+      <div><span class="muted">Reversals</span><b>${'◆'.repeat(r.carry.revs) || '0'}</b><small>${r.carry.gotRevs ? '+' + r.carry.gotRevs + ' back' : 'none back'}</small></div></div>` : ''}
     ${!S.quick ? `<div class="climb">${S.tower.map((n, i) => `<span class="cf${i < S.floor ? ' done' : ''}${i === S.floor && !r.topped ? ' next' : ''}${i === S.tower.length - 1 ? ' boss' : ''}" title="${esc(n)}">${face(W(n))}</span>`).join('')}</div>` : ''}
     <div class="row res-btns">
       ${!S.quick && r.won && !r.topped ? `<button class="cta big-go" onclick="startBattle()">Next fight ▶</button>` : ''}
