@@ -899,7 +899,7 @@ class Match {
       if(r && typeof r === 'object'){ out = !!r.out; counts = r.count; played = true; }
       else { out = !!r; counts = out ? (Math.random() < .4 ? 1 : 2) : 3; }
     }
-    if(!played) for(let c = 1; c <= counts; c++){ await this.wait(c === 1 ? 500 : 650); this.fx('count', def, { n:c }); }
+    if(!played) for(let c = 1; c <= counts; c++){ await this.wait(c === 1 ? 500 : 650); if(this.ui.voiceIdle) await this.ui.voiceIdle(); this.fx('count', def, { n:c }); }   // the count waits for the narrator (game only)
     const COUNT = ['', 'ONE...', 'ONE... TWO...', 'ONE... TWO... THREE!'];
     if(out){
       if(def.hp <= 0) def.hp = 1;
@@ -1131,13 +1131,28 @@ const SND = {
     const a = new Audio(this.url(f)); a.volume = this.vol(f, group); a.play().catch(() => {}); return a; },
   fx(id){ return this.play(id, 'fx'); },
   // the narrator: one line at a time. A more important line cuts in, a less important one waits its turn or is skipped.
-  vo(id, pri, gap){ if(!this.on()) return; const now = Date.now(); pri = pri || 1;
+  // the narrator: one line at a time. A more important line cuts in, a less important one waits its turn or is skipped.
+  // Nov 14: "must finish" lines (the cover, the counts, kick out, tap out, win/lose) are never cut off or skipped:
+  // if someone is talking they wait in line and play right after, in order.
+  MUST:{ 'vo-cover':1, 'vo-count-1':1, 'vo-count-2':1, 'vo-count-3':1, 'vo-kickout':1, 'vo-tap':1, 'vo-win':1, 'vo-lose':1, 'vo-tower':1 },
+  q:[], voiceMust:false,
+  talking(){ return !!((this.voice && !this.voice.ended && !this.voice.paused) || SYN.talking()); },
+  idle(){ return !this.talking() && !this.q.length; },
+  // wait until the narrator is quiet (used so the computer's count keeps in step with the voice)
+  waitIdle(max){ return new Promise(r => { const t0 = Date.now(), tick = () => { if(!this.on() || this.idle() || Date.now() - t0 > (max || 3000)) r(); else setTimeout(tick, 60); }; tick(); }); },
+  vo(id, pri, gap){ if(!this.on()) return; const now = Date.now(); pri = pri || 1; const must = !!this.MUST[id];
     if(gap && this.last[id] && now - this.last[id] < gap) return;
-    const busy = (this.voice && !this.voice.ended && !this.voice.paused) || SYN.talking();
-    if(busy){ if(pri <= this.voicePri) return; if(this.voice) this.voice.pause(); SYN.hush(); }
-    const f = this.pick(id); this.last[id] = now; this.voicePri = pri;
-    if(!f){ this.voice = null; if(this.cfg().placeholders) SYN.say(id, this.vol(null, 'voice')); return; }
-    const a = new Audio(this.url(f)); a.volume = this.vol(f, 'voice'); a.play().catch(() => {}); this.voice = a; },
+    if(this.talking() || this.q.length){
+      if(must){ this.last[id] = now; this.q.push({ id, pri, at:now }); if(this.q.length > 5) this.q.shift(); return; }   // waits its turn
+      if(this.voiceMust || this.q.length || pri <= this.voicePri) return;                                              // never cut a must-finish line
+      if(this.voice) this.voice.pause(); SYN.hush(); }
+    this.say(id, pri, must); },
+  say(id, pri, must){ const f = this.pick(id); this.last[id] = Date.now(); this.voicePri = pri; this.voiceMust = must;
+    const next = () => { if(this.voice !== a && a) return; this.voice = null; this.voiceMust = false; this.next(); };
+    if(!f){ this.voice = null; this.voiceMust = false; if(this.cfg().placeholders) SYN.say(id, this.vol(null, 'voice'), () => this.next()); else this.next(); return; }
+    const a = new Audio(this.url(f)); a.volume = this.vol(f, 'voice'); a.onended = next; a.onerror = next; a.play().catch(next); this.voice = a; },
+  // the next line waiting in line (lines that waited more than 4 seconds are too late, so they're dropped)
+  next(){ if(this.talking()) return; while(this.q.length){ const n = this.q.shift(); if(Date.now() - n.at < 4000 && this.on()){ this.say(n.id, n.pri, true); return; } } },
   crowdStart(){ if(!this.on()) return; const f = this.pick('crowd-loop'); this.crowdStop();
     if(!f){ if(this.cfg().placeholders) SYN.crowd(this.vol(null, 'crowd')); return; }
     const a = new Audio(this.url(f)); a.loop = true; a.volume = this.vol(f, 'crowd'); a.dataset.file = f; a.play().catch(() => {}); this.loop = a; },
@@ -1191,10 +1206,10 @@ const SYN = {
     n.g.gain.cancelScheduledValues(t); n.g.gain.setValueAtTime(n.g.gain.value, t); n.g.gain.linearRampToValueAtTime(n.base * 2.4, t + .3); n.g.gain.linearRampToValueAtTime(n.base, t + 2.2); },
   // the narrator: the browser reads the line out loud
   lines(id){ const s = SOUNDS.find(x => x.id === id); if(!s) return []; const q = s.line.match(/"([^"]+)"/g) || []; return q.map(x => x.slice(1, -1)); },
-  say(id, vol){ if(!window.speechSynthesis) return; const L = this.lines(id); if(!L.length) return;
+  say(id, vol, done){ if(!window.speechSynthesis){ if(done) done(); return; } const L = this.lines(id); if(!L.length){ if(done) done(); return; }
     const u = new SpeechSynthesisUtterance(L[Math.floor(Math.random() * L.length)]); u.rate = 1.08; u.pitch = .85; u.volume = Math.max(0, Math.min(1, vol));
     const v = speechSynthesis.getVoices().find(x => /en(-|_)US/i.test(x.lang) && /male|david|guy|daniel|google us/i.test(x.name)) || speechSynthesis.getVoices().find(x => /^en/i.test(x.lang)); if(v) u.voice = v;
-    speechSynthesis.speak(u); },
+    if(done){ u.onend = done; u.onerror = done; } speechSynthesis.speak(u); },
   talking(){ return !!(window.speechSynthesis && speechSynthesis.speaking); },
   hush(){ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} }
 };
@@ -1575,7 +1590,7 @@ function runFx(kind, who, data){
   if(kind === 'sub' && el){ setStage('Submission!', data && data.name); }
   if(kind === 'ability' && el){ again(el, 'abilityfx'); }
 }
-function uiHooks(){ return { say, fx, wait:ms => sleep(ms) }; }
+function uiHooks(){ return { say, fx, wait:ms => sleep(ms), voiceIdle:() => SND.waitIdle(2500) }; }   // voiceIdle: the computer's count keeps in step with the narrator
 
 /* ---------- sound: what the crowd and the narrator do for each moment ---------- */
 const SOUNDS_ON = {
