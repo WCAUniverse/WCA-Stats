@@ -39880,6 +39880,27 @@ const FHBG = (function(){
   #wu-rel canvas{position:absolute; inset:0; width:100%; height:100%; touch-action:none;}
   #wu-rel .wu-worlds{position:absolute; left:22px; top:10px; right:420px; display:flex; flex-wrap:wrap; gap:8px; z-index:2;}
   #wu-rel .wu-help{position:absolute; left:22px; bottom:18px; z-index:2; font-family:var(--wu-f); font-weight:600; font-size:16px; color:var(--muted,#9a98a6); background:rgba(0,0,0,.55); padding:8px 12px; border:1px solid var(--wu-line);}
+  /* Nov 14: search, arrange, zoom and the key */
+  #wu-rel .wu-reltools{position:absolute; left:22px; top:58px; z-index:3; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start;}
+  #wu-rel .wu-relsearch{position:relative; display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.65); border:1px solid var(--wu-line2); padding:0 10px;}
+  #wu-rel .wu-relsearch input{width:250px; padding:9px 0; background:none; border:0; outline:0; color:#fff; font-family:var(--wu-f); font-weight:700; font-size:17px;}
+  #wu-rel .wu-relhits{position:absolute; left:-1px; right:-1px; top:100%; background:rgba(8,9,16,.97); border:1px solid var(--wu-line2); border-top:0; display:flex; flex-direction:column;}
+  #wu-rel .wu-relhits:empty{display:none;}
+  #wu-rel .wu-relhits button{display:flex; align-items:center; gap:8px; padding:8px 10px; text-align:left; font-family:var(--wu-f); font-weight:800; font-size:17px; border-bottom:1px solid var(--wu-line);}
+  #wu-rel .wu-relhits button:hover{background:rgba(255,255,255,.06);} #wu-rel .wu-relhits .wu-sw{width:10px; height:10px; border-radius:50%; background:var(--c);}
+  #wu-rel .wu-relhits small{margin-left:auto; color:var(--muted,#9a98a6); font-weight:600; font-size:13px;} #wu-rel .wu-relhits .none{padding:8px 10px; color:var(--muted,#9a98a6);}
+  #wu-rel .wu-relarr, #wu-rel .wu-relzm{display:flex; background:rgba(0,0,0,.65); border:1px solid var(--wu-line2);}
+  #wu-rel .wu-relarr button, #wu-rel .wu-relzm button{padding:9px 13px; font-family:var(--wu-f); font-weight:800; font-size:15px; letter-spacing:1px; text-transform:uppercase; color:#cfccc2;}
+  #wu-rel .wu-relarr button.on{background:var(--gold,#E9B949); color:#0b0b0b;} #wu-rel .wu-relzm button{min-width:40px; font-size:18px;} #wu-rel .wu-relzm button:last-child{font-size:15px;}
+  #wu-rel .wu-relkey{display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:6px; font-size:14px;}
+  #wu-rel .wu-relkey span{display:inline-flex; align-items:center; gap:6px;} #wu-rel .wu-relkey i{display:inline-block; width:22px; height:0; border-top:3px solid var(--lc);}
+  #wu-rel .wu-relkey i.dashed{border-top-style:dashed;} #wu-rel .wu-relkey i.double{border-top-style:double; border-top-width:6px;}
+  #wu-rel .wu-relkey i.bub{width:14px; height:14px; border:2px dashed #e9b949; border-radius:50%;} #wu-rel .wu-relkey i.grey{width:12px; height:12px; border:2px solid rgba(170,176,200,.6); border-radius:50%;}
+  #wu-rel .wu-relh{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:40px; text-transform:uppercase; line-height:1; margin:10px 0;}
+  #wu-rel .wu-relsub{margin:16px 0 2px; font-family:var(--wu-f); font-weight:800; font-size:14px; letter-spacing:2px; text-transform:uppercase; color:var(--c);}
+  #wu-rel .wu-relmem{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 6px;}
+  #wu-rel .wu-relx{position:absolute; right:10px; top:10px; width:32px; height:32px; font-size:16px; color:#cfccc2; border:1px solid var(--wu-line2); background:rgba(0,0,0,.5);}
+  #wu-rel .wu-mini{font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted,#9a98a6);}
   #wu-rel .wu-side{position:absolute; right:22px; top:10px; width:380px; max-height:calc(100% - 30px); overflow:auto; background:var(--wu-panel); border:1px solid var(--wu-line); backdrop-filter:blur(8px); padding:16px; display:none; z-index:2;}
   #wu .wu-tie{padding:10px 0; border-bottom:1px solid var(--wu-line);}
   #wu .wu-tie b{font-family:var(--wu-f); font-weight:800; font-size:19px;}
@@ -39946,6 +39967,7 @@ const FHBG = (function(){
     #wu-rel .wu-worlds{right:12px; left:12px;}
     #wu-rel .wu-side{left:12px; right:12px; width:auto; top:auto; bottom:12px; max-height:50%;}
     #wu-rel .wu-help{display:none;}
+    #wu-rel .wu-reltools{left:12px; right:12px; top:auto; bottom:12px;} #wu-rel .wu-relsearch{flex:1 1 100%;} #wu-rel .wu-relsearch input{width:100%;} #wu-rel .wu-relhits{top:auto; bottom:100%;}
   }
 </style>
 <canvas id="wu-space" aria-hidden="true"></canvas>
@@ -39966,7 +39988,11 @@ const FHBG = (function(){
   <div class="wu-legend" id="wu-legend"></div>
   <div class="wu-screen" id="wu-sel"><div class="wu-hero" id="wu-selHero"></div><div class="wu-who" id="wu-selWho"></div><div class="wu-go"><button type="button" class="wu-big" id="wu-selGo">Select</button></div><div class="wu-grid" id="wu-selGrid"></div></div>
   <div class="wu-screen" id="wu-prof"></div>
-  <div class="wu-screen" id="wu-rel"><canvas id="wu-relCv"></canvas><div class="wu-worlds" id="wu-relWorlds"></div><div class="wu-help">Drag to move · scroll to zoom · click someone to light up their web</div><aside class="wu-side" id="wu-relSide"></aside></div>
+  <div class="wu-screen" id="wu-rel"><canvas id="wu-relCv"></canvas><div class="wu-worlds" id="wu-relWorlds"></div>
+    <div class="wu-reltools"><div class="wu-relsearch"><i class="ti ti-search"></i><input id="wu-relQ" type="search" placeholder="Search a wrestler or faction" autocomplete="off"><div class="wu-relhits" id="wu-relHits"></div></div>
+      <div class="wu-relarr"><button type="button" data-arr="web" class="on">Connections</button><button type="button" data-arr="az">A to Z</button></div>
+      <div class="wu-relzm"><button type="button" data-zm="in" title="Zoom in">+</button><button type="button" data-zm="out" title="Zoom out">−</button><button type="button" data-zm="fit" title="Show everyone">Fit</button></div></div>
+    <div class="wu-help">Drag to move · scroll to zoom · click someone or a faction bubble to light up their web<div class="wu-relkey" id="wu-relKey"></div></div><aside class="wu-side" id="wu-relSide"></aside></div>
   <div class="wu-screen" id="wu-riv"></div>
   <div class="wu-screen" id="wu-vs"></div>
   <div class="wu-loading" id="wu-loading" hidden>Loading the universe…</div>
@@ -40389,93 +40415,212 @@ window.WU = (function(){
       `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="wu-sw"></span>${E(p.short)}</button>`).join('');
     $('wu-relWorlds').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { REL_SCOPE = b.dataset.s === 'wca' ? null : Number(b.dataset.s); REL_FOCUS = null; goMode('rel'); });
     $('wu-relSide').style.display = 'none';
+    const q = $('wu-relQ'); if(q){ q.value = ''; $('wu-relHits').innerHTML = ''; }
     if(typeof stxCtx !== 'function' || typeof stxTies !== 'function'){ REL = null; return; }
     let ctx, ties;
     try{ [ctx, ties] = await Promise.all([stxCtx(scope), stxTies(scope)]); }catch(e){ REL = null; return; }
     if(REL_SCOPE !== scope) return;
     const promo = scope == null ? D.PROMOS[0] : (D.promoById(scope) || { color:'#9aa3c7', short:'' });
-    const nodes = {}, edges = [];
-    const node = k => { if(nodes[k]) return nodes[k]; const it = ctx.byKey[k]; if(!it) return null;
-      const n = { key:k, name:it.name, color:hex(it.color, promo.color), img:it.image || '', kind:it.kind, ring:promo.color };
-      if(it.kind === 'person'){ const pk = (scope == null ? 'w' : 'p') + it.id; const pp = D.byKey[pk]; if(pp){ n.person = pp; if(!n.img) n.img = pp.avatar || pp.img || ''; } }
-      if(it.kind === 'faction'){ const lead = (it.members || []).map(m => ctx.byKey[m]).find(m => m && m.image); if(lead) n.img = lead.image; }
+    // Nov 14: everyone on the active roster shows ONCE. A faction is a bubble around its members
+    // (not an extra dot), so nobody is drawn twice. Inactive / hidden people and factions don't show.
+    const nodes = {}, units = [], unitOf = {}, facs = {};
+    const mkNode = it => { const n = { key:it.key, name:it.name, color:hex(it.color, promo.color), img:it.image || '', ring:promo.color, ox:0, oy:0, ties:0 };
+      const pk = (scope == null ? 'w' : 'p') + it.id, pp = D.byKey[pk]; if(pp){ n.person = pp; if(!n.img) n.img = pp.avatar || pp.img || ''; }
       if(n.img){ n.im = new Image(); n.im.referrerPolicy = 'no-referrer'; n.im.src = n.img; }
-      return nodes[k] = n; };
-    (ties || []).forEach(t => { const a = node(t.a_kind + ':' + t.a_id), b = node(t.b_kind + ':' + t.b_id); if(a && b && a !== b) edges.push({ a, b, t }); });
-    // stable mates get the gold Same faction line, like the Relationships page
-    (ctx.factions || []).filter(f => !f.off).forEach(f => { const m = (f.members || []).filter(k => nodes[k]);
-      for(let i=0;i<m.length;i++) for(let j=i+1;j<m.length;j++) if(!edges.some(e => (e.a.key === m[i] && e.b.key === m[j]) || (e.a.key === m[j] && e.b.key === m[i]))) edges.push({ a:nodes[m[i]], b:nodes[m[j]], t:null, faction:f.name }); });
-    const list = Object.values(nodes), r0 = rng(7);
-    list.forEach((n, i) => { const a = i/Math.max(1,list.length)*6.283; n.x = Math.cos(a)*260 + (r0()-.5)*40; n.y = Math.sin(a)*260 + (r0()-.5)*40; n.vx = n.vy = 0; });
-    root.style.setProperty('--wu-acc', promo.color);
-    REL = { sk:scope, nodes:list, edges, sel:null, view:{ x:0, y:0, z:1, user:false }, tick:0, drag:null, promo };
-    if(REL_FOCUS && nodes['person:' + String(REL_FOCUS).slice(1)]) relPick(nodes['person:' + String(REL_FOCUS).slice(1)]);
-    if(!list.length){ $('wu-relSide').innerHTML = `<div class="wu-empty">No relationships written for ${E(promo.short || 'this promotion')} yet.</div>`; $('wu-relSide').style.display = 'block'; }
+      return nodes[it.key] = n; };
+    (ctx.people || []).filter(p => !p.off).forEach(mkNode);
+    (ctx.factions || []).filter(f => !f.off).forEach(f => { const m = (f.members || []).filter(k => nodes[k] && !unitOf[k]);
+      if(!m.length) return;
+      const u = { kind:'fac', key:f.key, name:f.name, color:hex(f.color, promo.color), motto:f.motto || '', members:m.map(k => nodes[k]), allMembers:(f.members || []).filter(k => nodes[k]) };
+      const n = u.members.length, rho = n <= 1 ? 0 : n >= 7 ? 170 : 150 / (2 * Math.sin(Math.PI / n));
+      u.members.forEach((nd, i) => { if(n >= 7 && i === 0){ nd.ox = nd.oy = 0; } else { const k = n >= 7 ? i - 1 : i, cnt = n >= 7 ? n - 1 : n, a = -Math.PI/2 + k / cnt * 6.283; nd.ox = Math.cos(a) * rho; nd.oy = Math.sin(a) * rho; } nd.u = u; unitOf[nd.key] = u; });
+      u.r = rho + 82; units.push(u); facs[f.key] = u; });
+    Object.values(nodes).forEach(nd => { if(unitOf[nd.key]) return; const u = { kind:'solo', key:nd.key, name:nd.name, color:nd.color, members:[nd], r:74 }; nd.u = u; unitOf[nd.key] = u; units.push(u); });
+    // the lines: person to person, and anything involving a faction goes to that faction's bubble
+    const end = (kind, id) => kind === 'faction' ? facs['faction:' + id] || null : nodes['person:' + id] || null;
+    const edges = [], inner = [];
+    (ties || []).forEach(t => { const a = end(t.a_kind, t.a_id), b = end(t.b_kind, t.b_id); if(!a || !b || a === b) return;
+      const ua = a.members ? a : a.u, ub = b.members ? b : b.u;
+      if(ua === ub && (a.members || b.members)){ inner.push({ a, b, t, ua, ub }); return; }   // someone and their own faction: in the panel, no line
+      edges.push({ a, b, t, ua, ub }); [a, b].forEach(x => { if(x.members) x.members.forEach(m => m.ties++); else x.ties++; }); });
+    units.forEach(u => { u.linked = edges.some(e => e.ua === u || e.ub === u); u.z = 1; });
+    const r0 = rng(String(scope == null ? 'wca' : scope).split('').reduce((s, c) => s + c.charCodeAt(0), 7));
+    units.forEach(u => { u.z = .82 + r0() * .3; u.ph = r0() * 6.283; });
+    REL = { sk:scope, ctx, nodes:Object.values(nodes), units, facs, edges, inner, sel:null, view:{ x:0, y:0, z:1, fit:true }, drag:null, promo, arrange:REL_ARR,
+      stars:Array.from({ length:140 }, () => ({ x:(r0()-.5)*2, y:(r0()-.5)*2, s:r0()*1.6 + .3, a:r0()*.5 + .15 })) };
+    relLayout();
+    relLegend();
+    if(REL_FOCUS && nodes['person:' + String(REL_FOCUS).slice(1)]) relPick({ n:nodes['person:' + String(REL_FOCUS).slice(1)] }, true);
+    if(!units.length){ $('wu-relSide').innerHTML = `<div class="wu-empty">Nobody on the ${E(promo.short || 'this promotion')} roster yet.</div>`; $('wu-relSide').style.display = 'block'; }
   }
-  function relStep(){
-    const R = REL; if(!R || R.tick > 700) return; R.tick++;
-    const L = 230, cool = Math.max(.15, 1 - R.tick/700);
-    for(const a of R.nodes){ for(const b of R.nodes){ if(a === b) continue; const dx = a.x-b.x, dy = a.y-b.y, d = Math.max(20, Math.sqrt(dx*dx+dy*dy)), f = (L*L/d)*.014*cool; a.vx += dx/d*f; a.vy += dy/d*f; }
-      a.vx -= a.x*.01; a.vy -= a.y*.01; }
-    for(const e of R.edges){ const dx = e.b.x-e.a.x, dy = e.b.y-e.a.y, d = Math.sqrt(dx*dx+dy*dy)+.01, f = (d-L)*.03*cool; e.a.vx += dx/d*f; e.a.vy += dy/d*f; e.b.vx -= dx/d*f; e.b.vy -= dy/d*f; }
-    for(const n of R.nodes){ if(R.drag && R.drag.n === n) continue; n.vx *= .7; n.vy *= .7; n.x += n.vx; n.y += n.vy; }
+  let REL_ARR = 'web';   // 'web' = connected people near each other, 'az' = everyone A to Z
+  // places everyone once, straight away (nothing flies in)
+  function relLayout(){
+    const R = REL; if(!R) return; const U = R.units;
+    const byName = (a, b) => (a.kind === 'fac' ? 0 : 1) - (b.kind === 'fac' ? 0 : 1) || String(a.name).localeCompare(String(b.name));
+    const linked = R.arrange === 'web' ? U.filter(u => u.linked) : [];
+    const rest = U.filter(u => !linked.includes(u)).sort(byName);
+    // connected ones: a quiet force layout, worked out before anything is shown
+    const rr = rng(99); linked.forEach((u, i) => { const a = i / Math.max(1, linked.length) * 6.283; u.x = Math.cos(a) * 300 + (rr()-.5)*60; u.y = Math.sin(a) * 300 + (rr()-.5)*60; });
+    const links = []; R.edges.forEach(e => { if(e.ua !== e.ub && linked.includes(e.ua) && linked.includes(e.ub)) links.push([e.ua, e.ub]); });
+    for(let it = 0; it < 700; it++){ const cool = 1 - it / 760;
+      for(let i = 0; i < linked.length; i++){ const a = linked[i]; let fx = -a.x * .012, fy = -a.y * .012;
+        for(let j = 0; j < linked.length; j++){ if(i === j) continue; const b = linked[j], dx = a.x - b.x, dy = a.y - b.y, d = Math.max(1, Math.hypot(dx, dy)), want = a.r + b.r + 40;
+          const f = (d < want ? (want - d) * .5 : 0) + 9000 / (d * d); fx += dx / d * f; fy += dy / d * f; }
+        a.fx = fx; a.fy = fy; }
+      links.forEach(([a, b]) => { const dx = b.x - a.x, dy = b.y - a.y, d = Math.max(1, Math.hypot(dx, dy)), f = (d - (a.r + b.r + 150)) * .06; a.fx += dx/d*f; a.fy += dy/d*f; b.fx -= dx/d*f; b.fy -= dy/d*f; });
+      linked.forEach(u => { u.x += clamp(u.fx, -30, 30) * cool; u.y += clamp(u.fy, -30, 30) * cool; }); }
+    // everyone else, A to Z, in rings around them
+    let ext = 0; linked.forEach(u => { ext = Math.max(ext, Math.hypot(u.x, u.y) + u.r); });
+    let ring = linked.length ? ext + 120 : 0, k = 0;
+    while(k < rest.length){
+      if(ring < 60){ const u = rest[k++]; u.x = 0; u.y = 0; ring = u.r * 2 + 40; continue; }
+      const circ = ring * 6.283; let used = 0; const row = [];
+      while(k < rest.length && used + rest[k].r * 2 + 24 <= circ){ used += rest[k].r * 2 + 24; row.push(rest[k++]); }
+      if(!row.length) row.push(rest[k++]);
+      let a = -Math.PI / 2; const spare = (circ - used) / row.length;
+      row.forEach(u => { const step = (u.r * 2 + 24 + spare) / ring; a += step / 2; u.x = Math.cos(a) * ring; u.y = Math.sin(a) * ring; a += step / 2; });
+      ring += Math.max(...row.map(u => u.r)) * 2 + 40; }
+    R.view.fit = true;
   }
+  // where a person is drawn right now (their group, their spot in it, a gentle float, and depth)
+  function relP(n, t){ const R = REL, u = n.u, v = R.view, par = (u.z - 1) * .35;
+    return { x:u.x + n.ox + Math.sin(t * .35 + u.ph) * 4 + v.x / v.z * par, y:u.y + n.oy + Math.cos(t * .3 + u.ph * 1.3) * 4 + v.y / v.z * par, r:30 * u.z }; }
+  function relBubble(u, t){ let cx = 0, cy = 0; const ps = u.members.map(n => relP(n, t)); ps.forEach(p => { cx += p.x; cy += p.y; }); cx /= ps.length; cy /= ps.length;
+    let r = 0; ps.forEach(p => { r = Math.max(r, Math.hypot(p.x - cx, p.y - cy) + p.r + 30); }); return { x:cx, y:cy, r:Math.max(r, 70) }; }
+  function relEnd(x, t){ return x.members ? Object.assign({ fac:true }, relBubble(x, t)) : relP(x, t); }
+  function relSelKeys(){ const R = REL, s = R && R.sel; if(!s) return null;
+    const keys = new Set(); if(s.n){ keys.add(s.n.key); if(s.n.u.kind === 'fac') keys.add(s.n.u.key); } if(s.u){ keys.add(s.u.key); s.u.members.forEach(m => keys.add(m.key)); }
+    return keys; }
   function relFrame(){
     const cv = $('wu-relCv'); if(!cv) return;
     const W = cv.clientWidth, H = cv.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
     if(cv.width !== Math.round(W*dpr) || cv.height !== Math.round(H*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
     const x = cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
-    const R = REL; if(!R) return;
-    relStep();
-    const v = R.view;
-    if(!v.user && R.nodes.length){ let a = 1e9, b = -1e9, c = 1e9, d = -1e9; R.nodes.forEach(n => { a = Math.min(a, n.x); b = Math.max(b, n.x); c = Math.min(c, n.y); d = Math.max(d, n.y); });
-      const z = clamp(Math.min((W-160)/(b-a+160), (H-140)/(d-c+160)), .3, 1.4); v.z += (z - v.z)*.08; v.x += (-(a+b)/2*v.z - v.x)*.08; v.y += (-(c+d)/2*v.z + 20 - v.y)*.08; }
+    x.fillStyle = 'rgba(4,5,11,.6)'; x.fillRect(0,0,W,H);
+    const R = REL; if(!R || !W) return;
+    const v = R.view, t = performance.now() / 1000;
+    // far away specks, moving less than the people, for depth
+    R.stars.forEach(s => { const sx = W/2 + s.x * W * .6 + v.x * .08, sy = H/2 + s.y * H * .6 + v.y * .08; x.globalAlpha = s.a; x.fillStyle = '#cfd6ff'; x.fillRect(((sx % W) + W) % W, ((sy % H) + H) % H, s.s, s.s); });
+    x.globalAlpha = 1;
+    if(v.fit && R.units.length){ let a = 1e9, b = -1e9, c = 1e9, d = -1e9; R.units.forEach(u => { a = Math.min(a, u.x - u.r); b = Math.max(b, u.x + u.r); c = Math.min(c, u.y - u.r); d = Math.max(d, u.y + u.r); });
+      const top = 70, side = $('wu-relSide').style.display === 'block' && W > 900 ? 420 : 0;
+      v.z = clamp(Math.min((W - side - 60) / (b - a), (H - top - 60) / (d - c)), .12, 1.4); v.x = -(a + b) / 2 * v.z - side / 2; v.y = -(c + d) / 2 * v.z + top / 2; v.fit = false; }
+    if(v.goal){ v.x += (v.goal.x - v.x) * .12; v.y += (v.goal.y - v.y) * .12; v.z += (v.goal.z - v.z) * .12; if(Math.abs(v.goal.z - v.z) < .002 && Math.abs(v.goal.x - v.x) < .5) v.goal = null; }
     x.save(); x.translate(W/2 + v.x, H/2 + v.y); x.scale(v.z, v.z);
-    const sel = R.sel, lit = n => !sel || n === sel || R.edges.some(e => (e.a === sel && e.b === n) || (e.b === sel && e.a === n));
-    const t = performance.now()/1000, fF = getComputedStyle(root).getPropertyValue('--fh-fight').trim() || '"Barlow Condensed", sans-serif';
-    R.edges.forEach(e => { const on = !sel || e.a === sel || e.b === sel, lv = e.t ? e.t.a_level : 'faction', c = lvColor(lv), line = e.t ? lvLine(lv) : 'solid';
-      x.globalAlpha = on ? (e.t ? .9 : .5) : .07; x.strokeStyle = c; x.lineWidth = on && sel ? 4 : (e.t ? 2.5 : 1.5); x.shadowColor = c; x.shadowBlur = on ? 14 : 0;
-      const split = e.t && e.t.b_level && e.t.b_level !== e.t.a_level;
-      x.setLineDash(line === 'dashed' || split ? [10,6] : []); x.lineDashOffset = -t*20;
-      if(line === 'double'){ const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, L = Math.hypot(dx, dy) || 1, ox = -dy/L*3, oy = dx/L*3;
-        [[ox,oy],[-ox,-oy]].forEach(([p,q]) => { x.beginPath(); x.moveTo(e.a.x+p, e.a.y+q); x.lineTo(e.b.x+p, e.b.y+q); x.stroke(); }); }
-      else { x.beginPath(); x.moveTo(e.a.x, e.a.y); x.lineTo(e.b.x, e.b.y); x.stroke(); }
-      x.setLineDash([]);
-      if(on && (sel || R.nodes.length < 40) && e.t){ x.shadowBlur = 0; x.font = '700 15px ' + fF; x.fillStyle = c; x.textAlign = 'center'; x.fillText(String(lvLabel(e.t, true)).toUpperCase(), (e.a.x+e.b.x)/2, (e.a.y+e.b.y)/2 - 6); } });
-    x.shadowBlur = 0;
-    R.nodes.forEach(n => { const on = lit(n), r = n === sel ? 40 : 30; x.globalAlpha = on ? 1 : .18;
-      x.save(); x.beginPath(); x.arc(n.x, n.y, r, 0, 6.283); x.closePath(); x.fillStyle = '#0b0c15'; x.fill(); x.clip();
-      if(n.im && n.im.complete && n.im.naturalWidth){ const s = Math.max(r*2/n.im.naturalWidth, r*2/n.im.naturalHeight); x.drawImage(n.im, n.x - n.im.naturalWidth*s/2, n.y - r, n.im.naturalWidth*s, n.im.naturalHeight*s); }
-      else { x.fillStyle = n.color; x.globalAlpha *= .55; x.fillRect(n.x-r, n.y-r, r*2, r*2); x.globalAlpha = on ? 1 : .18; x.fillStyle = '#fff'; x.font = '400 24px ' + (getComputedStyle(root).getPropertyValue('--font-display').trim() || 'Anton'); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ini(n.name), n.x, n.y); }
-      x.restore(); x.lineWidth = n.kind === 'faction' ? 6 : 4; x.strokeStyle = n.kind === 'faction' ? n.color : n.ring; x.shadowColor = x.strokeStyle; x.shadowBlur = 16; x.beginPath(); x.arc(n.x, n.y, r, 0, 6.283); x.stroke(); x.shadowBlur = 0;
-      x.fillStyle = '#fff'; x.font = 'italic 800 17px ' + fF; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillText(String(n.name).toUpperCase(), n.x, n.y + r + 20); });
+    const keys = relSelKeys(), fF = getComputedStyle(root).getPropertyValue('--fh-fight').trim() || '"Barlow Condensed", sans-serif';
+    const onEdge = e => !keys || keys.has(e.a.key) || keys.has(e.b.key);
+    const lit = n => { if(!keys) return true; if(keys.has(n.key) || keys.has(n.u.key)) return true; return R.edges.some(e => onEdge(e) && (e.a === n || e.b === n || e.a === n.u || e.b === n.u)); };
+    // the faction bubbles (far ones first)
+    const order = R.units.slice().sort((a, b) => a.z - b.z);
+    order.forEach(u => { if(u.kind !== 'fac') return; const B = relBubble(u, t), on = !keys || keys.has(u.key) || u.members.some(m => keys.has(m.key)) || R.edges.some(e => onEdge(e) && (e.a === u || e.b === u));
+      x.globalAlpha = on ? 1 : .25; const g = x.createRadialGradient(B.x, B.y, B.r * .3, B.x, B.y, B.r);
+      g.addColorStop(0, u.color + '10'); g.addColorStop(1, u.color + '33'); x.fillStyle = g; x.beginPath(); x.arc(B.x, B.y, B.r, 0, 6.283); x.fill();
+      x.lineWidth = R.sel && R.sel.u === u ? 4 : 2; x.strokeStyle = u.color; x.shadowColor = u.color; x.shadowBlur = 18; x.setLineDash([12, 8]); x.stroke(); x.setLineDash([]); x.shadowBlur = 0;
+      x.font = 'italic 900 ' + Math.round(22 * u.z) + 'px ' + fF; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.lineWidth = 5; x.strokeStyle = 'rgba(0,0,0,.85)';
+      const lbl = String(u.name).toUpperCase(); x.strokeText(lbl, B.x, B.y - B.r - 10); x.fillStyle = u.color; x.fillText(lbl, B.x, B.y - B.r - 10); });
+    // the relationship lines
+    const many = R.edges.length > 40;
+    R.edges.forEach(e => { const on = onEdge(e), A = relEnd(e.a, t), Bp = relEnd(e.b, t), lv = e.t.a_level, c = lvColor(lv), line = lvLine(lv);
+      const dx = Bp.x - A.x, dy = Bp.y - A.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+      const x1 = A.x + ux * A.r, y1 = A.y + uy * A.r, x2 = Bp.x - ux * Bp.r, y2 = Bp.y - uy * Bp.r;
+      x.globalAlpha = on ? .92 : .08; x.strokeStyle = c; x.lineWidth = on && keys ? 4 : 2.5; x.shadowColor = c; x.shadowBlur = on ? 12 : 0;
+      const split = e.t.b_level && e.t.b_level !== e.t.a_level; x.setLineDash(line === 'dashed' || split ? [10, 6] : []);
+      if(line === 'double'){ const ox = -uy * 3, oy = ux * 3; [[ox, oy], [-ox, -oy]].forEach(([p, q]) => { x.beginPath(); x.moveTo(x1 + p, y1 + q); x.lineTo(x2 + p, y2 + q); x.stroke(); }); }
+      else { x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); }
+      x.setLineDash([]); x.shadowBlur = 0;
+      if(on && (keys || (!many && v.z > .55))){ const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, txt = String(lvLabel(e.t, true)).toUpperCase();
+        x.font = '800 14px ' + fF; x.textAlign = 'center'; x.textBaseline = 'middle'; const w = x.measureText(txt).width + 12;
+        x.globalAlpha = on ? .95 : .1; x.fillStyle = 'rgba(5,6,12,.85)'; x.fillRect(mx - w/2, my - 10, w, 20); x.fillStyle = c; x.fillText(txt, mx, my + 1); } });
+    // everyone, once (far ones first)
+    order.forEach(u => u.members.forEach(n => { const P = relP(n, t), on = lit(n), sel = R.sel && R.sel.n === n, r = sel ? P.r * 1.3 : P.r;
+      x.globalAlpha = on ? (n.ties || u.kind === 'fac' ? 1 : .78) : .14;
+      x.save(); x.beginPath(); x.arc(P.x, P.y, r, 0, 6.283); x.closePath(); x.fillStyle = '#0b0c15'; x.fill(); x.clip();
+      if(n.im && n.im.complete && n.im.naturalWidth){ const s = Math.max(r*2/n.im.naturalWidth, r*2/n.im.naturalHeight); x.drawImage(n.im, P.x - n.im.naturalWidth*s/2, P.y - r, n.im.naturalWidth*s, n.im.naturalHeight*s); }
+      else { x.fillStyle = n.color; x.globalAlpha *= .5; x.fillRect(P.x - r, P.y - r, r*2, r*2); x.globalAlpha = on ? 1 : .14; x.fillStyle = '#fff'; x.font = '400 ' + Math.round(22 * u.z) + 'px ' + (getComputedStyle(root).getPropertyValue('--font-display').trim() || 'Anton'); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ini(n.name), P.x, P.y); }
+      x.restore();
+      x.lineWidth = sel ? 5 : 3; x.strokeStyle = u.kind === 'fac' ? u.color : (n.ties ? n.ring : 'rgba(170,176,200,.55)'); x.shadowColor = x.strokeStyle; x.shadowBlur = n.ties || u.kind === 'fac' ? 14 : 0;
+      x.beginPath(); x.arc(P.x, P.y, r, 0, 6.283); x.stroke(); x.shadowBlur = 0;
+      x.font = 'italic 800 ' + Math.round(16 * u.z) + 'px ' + fF; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.lineWidth = 4; x.strokeStyle = 'rgba(0,0,0,.8)';
+      const nm = String(n.name).toUpperCase(); x.strokeText(nm, P.x, P.y + r + 19); x.fillStyle = n.ties || u.kind === 'fac' ? '#fff' : '#aeb3c6'; x.fillText(nm, P.x, P.y + r + 19); }));
     x.restore(); x.globalAlpha = 1;
   }
-  function relAt(cx, cy){ const R = REL; if(!R) return null; const cv = $('wu-relCv'), b = cv.getBoundingClientRect();
-    const wx = (cx - b.left - cv.clientWidth/2 - R.view.x)/R.view.z, wy = (cy - b.top - cv.clientHeight/2 - R.view.y)/R.view.z;
-    return R.nodes.find(n => (n.x-wx)**2 + (n.y-wy)**2 < 36*36) || null; }
-  function relPick(n){
-    const R = REL; if(!R) return; R.sel = n; const side = $('wu-relSide');
-    if(!n){ side.style.display = 'none'; return; }
-    const mine = R.edges.filter(e => e.a === n || e.b === n);
-    side.innerHTML = `<span class="wu-promo" style="--c:${R.promo.color}">${E(R.promo.short)}</span>
-      <div style="font-family:var(--wu-f);font-style:italic;font-weight:900;font-size:40px;text-transform:uppercase;line-height:1;margin:10px 0">${E(n.name)}</div>
-      ${mine.map(e => { const o = e.a === n ? e.b : e.a; if(!e.t) return `<div class="wu-tie"><b>${E(o.name)}</b><span class="wu-lv" style="--lc:${lvColor('faction')}">Same faction</span><p>${E(e.faction)}</p></div>`;
-        const meA = e.a === n, lv = meA ? e.t.a_level : (e.t.b_level || e.t.a_level), why = meA ? e.t.a_why : (e.t.b_level ? e.t.b_why : e.t.a_why);
-        return `<div class="wu-tie"><b>${E(o.name)}</b><span class="wu-lv" style="--lc:${lvColor(lv)}">${E(lvLabel(e.t, meA))}</span>${why ? `<p><i>${E(why)}</i></p>` : ''}${e.t.history ? `<p>${E(e.t.history)}</p>` : ''}</div>`; }).join('') || '<div class="wu-empty">No relationships yet.</div>'}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${n.person ? '<button type="button" class="wu-big" data-p>Full profile</button>' : ''}<button type="button" class="wu-btn" data-s>Their full story</button></div>`;
+  function relWorld(cx, cy){ const R = REL, cv = $('wu-relCv'), b = cv.getBoundingClientRect();
+    return { x:(cx - b.left - cv.clientWidth/2 - R.view.x) / R.view.z, y:(cy - b.top - cv.clientHeight/2 - R.view.y) / R.view.z }; }
+  // what's under the pointer: a person first, then a faction bubble
+  function relAt(cx, cy){ const R = REL; if(!R) return null; const w = relWorld(cx, cy), t = performance.now() / 1000;
+    for(const u of R.units.slice().sort((a, b) => b.z - a.z)) for(const n of u.members){ const P = relP(n, t); if((P.x - w.x)**2 + (P.y - w.y)**2 < (P.r + 6)**2) return { n }; }
+    for(const u of R.units) if(u.kind === 'fac'){ const B = relBubble(u, t); if((B.x - w.x)**2 + (B.y - w.y)**2 < B.r**2 || (Math.abs(w.x - B.x) < B.r && w.y < B.y - B.r + 4 && w.y > B.y - B.r - 34)) return { u }; }
+    return null; }
+  // glide the camera to someone (search, or opening from a profile)
+  function relFocus(target){ const R = REL, cv = $('wu-relCv'); if(!R || !cv) return; const t = performance.now() / 1000;
+    const p = target.n ? relP(target.n, t) : relBubble(target.u, t), z = target.n ? 1.15 : clamp(260 / relBubble(target.u, t).r, .5, 1.2), side = cv.clientWidth > 900 ? 420 : 0;
+    R.view.goal = { x:-p.x * z - side / 2, y:-p.y * z, z }; }
+  function relTieHTML(e, me){ const o = e.a === me ? e.b : e.a, meA = e.a === me;
+    const lv = meA ? e.t.a_level : (e.t.b_level || e.t.a_level), why = meA ? e.t.a_why : (e.t.b_level ? e.t.b_why : e.t.a_why);
+    return `<div class="wu-tie"><b>${E(o.name)}</b>${o.members ? ' <span class="wu-mini">faction</span>' : ''}<span class="wu-lv" style="--lc:${lvColor(lv)}">${E(lvLabel(e.t, meA))}</span>${why ? `<p><i>${E(why)}</i></p>` : ''}${e.t.history ? `<p>${E(e.t.history)}</p>` : ''}</div>`; }
+  function relPick(hit, fly){
+    const R = REL; if(!R) return; R.sel = hit; const side = $('wu-relSide');
+    if(!hit){ side.style.display = 'none'; return; }
+    if(fly) relFocus(hit);
+    // their own ties, plus their faction's ties shown under the faction's name
+    const tiesOf = x => R.edges.concat(R.inner).filter(e => e.a === x || e.b === x);
+    let body = '';
+    if(hit.n){ const n = hit.n, fs = Object.values(R.facs).filter(f => f.allMembers.includes(n.key)), mine = tiesOf(n);
+      body = `<div class="wu-relh">${E(n.name)}</div>
+        ${fs.map(f => `<button type="button" class="wu-chip" style="--c:${f.color}" data-f="${E(f.key)}"><span class="wu-sw"></span>${E(f.name)}</button>`).join(' ')}
+        ${mine.map(e => relTieHTML(e, n)).join('') || (fs.length ? '' : '<div class="wu-empty">No relationships set up for them yet.</div>')}
+        ${fs.map(f => { const ft = tiesOf(f); return ft.length ? `<div class="wu-relsub" style="--c:${f.color}">As part of ${E(f.name)}</div>${ft.map(e => relTieHTML(e, f)).join('')}` : ''; }).join('')}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${n.person ? '<button type="button" class="wu-big" data-p>Full profile</button>' : ''}<button type="button" class="wu-btn" data-s>Their full story</button></div>`; }
+    else { const u = hit.u, ft = tiesOf(u);
+      body = `<div class="wu-relsub" style="--c:${u.color};margin-top:0">Faction</div><div class="wu-relh" style="color:${u.color}">${E(u.name)}</div>${u.motto ? `<p style="margin:0 0 8px;color:#cfccc2"><i>"${E(u.motto)}"</i></p>` : ''}
+        <div class="wu-relmem">${u.members.map(m => `<button type="button" class="wu-chip" style="--c:${u.color}" data-m="${E(m.key)}"><span class="wu-sw"></span>${E(m.name)}</button>`).join('')}</div>
+        ${ft.map(e => relTieHTML(e, u)).join('') || '<div class="wu-empty">No relationships set up for this faction yet.</div>'}
+        <div style="margin-top:12px"><button type="button" class="wu-btn" data-s>Their full story</button></div>`; }
+    side.innerHTML = `<span class="wu-promo" style="--c:${R.promo.color}">${E(R.promo.short)}</span><button type="button" class="wu-relx" data-x title="Close">✕</button>${body}`;
     side.style.display = 'block';
-    const bp = side.querySelector('[data-p]'); if(bp) bp.onclick = () => openProfile(n.person, true);
-    side.querySelector('[data-s]').onclick = () => { try{ stxOpenWeb(R.sk, n.key); }catch(e){} setTimeout(sync, 0); };
+    side.querySelector('[data-x]').onclick = () => relPick(null);
+    side.querySelectorAll('[data-f]').forEach(b => b.onclick = () => relPick({ u:R.facs[b.dataset.f] }, true));
+    side.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const m = R.nodes.find(z => z.key === b.dataset.m); if(m) relPick({ n:m }, true); });
+    const bp = side.querySelector('[data-p]'); if(bp) bp.onclick = () => openProfile(hit.n.person, true);
+    side.querySelector('[data-s]').onclick = () => { try{ stxOpenWeb(R.sk, hit.n ? hit.n.key : hit.u.key); }catch(e){} setTimeout(sync, 0); };
   }
+  // the key: what the colors and line styles mean, plus the arrange buttons and the search
+  function relLegend(){ const R = REL, box = $('wu-relKey'); if(!box || !R) return;
+    let lv = []; try{ lv = Object.keys(STX_LV).filter(k => R.edges.some(e => stxLvKey(e.t.a_level) === k)).map(k => `<span><i style="--lc:${STX_LV[k].color}" class="${STX_LV[k].line || 'solid'}"></i>${E(STX_LV[k].label || k)}</span>`); }catch(e){}
+    const solo = R.units.filter(u => u.kind === 'solo' && !u.linked).length;
+    box.innerHTML = `${lv.join('')}<span><i class="bub"></i>Faction</span>${solo ? `<span><i class="grey"></i>No relationships yet (${solo})</span>` : ''}`;
+    document.querySelectorAll('#wu-rel [data-arr]').forEach(b => b.classList.toggle('on', b.dataset.arr === R.arrange)); }
+  function relSearch(){ const R = REL, q = norm($('wu-relQ').value), out = $('wu-relHits'); if(!R || !q){ out.innerHTML = ''; return; }
+    const hits = [].concat(Object.values(R.facs).filter(f => norm(f.name).includes(q)).map(f => ({ u:f, name:f.name, c:f.color, k:'Faction' })),
+      R.nodes.filter(n => norm(n.name).includes(q)).map(n => ({ n, name:n.name, c:n.u.kind === 'fac' ? n.u.color : R.promo.color, k:n.u.kind === 'fac' ? n.u.name : '' })))
+      .sort((a, b) => (norm(a.name).startsWith(q) ? 0 : 1) - (norm(b.name).startsWith(q) ? 0 : 1)).slice(0, 8);
+    REL.hits = hits;
+    out.innerHTML = hits.map((h, i) => `<button type="button" data-h="${i}" style="--c:${h.c}"><span class="wu-sw"></span>${E(h.name)}${h.k ? `<small>${E(h.k)}</small>` : ''}</button>`).join('') || '<div class="none">No one by that name here.</div>';
+    out.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { const h = hits[+b.dataset.h]; relPick(h.u ? { u:h.u } : { n:h.n }, true); out.innerHTML = ''; }); }
   (function wireRel(){
     const cv = $('wu-relCv'); if(!cv) return;
-    cv.addEventListener('pointerdown', e => { if(!REL) return; REL.drag = { x:e.clientX, y:e.clientY, m:0, n:relAt(e.clientX, e.clientY) }; });
-    addEventListener('pointermove', e => { const R = REL; if(!R || !R.drag) return; const dx = e.clientX - R.drag.x, dy = e.clientY - R.drag.y; R.drag.m += Math.abs(dx) + Math.abs(dy);
-      if(R.drag.n){ R.drag.n.x += dx/R.view.z; R.drag.n.y += dy/R.view.z; R.drag.n.vx = R.drag.n.vy = 0; } else { R.view.user = true; R.view.x += dx; R.view.y += dy; }
+    const pts = new Map();
+    cv.addEventListener('pointerdown', e => { if(!REL) return; pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if(pts.size === 2){ REL.drag = null; const [p, q] = [...pts.values()]; REL.pinch = { d:Math.hypot(p.x - q.x, p.y - q.y), z:REL.view.z }; return; }
+      REL.view.goal = null; REL.drag = { x:e.clientX, y:e.clientY, m:0, hit:relAt(e.clientX, e.clientY) }; });
+    addEventListener('pointermove', e => { const R = REL; if(!R) return; if(pts.has(e.pointerId)) pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if(R.pinch && pts.size === 2){ const [p, q] = [...pts.values()]; R.view.z = clamp(R.pinch.z * Math.hypot(p.x - q.x, p.y - q.y) / R.pinch.d, .12, 3.5); return; }
+      if(!R.drag) return; const dx = e.clientX - R.drag.x, dy = e.clientY - R.drag.y; R.drag.m += Math.abs(dx) + Math.abs(dy);
+      const h = R.drag.hit, z = R.view.z;
+      if(R.drag.m > 4 && h && h.n && h.n.u.kind === 'fac'){ h.n.ox += dx / z; h.n.oy += dy / z; }      // move someone inside their faction
+      else if(R.drag.m > 4 && h){ const u = h.u || h.n.u; u.x += dx / z; u.y += dy / z; }               // move a person or a whole faction
+      else if(!h){ R.view.x += dx; R.view.y += dy; }
       R.drag.x = e.clientX; R.drag.y = e.clientY; });
-    addEventListener('pointerup', e => { const R = REL; if(!R || !R.drag) return; if(R.drag.m < 5) relPick(relAt(e.clientX, e.clientY)); R.drag = null; });
-    cv.addEventListener('wheel', e => { if(!REL) return; e.preventDefault(); REL.view.user = true; REL.view.z = clamp(REL.view.z * (1 - Math.sign(e.deltaY)*.1), .3, 3); }, { passive:false });
+    addEventListener('pointerup', e => { pts.delete(e.pointerId); const R = REL; if(!R) return; if(pts.size < 2) R.pinch = null; if(!R.drag) return; if(R.drag.m < 5) relPick(relAt(e.clientX, e.clientY)); R.drag = null; });
+    // zoom toward the pointer, so you can zoom right in on where a line goes
+    cv.addEventListener('wheel', e => { const R = REL; if(!R) return; e.preventDefault(); R.view.goal = null; const w = relWorld(e.clientX, e.clientY), b = cv.getBoundingClientRect();
+      const z = clamp(R.view.z * (e.deltaY < 0 ? 1.12 : 1/1.12), .12, 3.5); R.view.z = z;
+      R.view.x = e.clientX - b.left - cv.clientWidth/2 - w.x * z; R.view.y = e.clientY - b.top - cv.clientHeight/2 - w.y * z; }, { passive:false });
+    const q = $('wu-relQ'); if(q){ q.addEventListener('input', relSearch); q.addEventListener('keydown', e => { if(e.key === 'Enter' && REL && REL.hits && REL.hits[0]){ const h = REL.hits[0]; relPick(h.u ? { u:h.u } : { n:h.n }, true); $('wu-relHits').innerHTML = ''; } if(e.key === 'Escape'){ q.value = ''; relSearch(); } }); }
+    document.querySelectorAll('#wu-rel [data-arr]').forEach(b => b.onclick = () => { REL_ARR = b.dataset.arr; if(REL){ REL.arrange = REL_ARR; relLayout(); relLegend(); } });
+    document.querySelectorAll('#wu-rel [data-zm]').forEach(b => b.onclick = () => { const R = REL; if(!R) return; const k = b.dataset.zm;
+      if(k === 'fit'){ R.view.goal = null; R.view.fit = true; return; } const z = clamp(R.view.z * (k === 'in' ? 1.3 : 1/1.3), .12, 3.5); R.view.goal = { x:R.view.x * z / R.view.z, y:R.view.y * z / R.view.z, z }; });
   })();
 
   /* ═════════════ RIVALRIES: one promotion at a time too ═════════════ */
