@@ -15607,9 +15607,12 @@ function tvTuneIn(){
 }
 function tvSyncNow(){
   TV.needSync = true;
+  TV.holdUntil = 0;              // act now, while the click still counts (so the browser lets it play)
   if(TV.apiFailed) TV.key = null;
   tvTick();
 }
+// the video the YouTube player actually has loaded right now ('' if unknown)
+function tvPlayerVid(){ try{ return (TV.player && TV.ready && TV.player.getVideoData().video_id) || ''; }catch(e){ return ''; } }
 
 /* ---- the clock: once a second ---- */
 function tvTick(){
@@ -15669,7 +15672,16 @@ function tvTick(){
     tvRecap(s.item);
   } else if(TV.needSync){
     TV.needSync = false;
-    try{ if(TV.player && TV.ready){ TV.player.seekTo(s.offset, true); TV.player.playVideo(); } }catch(e){}
+    // Back to Live. If the player ended, or is showing a different video (someone clicked a
+    // suggested video inside it), load the right one at the right second instead of seeking.
+    const pv = tvPlayerVid(); let st = null; try{ st = TV.player && TV.ready ? TV.player.getPlayerState() : null; }catch(e){}
+    if(TV.player && TV.ready && ((pv && pv !== s.item.vid) || st === 0 || st === 5 || st === -1)) tvPlay(s.item.vid, s.offset);
+    else { try{ if(TV.player && TV.ready){ TV.player.seekTo(s.offset, true); TV.player.playVideo(); } }catch(e){ tvPlay(s.item.vid, s.offset); } }
+  } else if(TV.player && TV.ready && !TV.errVid){
+    // the player wandered off to another video on its own: bring it back
+    const pv = tvPlayerVid();
+    if(pv && pv !== s.item.vid){ TV.offVid = (TV.offVid || 0) + 1; if(TV.offVid >= 2){ TV.offVid = 0; tvPlay(s.item.vid, s.offset); } }
+    else TV.offVid = 0;
   }
   if(stateEl){
     const bad = TV.errVid && TV.errVid === s.item.vid;
@@ -15720,10 +15732,15 @@ function tvPaintButtons(s){
         const st = TV.player.getPlayerState();           // 1 playing, 2 paused, 3 buffering
         const diff = TV.player.getCurrentTime() - s.offset;   // minus = behind, plus = ahead
         if(st === 2){ behind = true; note = 'Paused'; }
+        else if(st === -1 || st === 5){                  // never started (the browser blocked autoplay) or stopped
+          TV.idleSince = TV.idleSince || Date.now();
+          if(Date.now() - TV.idleSince > 3000){ behind = true; note = 'Not playing'; }
+        }
         else if(st === 1 && Math.abs(diff) > 10){
           behind = true;
           note = diff < 0 ? `You're ${tvLeft(-diff)} behind` : `You're ${tvLeft(diff)} ahead`;
         }
+        if(st !== -1 && st !== 5) TV.idleSince = 0;
       }catch(e){}
     }
   }
