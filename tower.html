@@ -450,7 +450,7 @@ const DEFAULTS = {
     maxMovesPerPos:4,
     stacks:{ easy:[], normal:[], hard:[] },   // old (before Nov 14): hand-picked floors. Now slots below.
     slots:{ easy:[], normal:[], hard:[] },    // each tower's floors, bottom first, boss last: { name, lock }. Unlocked = random every climb.
-    sound:{ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true }
+    sound:{ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true, master:100, each:{} }   // each: file name -> its own volume % (Nov 14)
   },
   towers:[],   // custom towers made in the admin: { id, name, level, reward, color, on, stack:[names] }
   moves: DEFAULT_MOVES,
@@ -707,7 +707,7 @@ class Match {
     if(att.boost && !o.self){ d *= 1 + att.boost/100; att.boost = 0; }
     if(def.shield){ d *= 1 - def.shield/100; def.shield = 0; }
     d = Math.max(1, Math.round(d)); def.hp -= d;
-    this.fx(o.self ? 'crash' : 'hit', def, { dmg:d, by:att, big:o.big });
+    this.fx(o.self ? 'crash' : 'hit', def, { dmg:d, by:att, big:o.big, down:!!o.down });
     if(!def.low && def.hp > 0 && def.hp/def.max < .3){ def.low = true; this.fire('lowhp', def); }
     return d; }
 
@@ -856,7 +856,7 @@ class Match {
     const ctx = this.fire(kind === 'sig' ? 'sig' : kind === 'fin' ? 'fin' : 'land', att, { kind:move.kind, extra:0 });
     if(kind !== 'move') this.fire('land', att, ctx);
     this.fx('lunge', att, { big:kind !== 'move' });
-    const d = this.damage(att, def, move.dmg * power + (ctx.extra || 0), { big:kind !== 'move' });
+    const d = this.damage(att, def, move.dmg * power + (ctx.extra || 0), { big:kind !== 'move', down:move.to === 'ground' && move.from !== 'ground' });   // down = a knockdown (knockdown sound)
     this.fire(kind === 'move' ? 'hitby' : 'hitbig', def, { kind:move.kind }); if(kind !== 'move') this.fire('hitby', def, { kind:move.kind });
     this.gain(att, move.mom || 0); this.gain(def, 3);
     if(kind === 'fin') att.pinBoost = Math.max(att.pinBoost, CFG.settings.pin.finisherShrink);
@@ -1078,15 +1078,16 @@ const SOUNDS = [
   { id:'sfx-bell',    cat:'Effects', n:1, line:'(no words) The ring bell. Start and end of the match.' },
   { id:'sfx-hit',     cat:'Effects', n:3, line:'(no words) A strike landing: punch, chop, kick.' },
   { id:'sfx-slam',    cat:'Effects', n:3, line:'(no words) A body hitting the mat: slams, suplexes, bombs.' },
+  { id:'sfx-knockdown',cat:'Effects', n:1, line:'(no words) A move knocking them down: the hit, the impact and the body hitting the mat. Plays instead of the slam on any move that puts them on the ground.' },
   { id:'sfx-mat',     cat:'Effects', n:1, line:'(no words) The referee\'s hand slapping the mat for a count.' },
   { id:'sfx-whoosh',  cat:'Effects', n:1, line:'(no words) A quick whoosh for reversals and dodges.' },
   // the narrator (no names, works for every wrestler)
   { id:'vo-start',      cat:'Narrator', n:2, line:'1: "Here we go!"   2: "Let\'s get it on!"' },
-  { id:'vo-you-control',cat:'Narrator', n:3, line:'1: "You\'re in control."   2: "You\'ve got the upper hand."   3: "Take it to them!"' },
-  { id:'vo-opp-control',cat:'Narrator', n:3, line:'1: "Opponent in control."   2: "They\'ve got the upper hand."   3: "Fight your way out of this!"' },
+  { id:'vo-you-control',cat:'Narrator', n:2, line:'1: "You\'re in control."   2: "You\'ve got the upper hand."' },
+  { id:'vo-opp-control',cat:'Narrator', n:2, line:'1: "Opponent in control."   2: "They\'ve got the upper hand."' },
   { id:'vo-slugfest',   cat:'Narrator', n:2, line:'1: "Slugfest!"   2: "They\'re trading bombs!"' },
   { id:'vo-tieup',      cat:'Narrator', n:2, line:'1: "Lock up!"   2: "Collar and elbow!"' },
-  { id:'vo-big',        cat:'Narrator', n:4, line:'1: "Ooh, that was a nasty one!"   2: "What a shot!"   3: "That\'ll leave a mark!"   4: "Down they go!"' },
+  { id:'vo-big',        cat:'Narrator', n:3, line:'1: "Ooh, that was a nasty one!"   2: "What a shot!"   3: "That\'ll leave a mark!"' },
   { id:'vo-reversal',   cat:'Narrator', n:3, line:'1: "Reversal!"   2: "Countered!"   3: "Saw it coming!"' },
   { id:'vo-dodge',      cat:'Narrator', n:2, line:'1: "Nobody home!"   2: "Crashed and burned!"' },
   { id:'vo-signature',  cat:'Narrator', n:2, line:'1: "Here comes the Signature!"   2: "Signature move!"' },
@@ -1109,9 +1110,14 @@ const SOUNDS = [
 const SND_FILE = (id, i, n) => n > 1 ? `${id}-${i}.mp3` : `${id}.mp3`;
 const SND = {
   ok:{}, tried:false, loop:null, voice:null, voicePri:0, last:{}, muted:false,
-  cfg(){ return Object.assign({ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true }, CFG.settings.sound || {}); },
+  cfg(){ return Object.assign({ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true, master:100, each:{} }, CFG.settings.sound || {}); },
   url(file){ const f = this.cfg().folder || ''; return f + (f && !/\/$/.test(f) ? '/' : '') + file; },
   on(){ return this.cfg().on && !this.muted; },
+  // which volume bar a sound belongs to: crowd loop, cheers and boos, effects, or the narrator
+  group(id){ return id === 'crowd-loop' ? 'crowd' : /^crowd-/.test(id) ? 'cheer' : /^vo-/.test(id) ? 'voice' : 'fx'; },
+  // how loud one file plays (Nov 14): its group's bar x its own bar (Sounds tab) x the master bar
+  vol(file, group){ const c = this.cfg(), e = (c.each || {})[file], pc = v => (v === undefined || v === null || v === '' ? 100 : +v) / 100;
+    return Math.max(0, Math.min(1, pc(c[group]) * (file ? pc(e) : 1) * pc(c.master))); },
   // find which files are there (once). Missing ones are simply skipped.
   check(){ if(this.tried) return Promise.resolve(this.ok); this.tried = true;
     const all = []; SOUNDS.forEach(s => { for(let i = 1; i <= s.n; i++) all.push(SND_FILE(s.id, i, s.n)); });
@@ -1119,25 +1125,26 @@ const SND = {
       const done = ok => { if(ok) this.ok[f] = true; r(); }; a.oncanplaythrough = () => done(true); a.onerror = () => done(false); setTimeout(() => done(false), 4000); a.src = this.url(f); }))).then(() => this.ok); },
   pick(id){ const s = SOUNDS.find(x => x.id === id); if(!s) return null; const have = []; for(let i = 1; i <= s.n; i++){ const f = SND_FILE(id, i, s.n); if(this.ok[f]) have.push(f); }
     return have.length ? have[Math.floor(Math.random() * have.length)] : null; },
-  play(id, vol){ if(!this.on()) return null; const f = this.pick(id);
-    if(!f){ if(this.cfg().placeholders) SYN.play(id, vol); return null; }
-    const a = new Audio(this.url(f)); a.volume = Math.max(0, Math.min(1, vol)); a.play().catch(() => {}); return a; },
-  fx(id){ return this.play(id, this.cfg().fx / 100); },
+  has(id){ return !!this.pick(id); },
+  play(id, group){ if(!this.on()) return null; const f = this.pick(id); group = group || this.group(id);
+    if(!f){ if(this.cfg().placeholders) SYN.play(id, this.vol(null, group)); return null; }
+    const a = new Audio(this.url(f)); a.volume = this.vol(f, group); a.play().catch(() => {}); return a; },
+  fx(id){ return this.play(id, 'fx'); },
   // the narrator: one line at a time. A more important line cuts in, a less important one waits its turn or is skipped.
   vo(id, pri, gap){ if(!this.on()) return; const now = Date.now(); pri = pri || 1;
     if(gap && this.last[id] && now - this.last[id] < gap) return;
     const busy = (this.voice && !this.voice.ended && !this.voice.paused) || SYN.talking();
     if(busy){ if(pri <= this.voicePri) return; if(this.voice) this.voice.pause(); SYN.hush(); }
     const f = this.pick(id); this.last[id] = now; this.voicePri = pri;
-    if(!f){ this.voice = null; if(this.cfg().placeholders) SYN.say(id, this.cfg().voice / 100); return; }
-    const a = new Audio(this.url(f)); a.volume = this.cfg().voice / 100; a.play().catch(() => {}); this.voice = a; },
+    if(!f){ this.voice = null; if(this.cfg().placeholders) SYN.say(id, this.vol(null, 'voice')); return; }
+    const a = new Audio(this.url(f)); a.volume = this.vol(f, 'voice'); a.play().catch(() => {}); this.voice = a; },
   crowdStart(){ if(!this.on()) return; const f = this.pick('crowd-loop'); this.crowdStop();
-    if(!f){ if(this.cfg().placeholders) SYN.crowd(this.cfg().crowd / 100); return; }
-    const a = new Audio(this.url(f)); a.loop = true; a.volume = this.cfg().crowd / 100; a.play().catch(() => {}); this.loop = a; },
-  crowdStop(){ if(this.loop){ this.loop.pause(); this.loop = null; } SYN.crowdOff(); },
+    if(!f){ if(this.cfg().placeholders) SYN.crowd(this.vol(null, 'crowd')); return; }
+    const a = new Audio(this.url(f)); a.loop = true; a.volume = this.vol(f, 'crowd'); a.dataset.file = f; a.play().catch(() => {}); this.loop = a; },
+  crowdStop(){ if(this.loop){ this.loop.pause(); this.loop = null; } clearInterval(this.sw); SYN.crowdOff(); },
   // the crowd swells for a moment, then settles back to the loop level
-  swell(id){ if(!this.on()) return; this.play(id, this.cfg().cheer / 100); SYN.swell();
-    const a = this.loop; if(!a) return; const base = this.cfg().crowd / 100, top = Math.min(1, base * 1.8 + .1); a.volume = top;
+  swell(id){ if(!this.on()) return; this.play(id, 'cheer'); SYN.swell();
+    const a = this.loop; if(!a) return; const base = this.vol(a.dataset.file, 'crowd'), top = Math.min(1, base * 1.8 + .1); a.volume = top;
     clearInterval(this.sw); this.sw = setInterval(() => { if(!this.loop){ clearInterval(this.sw); return; } a.volume = Math.max(base, a.volume - .02); if(a.volume <= base) clearInterval(this.sw); }, 80); }
 };
 try{ SND.muted = localStorage.getItem('wcaTowerMute') === '1'; }catch(e){}
@@ -1165,7 +1172,7 @@ const SYN = {
     switch(base){
       case 'sfx-bell': [0, .32, .64].forEach(at => { this.tone({ f:1046, len:1.2, vol:vol*.35, at }); this.tone({ f:1568, len:.8, vol:vol*.15, at }); }); break;
       case 'sfx-hit': this.burst({ f:1400, q:.8, len:.09, vol:vol*.9 }); this.tone({ f:180, f2:90, len:.08, vol:vol*.5 }); break;
-      case 'sfx-slam': this.tone({ f:110, f2:40, len:.35, vol:vol }); this.burst({ type:'lowpass', f:600, len:.3, vol:vol*.8 }); break;
+      case 'sfx-knockdown': case 'sfx-slam': this.tone({ f:110, f2:40, len:.35, vol:vol }); this.burst({ type:'lowpass', f:600, len:.3, vol:vol*.8 }); break;
       case 'sfx-mat': this.burst({ type:'lowpass', f:1800, len:.07, vol:vol }); this.tone({ f:140, f2:70, len:.12, vol:vol*.6 }); break;
       case 'sfx-whoosh': this.burst({ f:400, f2:3200, q:2, len:.35, vol:vol*.6, atk:.15 }); break;
       // no made up crowd sounds (Nov 14: they sounded like static). Real crowd mp3 files still play.
@@ -1585,7 +1592,8 @@ function soundFx(kind, who, data){
   if(kind === 'windup' && data && data.kind === 'sig') SND.vo('vo-signature', 3);
   if(kind === 'windup' && data && data.kind === 'fin'){ SND.vo('vo-finisher', 3); SND.swell('crowd-pop'); }
   if(kind === 'hit' && data){ const big = data.big || data.dmg >= 13;
-    SND.fx(big || data.dmg >= 9 ? 'sfx-slam' : 'sfx-hit');
+    // a knockdown has its own sound (the hit, the impact, the body on the mat); without the file it's the slam as before
+    SND.fx(data.down && SND.has('sfx-knockdown') ? 'sfx-knockdown' : big || data.dmg >= 9 ? 'sfx-slam' : 'sfx-hit');
     if(big){ SND.vo('vo-big', 1, 4000); SND.swell(who === MT.a ? 'crowd-boo' : 'crowd-cheer'); } }
   if(kind === 'crash'){ SND.fx('sfx-slam'); SND.swell('crowd-gasp'); }
   if(kind === 'reversal'){ SND.fx('sfx-whoosh'); SND.vo('vo-reversal', 2); if(mine) SND.swell('crowd-cheer'); }
