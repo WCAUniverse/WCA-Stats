@@ -85,6 +85,24 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .needle.missed{animation:nmiss .35s}
 @keyframes nmiss{0%,100%{background:#fff}50%{background:var(--hot);box-shadow:0 0 18px var(--hot)}}
 @media(max-width:640px){ .pads{grid-template-columns:repeat(4,1fr)} }
+/* the explanation and countdown before each mini game */
+.mg-box{position:relative}
+.mg-intro{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px;background:linear-gradient(160deg,#1c1c24,#0b0b0f);border-radius:inherit;text-align:center}
+.mg-how{display:grid;gap:10px;max-width:600px;text-align:left;font-size:17px;line-height:1.45;color:var(--txt2)}
+.mg-how > div{padding:10px 14px;background:rgba(255,255,255,.04);border-left:3px solid var(--gold);border-radius:4px}
+.mg-how b{color:var(--txt)}
+.mg-keys{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle}.mg-keys i{font-style:normal;display:inline-grid;place-items:center;width:28px;height:28px;background:#fff;color:#04121f;border-radius:6px;font-weight:900}
+.mg-ready{margin-top:6px;font-size:26px;padding:15px 36px}
+.mg-count{font-size:140px;line-height:1;color:#fff;text-shadow:0 0 30px rgba(var(--gold-rgb),.8);animation:mgc .7s ease-out}
+.mg-count.go{color:var(--win);text-shadow:0 0 30px var(--win)}
+@keyframes mgc{0%{transform:scale(2);opacity:0}30%{transform:scale(1);opacity:1}100%{opacity:.9}}
+.mg-box:has(.mg-intro){min-height:500px}
+/* thick arrows */
+.arw{width:70%;height:70%;display:block}
+.lnote{width:66px;height:66px;margin:-33px 0 0 -33px}
+.pad .arw{width:44px;height:44px;margin:auto}
+.mg-keys i .arw{width:20px;height:20px}
+.target{width:78px;height:78px}
 
 .wallet{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 8px;background:rgba(0,0,0,.6);border:1px solid var(--line);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
 .wallet .coin{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--on-gold);font-weight:800}
@@ -1051,13 +1069,11 @@ const SYN = {
       case 'sfx-slam': this.tone({ f:110, f2:40, len:.35, vol:vol }); this.burst({ type:'lowpass', f:600, len:.3, vol:vol*.8 }); break;
       case 'sfx-mat': this.burst({ type:'lowpass', f:1800, len:.07, vol:vol }); this.tone({ f:140, f2:70, len:.12, vol:vol*.6 }); break;
       case 'sfx-whoosh': this.burst({ f:400, f2:3200, q:2, len:.35, vol:vol*.6, atk:.15 }); break;
-      case 'crowd-cheer': this.burst({ f:1300, q:.6, len:1.6, vol:vol*.5, atk:.35 }); this.burst({ f:2600, q:.8, len:1.3, vol:vol*.25, atk:.3 }); break;
-      case 'crowd-pop': this.burst({ f:1200, q:.5, len:2.2, vol:vol*.8, atk:.2 }); this.burst({ f:2800, q:.7, len:1.8, vol:vol*.35, atk:.2 }); break;
-      case 'crowd-boo': this.burst({ f:260, q:1.5, len:1.6, vol:vol*.7, atk:.35 }); this.tone({ f:140, f2:110, len:1.4, vol:vol*.12, wave:'sawtooth' }); break;
-      case 'crowd-gasp': this.burst({ f:900, f2:1500, q:1.2, len:.6, vol:vol*.45, atk:.08 }); break;
+      // no made up crowd sounds (Nov 14: they sounded like static). Real crowd mp3 files still play.
     } },
   // the crowd under the whole match: soft noise that breathes
-  crowd(vol){ const ac = this.ctx(); if(!ac) return; this.crowdOff();
+  crowd(vol){ return;   // no made up crowd loop (Nov 14). A real crowd-loop.mp3 still plays.
+    const ac = this.ctx(); if(!ac) return; this.crowdOff();
     const src = ac.createBufferSource(); src.buffer = this.noise(ac, 4); src.loop = true;
     const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = .4;
     const g = ac.createGain(); g.gain.value = vol * .18;
@@ -1080,8 +1096,33 @@ const SYN = {
 /* =====================================================================
    THE MINI GAMES (used by the game AND the admin's Mini games tab, so they're always the same)
    ===================================================================== */
+/* ---------- before every mini game: what to do, a READY button, then 3, 2, 1, GO ---------- */
+function mgReady(ov, o, go){
+  const box = ov.querySelector('.mg-box');
+  const it = document.createElement('div'); it.className = 'mg-intro';
+  it.innerHTML = `<div class="kick">${esc(o.kick)}</div><div class="f mg-t">${esc(o.title)}</div>
+    <div class="mg-how">${o.how.map(h => `<div>${h}</div>`).join('')}</div>
+    <button class="cta mg-ready" type="button">I'm ready! ▶</button><div class="legend">Press Space or Enter, or tap the button.</div>`;
+  box.appendChild(it);
+  let started = false;
+  const beep = f => { try{ if(SND.on() && SND.cfg().placeholders) SYN.tone({ f, len:.18, vol:.25 }); }catch(e){} };
+  const start = () => { if(started) return; started = true; document.removeEventListener('keydown', kd);
+    let n = 3; it.innerHTML = `<div class="mg-count f">${n}</div>`; beep(660);
+    const tick = setInterval(() => { n--;
+      if(n > 0){ it.innerHTML = `<div class="mg-count f">${n}</div>`; beep(660); }
+      else if(n === 0){ it.innerHTML = '<div class="mg-count go f">GO!</div>'; beep(990); }
+      else { clearInterval(tick); it.remove(); go(); } }, 700); };
+  const kd = e => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); start(); } };
+  // a short pause so a key held from before doesn't skip the explanation
+  setTimeout(() => { if(!started) document.addEventListener('keydown', kd); }, 300);
+  it.querySelector('.mg-ready').onclick = start;
+}
+
 /* ---------- mini game 1: the arrow sequence (reversals and submissions) ---------- */
 const ARROWS = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→' };
+// big, thick arrow pictures (easier to read than the thin text arrows)
+const ARW_ROT = { ArrowUp:0, ArrowRight:90, ArrowDown:180, ArrowLeft:270 };
+const arw = k => `<svg class="arw" viewBox="0 0 100 100" aria-label="${k.replace('Arrow','')}" style="transform:rotate(${ARW_ROT[k]}deg)"><path d="M50 6 L94 52 L66 52 L66 94 L34 94 L34 52 L6 52 Z" fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>`;
 function seqGame(titleText, len, level){   // level: easy / normal / hard, how fast the arrows come
   return new Promise(res => {
     const keys = Object.keys(ARROWS), seq = Array.from({length:len}, () => keys[Math.floor(Math.random()*4)]);
@@ -1089,14 +1130,14 @@ function seqGame(titleText, len, level){   // level: easy / normal / hard, how f
     ov.innerHTML = `<div class="mg-box"><div class="kick">Hit each arrow as it reaches the ring</div><div class="f mg-t">${esc(titleText)}</div>
       <div class="lane" id="lane"><div class="target"></div></div>
       <div class="mg-score"><span class="ok" id="sOk">0 hit</span><span class="no" id="sNo">0 missed</span></div>
-      <div class="pads">${keys.map(k => `<button class="pad" data-k="${k}">${ARROWS[k]}</button>`).join('')}</div>
+      <div class="pads">${keys.map(k => `<button class="pad" data-k="${k}">${arw(k)}</button>`).join('')}</div>
       <div class="legend">Arrow keys or tap the buttons. Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
     document.body.appendChild(ov);
-    const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(30, W * .045);
+    const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(40, W * .06);   // how close counts as a hit (made more forgiving Nov 14)
     const ls = CFG.settings.seq.levelSpeed || {}, pace = (CFG.settings.seq.speed / 100) * ((+ls[level || 'easy'] || 100) / 100);
     const speed = (W * .55) * pace;       // pixels per second
     const gap = .62 / pace;                // seconds between arrows
-    const notes = seq.map((k, i) => { const n = document.createElement('div'); n.className = 'lnote'; n.textContent = ARROWS[k]; lane.appendChild(n); return { k, el:n, t0:i * gap + .5, done:false }; });
+    const notes = seq.map((k, i) => { const n = document.createElement('div'); n.className = 'lnote'; n.innerHTML = arw(k); lane.appendChild(n); return { k, el:n, t0:i * gap + .5, done:false }; });
     let ok = 0, no = 0, start = performance.now(), raf;
     const xOf = (nt, t) => W + 30 - (t - nt.t0) * speed;
     const judge = (nt, hit) => { nt.done = true; nt.el.classList.add(hit ? 'hitn' : 'missn'); if(hit) ok++; else no++;
@@ -1105,11 +1146,9 @@ function seqGame(titleText, len, level){   // level: easy / normal / hard, how f
     const press = k => { const t = (performance.now() - start) / 1000;
       const nt = notes.find(x => !x.done); if(!nt) return;
       const d = Math.abs(xOf(nt, t) - targetX);
-      if(d <= tol) judge(nt, nt.k === k); else if(d <= tol * 2.4) judge(nt, false);
+      if(d <= tol) judge(nt, nt.k === k); else if(d <= tol * 2) judge(nt, false);
       const pad = ov.querySelector(`[data-k="${k}"]`); if(pad){ pad.classList.remove('pressed'); void pad.offsetWidth; pad.classList.add('pressed'); } };
     const kd = e => { if(ARROWS[e.key]){ e.preventDefault(); press(e.key); } };
-    document.addEventListener('keydown', kd);
-    ov.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); press(b.dataset.k); }));
     const loop = () => { const t = (performance.now() - start) / 1000;
       notes.forEach(nt => { if(nt.done && !nt.el.classList.contains('gone')){ if(!nt.fade){ nt.fade = 1; setTimeout(() => nt.el.classList.add('gone'), 250); } return; }
         const x = xOf(nt, t); nt.el.style.transform = `translateX(${x}px)`; if(!nt.done && x < targetX - tol) judge(nt, false); });
@@ -1118,7 +1157,14 @@ function seqGame(titleText, len, level){   // level: easy / normal / hard, how f
     function end(){ if(ended) return; ended = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
       const win = ok > len / 2; ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${win?'good':'bad'}">${win ? 'Success!' : 'Failed!'}</div>`);
       setTimeout(() => { ov.remove(); res(win); }, 750); }
-    raf = requestAnimationFrame(loop);
+    notes.forEach(nt => { nt.el.style.transform = `translateX(${W + 30}px)`; });
+    mgReady(ov, { kick:'Arrows', title:titleText, how:[
+        `Arrows slide in from the right toward the <b>gold ring</b>.`,
+        `When an arrow is inside the ring, press that <b>arrow key</b> (or tap its button below). <span class="mg-keys">${keys.map(k => `<i>${arw(k)}</i>`).join('')}</span>`,
+        `There are <b>${len} arrows</b>. Hit at least <b>${Math.floor(len/2)+1}</b> to succeed.`] },
+      () => { start = performance.now(); document.addEventListener('keydown', kd);
+        ov.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); press(b.dataset.k); }));
+        raf = requestAnimationFrame(loop); });
   });
 }
 
@@ -1156,9 +1202,15 @@ function needleGame(zone){
     const stop = () => { if(done || !ready) return;
       if(x >= left && x <= left + zone) finish(true); else miss(); };
     const kd = e => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); stop(); } };
-    // a short beat before the needle can be stopped, so a held key doesn't stop it at once
-    setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop; ov.querySelector('#nb').onclick = stop; }, 350);
-    raf = requestAnimationFrame(loop);
+    nd.style.left = '0%';
+    mgReady(ov, { kick:'The cover!', title:'Kick out!', how:[
+        `A needle swings back and forth. Press <b>Space</b> (or tap <b>STOP</b>) while it's in the <b style="color:var(--win)">green</b>.`,
+        `Every miss is a <b>count</b>, and so is waiting too long. Three counts and you're <b>pinned</b>.`,
+        `The green is ${Math.round(zone)}% wide right now. It gets smaller the more you're hurt, and the needle speeds up after each count.`] },
+      () => { last = performance.now(); deadline = last + win0 + 350;
+        // a short beat before the needle can be stopped, so the key from "ready" doesn't stop it at once
+        setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop; ov.querySelector('#nb').onclick = stop; }, 350);
+        raf = requestAnimationFrame(loop); });
   });
 }
 
