@@ -318,6 +318,16 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .cf.done{opacity:1;border-color:var(--win)}.cf.next{opacity:1;border-color:var(--gold);box-shadow:0 0 12px rgba(var(--gold-rgb),.6)}.cf.boss{border-style:double;border-width:4px}
 @media(max-width:760px){.foe2{grid-template-columns:1fr}.vsw{grid-template-columns:1fr}.towers{justify-content:flex-start}}
 .slot .sil,.res-win .sil,.res-lose .sil,.pimg .sil{position:absolute;inset:0}
+/* what a move does to the combo (Nov 14) */
+.mtag{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:4px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.3}
+.mtag.t-combo{background:rgba(46,204,113,.18);color:#5fe39a;border:1px solid rgba(46,204,113,.5)}
+.mtag.t-down{background:rgba(231,76,60,.2);color:#ff7a6b;border:1px solid rgba(231,76,60,.55)}
+.mtag.t-pos{background:rgba(52,152,219,.18);color:#79c3ff;border:1px solid rgba(52,152,219,.5)}
+.mtag.t-same{background:rgba(255,255,255,.07);color:var(--txt2);border:1px solid var(--line)}
+.combo-m{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:var(--txt2)}
+.combo-m i{width:22px;height:10px;border-radius:3px;background:rgba(255,255,255,.1);border:1px solid var(--line)}
+.combo-m i.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(var(--gold-rgb),.6)}
+.combo-m b{color:var(--txt)}.combo-m em{font-style:normal;color:var(--hot);margin-left:6px}
 
 </style>
 </head>
@@ -400,7 +410,7 @@ const DEFAULTS = {
     hp:100,
     neutral:{ slug:7, slugWinnerTakes:60, strikeFirst:7, blockMom:12, circleMom:5, winMom:10 },
     chain:{ rounds:3, techDmg:3, winMom:8 },
-    control:{ recoverBase:20, recoverStep:15 },
+    control:{ recoverBase:20, recoverStep:15, quickStep:8, maxCombo:5, healthResist:10 },
     reversal:{ slots:3, refillTurns:5, counterDmg:4, ai:{ easy:30, normal:45, hard:60 } },
     seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 } },   // levelSpeed: % arrow speed for each difficulty
     pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 } },
@@ -510,6 +520,26 @@ function loadCfg(){
   return out;
 }
 let CFG = loadCfg();
+
+/* ---------- combos: how likely the person being beaten up is to get back up ----------
+   n = attacks landed in a row (1 = the first), quick = a quick strike (keeps them in place),
+   hpFrac = their health 0..1. Healthy wrestlers fight back sooner, hurt ones later. */
+function recoverChance(n, quick, hpFrac){
+  const c = CFG.settings.control;
+  let p = quick ? (+c.recoverBase)/2 + (+c.quickStep || 0) * (n - 1) : (+c.recoverBase) + (+c.recoverStep) * (n - 1);
+  if(hpFrac !== undefined) p += (+c.healthResist || 0) * (hpFrac * 2 - 1);   // full health +X, empty -X
+  return Math.max(0, Math.min(100, Math.round(p)));
+}
+const maxCombo = () => Math.max(1, +CFG.settings.control.maxCombo || 5);
+/* what a move does to the combo, for the move buttons */
+function moveTag(m){
+  if(!m || ['pin','submission'].includes(m.kind)) return null;
+  if(['whip','climb','pickup'].includes(m.kind)) return m.to !== m.from ? { t:'Moves them: ' + POS[m.to].toLowerCase(), c:'pos' } : null;
+  if(m.to === 'ground' && m.from !== 'ground') return { t:'Knockdown · ends the combo', c:'down' };
+  if(m.to !== m.from) return { t:'Sends them ' + POS[m.to].toLowerCase(), c:'pos' };
+  if(m.keep) return { t:'Combo · keeps them ' + POS[m.to].toLowerCase(), c:'combo' };
+  return { t:'Stays ' + POS[m.to].toLowerCase() + ' · easier to escape', c:'same' };
+}
 function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }catch(e){} }
 window.addEventListener('storage', e => { if(e.key === CFG_KEY && !LIVE) CFG = loadCfg(); });   // the admin changed something in another tab
 
@@ -598,7 +628,7 @@ function makeFighter(name, opts){
 
 class Match {
   constructor(a, b, ui){ this.a = a; this.b = b; this.ui = ui || {}; this.turn = 0; this.over = false; this.winner = null; this.how = '';
-    this.stats = { abilities:{}, reversals:0, crashes:0, pins:0, subs:0, slugfests:0, tieups:0 }; this.pos = null; this.ctrl = null; this.chainN = 0; }
+    this.stats = { abilities:{}, reversals:0, crashes:0, pins:0, subs:0, slugfests:0, tieups:0 }; this.pos = null; this.ctrl = null; this.chainN = 0; this.combo = 0; }
   say(t, kind){ if(this.ui.say) this.ui.say(t, kind); }
   fx(kind, who, data){ if(this.ui.fx) this.ui.fx(kind, who, data); }
   async wait(ms){ if(this.ui.wait) await this.ui.wait(ms); }
@@ -716,7 +746,7 @@ class Match {
     }
     this.say('They break the hold and reset.', 'call');
   }
-  takeControl(f, pos, line){ this.ctrl = f; this.pos = pos; this.chainN = 0; if(line) this.say(line, 'call'); this.fx('control', f, { pos }); }
+  takeControl(f, pos, line){ this.ctrl = f; this.pos = pos; this.chainN = 0; this.combo = 0; if(line) this.say(line, 'call'); this.fx('control', f, { pos }); }
 
   /* ---- one wrestler on offense ---- */
   options(f){
@@ -732,7 +762,10 @@ class Match {
   async control(){
     const att = this.ctrl, def = this.other(att);
     if(att.stun){ att.stun = false; this.say(`${att.name} is stunned and loses control!`); this.ctrl = null; return; }
-    const pick = await att.brain.control(this, att, this.options(att));
+    // combo limit reached on the ground: one last chance, cover them, lock in a hold, or back off
+    let opts = this.options(att);
+    if((this.combo || 0) >= maxCombo()) opts = opts.filter(o => o.type === 'backoff' || (o.type === 'move' && ['pin','submission'].includes(o.move.kind)));
+    const pick = await att.brain.control(this, att, opts);
     if(!pick || pick.type === 'backoff'){ this.say(`${att.name} backs off. They circle again.`, 'call'); this.ctrl = null; return; }
     let move, kind = 'move';
     if(pick.type === 'sig' || pick.type === 'fin'){
@@ -765,7 +798,7 @@ class Match {
         this.stats.crashes++; this.say(`${def.name} rolls out of the way! ${att.name} crashes and burns!`, 'call');
         this.damage(def, att, (move.crash || 6) * (+att.st.highrisk >= 1.2 ? .7 : 1), { self:true, noScale:true });
         this.fire('crash', att); this.fire('dodge', def); this.fx('dodge', def);
-        this.ctrl = def; this.pos = 'ground'; this.chainN = 0; this.fx('control', def, { pos:'ground' });
+        this.ctrl = def; this.pos = 'ground'; this.chainN = 0; this.combo = 0; this.fx('control', def, { pos:'ground' });
       } else {
         this.say(`REVERSAL! ${def.name} counters the ${move.name}!`, 'call'); this.fx('reversal', def);
         this.fx('lunge', def); this.damage(def, att, CFG.settings.reversal.counterDmg * (1 + (+def.st.reversal || 0)/100), {});
@@ -787,11 +820,18 @@ class Match {
     this.pos = move.to;
     if(ctx.control){ return; }
     // does the defender recover and get back to their feet?
-    const c = CFG.settings.control;
-    const chance = move.keep ? c.recoverBase/2 : c.recoverBase + c.recoverStep * (this.chainN - 1);
+    // (Nov 14) every attack counts toward the combo. Quick strikes are hard to escape at first but get
+    // harder to keep up, healthier wrestlers fight back sooner, and a combo can never go past the limit.
+    this.combo = (this.combo || 0) + 1;
+    const chance = recoverChance(Math.max(this.combo, kind === 'move' && move.keep ? this.combo : this.chainN), kind === 'move' && move.keep, def.max ? def.hp / def.max : 1);
     if(def.hp > 0 && Math.random()*100 < chance && this.pos !== 'top'){
       this.say(`${def.name} fights back to their feet!`, 'call'); this.ctrl = null; this.pos = null; this.fx('recover', def);
-    } else this.fx('control', att, { pos:this.pos });
+    } else if(def.hp > 0 && this.combo >= maxCombo() && this.pos !== 'ground'){
+      this.say(`${def.name} breaks out of the combo!`, 'call'); this.ctrl = null; this.pos = null; this.fx('recover', def);
+    } else {
+      if(this.combo >= maxCombo()) this.say(`Combo maxed! ${att.name} has one last chance: cover or submission.`, 'call');
+      this.fx('control', att, { pos:this.pos });
+    }
   }
 
   async pin(att, def, move){
@@ -1320,7 +1360,7 @@ function moveset(){
       const count = moves.filter(m => !fixed(m) && chosen.has(m.id)).length;
       return `<section class="panel ms-pos"><div class="ms-h"><b class="f">${esc(POS[p])}</b><span class="muted">${count} / ${max}</span></div>
         <div class="ms-list">${moves.map(m => { const on = fixed(m) || chosen.has(m.id);
-          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}><b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}${m.rev?' · '+'◆'.repeat(m.rev)+' to reverse':''}</small></button>`; }).join('')}</div></section>`; }).join('')}</div>
+          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}><b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}${m.rev?' · '+'◆'.repeat(m.rev)+' to reverse':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(m))}</button>`; }).join('')}</div></section>`; }).join('')}</div>
     <div class="row" style="margin-top:16px"><button class="cta big-go" id="msGo">${S.quick ? 'Next: your opponent ▶' : 'Fight! ▶'}</button><button class="cta ghost" id="msDef">Use the default moves</button><button class="cta ghost" onclick="pickSel=S.me;S.pickFoe=false;go('pick')">Back</button></div>`;
     app.querySelectorAll('.mvpick:not(.fixed)').forEach(b => b.onclick = () => {
       const m = moveOf(b.dataset.m), here = CFG.moves.filter(x => x.from === m.from && !fixed(x) && chosen.has(x.id)).length;
@@ -1531,13 +1571,15 @@ function humanBrain(){
         if(o.type === 'sig') return `<button class="mvo sig ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.sigName)}</b><small>Signature · ${f.su.sigDmg} dmg</small></button>`;
         if(o.type === 'fin') return `<button class="mvo fin ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.finName)}</b><small>Finisher · ${f.su.finDmg} dmg</small></button>`;
         const mv = o.move;
-        return `<button class="mvo k-${mv.kind}" data-v='${JSON.stringify(i)}'><b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}${mv.to!==mv.from&&mv.dmg===0?' · '+esc(POS[mv.to].toLowerCase()):''}</small></button>`;
+        return `<button class="mvo k-${mv.kind}" data-v='${JSON.stringify(i)}'><b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(mv))}</button>`;
       };
       const s = CFG.settings, need = [];
       if(f.mom < s.mom.sigCost) need.push(`Signature at ${s.mom.sigCost} momentum (${POS[f.su.sigFrom].toLowerCase()})`);
       else if(f.su.sigFrom !== m.pos) need.push(`Signature is ready: get them ${POS[f.su.sigFrom].toLowerCase()}`);
       if(f.mom >= s.mom.finCost && f.su.finFrom !== m.pos) need.push(`Finisher is ready: get them ${POS[f.su.finFrom].toLowerCase()}`);
-      return choose(`<div class="mvgrid">${opts.map(btn).join('')}</div>${need.length ? `<div class="legend">${need.map(esc).join(' · ')}</div>` : ''}`).then(i => opts[i]);
+      const cmb = m.combo || 0, mx = maxCombo();
+      const meter = `<div class="combo-m"><span>Combo</span>${Array.from({length:mx}, (_, i) => `<i class="${i < cmb ? 'on' : ''}"></i>`).join('')}<b>${cmb}/${mx}</b>${cmb >= mx ? '<em>Last chance: cover them or lock in a hold!</em>' : ''}</div>`;
+      return choose(`${meter}<div class="mvgrid">${opts.map(btn).join('')}</div>${need.length ? `<div class="legend">${need.map(esc).join(' · ')}</div>` : ''}`).then(i => opts[i]);
     },
     async reversal(m, f, move, len, kind){
       const big = kind !== 'move' || move.kind === 'highrisk' || move.rev >= 2;
