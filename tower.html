@@ -616,6 +616,38 @@ body.fit #app h1.big{font-size:clamp(30px,5.2vh,64px) !important;margin:2px 0 8p
 #app[data-screen="battle"] > #ctl{flex:0 1 auto}
 #app[data-screen="battle"] > .log{flex:1 1 0}
 @media(max-width:900px){ #app[data-screen="battle"] .call .big{font-size:18px}#app[data-screen="battle"] .call .big.huge{font-size:22px} }
+/* character select in pages (Nov 14): small icons, no overlap, no scrolling */
+#app[data-screen="pick"] .pick-side{grid-template-columns:minmax(0,1fr) 360px}
+.pk{display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
+.pk-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pk-pg{font-family:var(--fight);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-size:15px}
+.pk-grid{flex:1;min-height:0;display:grid;gap:10px;align-content:start;justify-content:center;overflow:hidden}
+.pkc{display:flex;flex-direction:column;align-items:center;gap:3px;width:var(--tw);padding:0;border:0;background:none;color:var(--txt)}
+.pkf{width:var(--tw);height:var(--tw);overflow:hidden;display:grid;background:linear-gradient(160deg,#2a2a33,#0b0b0e);border:2px solid var(--line);border-radius:4px;transition:border-color .12s,transform .12s}
+.pkf img{width:100%;height:100%;object-fit:cover;object-position:center top}.pkf .sil{width:100%;height:100%}
+.pkc b{width:100%;font-size:15px;line-height:1.1;text-transform:uppercase;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkc small{width:100%;font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkc:hover .pkf{border-color:rgba(var(--gold-rgb),.6);transform:translateY(-2px)}
+.pkc.sel .pkf{border-color:var(--gold);box-shadow:0 0 16px rgba(var(--gold-rgb),.55)}
+.pk-nav{display:flex;align-items:center;justify-content:center;gap:16px}
+.pk-arr{position:static;width:48px;height:48px}.pk-arr svg{width:22px;height:22px}
+.pk-arr:disabled{opacity:.3;cursor:default}
+.pk-dots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+@media(max-width:900px){
+  #app[data-screen="pick"] .pick-side{grid-template-columns:minmax(0,1fr)}
+  .pkc b{font-size:12px}.pkc small{display:none}
+}
+body.fit #app[data-screen="pick"]{padding-left:max(18px,calc((100% - 1800px) / 2)) !important;padding-right:max(18px,calc((100% - 1800px) / 2)) !important}
+@media(max-width:900px){
+  #app[data-screen="pick"] .preview{max-height:none;padding:12px 14px}
+  #app[data-screen="pick"] .preview p,#app[data-screen="pick"] .preview .chips .blue{display:none}
+  #app[data-screen="pick"] .preview .chips{margin:6px 0 !important}
+  #app[data-screen="pick"] .preview .f{font-size:24px !important}
+  #app[data-screen="pick"] .preview .cta{margin-top:6px !important;padding:10px 18px;font-size:19px}
+  body.fit #app[data-screen="pick"] h1.big{font-size:28px !important;margin:0 0 4px}
+  .pk-arr{width:42px;height:42px}
+}
+.pkc b{font-size:14px;letter-spacing:.2px}
 
 </style>
 </head>
@@ -1687,19 +1719,41 @@ function titleClassic(){
 }
 
 /* ---------- character select ---------- */
-let pickSel = null, pickQ = '';
+let pickSel = null, pickQ = '', pickPage = 0;
+/* Nov 14: character select in pages. Small face icons in rows that fit the screen, ◀ ▶ to turn the page,
+   the big picture is in the preview on the right. No scrolling. */
 function pick(){
   const step2 = S.quick && S.pickFoe && S.me;
   if(!pickSel || !W(pickSel) || (step2 && pickSel === S.me)) pickSel = (ROSTER.find(w => w.name !== S.me) || ROSTER[0]).name;
-  const list = ROSTER.filter(w => (!pickQ || w.name.toLowerCase().includes(pickQ.toLowerCase())) && !(step2 && w.name === S.me));
-  const card = n => { const w = W(n), st = styleOf(setupOf(n).style); return `<button class="slot${n===pickSel?' sel':''}" data-n="${esc(n)}">${face(w)}${st.id!=='allround'?`<span class="st">${esc(st.name)}</span>`:''}<span class="nm">${esc(n)}${champOf(n).length?' (C)':''}</span></button>`; };
   app.innerHTML = `<div class="kick">${S.custom ? 'Customize your moves' : S.quick ? 'Quick match · ' + esc(S.qdiff) : esc(TW().name) + ' tower'}${S.custom ? '' : ' · step ' + (step2 ? 2 : 1)}</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">${step2 ? 'Choose the opponent' : 'Choose your wrestler'}</h1>
-  <input class="search" id="q" placeholder="Find a wrestler" value="${esc(pickQ)}">
-  <div class="pick-side"><div class="roster">${list.map(w => card(w.name)).join('')}</div><aside class="panel preview" id="pv"></aside></div>`;
-  const q = document.getElementById('q'); q.oninput = () => { pickQ = q.value; const p = q.selectionStart; pick(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(p,p); };
-  app.querySelectorAll('.slot').forEach(b => { b.onclick = () => { pickSel = b.dataset.n; drawPv(); app.querySelectorAll('.slot').forEach(x => x.classList.toggle('sel', x === b)); }; });
-  drawPv();
+  <div class="pick-side"><div class="pk"><div class="pk-top"><input class="search" id="q" placeholder="Find a wrestler" value="${esc(pickQ)}"><span class="pk-pg" id="pkPg"></span></div>
+      <div class="pk-grid" id="pkGrid"></div>
+      <div class="pk-nav"><button class="t2-arr pk-arr" id="pkPrev" aria-label="Previous page">${ARW_L}</button><span class="pk-dots" id="pkDots"></span><button class="t2-arr pk-arr" id="pkNext" aria-label="Next page">${ARW_R}</button></div></div>
+    <aside class="panel preview" id="pv"></aside></div>`;
+  const q = document.getElementById('q'); q.oninput = () => { pickQ = q.value; pickPage = 0; pkDraw(); };
+  document.getElementById('pkPrev').onclick = () => { pickPage--; pkDraw(); };
+  document.getElementById('pkNext').onclick = () => { pickPage++; pkDraw(); };
+  pkDraw(true); drawPv();
+  try{ const g = document.getElementById('pkGrid'); if(window.ResizeObserver) new ResizeObserver(() => pkDraw()).observe(g); }catch(e){}
 }
+function pkList(){ const step2 = S.quick && S.pickFoe && S.me; return ROSTER.filter(w => (!pickQ || w.name.toLowerCase().includes(pickQ.toLowerCase())) && !(step2 && w.name === S.me)); }
+// how many icons fit: as many columns and rows as the box allows
+function pkDraw(jump){ const g = document.getElementById('pkGrid'); if(!g) return;
+  const phone = window.innerWidth <= 900, list = pkList(), tw = window.innerWidth <= 640 ? 74 : 118, th = tw + (phone ? 22 : 40), gap = 10;
+  const cols = Math.max(2, Math.floor((g.clientWidth + gap) / (tw + gap))), rows = Math.max(1, Math.floor((g.clientHeight + gap) / (th + gap))), per = cols * rows;
+  const pages = Math.max(1, Math.ceil(list.length / per));
+  if(jump){ const i = list.findIndex(w => w.name === pickSel); if(i >= 0) pickPage = Math.floor(i / per); }   // open on the page with the picked wrestler
+  pickPage = Math.max(0, Math.min(pages - 1, pickPage));
+  g.style.setProperty('--tw', tw + 'px'); g.style.gridTemplateColumns = `repeat(${cols}, ${tw}px)`;
+  g.innerHTML = list.slice(pickPage * per, pickPage * per + per).map(w => { const n = w.name, st = styleOf(setupOf(n).style);
+    return `<button class="pkc${n === pickSel ? ' sel' : ''}" data-n="${esc(n)}" title="${esc(n)}"><span class="pkf">${face(w)}</span><b class="f">${esc(n)}${champOf(n).length ? ' (C)' : ''}</b><small>${esc(st.name)}</small></button>`; }).join('')
+    || '<p class="muted">Nobody by that name.</p>';
+  g.querySelectorAll('.pkc').forEach(b => b.onclick = () => { pickSel = b.dataset.n; g.querySelectorAll('.pkc').forEach(x => x.classList.toggle('sel', x === b)); drawPv(); });
+  document.getElementById('pkPg').textContent = pages > 1 ? `Page ${pickPage + 1} of ${pages}` : `${list.length} wrestlers`;
+  document.getElementById('pkDots').innerHTML = pages > 1 && pages <= 10 ? Array.from({ length:pages }, (_, i) => `<button class="t2-dot${i === pickPage ? ' on' : ''}" style="--c:var(--gold)" data-p="${i}" aria-label="Page ${i + 1}"></button>`).join('') : '';
+  document.querySelectorAll('#pkDots [data-p]').forEach(b => b.onclick = () => { pickPage = +b.dataset.p; pkDraw(); });
+  document.getElementById('pkPrev').disabled = pickPage <= 0; document.getElementById('pkNext').disabled = pickPage >= pages - 1;
+  const pv = document.querySelector('.pk-nav'); if(pv) pv.style.visibility = pages > 1 ? '' : 'hidden'; }
 function abilList(n){ const su = setupOf(n), st = styleOf(su.style); return [st.trait].concat(su.abilities).filter(Boolean).map(abilityOf).filter(Boolean); }
 function drawPv(){
   const pv = document.getElementById('pv'); if(!pv || !pickSel) return;
@@ -2071,6 +2125,7 @@ document.addEventListener('keydown', e => { if(e.target && /INPUT|SELECT|TEXTARE
   if(S.screen === 'title' && titleMenu === 'tower'){
     if(e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); t2Turn(e.key === 'ArrowLeft' ? -1 : 1); }
     else if(e.key === 'Enter' && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); t2Go(); } }
+  else if(S.screen === 'pick' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){ e.preventDefault(); pickPage += e.key === 'ArrowLeft' ? -1 : 1; pkDraw(); }
   else if(S.screen === 'climb' && e.key === 'Enter' && CL && CL.ready && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); clFight(); } });
 
 /* ---------- the title screen ---------- */
