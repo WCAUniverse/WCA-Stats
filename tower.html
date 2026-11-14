@@ -350,12 +350,15 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .msbar{position:sticky;top:78px;z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;margin:0 0 14px;background:rgba(10,10,14,.92);backdrop-filter:blur(8px);border:1px solid rgba(var(--gold-rgb),.4);border-radius:10px}
 .msbar .f{font-size:24px}.msbar .sp{flex:1}.msbar .cta{padding:10px 22px;font-size:18px}
 
+/* the Crowd on/off button (Nov 14) */
+.tbtn.off{color:var(--muted)}
+
 </style>
 </head>
 <body>
 <div class="top"><span class="f title chrome">Tower of Champions</span><span class="chip"><span>Practice</span></span><span class="sp"></span>
   <div class="wallet" title="Practice money, only in this browser"><span class="coin">$</span><span><b id="wAmt">$0</b><small id="wSub">today</small></span></div>
-  <button class="tbtn" type="button" id="muteBtn" onclick="toggleMute()" title="Crowd, effects and narrator">Sound on</button><button class="tbtn" type="button" onclick="go('title')">Menu</button><a class="tbtn" href="tower-admin.html" target="_blank" rel="noopener">Admin</a></div>
+  <button class="tbtn" type="button" id="muteBtn" onclick="toggleMute()" title="Crowd, effects and narrator">Sound on</button><button class="tbtn" type="button" id="crowdBtn" onclick="toggleCrowd()" title="Just the constant crowd noise. The narrator, cheers and boos still play.">Crowd on</button><button class="tbtn" type="button" onclick="go('title')">Menu</button><a class="tbtn" href="tower-admin.html" target="_blank" rel="noopener">Admin</a></div>
 <main class="wrap" id="app"></main>
 <script>
 /* =====================================================================
@@ -1157,16 +1160,22 @@ const SND = {
     const a = new Audio(this.url(f)); a.volume = this.vol(f, 'voice'); a.onended = next; a.onerror = next; a.play().catch(next); this.voice = a; },
   // the next line waiting in line (lines that waited more than 4 seconds are too late, so they're dropped)
   next(){ if(this.talking()) return; while(this.q.length){ const n = this.q.shift(); if(Date.now() - n.at < 4000 && this.on()){ this.say(n.id, n.pri, true); return; } } },
-  crowdStart(){ if(!this.on()) return; const f = this.pick('crowd-loop'); this.crowdStop();
+  // crowdMuted (Nov 14): the player turned off just the crowd loop. wantLoop = a match is on, so turning it back on starts it again.
+  crowdMuted:false, wantLoop:false,
+  crowdStart(){ if(!this.on()) return; const f = this.pick('crowd-loop'); this.crowdStop(); this.wantLoop = true; if(this.crowdMuted) return;
     if(!f){ if(this.cfg().placeholders) SYN.crowd(this.vol(null, 'crowd')); return; }
     const a = new Audio(this.url(f)); a.loop = true; a.volume = this.vol(f, 'crowd'); a.dataset.file = f; a.play().catch(() => {}); this.loop = a; },
-  crowdStop(){ if(this.loop){ this.loop.pause(); this.loop = null; } clearInterval(this.sw); SYN.crowdOff(); },
+  crowdStop(){ this.wantLoop = false; if(this.loop){ this.loop.pause(); this.loop = null; } clearInterval(this.sw); SYN.crowdOff(); },
+  // the player's Crowd button: off stops the loop right away, on brings it back if a match is going
+  setCrowd(muted){ this.crowdMuted = muted; const want = this.wantLoop;
+    if(muted){ if(this.loop){ this.loop.pause(); this.loop = null; } clearInterval(this.sw); SYN.crowdOff(); }
+    else if(want && !this.loop) this.crowdStart(); },
   // the crowd swells for a moment, then settles back to the loop level
   swell(id){ if(!this.on()) return; this.play(id, 'cheer'); SYN.swell();
     const a = this.loop; if(!a) return; const base = this.vol(a.dataset.file, 'crowd'), top = Math.min(1, base * 1.8 + .1); a.volume = top;
     clearInterval(this.sw); this.sw = setInterval(() => { if(!this.loop){ clearInterval(this.sw); return; } a.volume = Math.max(base, a.volume - .02); if(a.volume <= base) clearInterval(this.sw); }, 80); }
 };
-try{ SND.muted = localStorage.getItem('wcaTowerMute') === '1'; }catch(e){}
+try{ SND.muted = localStorage.getItem('wcaTowerMute') === '1'; SND.crowdMuted = localStorage.getItem('wcaTowerMuteCrowd') === '1'; }catch(e){}
 
 /* =====================================================================
    PLACEHOLDER SOUNDS: made on the spot by the browser, used for any file
@@ -1371,7 +1380,10 @@ async function beginClimb(){
 function pay(n){ const w = wallet(), got = Math.min(Math.max(0, CFG.settings.dailyCap - w.earned), n); w.earned += got; w.total += got; saveWallet(w); return got; }
 
 function toggleMute(){ SND.muted = !SND.muted; try{ localStorage.setItem('wcaTowerMute', SND.muted ? '1' : '0'); }catch(e){} if(SND.muted) SND.crowdStop(); drawMute(); }
-function drawMute(){ const b = document.getElementById('muteBtn'); if(b) b.textContent = SND.muted ? 'Sound off' : 'Sound on'; }
+function drawMute(){ const b = document.getElementById('muteBtn'); if(b) b.textContent = SND.muted ? 'Sound off' : 'Sound on';
+  const c = document.getElementById('crowdBtn'); if(c){ c.textContent = SND.crowdMuted ? 'Crowd off' : 'Crowd on'; c.classList.toggle('off', SND.crowdMuted); c.style.display = SND.muted ? 'none' : ''; } }
+/* Nov 14: players can turn off just the constant crowd loop. Narrator, cheers, boos and hits still play. Remembered in this browser. */
+function toggleCrowd(){ SND.setCrowd(!SND.crowdMuted); try{ localStorage.setItem('wcaTowerMuteCrowd', SND.crowdMuted ? '1' : '0'); }catch(e){} drawMute(); }
 function go(screen){ if(screen !== 'battle') SND.crowdStop(); S.screen = screen; window.scrollTo(0,0); CFG = loadCfg(); render(); }
 function render(){ ({ title, pick, moveset, foe, vs, tower:towerScreen, battle:battleScreen, result }[S.screen] || title)(); drawWallet(); drawMute(); }
 
