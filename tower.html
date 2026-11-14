@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tower of Champions | WCA Universe</title>
+<!-- Tower of Champions (practice version, Nov 2026). The game.
+     Reads the roster and champions from the website; never writes to it.
+     Settings are shared between tower.html and tower-admin.html in this browser. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<style>
+:root{
+  --bg:#0b0b0e; --panel:#141418; --panel2:#1c1c22; --line:#2c2c34;
+  --gold:#E9B949; --gold-rgb:233,185,73; --on-gold:#15120a;
+  --hot:#E24B4A; --win:#3ECF8E; --blue:#5FB4FF; --bet:#3EF0A0;
+  --txt:#f4f4f2; --txt2:#d0cec8; --muted:#8c8c94;
+  --fight:'Barlow Condensed', 'Arial Narrow', sans-serif; --body:'Barlow', system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(1200px 600px at 50% -10%,rgba(var(--gold-rgb),.12),transparent 60%),radial-gradient(900px 500px at 50% 120%,rgba(226,75,74,.14),transparent 60%),var(--bg);
+  background-attachment:fixed;color:var(--txt);font-family:var(--body);font-size:17px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;font-size:16px;color:var(--txt);background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.f{font-family:var(--fight);font-style:italic;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+.chrome{background:linear-gradient(180deg,#fff 0%,#dfe3ea 45%,#8d94a4 56%,#f0f2f6 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kick{font-family:var(--fight);font-weight:700;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+.muted{color:var(--muted)}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:10px 18px;background:linear-gradient(180deg,rgba(0,0,0,.92),rgba(0,0,0,.75));border-bottom:1px solid rgba(var(--gold-rgb),.3);backdrop-filter:blur(8px)}
+.top .title{font-size:26px}
+.top .sp{flex:1}
+.tbtn{padding:9px 16px;background:rgba(0,0,0,.6);border:1px solid var(--line);font-family:var(--fight);font-style:italic;font-weight:800;font-size:17px;letter-spacing:1px;text-transform:uppercase;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);text-decoration:none;color:var(--txt)}
+.tbtn:hover{border-color:var(--gold);color:var(--gold)}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 18px 80px}
+.panel{position:relative;background:linear-gradient(160deg,rgba(26,26,32,.94),rgba(10,10,14,.94));border:1px solid var(--line);border-radius:4px;padding:22px}
+.panel::before{content:"";position:absolute;left:0;top:0;width:120px;height:3px;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+.cta{display:inline-flex;align-items:center;gap:10px;padding:13px 28px;border:0;background:var(--gold);color:var(--on-gold);font-family:var(--fight);font-style:italic;font-weight:900;font-size:21px;letter-spacing:1.5px;text-transform:uppercase;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.cta:hover{filter:brightness(1.1)}
+.cta.ghost{background:rgba(255,255,255,.08);color:var(--txt)}
+.cta:disabled{opacity:.4;cursor:not-allowed}
+h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
+.note{color:var(--txt2);line-height:1.55;max-width:72ch}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:4px 11px;font-family:var(--fight);font-weight:700;font-size:15px;letter-spacing:.5px;text-transform:uppercase;border:1px solid var(--line);background:rgba(255,255,255,.04);transform:skewX(-10deg);display:inline-block}
+.chip > span{display:inline-block;transform:skewX(10deg)}
+.chip.gold{background:var(--gold);color:var(--on-gold);border-color:transparent}
+.chip.blue{border-color:rgba(95,180,255,.5);color:var(--blue)}
+.chip.red{border-color:rgba(226,75,74,.6);color:#ff8f8e}
+.ini{display:grid;place-items:center;font-family:var(--fight);font-weight:900;font-style:italic;color:rgba(255,255,255,.35)}
+.mini{padding:6px 12px;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:6px;font-size:15px}
+.mini:hover{border-color:var(--gold)}
+.mini.del{border-color:rgba(226,75,74,.5);color:#ff8f8e}
+.saved{color:var(--win);font-weight:600;font-size:15px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.wallet{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 8px;background:rgba(0,0,0,.6);border:1px solid var(--line);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+.wallet .coin{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--on-gold);font-weight:800}
+.wallet b{font-family:var(--fight);font-style:italic;font-size:22px;font-variant-numeric:tabular-nums;line-height:1}
+.wallet small{display:block;font-size:13px;color:var(--muted)}
+.modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:22px}
+.mode{text-align:left;padding:22px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel2),var(--panel));border-radius:4px;position:relative;overflow:hidden;transition:transform .15s,border-color .15s}
+.mode:hover{transform:translateY(-3px);border-color:var(--c,var(--gold))}
+.mode::after{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--c,var(--gold))}
+.mode b{display:block;font-family:var(--fight);font-style:italic;font-weight:900;font-size:34px;text-transform:uppercase;line-height:1}
+.mode span{display:block;color:var(--txt2);margin-top:6px;font-size:16px;line-height:1.4}
+.mode .rw{margin-top:10px;font-family:var(--fight);font-weight:800;font-size:17px;color:var(--bet)}
+.howto{margin-top:22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.howto div{padding:14px 16px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:4px;line-height:1.45;color:var(--txt2)}
+.howto b{color:var(--txt);font-family:var(--fight);font-style:italic;font-size:19px;text-transform:uppercase;display:block}
+.search{width:100%;max-width:360px}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px}
+.slot{position:relative;aspect-ratio:3/4;border:0;padding:0;overflow:hidden;background:linear-gradient(160deg,#2a2a33,#0b0b0e);clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);transition:transform .12s,filter .12s;filter:saturate(.85) brightness(.85)}
+.slot:hover,.slot:focus-visible,.slot.sel{filter:none;transform:scale(1.04)}
+.slot.sel{outline:3px solid var(--gold);outline-offset:-3px}
+.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
+.slot .ini{position:absolute;inset:0;font-size:44px}
+.slot .nm{position:absolute;left:0;right:0;bottom:0;padding:22px 14px 8px;background:linear-gradient(0deg,rgba(0,0,0,.92),transparent);font-family:var(--fight);font-style:italic;font-weight:900;font-size:17px;text-transform:uppercase;text-align:center;line-height:1.05}
+.slot .st{position:absolute;top:6px;left:14%;font-family:var(--fight);font-weight:800;font-size:12px;letter-spacing:1px;padding:2px 7px;background:rgba(0,0,0,.7);color:var(--gold);text-transform:uppercase}
+.pick-side{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+.preview{position:sticky;top:80px}
+.preview .ph{aspect-ratio:1/1;max-height:300px;width:100%;overflow:hidden;background:#0b0b0e;margin:-6px 0 12px;display:grid}
+.preview .ph img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.preview .ph .ini{font-size:90px}
+/* moveset */
+.ms{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:16px}
+.ms-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.ms-h b{font-size:24px}
+.ms-list{display:grid;gap:6px}
+.mvpick{display:block;text-align:left;padding:9px 12px;border:1px solid var(--line);background:rgba(0,0,0,.35);border-radius:6px}
+.mvpick b{display:block;font-size:17px}.mvpick small{color:var(--muted);font-size:14px}
+.mvpick.on{border-color:var(--gold);background:rgba(var(--gold-rgb),.12)}
+.mvpick.on b::before{content:"✓ ";color:var(--gold)}
+.mvpick.fixed{opacity:.6;cursor:default}
+/* tower */
+.tower{display:flex;flex-direction:column-reverse;gap:8px;margin-top:16px}
+.floor{display:grid;grid-template-columns:80px 64px minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 16px;border:1px solid var(--line);background:rgba(0,0,0,.45);border-radius:4px}
+.floor .no{font-family:var(--fight);font-style:italic;font-weight:900;font-size:24px;color:var(--muted)}
+.floor .fc{width:64px;height:64px;overflow:hidden;background:#0b0b0e;clip-path:polygon(14% 0,100% 0,86% 100%,0 100%);display:grid}
+.floor .fc img{width:100%;height:100%;object-fit:cover;object-position:center top}.floor .fc .ini{font-size:22px}
+.floor b{font-family:var(--fight);font-style:italic;font-weight:900;font-size:22px;text-transform:uppercase}
+.floor small{display:block;color:var(--txt2);font-size:15px}
+.floor.done{opacity:.55}.floor.done .no{color:var(--win)}
+.floor.next{border-color:var(--gold);box-shadow:0 0 18px rgba(var(--gold-rgb),.25)}.floor.next .no{color:var(--gold)}
+.floor.boss{background:linear-gradient(90deg,rgba(var(--gold-rgb),.18),rgba(0,0,0,.5))}.floor.boss .no{color:var(--gold)}
+/* fight */
+.arena{position:relative;display:grid;grid-template-columns:1fr minmax(160px,auto) 1fr;gap:16px;align-items:end}
+.fighter{position:relative;display:flex;flex-direction:column;gap:6px}
+.fighter.r{align-items:flex-end;text-align:right}
+.fighter.r .chips{justify-content:flex-end}
+.portrait{position:relative;width:min(100%,290px);aspect-ratio:1/1;clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);transition:filter .2s}
+.pimg{position:absolute;inset:0;background:linear-gradient(160deg,#2a2a33,#0b0b0e);display:grid}
+.pimg img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.pimg .ini{font-size:90px}
+.fighter.r .pimg img{transform:scaleX(-1)}
+.tint{position:absolute;inset:0;background:#ff1e1e;mix-blend-mode:multiply;opacity:0;pointer-events:none}
+.portrait.stun{filter:grayscale(.85) brightness(.6)}
+.fighter .nm{font-size:clamp(24px,3vw,40px);line-height:1}
+.bar{position:relative;width:min(100%,340px);height:20px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);transform:skewX(-18deg);overflow:hidden}
+.bar span{position:absolute;top:0;bottom:0;transition:width .35s ease}
+.fighter.l .bar span{left:0}.fighter.r .bar span{right:0}
+.bar.hp span{background:linear-gradient(90deg,#c2412f,#f5c24a 60%,#3ECF8E)}
+.fighter.r .bar.hp span{background:linear-gradient(270deg,#c2412f,#f5c24a 60%,#3ECF8E)}
+.bar.mo{height:11px}.bar.mo span{background:var(--blue);box-shadow:0 0 10px var(--blue)}
+.bar .tick{position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(255,255,255,.5)}
+.barlbl{font-family:var(--fight);font-weight:700;font-size:15px;letter-spacing:1px;color:var(--txt2);text-transform:uppercase}
+.barlbl b{color:var(--txt)}
+.revs{display:inline-flex;gap:4px;vertical-align:middle;margin-left:6px}
+.revs i{width:14px;height:14px;transform:skewX(-14deg);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25)}
+.revs i.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(var(--gold-rgb),.6)}
+.mid{align-self:center;text-align:center}
+.stage{font-size:clamp(26px,3vw,40px);line-height:1;color:var(--gold);text-shadow:0 0 24px rgba(var(--gold-rgb),.5)}
+.stage-sub{color:var(--txt2);margin-top:6px;font-size:16px}
+/* the animations */
+.lungeL{animation:lungeL .32s ease-out}.lungeR{animation:lungeR .32s ease-out}
+@keyframes lungeL{0%{transform:none}40%{transform:translateX(26%) scale(1.06) rotate(3deg)}100%{transform:none}}
+@keyframes lungeR{0%{transform:none}40%{transform:translateX(-26%) scale(1.06) rotate(-3deg)}100%{transform:none}}
+.hit{animation:shake .4s}.hit .tint{animation:tint .55s}
+.hitbig{animation:shakeBig .6s}.hitbig .tint{animation:tint .9s}
+@keyframes tint{0%{opacity:.75}100%{opacity:0}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-12px) rotate(-2deg)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(4px)}}
+@keyframes shakeBig{0%,100%{transform:none}15%{transform:translate(-20px,6px) rotate(-5deg)}35%{transform:translate(16px,-4px) rotate(4deg)}55%{transform:translate(-10px,3px)}75%{transform:translate(6px,0)}}
+.healfx{animation:heal .6s}@keyframes heal{0%{filter:brightness(1.8) hue-rotate(80deg)}100%{filter:none}}
+.blockfx{animation:block .5s}@keyframes block{0%{filter:brightness(1.6) drop-shadow(0 0 0 #5FB4FF)}100%{filter:none}}
+.windup{animation:windup .45s}@keyframes windup{0%{transform:none}50%{transform:scale(1.08) translateY(-6px)}100%{transform:none}}
+.abilityfx{animation:abil .6s}@keyframes abil{0%{filter:drop-shadow(0 0 0 #5FB4FF) brightness(1.6)}100%{filter:none}}
+.pushL{animation:pushL .7s ease-in-out}.pushR{animation:pushR .7s ease-in-out}
+@keyframes pushL{0%,100%{transform:none}30%,70%{transform:translateX(18%) rotate(4deg)}50%{transform:translateX(12%) rotate(2deg)}}
+@keyframes pushR{0%,100%{transform:none}30%,70%{transform:translateX(-18%) rotate(-4deg)}50%{transform:translateX(-12%) rotate(-2deg)}}
+.sway{animation:sway .9s ease-in-out}@keyframes sway{0%,100%{transform:none}50%{transform:translateY(-6px) rotate(1.5deg)}}
+.quake{animation:quake .5s}@keyframes quake{0%,100%{transform:none}25%{transform:translateY(4px)}50%{transform:translateY(-3px)}75%{transform:translateY(2px)}}
+.flashbig{animation:fbig .4s}@keyframes fbig{0%{filter:brightness(2)}100%{filter:none}}
+.dmg{position:absolute;top:22%;left:50%;transform:translateX(-50%);font-family:var(--fight);font-style:italic;font-weight:900;font-size:58px;color:#fff;text-shadow:0 0 18px var(--hot),0 4px 0 #000;animation:float 1s ease-out forwards;pointer-events:none;z-index:5;white-space:nowrap}
+.dmg.heal{text-shadow:0 0 18px var(--win),0 4px 0 #000}.dmg.crash{color:#ffd0d0}.dmg.block{font-size:36px;text-shadow:0 0 18px var(--blue),0 3px 0 #000}
+@keyframes float{from{opacity:1;transform:translate(-50%,0) scale(1.2)}to{opacity:0;transform:translate(-50%,-70px) scale(.9)}}
+.call{min-height:92px;margin:14px 0;padding:14px 18px;text-align:center}
+.call .big{font-size:clamp(22px,3vw,34px);line-height:1.05}
+.call .big.huge{font-size:clamp(30px,4.4vw,52px);color:var(--gold)}
+.ab-pop{display:inline-block;margin:8px 4px 0;padding:4px 12px;background:var(--blue);color:#04121f;font-family:var(--fight);font-style:italic;font-weight:900;font-size:17px;text-transform:uppercase;letter-spacing:1px;transform:skewX(-10deg)}
+.moves{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mv{padding:18px 10px;border:0;font-family:var(--fight);font-style:italic;font-weight:900;font-size:clamp(22px,2.6vw,30px);text-transform:uppercase;letter-spacing:1px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:transform .1s,filter .1s;color:#fff}
+.mv small{display:block;font-family:var(--body);font-style:normal;font-weight:600;font-size:14px;letter-spacing:0;text-transform:none;opacity:.9;margin-top:2px}
+.mv:hover{transform:translateY(-2px);filter:brightness(1.12)}
+.mv.s{background:#c2412f}.mv.g{background:#2f6fc2}.mv.b{background:#3a3a44}
+.mvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.mvo{text-align:left;padding:12px 14px;border:0;border-left:4px solid #666;background:rgba(255,255,255,.06);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);transition:transform .1s,background .1s}
+.mvo:hover{transform:translateY(-2px);background:rgba(255,255,255,.12)}
+.mvo b{display:block;font-family:var(--fight);font-style:italic;font-weight:900;font-size:21px;text-transform:uppercase;line-height:1.05}
+.mvo small{display:block;color:var(--txt2);font-size:14px;margin-top:3px}
+.mvo.k-strike{border-left-color:#c2412f}.mvo.k-grapple{border-left-color:#2f6fc2}.mvo.k-highrisk{border-left-color:#ff8f3a;background:rgba(255,143,58,.1)}
+.mvo.k-submission{border-left-color:#b07cff}.mvo.k-pin{border-left-color:var(--bet);background:rgba(62,240,160,.1)}
+.mvo.k-whip,.mvo.k-climb,.mvo.k-pickup{border-left-color:#888}
+.mvo.sig{background:linear-gradient(90deg,#5FB4FF,#9ad0ff);color:#04121f}.mvo.sig small{color:#04121f}
+.mvo.fin{background:linear-gradient(90deg,var(--gold),#ffe29a);color:var(--on-gold)}.mvo.fin small{color:var(--on-gold)}
+.mvo.back{border-left-color:#555;opacity:.8}
+.ready{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 4px rgba(255,255,255,.3))}50%{filter:drop-shadow(0 0 16px rgba(255,255,255,.9))}}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:10px;font-size:15px;color:var(--muted)}
+.waiting{text-align:center;color:var(--muted);padding:20px;font-size:22px}
+.incoming{text-align:center;padding:10px}.incoming .big{font-size:clamp(24px,3.4vw,38px);color:var(--hot)}
+.log{max-height:170px;overflow-y:auto;margin-top:12px;padding:10px 14px;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:4px;font-size:15px;line-height:1.55;color:var(--txt2)}
+.log .l-ability{color:var(--blue)}.log .l-big,.log .l-bighit{color:var(--gold);font-weight:600}.log .l-call{color:var(--txt)}
+/* mini games */
+.mg{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.72);backdrop-filter:blur(3px);padding:16px}
+.mg-box{width:min(760px,100%);padding:22px;text-align:center;background:linear-gradient(160deg,#1c1c24,#0b0b0f);border:1px solid rgba(var(--gold-rgb),.5);box-shadow:0 0 40px rgba(var(--gold-rgb),.25)}
+.mg-t{font-size:clamp(28px,4vw,46px);margin:4px 0 14px}
+.lane{position:relative;height:84px;background:rgba(0,0,0,.5);border:1px solid var(--line);overflow:hidden;border-radius:6px}
+.target{position:absolute;left:16%;top:50%;width:74px;height:74px;transform:translate(-50%,-50%);border:4px solid var(--gold);border-radius:50%;box-shadow:0 0 18px rgba(var(--gold-rgb),.6),inset 0 0 14px rgba(var(--gold-rgb),.3)}
+.lnote{position:absolute;left:0;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;display:grid;place-items:center;font-size:36px;font-weight:900;color:#04121f;background:#fff;border-radius:12px;will-change:transform;transition:opacity .25s}
+.lnote.hitn{background:var(--win);box-shadow:0 0 20px var(--win)}.lnote.missn{background:var(--hot);color:#fff}.lnote.gone{opacity:0}
+.mg-score{display:flex;justify-content:center;gap:24px;margin:10px 0;font-family:var(--fight);font-weight:800;font-size:20px}
+.mg-score .ok{color:var(--win)}.mg-score .no{color:var(--hot)}
+.pads{display:grid;grid-template-columns:repeat(4,minmax(0,90px));gap:10px;justify-content:center}
+.pad{height:72px;font-size:38px;font-weight:900;border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:10px;touch-action:manipulation}
+.pad.pressed{animation:press .2s}@keyframes press{0%{background:var(--gold);color:#000}100%{background:rgba(255,255,255,.08)}}
+.mg-res{font-size:44px;margin-top:10px}.mg-res.good{color:var(--win)}.mg-res.bad{color:var(--hot)}
+.needlebar{position:relative;height:56px;background:linear-gradient(90deg,#3a1414,#1a1a1a 50%,#3a1414);border:1px solid var(--line);border-radius:6px;cursor:pointer;overflow:hidden}
+.needlebar .green{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,#46f0a0,#1fa86a);box-shadow:0 0 18px rgba(62,240,160,.6)}
+.needle{position:absolute;top:-6px;bottom:-6px;width:6px;margin-left:-3px;background:#fff;box-shadow:0 0 10px #fff}
+@media(max-width:900px){
+  .modes,.howto{grid-template-columns:1fr}
+  .pick-side{grid-template-columns:1fr}.preview{position:static}
+  .arena{grid-template-columns:1fr 1fr}.mid{grid-column:1/-1;order:-1}
+  .portrait{width:100%}
+  .floor{grid-template-columns:56px 52px minmax(0,1fr)}.floor .floor-r{grid-column:1/-1}.floor .fc{width:52px;height:52px}
+  .ms{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .top{flex-wrap:wrap;gap:8px;padding:8px 12px}.top .title{font-size:20px}.top .chip,.top .sp{display:none}
+  .wallet{order:3;flex:1 1 100%;justify-content:center}.wallet small{display:inline;margin-left:6px}
+  .tbtn{font-size:15px;padding:7px 12px}
+  .mv{font-size:19px;padding:14px 6px}.mv small{font-size:12.5px}.moves{gap:8px}
+  .mvgrid{grid-template-columns:1fr 1fr}.mvo b{font-size:17px}
+  .fighter .nm{font-size:22px}.barlbl{font-size:13px}
+  h1.big{font-size:40px !important}
+  .pads{grid-template-columns:repeat(4,1fr)}
+}
+
+/* title: custom towers and the quick match difficulty (Nov 2026) */
+.modes{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.mode .lvl{display:inline-block;margin-top:6px;font-family:var(--fight);font-weight:800;font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:var(--c)}
+.quick{margin-top:16px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.quick b{display:block;font-size:28px}
+.quick .muted{font-size:16px}
+.qbtn{padding:11px 26px;border:1px solid var(--c);background:rgba(0,0,0,.4);color:var(--c);font-family:var(--fight);font-style:italic;font-weight:900;font-size:21px;letter-spacing:1.5px;text-transform:uppercase;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+.qbtn:hover{background:var(--c);color:#111}
+/* the result: the winner's picture stays up */
+.result{display:grid;grid-template-columns:minmax(220px,380px) minmax(0,1fr);gap:28px;align-items:center;padding:28px}
+.res-pics{position:relative;aspect-ratio:3/4}
+.res-win{position:absolute;inset:0;overflow:hidden;background:linear-gradient(160deg,#2a2a33,#0b0b0e);clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);display:grid;box-shadow:0 0 40px rgba(var(--gold-rgb),.35)}
+.res-win img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.res-win .ini{font-size:120px}
+.res-tag{position:absolute;left:10%;bottom:14px;padding:4px 14px;background:var(--gold);color:var(--on-gold);font-size:22px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.result.lost .res-tag{background:var(--hot);color:#fff}
+.res-lose{position:absolute;right:-14px;bottom:-14px;width:34%;aspect-ratio:1/1;overflow:hidden;background:#0b0b0e;border:2px solid var(--line);filter:grayscale(1) brightness(.6);display:grid}
+.res-lose img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.res-lose .ini{font-size:40px}
+.res-body{text-align:left}
+.res-note{margin:8px 0 0}
+.res-btns{margin-top:18px}
+@media(max-width:760px){.result{grid-template-columns:1fr}.res-pics{max-width:300px;margin:0 auto;width:100%}.res-body{text-align:center}.res-btns{justify-content:center}.res-note{margin:8px auto 0}}
+/* the referee count */
+.count{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:150px;line-height:1;color:#fff;text-shadow:0 0 30px var(--hot),0 0 60px var(--hot);pointer-events:none;animation:countIn .9s ease-out forwards;z-index:5}
+@keyframes countIn{0%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}20%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.9)}}
+.refcount{display:flex;justify-content:center;gap:14px;margin:6px 0 12px}
+.refcount span{width:56px;height:56px;display:grid;place-items:center;font-size:36px;border:2px solid var(--line);color:var(--muted);border-radius:8px}
+.refcount span.on{background:var(--hot);border-color:var(--hot);color:#fff;box-shadow:0 0 18px var(--hot)}
+.ctimer{height:6px;margin-top:8px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.ctimer span{display:block;height:100%;background:var(--gold)}
+.needle.missed{animation:nmiss .35s}
+@keyframes nmiss{0%,100%{background:#fff}50%{background:var(--hot);box-shadow:0 0 18px var(--hot)}}
+/* silhouettes (no picture) and the mystery opponent */
+.sil{position:relative;display:grid;place-items:end center;width:100%;height:100%;color:rgba(255,255,255,.16);background:linear-gradient(160deg,#2a2a33,#0b0b0e);overflow:hidden}
+.sil svg{width:78%;height:88%}
+.sil.mystery{color:rgba(0,0,0,.85);background:radial-gradient(circle at 50% 40%,rgba(var(--gold-rgb),.35),#0b0b0e 70%)}
+.sil.mystery b{position:absolute;left:0;right:0;top:12%;text-align:center;font-family:var(--fight);font-style:italic;font-weight:900;font-size:min(130px,28vw);color:var(--gold);text-shadow:0 0 24px rgba(var(--gold-rgb),.7)}
+/* choose your destiny: one column per tower, taller towers stand taller */
+.towers{display:flex;align-items:flex-end;justify-content:center;gap:clamp(10px,2.5vw,34px);margin:16px 0 10px;padding:20px 10px 0;overflow-x:auto;
+  background:radial-gradient(ellipse at 50% 100%,rgba(120,90,200,.25),transparent 70%)}
+.twr{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;border:0;background:none;flex:0 0 auto;transition:transform .15s}
+.twr .col{display:flex;flex-direction:column;gap:3px;padding:6px;border-radius:4px;transition:box-shadow .15s}
+.blk{width:clamp(84px,9vw,118px);height:clamp(40px,4.6vw,56px);display:flex;justify-content:flex-end;align-items:center;padding:0 8px;
+  background:linear-gradient(180deg,#5b5b60,#3c3c42 40%,#2d2d33);border:1px solid #1d1d22;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 0 rgba(0,0,0,.4);border-radius:2px}
+.blk.boss{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 60%,#5b5b60),#3c3c42 60%,#2d2d33);border-color:var(--c)}
+.bfc{width:clamp(30px,3.4vw,42px);height:clamp(30px,3.4vw,42px);overflow:hidden;border:2px solid rgba(0,0,0,.6);display:grid;background:#0b0b0e}
+.bfc img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.twr-n{font-size:clamp(18px,2vw,26px);color:var(--c);text-shadow:0 2px 10px #000}
+.twr-s{font-size:14px;color:var(--muted)}
+.twr:hover{transform:translateY(-4px)}
+.twr.on .col{box-shadow:0 0 0 3px var(--c),0 0 30px color-mix(in srgb,var(--c) 60%,transparent)}
+.twr-info{margin-top:10px}
+.twr-i{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.twr-i .rw{margin-top:8px;font-family:var(--fight);font-weight:800;font-size:18px;color:var(--bet)}
+.big-go{font-size:26px;padding:15px 34px}
+/* quick match: who you fight */
+.foe2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.foec{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel2),var(--panel));border-radius:4px;text-align:center}
+.foec:hover{border-color:var(--gold);transform:translateY(-3px)}
+.foec .fpic{width:min(220px,60%);aspect-ratio:3/4;overflow:hidden;clip-path:polygon(8% 0,100% 0,92% 100%,0 100%)}
+.foec b{font-size:30px}.foec span{color:var(--txt2)}
+.vsw{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;margin-top:20px}
+.vsp{display:flex;flex-direction:column;align-items:center;gap:10px}
+.vpic{width:min(320px,100%);aspect-ratio:3/4;overflow:hidden;display:grid;clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);background:#0b0b0e}
+.vpic img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.vsp.them .vpic img{transform:scaleX(-1)}
+.vsp b{font-size:clamp(28px,4vw,46px)}
+.vsx{font-size:clamp(60px,9vw,120px);color:#fff;text-shadow:0 0 30px var(--hot),0 0 60px var(--hot)}
+/* the climb on the result screen */
+.climb{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.cf{width:46px;height:46px;overflow:hidden;display:grid;border:2px solid var(--line);background:#0b0b0e;opacity:.55}
+.cf img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.cf.done{opacity:1;border-color:var(--win)}.cf.next{opacity:1;border-color:var(--gold);box-shadow:0 0 12px rgba(var(--gold-rgb),.6)}.cf.boss{border-style:double;border-width:4px}
+@media(max-width:760px){.foe2{grid-template-columns:1fr}.vsw{grid-template-columns:1fr}.towers{justify-content:flex-start}}
+.slot .sil,.res-win .sil,.res-lose .sil,.pimg .sil{position:absolute;inset:0}
+
+</style>
+</head>
+<body>
+<div class="top"><span class="f title chrome">Tower of Champions</span><span class="chip"><span>Practice</span></span><span class="sp"></span>
+  <div class="wallet" title="Practice money, only in this browser"><span class="coin">$</span><span><b id="wAmt">$0</b><small id="wSub">today</small></span></div>
+  <button class="tbtn" type="button" id="muteBtn" onclick="toggleMute()" title="Crowd, effects and narrator">Sound on</button><button class="tbtn" type="button" onclick="go('title')">Menu</button><a class="tbtn" href="tower-admin.html" target="_blank" rel="noopener">Admin</a></div>
+<main class="wrap" id="app"></main>
+<script>
+/* =====================================================================
+   TOWER OF CHAMPIONS — shared engine (used by tower.html and tower-admin.html)
+   Settings live in this browser (localStorage) so both files share them.
+   ===================================================================== */
+const SB_URL = 'https://dmfbhszvrbaknaevdhxh.supabase.co';
+const SB_KEY = 'sb_publishable_aXhRkucX-pMcEe-sgLMFkg_-wb3piFD';
+const CFG_KEY = 'wcaTowerCfg_v2', WALLET_KEY = 'wcaTowerWallet_v1', LOAD_KEY = 'wcaTowerLoadouts_v1';
+// LIVE = this copy is on the website: settings come from what the admin published, money is real (paid by the database)
+const LIVE = /^https?:$/.test(location.protocol) && /(^|\.)wcauniverse\.com$/i.test(location.hostname) && !/tower-admin/i.test(location.pathname);
+let PUBLISHED = null, PUBLISHED_AT = null;
+let SBC = null;
+function sbc(){ if(!SBC && window.supabase) SBC = supabase.createClient(SB_URL, SB_KEY); return SBC; }   // shares the website's sign in on wcauniverse.com
+async function loadPublished(){ try{ const c = sbc(); if(!c) return; const r = await c.from('tower_config').select('cfg,updated_at').eq('id', 1).maybeSingle();
+  if(!r.error && r.data){ PUBLISHED = r.data.cfg; PUBLISHED_AT = r.data.updated_at; } }catch(e){} }
+
+const POS = { standing:'Standing', ropes:'Off the ropes', corner:'In the corner', behind:'Behind them', ground:'On the ground', top:'Top rope' };
+const KINDS = { strike:'Strike', grapple:'Grapple', whip:'Whip / position', submission:'Submission', pin:'Pin', highrisk:'High risk', climb:'Climb', pickup:'Pick up' };
+
+/* move: id, name, from (where the opponent is), kind, dmg, to (where it leaves them),
+   mom (momentum for landing it), rev (0 = can't be reversed, 1 easy, 2 normal, 3 hard),
+   crash (damage to yourself if a high risk move is dodged), keep (true = you keep control) */
+const M = (id, name, from, kind, dmg, to, mom, rev, crash, keep) => ({ id, name, from, kind, dmg, to, mom, rev, crash:crash||0, keep:!!keep });
+const DEFAULT_MOVES = [
+  M('punch','Punches','standing','strike',4,'standing',6,0,0,true),
+  M('chop','Knife Edge Chop','standing','strike',5,'standing',7,0,0,true),
+  M('kick','Kick to the Gut','standing','strike',5,'standing',7,0,0,true),
+  M('knee','Running Knee','standing','strike',8,'ground',10,1,0,false),
+  M('superkick','Superkick','standing','strike',10,'ground',12,2,0,false),
+  M('slam','Body Slam','standing','grapple',9,'ground',10,1),
+  M('snap','Snap Suplex','standing','grapple',10,'ground',11,1),
+  M('vertical','Vertical Suplex','standing','grapple',12,'ground',12,2),
+  M('ddt','DDT','standing','grapple',13,'ground',13,2),
+  M('powerbomb','Powerbomb','standing','grapple',16,'ground',15,3),
+  M('whipropes','Irish Whip to the Ropes','standing','whip',0,'ropes',3,0,0,true),
+  M('whipcorner','Irish Whip to the Corner','standing','whip',0,'corner',3,0,0,true),
+  M('gobehind','Go Behind','standing','whip',0,'behind',3,0,0,true),
+  M('clothes','Clothesline','ropes','strike',9,'ground',10,1),
+  M('dropkick','Dropkick','ropes','strike',9,'ground',10,1),
+  M('spine','Spinebuster','ropes','grapple',12,'ground',12,2),
+  M('powerslam','Powerslam','ropes','grapple',11,'ground',11,1),
+  M('backbody','Back Body Drop','ropes','grapple',10,'ground',10,1),
+  M('hiptoss','Hip Toss','ropes','grapple',7,'ground',8,1),
+  M('spear','Spear','ropes','strike',15,'ground',15,3),
+  M('cornerchops','Corner Chops','corner','strike',6,'corner',7,0,0,true),
+  M('cornerstomps','Stomps in the Corner','corner','strike',6,'corner',7,0,0,true),
+  M('splash','Running Splash','corner','strike',9,'standing',10,1),
+  M('cannonball','Cannonball','corner','highrisk',12,'ground',12,2,7),
+  M('superplex','Superplex','corner','highrisk',17,'ground',16,3,9),
+  M('german','German Suplex','behind','grapple',13,'ground',13,2),
+  M('backsuplex','Back Suplex','behind','grapple',11,'ground',11,1),
+  M('sleeper','Sleeper Hold','behind','submission',4,'ground',8,0),
+  M('rollup','Roll-up','behind','pin',0,'ground',0,0),
+  M('stomp','Stomp','ground','strike',4,'ground',5,0,0,true),
+  M('elbowdrop','Elbow Drop','ground','strike',6,'ground',7,0,0,true),
+  M('legdrop','Leg Drop','ground','strike',8,'ground',8,1,0,true),
+  M('crab','Boston Crab','ground','submission',5,'ground',8,0),
+  M('armbar','Armbar','ground','submission',5,'ground',8,0),
+  M('sharp','Sharpshooter','ground','submission',6,'ground',9,0),
+  M('cover','Pin','ground','pin',0,'ground',0,0),
+  M('pickup','Pick Them Up','ground','pickup',0,'standing',2,0,0,true),
+  M('climb','Climb the Top Rope','ground','climb',0,'top',3,0,0,true),
+  M('elbowtop','Diving Elbow Drop','top','highrisk',14,'ground',13,2,8),
+  M('frog','Frog Splash','top','highrisk',16,'ground',15,2,10),
+  M('moonsault','Moonsault','top','highrisk',17,'ground',16,3,12),
+  M('sss','Shooting Star Press','top','highrisk',19,'ground',18,3,14)
+];
+
+const DEFAULTS = {
+  settings: {
+    dailyCap:2500, minMatchSecs:45, reward:{ easy:100, normal:200, hard:300 }, floors:{ easy:4, normal:6, hard:8 }, boss:{ easy:'', normal:'', hard:'' },
+    hp:100,
+    neutral:{ slug:7, slugWinnerTakes:60, strikeFirst:7, blockMom:12, circleMom:5, winMom:10 },
+    chain:{ rounds:3, techDmg:3, winMom:8 },
+    control:{ recoverBase:20, recoverStep:15 },
+    reversal:{ slots:3, refillTurns:5, counterDmg:4, ai:{ easy:30, normal:45, hard:60 } },
+    seq:{ base:3, perLevel:1, speed:100, sigExtra:1, finExtra:2 },
+    pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 } },
+    sub:{ rounds:3, tapAt:25, seqLen:5 },
+    mom:{ sigCost:50, finCost:100 },
+    maxMovesPerPos:4,
+    stacks:{ easy:[], normal:[], hard:[] },   // old (before Nov 14): hand-picked floors. Now slots below.
+    slots:{ easy:[], normal:[], hard:[] },    // each tower's floors, bottom first, boss last: { name, lock }. Unlocked = random every climb.
+    sound:{ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true }
+  },
+  towers:[],   // custom towers made in the admin: { id, name, level, reward, color, on, stack:[names] }
+  moves: DEFAULT_MOVES,
+  styles: [
+    { id:'allround', name:'All Rounder', desc:'Balanced at everything.', hp:0, strike:1, grapple:1, highrisk:1, submission:1, reversal:0, kickout:0, chain:0, mom:1, trait:'' },
+    { id:'power', name:'Powerhouse', desc:'Big grapples, wins shoving matches, hard to keep down.', hp:10, strike:1, grapple:1.25, highrisk:.85, submission:1, reversal:0, kickout:4, chain:15, mom:1, trait:'overpower' },
+    { id:'flyer', name:'High Flyer', desc:'Fast. Top rope moves hit harder and miss less, and momentum builds quicker.', hp:0, strike:1.05, grapple:.9, highrisk:1.25, submission:.9, reversal:6, kickout:0, chain:0, mom:1.15, trait:'offthetop' },
+    { id:'tech', name:'Technician', desc:'Chain wrestling expert, best reversals, strong submissions.', hp:0, strike:.95, grapple:1.05, highrisk:.9, submission:1.25, reversal:12, kickout:0, chain:20, mom:1, trait:'counterwrestling' },
+    { id:'brawler', name:'Brawler', desc:'Wins slugfests and hits harder when hurt.', hp:5, strike:1.2, grapple:1, highrisk:.9, submission:.9, reversal:0, kickout:2, chain:0, mom:1, trait:'fightback' },
+    { id:'giant', name:'Giant', desc:'Huge health and hard to pin, slow to build momentum.', hp:25, strike:1.05, grapple:1.15, highrisk:.6, submission:.9, reversal:-5, kickout:8, chain:10, mom:.8, trait:'immovable' },
+    { id:'showman', name:'Showman', desc:'Feeds off the crowd and starts with momentum.', hp:0, strike:1, grapple:1, highrisk:1.1, submission:1, reversal:0, kickout:0, chain:0, mom:1.25, trait:'crowdpop' },
+    // more styles (Nov 2026), so more characters feel like themselves
+    { id:'striker', name:'Striker', desc:'Kickboxer or MMA fighter. The hardest strikes in the game, weaker in grapples.', hp:0, strike:1.2, grapple:.9, highrisk:.9, submission:.95, reversal:2, kickout:0, chain:0, mom:1, trait:'stiffshots' },
+    { id:'cruiser', name:'Cruiserweight', desc:'Small and quick. Wins the exchange and builds momentum fast.', hp:0, strike:1.05, grapple:.9, highrisk:1.15, submission:.95, reversal:6, kickout:0, chain:10, mom:1.2, trait:'quickfeet' },
+    { id:'luchador', name:'Luchador', desc:'Lucha libre flips and dives. Dodging a move fires them up.', hp:0, strike:1.05, grapple:.95, highrisk:1.25, submission:.95, reversal:8, kickout:0, chain:5, mom:1.15, trait:'luchaflow' },
+    { id:'subspec', name:'Submission Specialist', desc:'Holds hurt the most, and they know how to get out of them.', hp:0, strike:.95, grapple:1, highrisk:.85, submission:1.4, reversal:6, kickout:0, chain:10, mom:1, trait:'escapeartist' },
+    { id:'strong', name:'Strong Style', desc:'Stiff strikes and fighting spirit. Big hits fire them up instead of keeping them down.', hp:0, strike:1.12, grapple:1.05, highrisk:.9, submission:1, reversal:0, kickout:2, chain:0, mom:1, trait:'fightingspirit' },
+    { id:'hardcore', name:'Hardcore', desc:'Lives for pain. Gets stronger the more punishment they take.', hp:10, strike:1.1, grapple:1, highrisk:1.1, submission:.9, reversal:-3, kickout:4, chain:0, mom:1, trait:'glutton' },
+    { id:'heel', name:'Dirty Heel', desc:'Cheats to win. Eye rakes and low blows when things go wrong.', hp:0, strike:1, grapple:1, highrisk:.9, submission:1.05, reversal:5, kickout:0, chain:0, mom:1.1, trait:'dirtytactics' },
+    { id:'underdog', name:'Underdog', desc:'Never stays down. Hardest of all to pin when they are hurt.', hp:0, strike:1, grapple:.95, highrisk:1.05, submission:.95, reversal:4, kickout:8, chain:0, mom:1.05, trait:'resilient' },
+    { id:'monster', name:'Monster', desc:'Huge and terrifying. Shrugs off hits, but slow to react.', hp:20, strike:1.15, grapple:1.2, highrisk:.7, submission:.95, reversal:-8, kickout:6, chain:10, mom:.85, trait:'nosell' }
+  ],
+  abilities: [
+    { id:'overpower', name:'Overpower', when:'land', kind:'grapple', cond:'none', condVal:0, chance:20, once:false, effects:[{type:'stun',val:0}] },
+    { id:'offthetop', name:'Off the Top Rope', when:'land', kind:'highrisk', cond:'none', condVal:0, chance:40, once:false, effects:[{type:'mom',val:15}] },
+    { id:'counterwrestling', name:'Counter Wrestling', when:'reverse', kind:'any', cond:'none', condVal:0, chance:100, once:false, effects:[{type:'drain',val:15}] },
+    { id:'fightback', name:'Fight Back', when:'hitby', kind:'any', cond:'myHpBelow', condVal:40, chance:30, once:false, effects:[{type:'mom',val:12},{type:'boost',val:30}] },
+    { id:'immovable', name:'Immovable', when:'pinned', kind:'any', cond:'myHpAbove', condVal:20, chance:30, once:false, effects:[{type:'kickout',val:0}] },
+    { id:'crowdpop', name:'Crowd Pop', when:'start', kind:'any', cond:'none', condVal:0, chance:100, once:true, effects:[{type:'mom',val:25}] },
+    { id:'secondwind', name:'Second Wind', when:'pinned', kind:'any', cond:'none', condVal:0, chance:50, once:true, effects:[{type:'kickout',val:0},{type:'heal',val:12}] },
+    { id:'ropebreak', name:'Rope Break', when:'submitted', kind:'any', cond:'none', condVal:0, chance:35, once:false, effects:[{type:'escape',val:0}] },
+    { id:'killerinstinct', name:'Killer Instinct', when:'land', kind:'any', cond:'oppHpBelow', condVal:30, chance:35, once:false, effects:[{type:'dmg',val:6}] },
+    { id:'bigmatch', name:'Big Match Player', when:'fin', kind:'any', cond:'none', condVal:0, chance:100, once:false, effects:[{type:'pinboost',val:20}] },
+    { id:'ironchin', name:'Iron Chin', when:'slugfest', kind:'any', cond:'none', condVal:0, chance:50, once:false, effects:[{type:'shield',val:50}] },
+    { id:'veteran', name:'Ring Veteran', when:'reversed', kind:'any', cond:'none', condVal:0, chance:40, once:false, effects:[{type:'revslot',val:1}] },
+    { id:'catlike', name:'Cat Like Reflexes', when:'crash', kind:'any', cond:'none', condVal:0, chance:50, once:false, effects:[{type:'heal',val:6}] },
+    { id:'chainmaster', name:'Chain Master', when:'chainwin', kind:'any', cond:'none', condVal:0, chance:100, once:false, effects:[{type:'mom',val:10}] },
+    { id:'stiffshots', name:'Stiff Shots', when:'land', kind:'strike', cond:'none', condVal:0, chance:25, once:false, effects:[{type:'dmg',val:3}] },
+    { id:'quickfeet', name:'Quick Feet', when:'neutralwin', kind:'any', cond:'none', condVal:0, chance:100, once:false, effects:[{type:'mom',val:8}] },
+    { id:'luchaflow', name:'Lucha Flow', when:'dodge', kind:'any', cond:'none', condVal:0, chance:100, once:false, effects:[{type:'mom',val:15},{type:'control',val:0}] },
+    { id:'escapeartist', name:'Escape Artist', when:'submitted', kind:'any', cond:'none', condVal:0, chance:35, once:false, effects:[{type:'escape',val:0}] },
+    { id:'fightingspirit', name:'Fighting Spirit', when:'hitbig', kind:'any', cond:'none', condVal:0, chance:30, once:false, effects:[{type:'heal',val:6},{type:'mom',val:12}] },
+    { id:'glutton', name:'Glutton for Punishment', when:'hitby', kind:'any', cond:'none', condVal:0, chance:25, once:false, effects:[{type:'mom',val:10}] },
+    { id:'dirtytactics', name:'Dirty Tactics', when:'neutrallose', kind:'any', cond:'none', condVal:0, chance:25, once:false, effects:[{type:'stun',val:0},{type:'mom',val:8}] },
+    { id:'resilient', name:'Resilient', when:'pinned', kind:'any', cond:'myHpBelow', condVal:25, chance:40, once:false, effects:[{type:'kickout',val:0}] },
+    { id:'nosell', name:'No Sell', when:'hitby', kind:'any', cond:'none', condVal:0, chance:20, once:false, effects:[{type:'shield',val:50}] }
+  ],
+  wrestlers:{}   // name -> { style, abilities:[], sigName, sigDmg, sigFrom, finName, finDmg, finFrom }
+};
+
+const WHEN = {
+  start:'the match starts', neutralwin:'I win the exchange while circling', neutrallose:'I lose the exchange while circling',
+  slugfest:'a slugfest starts', chainwin:'I win the chain wrestling', chainlose:'I lose the chain wrestling',
+  land:'I land a move', hitby:'I get hit by a move', sig:'I hit my Signature', fin:'I hit my Finisher', hitbig:'I get hit by a Signature or Finisher',
+  reverse:'I reverse a move', reversed:'my move gets reversed', crash:'my high risk move misses', dodge:'I dodge a high risk move',
+  pinned:'I am being pinned', pinning:'I go for a pin', submitted:'I am caught in a submission', lowhp:'my health first drops below 30%'
+};
+const KIND_FILTER = { any:'any kind of move', strike:'a Strike', grapple:'a Grapple', highrisk:'a High risk move', submission:'a Submission' };
+const CONDS = { none:'(always)', myHpBelow:'my health is below', myHpAbove:'my health is above', oppHpBelow:"the opponent's health is below", momAtLeast:'my momentum is at least', turnAtLeast:'the turn number is at least' };
+const EFFECTS = {
+  dmg:{ t:'deal extra damage', v:'damage' }, heal:{ t:'heal me', v:'health' }, mom:{ t:'give me momentum', v:'momentum' },
+  drain:{ t:'take momentum from the opponent', v:'momentum' }, stun:{ t:'stun the opponent (they lose their next exchange)', v:'' },
+  boost:{ t:'my next hit does more damage', v:'% more' }, shield:{ t:'block part of the next damage I take', v:'% less' },
+  kickout:{ t:'kick out of the pin automatically', v:'' }, escape:{ t:'escape the submission automatically', v:'' },
+  pinboost:{ t:"shrink the opponent's kick out zone on my next pin", v:'% smaller' }, revslot:{ t:'give me reversals', v:'reversals' },
+  zone:{ t:'grow my kick out zone on the next pin', v:'% bigger' }, control:{ t:'take control right away', v:'' }
+};
+const AI_LEVEL = { easy:{ hp:.9, dmg:.85, read:.15, smart:.35 }, normal:{ hp:1, dmg:1, read:.4, smart:.6 }, hard:{ hp:1.1, dmg:1.1, read:.6, smart:.85 } };
+
+/* ---------- settings ---------- */
+function deep(o){ return JSON.parse(JSON.stringify(o)); }
+function mergeDeep(base, over){ if(!over || typeof over !== 'object' || Array.isArray(over)) return over === undefined ? base : over;
+  const out = Array.isArray(base) ? base.slice() : Object.assign({}, base); for(const k in over){ out[k] = (base && typeof base[k] === 'object' && !Array.isArray(base[k])) ? mergeDeep(base[k], over[k]) : over[k]; } return out; }
+function loadCfg(){
+  let c = null; if(LIVE) c = PUBLISHED ? deep(PUBLISHED) : null; else { try{ c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); }catch(e){} }
+  const d = deep(DEFAULTS); if(!c){ d.v = 3; return d; }
+  const out = { v:c.v || 1, settings:mergeDeep(d.settings, c.settings || {}), moves:Array.isArray(c.moves) && c.moves.length ? c.moves : d.moves,
+    styles:Array.isArray(c.styles) && c.styles.length ? c.styles : d.styles, abilities:Array.isArray(c.abilities) ? c.abilities : d.abilities, wrestlers:c.wrestlers || {},
+    towers:Array.isArray(c.towers) ? c.towers : [] };
+  // settings saved before Nov 13: add the new styles and abilities, and give the High Flyer its health back
+  if(out.v < 3){
+    d.styles.forEach(st => { if(!out.styles.some(x => x.id === st.id)) out.styles.push(st); });
+    d.abilities.forEach(a => { if(!out.abilities.some(x => x.id === a.id)) out.abilities.push(a); });
+    const fl = out.styles.find(x => x.id === 'flyer');
+    if(fl && +fl.hp === -8){ Object.assign(fl, d.styles.find(x => x.id === 'flyer')); }
+    out.v = 3;
+  }
+  return out;
+}
+let CFG = loadCfg();
+function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }catch(e){} }
+window.addEventListener('storage', e => { if(e.key === CFG_KEY && !LIVE) CFG = loadCfg(); });   // the admin changed something in another tab
+
+/* ---------- roster (read only) ---------- */
+let ROSTER = [], CHAMPS = {}, ONLINE = false;
+const SAMPLE = [['Demonicflair',['Flair Flip'],['Demonic Drop']],['Jay Martin',['Spinebuster'],['Martin Bomb']],['Roxx',['Rolling Elbow'],['Roxx Bottom']],['Succubus',['Soul Kick'],['Last Rites']],
+  ['Shizuma Soma',['Shining Wizard'],['Soma Strike']],['Catberry',['Pounce'],['Nine Lives']],['Hannah Storm',['Lightning DDT'],['Eye of the Storm']],['Mad Moxie',['Moxie Clothesline'],['Madness']],
+  ['Boonie',['Boonie Bump'],['Big Boon']],['Noah Alexander',['Superkick'],['The Flood']],['Morrigan',['Raven Kick'],["Crow's Call"]],['Christine',['Neckbreaker'],['Christine Cutter']],
+  ['Yeona Jeon',['Spin Kick'],['Seoul Crusher']],['Codie Hale',['Hale Storm'],['Codie Breaker']]].map(([name,s,f]) => ({ name, signatures:s, finishers:f }));
+async function loadRoster(){
+  try{
+    if(!window.supabase) throw 0;
+    const sb = sbc();
+    if(LIVE){ await loadPublished(); CFG = loadCfg(); }
+    const { data, error } = await sb.from('wrestlers').select('name,gender,is_active,status,image_url,avatar_url,signatures,finishers,is_draft').order('name');
+    if(error || !data || !data.length) throw 0;
+    ROSTER = data.filter(w => { if(w.is_draft === true) return false; const st = String(w.status||'').trim().toLowerCase(); if(st === 'hidden' || st === 'inactive') return false; return !(!st && w.is_active === false); });
+    try{ const c = await sb.from('v_current_champions').select('*'); (c.data||[]).forEach(r => { const who = r.champion || r.name || r.display_name; if(who && r.division) CHAMPS[r.division] = who; }); }catch(e){}
+    ONLINE = true;
+  }catch(e){ ROSTER = SAMPLE; CHAMPS = { Undisputed:'Shizuma Soma', Mens:'Jay Martin', Womens:'Roxx' }; ONLINE = false; }
+}
+const W = n => ROSTER.find(w => w.name === n);
+const pic = w => (w && (w.avatar_url || w.image_url)) || '';
+const ini = n => String(n||'?').split(/\s+/).map(x => x[0]||'').join('').slice(0,2).toUpperCase();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// no picture: a silhouette, the same idea as the website. mystery = the "?" for a random opponent
+const SIL = '<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><circle cx="50" cy="36" r="19" fill="currentColor"/><path d="M12 100c2-24 18-38 38-38s36 14 38 38z" fill="currentColor"/></svg>';
+function sil(mystery){ return `<span class="sil${mystery ? ' mystery' : ''}">${SIL}${mystery ? '<b>?</b>' : ''}</span>`; }
+function face(w){ const u = pic(w); return u ? `<img src="${esc(u)}" alt="" loading="lazy" onerror="this.outerHTML=this.dataset.sil" data-sil="${esc(sil())}">` : sil(); }
+const champOf = n => Object.keys(CHAMPS).filter(d => CHAMPS[d] === n);
+
+function setupOf(name){
+  const w = W(name) || { name, signatures:[], finishers:[] }, s = CFG.wrestlers[name] || {};
+  const sigs = (w.signatures||[]).filter(Boolean), fins = (w.finishers||[]).filter(Boolean);
+  return { style:s.style || 'allround', abilities:Array.isArray(s.abilities) ? s.abilities : [],
+    sigName:s.sigName || sigs[0] || 'Signature Move', sigDmg:+s.sigDmg || 18, sigFrom:s.sigFrom || 'standing',
+    finName:s.finName || fins[0] || 'Finisher', finDmg:+s.finDmg || 28, finFrom:s.finFrom || 'standing' };
+}
+const styleOf = id => CFG.styles.find(s => s.id === id) || CFG.styles[0];
+const abilityOf = id => CFG.abilities.find(a => a.id === id);
+const moveOf = id => CFG.moves.find(m => m.id === id);
+
+/* the player's chosen moves for a wrestler (picked before the match) */
+function loadouts(){ try{ return JSON.parse(localStorage.getItem(LOAD_KEY) || '{}') || {}; }catch(e){ return {}; } }
+function saveLoadout(name, ids){ const l = loadouts(); l[name] = ids; try{ localStorage.setItem(LOAD_KEY, JSON.stringify(l)); }catch(e){} }
+function defaultLoadout(){ const out = [], per = {}; CFG.moves.forEach(m => { per[m.from] = per[m.from] || 0;
+  const always = m.kind === 'pin' || m.kind === 'pickup' || m.kind === 'climb' || m.kind === 'whip';
+  if(always || per[m.from] < CFG.settings.maxMovesPerPos){ out.push(m.id); if(!always) per[m.from]++; } }); return out; }
+function loadoutOf(name){ const l = loadouts()[name]; const ids = Array.isArray(l) ? l.filter(moveOf) : null; return ids && ids.length ? ids : defaultLoadout(); }
+
+/* ---------- abilities in plain words ---------- */
+function sentenceWhen(a){ let s = 'When ' + (WHEN[a.when] || a.when);
+  if(['land','hitby','reverse','reversed'].includes(a.when) && a.kind && a.kind !== 'any') s += ' (' + KIND_FILTER[a.kind] + ')';
+  if(a.cond && a.cond !== 'none') s += ', if ' + CONDS[a.cond] + ' ' + a.condVal + (a.cond === 'turnAtLeast' || a.cond === 'momAtLeast' ? '' : '%');
+  return s; }
+function sentenceThen(a){ return (a.effects||[]).map(e => { const E = EFFECTS[e.type]; if(!E) return ''; return E.v ? `${E.t} (${e.val}${E.v.startsWith('%') ? '' : ' '}${E.v})` : E.t; }).filter(Boolean).join(', then '); }
+function sentence(a){ return `${sentenceWhen(a)}: ${+a.chance >= 100 ? 'always' : a.chance + '% chance to'} ${sentenceThen(a)}${a.once ? ' (once per match)' : ''}.`; }
+
+/* ---------- numbers players and the admin can read ---------- */
+function kickZone(f, opp){   // width of the green zone in %, from health
+  const s = CFG.settings.pin, pct = Math.max(0, f.hp) / f.max;
+  if(f.hp <= 0) return 0;
+  let z = s.minZone + (s.maxZone - s.minZone) * Math.pow(pct, 1.15) + (+f.st.kickout || 0) + (f.zoneBonus || 0);
+  if(opp && opp.pinBoost) z *= (1 - opp.pinBoost / 100);
+  return Math.max(s.minZone * .75, Math.min(70, z));
+}
+function seqLen(move, defender, kind){   // how many arrows to hit for a reversal
+  const s = CFG.settings.seq; let n = s.base + Math.max(0, (move && move.rev || 1) - 1) * s.perLevel;
+  if(kind === 'sig') n += s.sigExtra; if(kind === 'fin') n += s.finExtra;
+  if(defender && defender.easyNext){ n = Math.max(2, n - 1); }
+  return Math.max(2, Math.min(9, n));
+}
+
+/* =====================================================================
+   THE MATCH ENGINE
+   Two "brains" make the choices: a person (the game screen) or the computer.
+   Everything waits on brain answers, so the same engine runs the simulator.
+   ===================================================================== */
+function makeFighter(name, opts){
+  const su = setupOf(name), st = styleOf(su.style), o = opts || {};
+  const hp = Math.round((CFG.settings.hp + (+st.hp || 0)) * (o.hpScale || 1));
+  return { name, w:W(name), su, st, abil:[st.trait].concat(su.abilities).filter(Boolean).map(abilityOf).filter(Boolean),
+    hp, max:hp, mom:0, revs:CFG.settings.reversal.slots, stun:false, boost:0, shield:0, pinBoost:0, zoneBonus:0, easyNext:false, used:{}, low:false,
+    dmgScale:o.dmgScale || 1, loadout:(o.loadout || loadoutOf(name)).map(moveOf).filter(Boolean), brain:o.brain, level:o.level || 'normal', hist:[] };
+}
+
+class Match {
+  constructor(a, b, ui){ this.a = a; this.b = b; this.ui = ui || {}; this.turn = 0; this.over = false; this.winner = null; this.how = '';
+    this.stats = { abilities:{}, reversals:0, crashes:0, pins:0, subs:0, slugfests:0, tieups:0 }; this.pos = null; this.ctrl = null; this.chainN = 0; }
+  say(t, kind){ if(this.ui.say) this.ui.say(t, kind); }
+  fx(kind, who, data){ if(this.ui.fx) this.ui.fx(kind, who, data); }
+  async wait(ms){ if(this.ui.wait) await this.ui.wait(ms); }
+  other(f){ return f === this.a ? this.b : this.a; }
+
+  /* ---- abilities ---- */
+  condOK(a, me, op){ const v = +a.condVal || 0, my = me.hp/me.max*100, o = op.hp/op.max*100;
+    switch(a.cond){ case 'myHpBelow': return my < v; case 'myHpAbove': return my > v; case 'oppHpBelow': return o < v; case 'momAtLeast': return me.mom >= v; case 'turnAtLeast': return this.turn >= v; default: return true; } }
+  fire(when, me, ctx){ const op = this.other(me); ctx = ctx || {};
+    for(const a of me.abil){
+      if(a.when !== when) continue;
+      if(a.kind && a.kind !== 'any' && ctx.kind && a.kind !== ctx.kind) continue;
+      if(a.once && me.used[a.id]) continue;
+      if(!this.condOK(a, me, op)) continue;
+      if(Math.random()*100 >= (+a.chance || 0)) continue;
+      me.used[a.id] = true; this.stats.abilities[a.name] = (this.stats.abilities[a.name] || 0) + 1;
+      (a.effects||[]).forEach(e => this.effect(e, me, op, ctx));
+      this.say(`⚡ ${a.name} (${me.name}): ${sentenceThen(a)}`, 'ability'); this.fx('ability', me, a.name);
+    } return ctx; }
+  effect(e, me, op, ctx){ const v = +e.val || 0;
+    switch(e.type){
+      case 'dmg': if('extra' in ctx) ctx.extra += v; else this.damage(me, op, v, {}); break;
+      case 'heal': me.hp = Math.min(me.max, me.hp + v); this.fx('heal', me, v); break;
+      case 'mom': this.gain(me, v, true); break;
+      case 'drain': op.mom = Math.max(0, op.mom - v); break;
+      case 'stun': op.stun = true; break;
+      case 'boost': me.boost = Math.max(me.boost, v); break;
+      case 'shield': me.shield = Math.max(me.shield, v); break;
+      case 'kickout': ctx.kickout = true; break;
+      case 'escape': ctx.escape = true; break;
+      case 'pinboost': me.pinBoost = Math.max(me.pinBoost, v); break;
+      case 'revslot': me.revs += Math.max(1, v); break;
+      case 'zone': me.zoneBonus = Math.max(me.zoneBonus, v); break;
+      case 'control': ctx.control = true; break;
+    } }
+
+  gain(f, n, raw){ f.mom = Math.min(100, f.mom + n * (raw ? 1 : (+f.st.mom || 1))); }
+  damage(att, def, amount, o){
+    o = o || {}; let d = amount * (o.noScale ? 1 : att.dmgScale);
+    if(att.boost && !o.self){ d *= 1 + att.boost/100; att.boost = 0; }
+    if(def.shield){ d *= 1 - def.shield/100; def.shield = 0; }
+    d = Math.max(1, Math.round(d)); def.hp -= d;
+    this.fx(o.self ? 'crash' : 'hit', def, { dmg:d, by:att, big:o.big });
+    if(!def.low && def.hp > 0 && def.hp/def.max < .3){ def.low = true; this.fire('lowhp', def); }
+    return d; }
+
+  /* ---- the match ---- */
+  async run(){
+    this.fire('start', this.a); this.fire('start', this.b);
+    this.say(`The bell rings! ${this.a.name} and ${this.b.name} circle each other.`, 'call');
+    this.fx('state', null, { stage:'neutral' });
+    let guard = 0;
+    while(!this.over && guard++ < 400){
+      this.turn++;
+      if(this.turn % CFG.settings.reversal.refillTurns === 0){ [this.a, this.b].forEach(f => { if(f.revs < CFG.settings.reversal.slots) f.revs++; }); }
+      if(this.ctrl) await this.control(); else await this.neutral();
+      this.fx('state', null, { stage:this.ctrl ? 'control' : 'neutral' });
+    }
+    if(!this.over){ this.over = true; this.winner = this.a.hp >= this.b.hp ? this.a : this.b; this.how = 'decision'; }
+    return this;
+  }
+
+  async neutral(){
+    const a = this.a, b = this.b;
+    const [ca, cb] = await Promise.all([a.brain.neutral(this, a), b.brain.neutral(this, b)]);
+    const pa = a.stun ? 'dazed' : ca, pb = b.stun ? 'dazed' : cb;
+    if(a.stun) this.say(`${a.name} is stunned!`); if(b.stun) this.say(`${b.name} is stunned!`);
+    a.stun = false; b.stun = false;
+    if(ca !== 'dazed') a.hist.push(ca); if(cb !== 'dazed') b.hist.push(cb);
+    const n = CFG.settings.neutral;
+    if(pa === 'dazed' && pb === 'dazed'){ this.say('Both are seeing stars.'); return; }
+    if(pa === 'dazed' || pb === 'dazed'){ const win = pa === 'dazed' ? b : a; return this.takeControl(win, 'standing', `${win.name} takes advantage!`); }
+    if(pa === 'strike' && pb === 'strike') return this.slugfest();
+    if(pa === 'grapple' && pb === 'grapple') return this.tieup();
+    if(pa === 'block' && pb === 'block'){ this.gain(a, n.circleMom); this.gain(b, n.circleMom); this.say('They circle, feeling each other out.', 'call'); this.fx('circle'); return; }
+    const pick = (x, y) => (pa === x && pb === y) ? [a, b] : (pb === x && pa === y) ? [b, a] : null;
+    let r;
+    if((r = pick('strike','grapple'))){ const [s, g] = r; this.fx('lunge', s); this.damage(s, g, n.strikeFirst * (+s.st.strike || 1), {}); this.fire('neutralwin', s); this.fire('neutrallose', g);
+      return this.takeControl(s, 'standing', `${s.name} strikes first before ${g.name} can lock up!`); }
+    if((r = pick('grapple','block'))){ const [g, bl] = r; this.fire('neutralwin', g); this.fire('neutrallose', bl);
+      return this.takeControl(g, 'standing', `${g.name} grabs ${bl.name}. A block can't stop a grab.`); }
+    if((r = pick('block','strike'))){ const [bl, s] = r; this.gain(bl, n.blockMom); this.fx('block', bl); this.fire('neutralwin', bl); this.fire('neutrallose', s);
+      return this.takeControl(bl, 'standing', `${bl.name} blocks the strike and takes the opening!`); }
+  }
+  async slugfest(){
+    const a = this.a, b = this.b, n = CFG.settings.neutral; this.stats.slugfests++;
+    this.fire('slugfest', a); this.fire('slugfest', b);
+    const roll = f => (+f.st.strike || 1) * (1 + f.mom/250) * (0.75 + Math.random()*.5);
+    const ra = roll(a), rb = roll(b), win = ra >= rb ? a : b, lose = this.other(win);
+    this.say(`SLUGFEST! ${a.name} and ${b.name} trade bombs!`, 'call'); this.fx('slugfest');
+    this.fx('lunge', a); this.fx('lunge', b);
+    this.damage(win, lose, n.slug * (+win.st.strike || 1), {});
+    this.damage(lose, win, n.slug * (+lose.st.strike || 1) * n.slugWinnerTakes / 100, {});
+    await this.wait(250);
+    return this.takeControl(win, 'standing', `${win.name} wins the slugfest!`);
+  }
+  async tieup(){
+    const a = this.a, b = this.b, c = CFG.settings.chain; this.stats.tieups++;
+    this.say('Collar and elbow tie-up! Chain wrestling for the advantage.', 'call'); this.fx('tieup');
+    const BEAT = { power:'speed', speed:'technique', technique:'power' };
+    for(let r = 1; r <= c.rounds; r++){
+      const [ca, cb] = await Promise.all([a.brain.chain(this, a, r), b.brain.chain(this, b, r)]);
+      let win = null;
+      if(ca === cb){
+        // a tie: the better chain wrestler (style) can still squeeze it out
+        const edge = (+a.st.chain || 0) - (+b.st.chain || 0);
+        if(Math.abs(edge) > 0 && Math.random()*100 < Math.abs(edge)) win = edge > 0 ? a : b;
+        else { this.say(`Both go for ${ca}. Nobody budges.`); continue; }
+      } else win = BEAT[ca] === cb ? a : b;
+      const lose = this.other(win), how = win === a ? ca : cb;
+      this.fire('chainwin', win); this.fire('chainlose', lose); this.gain(win, c.winMom);
+      if(how === 'technique') this.damage(win, lose, c.techDmg, {});
+      const pos = how === 'power' ? 'corner' : how === 'speed' ? 'behind' : 'standing';
+      return this.takeControl(win, pos, how === 'power' ? `${win.name} shoves ${lose.name} into the corner!` : how === 'speed' ? `${win.name} slips behind ${lose.name}!` : `${win.name} twists the arm with a wristlock!`);
+    }
+    this.say('They break the hold and reset.', 'call');
+  }
+  takeControl(f, pos, line){ this.ctrl = f; this.pos = pos; this.chainN = 0; if(line) this.say(line, 'call'); this.fx('control', f, { pos }); }
+
+  /* ---- one wrestler on offense ---- */
+  options(f){
+    const s = CFG.settings, pos = this.pos, opp = this.other(f);
+    const list = f.loadout.filter(m => m.from === pos);
+    const out = list.map(m => ({ type:'move', move:m }));
+    if(f.mom >= s.mom.sigCost && f.su.sigFrom === pos) out.push({ type:'sig' });
+    if(f.mom >= s.mom.finCost && f.su.finFrom === pos) out.push({ type:'fin' });
+    if(pos === 'ground' && !list.some(m => m.kind === 'pin')) out.push({ type:'move', move:moveOf('cover') || { id:'cover', name:'Pin', from:'ground', kind:'pin', dmg:0, to:'ground', mom:0, rev:0 } });
+    if(pos !== 'top') out.push({ type:'backoff' });
+    return out;
+  }
+  async control(){
+    const att = this.ctrl, def = this.other(att);
+    if(att.stun){ att.stun = false; this.say(`${att.name} is stunned and loses control!`); this.ctrl = null; return; }
+    const pick = await att.brain.control(this, att, this.options(att));
+    if(!pick || pick.type === 'backoff'){ this.say(`${att.name} backs off. They circle again.`, 'call'); this.ctrl = null; return; }
+    let move, kind = 'move';
+    if(pick.type === 'sig' || pick.type === 'fin'){
+      kind = pick.type; const isFin = kind === 'fin';
+      att.mom = Math.max(0, att.mom - (isFin ? CFG.settings.mom.finCost : CFG.settings.mom.sigCost));
+      move = { id:kind, name:isFin ? att.su.finName : att.su.sigName, from:this.pos, kind:'grapple', dmg:isFin ? att.su.finDmg : att.su.sigDmg, to:'ground', mom:0, rev:isFin ? 3 : 2, crash:0, keep:false };
+    } else move = pick.move;
+    this.chainN++;
+    // the moves that only change position
+    if(['whip','climb','pickup'].includes(move.kind)){
+      this.pos = move.to; this.gain(att, move.mom || 0);
+      this.say(`${att.name}: ${move.name}.`, 'move'); this.fx('lunge', att); this.fx('control', att, { pos:this.pos });
+      return;
+    }
+    if(move.kind === 'pin') return this.pin(att, def, move);
+    if(move.kind === 'submission') return this.submission(att, def, move);
+
+    // can the defender reverse (or dodge) it?
+    this.say(kind === 'move' ? `${att.name} goes for a ${move.name}!` : `${att.name} sets up the ${move.name}!`, kind === 'move' ? 'move' : 'big');
+    this.fx('windup', att, { name:move.name, big:kind !== 'move', kind });
+    let reversed = false;
+    if(move.rev > 0 && def.revs > 0){
+      const len = seqLen(move, def, kind);
+      const tried = await def.brain.reversal(this, def, move, len, kind);
+      if(tried !== null && tried !== undefined){ def.revs--; def.easyNext = false; reversed = !!tried; }
+    }
+    if(reversed){
+      this.stats.reversals++;
+      if(move.kind === 'highrisk'){
+        this.stats.crashes++; this.say(`${def.name} rolls out of the way! ${att.name} crashes and burns!`, 'call');
+        this.damage(def, att, (move.crash || 6) * (+att.st.highrisk >= 1.2 ? .7 : 1), { self:true, noScale:true });
+        this.fire('crash', att); this.fire('dodge', def); this.fx('dodge', def);
+        this.ctrl = def; this.pos = 'ground'; this.chainN = 0; this.fx('control', def, { pos:'ground' });
+      } else {
+        this.say(`REVERSAL! ${def.name} counters the ${move.name}!`, 'call'); this.fx('reversal', def);
+        this.fx('lunge', def); this.damage(def, att, CFG.settings.reversal.counterDmg * (1 + (+def.st.reversal || 0)/100), {});
+        this.fire('reverse', def, { kind:move.kind }); this.fire('reversed', att, { kind:move.kind });
+        this.takeControl(def, 'standing');
+      }
+      return;
+    }
+    // it lands
+    const power = move.kind === 'strike' ? (+att.st.strike || 1) : move.kind === 'highrisk' ? (+att.st.highrisk || 1) : (+att.st.grapple || 1);
+    const ctx = this.fire(kind === 'sig' ? 'sig' : kind === 'fin' ? 'fin' : 'land', att, { kind:move.kind, extra:0 });
+    if(kind !== 'move') this.fire('land', att, ctx);
+    this.fx('lunge', att, { big:kind !== 'move' });
+    const d = this.damage(att, def, move.dmg * power + (ctx.extra || 0), { big:kind !== 'move' });
+    this.fire(kind === 'move' ? 'hitby' : 'hitbig', def, { kind:move.kind }); if(kind !== 'move') this.fire('hitby', def, { kind:move.kind });
+    this.gain(att, move.mom || 0); this.gain(def, 3);
+    if(kind === 'fin') att.pinBoost = Math.max(att.pinBoost, CFG.settings.pin.finisherShrink);
+    this.say(kind === 'move' ? `${move.name} connects! ${d} damage.` : `${move.name.toUpperCase()}! ${d} damage!`, kind === 'move' ? 'hit' : 'bighit');
+    this.pos = move.to;
+    if(ctx.control){ return; }
+    // does the defender recover and get back to their feet?
+    const c = CFG.settings.control;
+    const chance = move.keep ? c.recoverBase/2 : c.recoverBase + c.recoverStep * (this.chainN - 1);
+    if(def.hp > 0 && Math.random()*100 < chance && this.pos !== 'top'){
+      this.say(`${def.name} fights back to their feet!`, 'call'); this.ctrl = null; this.pos = null; this.fx('recover', def);
+    } else this.fx('control', att, { pos:this.pos });
+  }
+
+  async pin(att, def, move){
+    this.stats.pins++;
+    this.say(`${att.name} goes for the cover!`, 'big'); this.fx('pin', att);
+    this.fire('pinning', att);
+    const ctx = this.fire('pinned', def, {});
+    let zone = kickZone(def, att); if(move && move.id === 'rollup') zone = Math.min(70, zone + 10);
+    att.pinBoost = 0; def.zoneBonus = 0;
+    // the count: every miss of the needle is one count. Three and it's over.
+    // A person plays the needle (it counts as it goes); for the computer the count is shown here.
+    let out = !!ctx.kickout, counts = out ? 2 : 3, played = false;
+    if(!out && def.hp > 0){
+      const r = await def.brain.kickout(this, def, zone);
+      if(r && typeof r === 'object'){ out = !!r.out; counts = r.count; played = true; }
+      else { out = !!r; counts = out ? (Math.random() < .4 ? 1 : 2) : 3; }
+    }
+    if(!played) for(let c = 1; c <= counts; c++){ await this.wait(c === 1 ? 500 : 650); this.fx('count', def, { n:c }); }
+    const COUNT = ['', 'ONE...', 'ONE... TWO...', 'ONE... TWO... THREE!'];
+    if(out){
+      if(def.hp <= 0) def.hp = 1;
+      this.say(ctx.kickout ? `${COUNT[counts]} ${def.name} kicks out thanks to an ability!` : counts ? `${COUNT[counts]} KICK OUT!` : `${def.name} kicks out right away!`, 'call');
+      this.fx('kickout', def, { n:counts }); att.mom = Math.max(0, att.mom - 10); this.ctrl = null; this.pos = null; return;
+    }
+    this.say(COUNT[3], 'big');
+    this.end(att, 'pinfall');
+  }
+  async submission(att, def, move){
+    this.stats.subs++; const s = CFG.settings.sub;
+    this.say(`${att.name} locks in the ${move.name}!`, 'big'); this.fx('sub', att, { name:move.name });
+    for(let r = 1; r <= s.rounds; r++){
+      const ctx = this.fire('submitted', def, {});
+      if(ctx.escape){ this.say(`${def.name} gets to the ropes!`, 'call'); this.fx('ropebreak', def); this.ctrl = null; this.pos = null; return; }
+      const ok = await def.brain.escape(this, def, move, s.seqLen + (r - 1));
+      if(ok){ this.say(`${def.name} fights out of the ${move.name}!`, 'call'); this.fx('escape', def); this.ctrl = null; this.pos = null; return; }
+      this.damage(att, def, move.dmg * (+att.st.submission || 1), {});
+      this.gain(att, move.mom || 0);
+      if(def.hp <= 0 || def.hp/def.max*100 <= s.tapAt){ this.say(`${def.name} TAPS OUT!`, 'big'); return this.end(att, 'submission'); }
+      this.say(`${def.name} is still in the hold...`);
+    }
+    this.say('Rope break! The hold is broken.', 'call'); this.fx('ropebreak', def); this.ctrl = null; this.pos = null;
+  }
+  end(w, how){ this.over = true; this.winner = w; this.how = how; this.fx('end', w, { how }); }
+}
+
+/* ---------- the computer ---------- */
+function aiBrain(level){
+  const L = AI_LEVEL[level] || AI_LEVEL.normal, s = () => CFG.settings;
+  const revSkill = f => (s().reversal.ai[level] || 45) + (+f.st.reversal || 0);
+  return {
+    neutral(m, f){ const op = m.other(f), last = op.hist.slice(-4), c = { strike:0, grapple:0, block:0 };
+      last.forEach(x => { if(c[x] != null) c[x]++; }); const fav = Object.keys(c).sort((x,y) => c[y]-c[x])[0];
+      if(last.length >= 2 && Math.random() < L.read) return { strike:'block', grapple:'strike', block:'grapple' }[fav];
+      const st = f.st; const w = { strike:1 + ((+st.strike||1) - 1) * 3, grapple:1 + ((+st.grapple||1) - 1) * 3, block:1 };
+      let r = Math.random() * (w.strike + w.grapple + w.block); for(const k in w){ if((r -= w[k]) <= 0) return k; } return 'block'; },
+    chain(m, f){ const st = f.st; if((+st.grapple||1) > 1.1 && Math.random() < .4) return 'power'; if((+st.chain||0) >= 15 && Math.random() < .4) return 'technique';
+      return ['power','technique','speed'][Math.floor(Math.random()*3)]; },
+    control(m, f, opts){ const op = m.other(f), hpPct = op.hp/op.max*100;
+      const fin = opts.find(o => o.type === 'fin'), sig = opts.find(o => o.type === 'sig');
+      const pin = opts.find(o => o.type === 'move' && o.move.kind === 'pin');
+      if(pin && (op.hp <= 0 || (hpPct < 22 && Math.random() < L.smart + .1) || (hpPct < 40 && Math.random() < .2))) return pin;
+      if(fin && Math.random() < L.smart + .1) return fin;
+      if(sig && Math.random() < L.smart) return sig;
+      const sub = opts.filter(o => o.type === 'move' && o.move.kind === 'submission');
+      if(sub.length && hpPct < 35 && Math.random() < L.smart * .5) return sub[Math.floor(Math.random()*sub.length)];
+      const moves = opts.filter(o => o.type === 'move' && o.move.kind !== 'pin' && o.move.kind !== 'submission' && !(o.move.kind === 'highrisk' && level === 'easy' && Math.random() < .5));
+      if(!moves.length) return pin || opts[0];
+      if(Math.random() < L.smart){ moves.sort((x,y) => (y.move.dmg||1) - (x.move.dmg||1)); return moves[Math.floor(Math.random()*Math.min(3, moves.length))]; }
+      return moves[Math.floor(Math.random()*moves.length)]; },
+    reversal(m, f, move, len, kind){ const worth = kind !== 'move' || move.dmg >= 10 || move.kind === 'highrisk';
+      if(!worth && Math.random() > .25) return null;
+      return Math.random()*100 < revSkill(f) - (len - 3) * 6; },
+    kickout(m, f, zone){ const tries = (s().pin.ai[level] || 1.5); return Math.random() < 1 - Math.pow(1 - zone/100, tries * 1.6); },
+    escape(m, f, move, len){ return Math.random()*100 < revSkill(f) - (len - 4) * 5; }
+  };
+}
+
+/* ---------- daily tower ---------- */
+const today = () => new Date().toLocaleDateString('en-CA');
+function seeded(str){ let h = 1779033703 ^ str.length; for(let i=0;i<str.length;i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return function(){ h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; let t = (h >>> 0) + 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function bossFor(diff){ const set = CFG.settings.boss[diff]; if(set && W(set)) return set;
+  const pref = diff === 'hard' ? ['Undisputed','Mens','Womens'] : diff === 'normal' ? ['Mens','Womens','Undisputed'] : ['Womens','Mens','Undisputed'];
+  for(const d of pref) if(CHAMPS[d] && W(CHAMPS[d])) return CHAMPS[d]; return ROSTER[0] && ROSTER[0].name; }
+/* every tower a player can climb: Easy, Normal and Hard, then the admin's custom towers.
+   A tower is a list of slots, bottom floor first, boss last. Each slot is { name, lock }.
+   Locked slots always have that wrestler. Unlocked slots get a new random wrestler
+   every climb (an unlocked boss is a random champion). */
+const DIFF_COL = { easy:'#3ECF8E', normal:'#E9B949', hard:'#E24B4A' };
+function defaultSlots(d){ const n = (CFG.settings.floors && CFG.settings.floors[d]) || 4; return Array.from({ length:n + 1 }, () => ({ name:'', lock:false })); }
+function slotsOf(arr){ return (Array.isArray(arr) ? arr : []).map(x => typeof x === 'string' ? { name:x, lock:true } : { name:(x && x.name) || '', lock:!!(x && x.lock) }); }
+function builtinSlots(d){ const s = CFG.settings;
+  if(s.slots && Array.isArray(s.slots[d]) && s.slots[d].length) return slotsOf(s.slots[d]);
+  if(s.stacks && Array.isArray(s.stacks[d]) && s.stacks[d].length) return slotsOf(s.stacks[d]);   // hand-picked before Nov 14: every floor locked
+  return defaultSlots(d); }
+function customSlots(t){ return slotsOf(t.slots && t.slots.length ? t.slots : t.stack); }
+function towerDefs(){
+  const s = CFG.settings, out = ['easy','normal','hard'].map(d => ({ key:d, name:d, level:d, reward:+s.reward[d] || 0, color:DIFF_COL[d], builtin:true, slots:builtinSlots(d) }));
+  (CFG.towers || []).filter(t => t && t.on !== false).forEach(t => { const sl = customSlots(t); if(sl.length) out.push({ key:'c:' + t.id, name:t.name || 'Custom tower', level:AI_LEVEL[t.level] ? t.level : 'normal',
+    reward:+t.reward || 0, color:t.color || '#5FB4FF', builtin:false, slots:sl, about:t.about || '' }); });
+  out.forEach(t => { t.stack = t.slots.map(x => x.lock && W(x.name) ? x.name : ''); });   // '' = changes every climb
+  return out;
+}
+const towerDef = key => towerDefs().find(t => t.key === key) || towerDefs()[1];
+// the actual opponents for one climb (new random ones every time for the unlocked floors)
+function rollSlots(slots, me){
+  const locked = slots.filter(x => x.lock && W(x.name) && x.name !== me).map(x => x.name);
+  const pool = ROSTER.map(w => w.name).filter(n => n !== me && !locked.includes(n));
+  const take = list => { const ok = list.filter(n => pool.includes(n)); const from = ok.length ? ok : pool; const n = from[Math.floor(Math.random() * from.length)]; const i = pool.indexOf(n); if(i >= 0) pool.splice(i, 1); return n; };
+  const champs = Object.values(CHAMPS).filter(n => W(n));
+  const out = new Array(slots.length), last = slots.length - 1;
+  [last].concat(slots.map((_, i) => i).filter(i => i !== last)).forEach(i => { const x = slots[i];   // the boss is picked first, so a champion is free for it
+    if(x.lock && W(x.name) && x.name !== me) out[i] = x.name;
+    else out[i] = i === last ? (take(champs) || take([])) : take([]); });
+  return out.filter(Boolean);
+}
+function towerFloors(key, me){ return rollSlots(towerDef(key).slots, me); }
+function towerFor(diff, me){ const rnd = seeded('wca-tower|' + today() + '|' + diff), boss = bossFor(diff);
+  const pool = ROSTER.map(w => w.name).filter(n => n !== boss && n !== me);
+  for(let i = pool.length - 1; i > 0; i--){ const j = Math.floor(rnd()*(i+1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const floors = pool.slice(0, CFG.settings.floors[diff]); return floors.concat([boss === me ? (pool[floors.length] || pool[0]) : boss]); }
+
+/* =====================================================================
+   MOVE FAMILIES: "Auto fit" in the admin
+   Every move belongs to a family (a Spinning Powerbomb is still a powerbomb).
+   The name is matched against these, first match wins, and the move gets
+   that family's numbers. Order matters: the more specific ones come first.
+   ===================================================================== */
+const F_ = (label, re, from, kind, dmg, to, mom, rev, crash, keep) => ({ label, re, m:{ from, kind, dmg, to, mom, rev, crash:crash || 0, keep:!!keep } });
+const MOVE_FAMILIES = [
+  F_('Shooting Star / 450',          /shooting star|450|phoenix splash|corkscrew/i,                  'top','highrisk',19,'ground',18,3,14),
+  F_('Moonsault',                    /moonsault|lionsault/i,                                            'top','highrisk',17,'ground',16,3,12),
+  F_('Swanton / Senton',             /swanton|senton/i,                                                 'top','highrisk',16,'ground',15,3,11),
+  F_('Frog Splash',                  /frog splash|top rope splash|diving splash|big splash/i,           'top','highrisk',16,'ground',15,2,10),
+  F_('Superplex',                    /superplex|super ?(bomb|suplex)|avalanche|tower of london/i,       'corner','highrisk',17,'ground',16,3,9),
+  F_('Cannonball',                   /cannonball|coast to coast|tope|suicide dive|plancha/i,            'corner','highrisk',12,'ground',12,2,7),
+  F_('Diving Elbow / Headbutt',      /diving|flying|top rope|missile|crossbody|cross body|from the top/i,'top','highrisk',14,'ground',13,2,8),
+  F_('Piledriver',                   /piledriver|tombstone|driver/i,                            'standing','grapple',18,'ground',16,3),
+  F_('Powerbomb',                    /bomb|last ride|batista ?bomb|jackknife/i,                        'standing','grapple',16,'ground',15,3),
+  F_('Chokeslam',                    /chokeslam|choke ?slam|throat/i,                                   'standing','grapple',15,'ground',14,3),
+  F_('Spear / Gore',                 /spear|gore|pounce/i,                                              'ropes','strike',15,'ground',15,3),
+  F_('Rolling Elbow / Lariat',       /lariat|rolling elbow|discus|bicycle/i,                            'ropes','strike',12,'ground',12,2),
+  F_('Clothesline',                  /clothesline|crossbody block|shoulder block|tackle/i,              'ropes','strike',9,'ground',10,1),
+  F_('Dropkick',                     /dropkick|drop kick/i,                                             'ropes','strike',9,'ground',10,1),
+  F_('Spinebuster',                  /spinebuster|spine buster/i,                                       'ropes','grapple',12,'ground',12,2),
+  F_('Powerslam',                    /powerslam|power slam|samoan drop|uranage|sidewalk slam/i,         'ropes','grapple',11,'ground',11,1),
+  F_('Hurricanrana / Arm Drag',      /rana|headscissor|arm ?drag|tilt.a.whirl/i,                        'ropes','grapple',9,'ground',9,1),
+  F_('Back Body Drop / Hip Toss',    /back body drop|hip toss|monkey flip/i,                            'ropes','grapple',8,'ground',8,1),
+  F_('German Suplex',                /german|dragon suplex|tiger suplex|full nelson/i,                  'behind','grapple',13,'ground',13,2),
+  F_('Back Suplex / Atomic Drop',    /back suplex|atomic|backdrop|back drop/i,                          'behind','grapple',11,'ground',11,1),
+  F_('Cutter / Stunner',             /cutter|stunner|rko|diamond|ace crusher|codebreaker/i,              'standing','grapple',14,'ground',14,2),
+  F_('DDT',                          /ddt/i,                                                             'standing','grapple',13,'ground',13,2),
+  F_('Neckbreaker / Facebuster',     /neckbreaker|facebuster|face buster|bulldog|crusher|(?<!back)breaker/i,     'standing','grapple',12,'ground',12,2),
+  F_('Suplex',                       /suplex|exploder|fisherman|northern lights/i,                     'standing','grapple',11,'ground',11,2),
+  F_('Slam / Backbreaker',           /slam|backbreaker|back breaker|side ?walk|gutwrench|lift/i,         'standing','grapple',9,'ground',10,1),
+  F_('Superkick / Head Kick',        /superkick|super kick|big boot|boot|enzuigiri|roundhouse|head kick|buzzsaw|step.?up|shining wizard|knockout|ko /i,'standing','strike',11,'ground',12,2),
+  F_('Corner Splash',                /corner|turnbuckle|running splash|avalanche splash|stinger/i,      'corner','strike',9,'standing',10,1),
+  F_('Elbow / Leg Drop',             /elbow drop|leg ?drop|knee drop|splash/i,                          'ground','strike',7,'ground',8,1,0,true),
+  F_('Running Knee',                 /knee/i,                                                           'standing','strike',8,'ground',10,1),
+  F_('Stomp',                        /stomp|curb|kick to the (head|ribs)/i,                             'ground','strike',4,'ground',5,0,0,true),
+  F_('Sleeper / Choke',              /sleeper|choke|dragon sleeper|rear naked|strangle|cobra clutch/i,  'behind','submission',4,'ground',8,0),
+  F_('Submission',                   /lock|hold|crab|armbar|sharpshooter|scorpion|crossface|clutch|stretch|figure.?four|ankle|kimura|triangle|submission|bar\b|bow and arrow|camel/i,'ground','submission',5,'ground',8,0),
+  F_('Roll-up',                      /roll.?up|small package|schoolboy|school boy|cradle|crucifix/i,    'behind','pin',0,'ground',0,0),
+  F_('Pin',                          /\bpin\b|cover/i,                                                  'ground','pin',0,'ground',0,0),
+  F_('Irish Whip',                   /whip/i,                                                           'standing','whip',0,'ropes',3,0,0,true),
+  F_('Kick',                         /kick/i,                                                           'standing','strike',6,'standing',7,1,0,true),
+  F_('Strikes',                      /punch|chop|forearm|elbow|slap|jab|uppercut|headbutt|strike|fist/i, 'standing','strike',5,'standing',6,0,0,true)
+];
+function moveFamily(name){ const n = String(name || ''); return MOVE_FAMILIES.find(f => f.re.test(n)) || null; }
+
+/* =====================================================================
+   SOUND: crowd, effects and the narrator. Every sound is an mp3 in the
+   sounds folder next to tower.html. A file that isn't there is skipped,
+   so you can add them one at a time. File names and lines: SOUNDS below.
+   ===================================================================== */
+const SOUNDS = [
+  // the crowd
+  { id:'crowd-loop',  cat:'Crowd', n:1, line:'(no words) A crowd that never stops: murmur, chants, claps. Loops for the whole match, so make it 30 to 60 seconds and seamless.' },
+  { id:'crowd-cheer', cat:'Crowd', n:2, line:'(no words) The crowd cheers. Plays when YOU land something big or reverse a move.' },
+  { id:'crowd-boo',   cat:'Crowd', n:2, line:'(no words) The crowd boos. Plays when the opponent lands something big on you.' },
+  { id:'crowd-pop',   cat:'Crowd', n:1, line:'(no words) A huge pop: a Finisher, a kick out at two, the win.' },
+  { id:'crowd-gasp',  cat:'Crowd', n:1, line:'(no words) The crowd gasps: a high risk move misses, a near fall.' },
+  // effects
+  { id:'sfx-bell',    cat:'Effects', n:1, line:'(no words) The ring bell. Start and end of the match.' },
+  { id:'sfx-hit',     cat:'Effects', n:3, line:'(no words) A strike landing: punch, chop, kick.' },
+  { id:'sfx-slam',    cat:'Effects', n:3, line:'(no words) A body hitting the mat: slams, suplexes, bombs.' },
+  { id:'sfx-mat',     cat:'Effects', n:1, line:'(no words) The referee\'s hand slapping the mat for a count.' },
+  { id:'sfx-whoosh',  cat:'Effects', n:1, line:'(no words) A quick whoosh for reversals and dodges.' },
+  // the narrator (no names, works for every wrestler)
+  { id:'vo-start',      cat:'Narrator', n:2, line:'1: "Here we go!"   2: "Let\'s get it on!"' },
+  { id:'vo-you-control',cat:'Narrator', n:3, line:'1: "You\'re in control."   2: "You\'ve got the upper hand."   3: "Take it to them!"' },
+  { id:'vo-opp-control',cat:'Narrator', n:3, line:'1: "Opponent in control."   2: "They\'ve got the upper hand."   3: "Fight your way out of this!"' },
+  { id:'vo-slugfest',   cat:'Narrator', n:2, line:'1: "Slugfest!"   2: "They\'re trading bombs!"' },
+  { id:'vo-tieup',      cat:'Narrator', n:2, line:'1: "Lock up!"   2: "Collar and elbow!"' },
+  { id:'vo-big',        cat:'Narrator', n:4, line:'1: "Ooh, that was a nasty one!"   2: "What a shot!"   3: "That\'ll leave a mark!"   4: "Down they go!"' },
+  { id:'vo-reversal',   cat:'Narrator', n:3, line:'1: "Reversal!"   2: "Countered!"   3: "Saw it coming!"' },
+  { id:'vo-dodge',      cat:'Narrator', n:2, line:'1: "Nobody home!"   2: "Crashed and burned!"' },
+  { id:'vo-signature',  cat:'Narrator', n:2, line:'1: "Here comes the Signature!"   2: "Signature move!"' },
+  { id:'vo-finisher',   cat:'Narrator', n:2, line:'1: "It\'s Finisher time!"   2: "This could be it!"' },
+  { id:'vo-ready',      cat:'Narrator', n:1, line:'"Finisher ready!" (plays when YOUR momentum fills up)' },
+  { id:'vo-trouble',    cat:'Narrator', n:2, line:'1: "You\'re in trouble!"   2: "Hang in there!" (YOUR health gets low)' },
+  { id:'vo-sub',        cat:'Narrator', n:2, line:'1: "It\'s locked in!"   2: "They\'re stretching them!"' },
+  { id:'vo-escape',     cat:'Narrator', n:2, line:'1: "Broke free!"   2: "Fought out of it!"' },
+  { id:'vo-ropes',      cat:'Narrator', n:1, line:'"Rope break!"' },
+  { id:'vo-tap',        cat:'Narrator', n:1, line:'"They tap out! It\'s over!"' },
+  { id:'vo-cover',      cat:'Narrator', n:2, line:'1: "The cover!"   2: "Going for the pin!"' },
+  { id:'vo-count-1',    cat:'Narrator', n:1, line:'"One!"' },
+  { id:'vo-count-2',    cat:'Narrator', n:1, line:'"Two!"' },
+  { id:'vo-count-3',    cat:'Narrator', n:1, line:'"Three!"' },
+  { id:'vo-kickout',    cat:'Narrator', n:3, line:'1: "Kick out!"   2: "Not yet!"   3: "So close!"' },
+  { id:'vo-win',        cat:'Narrator', n:2, line:'1: "You win!"   2: "Victory!"' },
+  { id:'vo-lose',       cat:'Narrator', n:1, line:'"You lose."' },
+  { id:'vo-tower',      cat:'Narrator', n:1, line:'"Tower conquered!"' }
+];
+const SND_FILE = (id, i, n) => n > 1 ? `${id}-${i}.mp3` : `${id}.mp3`;
+const SND = {
+  ok:{}, tried:false, loop:null, voice:null, voicePri:0, last:{}, muted:false,
+  cfg(){ return Object.assign({ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true }, CFG.settings.sound || {}); },
+  url(file){ const f = this.cfg().folder || ''; return f + (f && !/\/$/.test(f) ? '/' : '') + file; },
+  on(){ return this.cfg().on && !this.muted; },
+  // find which files are there (once). Missing ones are simply skipped.
+  check(){ if(this.tried) return Promise.resolve(this.ok); this.tried = true;
+    const all = []; SOUNDS.forEach(s => { for(let i = 1; i <= s.n; i++) all.push(SND_FILE(s.id, i, s.n)); });
+    return Promise.all(all.map(f => new Promise(r => { const a = new Audio(); a.preload = 'auto';
+      const done = ok => { if(ok) this.ok[f] = true; r(); }; a.oncanplaythrough = () => done(true); a.onerror = () => done(false); setTimeout(() => done(false), 4000); a.src = this.url(f); }))).then(() => this.ok); },
+  pick(id){ const s = SOUNDS.find(x => x.id === id); if(!s) return null; const have = []; for(let i = 1; i <= s.n; i++){ const f = SND_FILE(id, i, s.n); if(this.ok[f]) have.push(f); }
+    return have.length ? have[Math.floor(Math.random() * have.length)] : null; },
+  play(id, vol){ if(!this.on()) return null; const f = this.pick(id);
+    if(!f){ if(this.cfg().placeholders) SYN.play(id, vol); return null; }
+    const a = new Audio(this.url(f)); a.volume = Math.max(0, Math.min(1, vol)); a.play().catch(() => {}); return a; },
+  fx(id){ return this.play(id, this.cfg().fx / 100); },
+  // the narrator: one line at a time. A more important line cuts in, a less important one waits its turn or is skipped.
+  vo(id, pri, gap){ if(!this.on()) return; const now = Date.now(); pri = pri || 1;
+    if(gap && this.last[id] && now - this.last[id] < gap) return;
+    const busy = (this.voice && !this.voice.ended && !this.voice.paused) || SYN.talking();
+    if(busy){ if(pri <= this.voicePri) return; if(this.voice) this.voice.pause(); SYN.hush(); }
+    const f = this.pick(id); this.last[id] = now; this.voicePri = pri;
+    if(!f){ this.voice = null; if(this.cfg().placeholders) SYN.say(id, this.cfg().voice / 100); return; }
+    const a = new Audio(this.url(f)); a.volume = this.cfg().voice / 100; a.play().catch(() => {}); this.voice = a; },
+  crowdStart(){ if(!this.on()) return; const f = this.pick('crowd-loop'); this.crowdStop();
+    if(!f){ if(this.cfg().placeholders) SYN.crowd(this.cfg().crowd / 100); return; }
+    const a = new Audio(this.url(f)); a.loop = true; a.volume = this.cfg().crowd / 100; a.play().catch(() => {}); this.loop = a; },
+  crowdStop(){ if(this.loop){ this.loop.pause(); this.loop = null; } SYN.crowdOff(); },
+  // the crowd swells for a moment, then settles back to the loop level
+  swell(id){ if(!this.on()) return; this.play(id, this.cfg().cheer / 100); SYN.swell();
+    const a = this.loop; if(!a) return; const base = this.cfg().crowd / 100, top = Math.min(1, base * 1.8 + .1); a.volume = top;
+    clearInterval(this.sw); this.sw = setInterval(() => { if(!this.loop){ clearInterval(this.sw); return; } a.volume = Math.max(base, a.volume - .02); if(a.volume <= base) clearInterval(this.sw); }, 80); }
+};
+try{ SND.muted = localStorage.getItem('wcaTowerMute') === '1'; }catch(e){}
+
+/* =====================================================================
+   PLACEHOLDER SOUNDS: made on the spot by the browser, used for any file
+   that isn't in the sounds folder yet. The narrator uses the browser's
+   own voice to read the line. Drop in a real mp3 and it takes over.
+   ===================================================================== */
+const SYN = {
+  ac:null, loopNodes:null,
+  ctx(){ if(!this.ac){ const A = window.AudioContext || window.webkitAudioContext; if(!A) return null; this.ac = new A(); } if(this.ac.state === 'suspended') this.ac.resume(); return this.ac; },
+  noise(ac, secs){ const b = ac.createBuffer(1, Math.max(1, Math.floor(ac.sampleRate * secs)), ac.sampleRate), d = b.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; return b; },
+  // one burst of filtered noise with an attack and a fade
+  burst(o){ const ac = this.ctx(); if(!ac) return; const t = ac.currentTime + (o.at || 0);
+    const src = ac.createBufferSource(); src.buffer = this.noise(ac, o.len + .1);
+    const f = ac.createBiquadFilter(); f.type = o.type || 'bandpass'; f.frequency.setValueAtTime(o.f || 1000, t); if(o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, t + o.len); f.Q.value = o.q || 1;
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, o.vol), t + (o.atk || .005)); g.gain.exponentialRampToValueAtTime(.0001, t + o.len);
+    src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t); src.stop(t + o.len + .05); },
+  tone(o){ const ac = this.ctx(); if(!ac) return; const t = ac.currentTime + (o.at || 0);
+    const osc = ac.createOscillator(); osc.type = o.wave || 'sine'; osc.frequency.setValueAtTime(o.f, t); if(o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + o.len);
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, o.vol), t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + o.len);
+    osc.connect(g); g.connect(ac.destination); osc.start(t); osc.stop(t + o.len + .05); },
+  play(id, vol){ vol = Math.max(.02, vol || .5); const base = id.replace(/-\d+$/, '');
+    switch(base){
+      case 'sfx-bell': [0, .32, .64].forEach(at => { this.tone({ f:1046, len:1.2, vol:vol*.35, at }); this.tone({ f:1568, len:.8, vol:vol*.15, at }); }); break;
+      case 'sfx-hit': this.burst({ f:1400, q:.8, len:.09, vol:vol*.9 }); this.tone({ f:180, f2:90, len:.08, vol:vol*.5 }); break;
+      case 'sfx-slam': this.tone({ f:110, f2:40, len:.35, vol:vol }); this.burst({ type:'lowpass', f:600, len:.3, vol:vol*.8 }); break;
+      case 'sfx-mat': this.burst({ type:'lowpass', f:1800, len:.07, vol:vol }); this.tone({ f:140, f2:70, len:.12, vol:vol*.6 }); break;
+      case 'sfx-whoosh': this.burst({ f:400, f2:3200, q:2, len:.35, vol:vol*.6, atk:.15 }); break;
+      case 'crowd-cheer': this.burst({ f:1300, q:.6, len:1.6, vol:vol*.5, atk:.35 }); this.burst({ f:2600, q:.8, len:1.3, vol:vol*.25, atk:.3 }); break;
+      case 'crowd-pop': this.burst({ f:1200, q:.5, len:2.2, vol:vol*.8, atk:.2 }); this.burst({ f:2800, q:.7, len:1.8, vol:vol*.35, atk:.2 }); break;
+      case 'crowd-boo': this.burst({ f:260, q:1.5, len:1.6, vol:vol*.7, atk:.35 }); this.tone({ f:140, f2:110, len:1.4, vol:vol*.12, wave:'sawtooth' }); break;
+      case 'crowd-gasp': this.burst({ f:900, f2:1500, q:1.2, len:.6, vol:vol*.45, atk:.08 }); break;
+    } },
+  // the crowd under the whole match: soft noise that breathes
+  crowd(vol){ const ac = this.ctx(); if(!ac) return; this.crowdOff();
+    const src = ac.createBufferSource(); src.buffer = this.noise(ac, 4); src.loop = true;
+    const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = .4;
+    const g = ac.createGain(); g.gain.value = vol * .18;
+    const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = .23; lg.gain.value = vol * .05; lfo.connect(lg); lg.connect(g.gain);
+    src.connect(f); f.connect(g); g.connect(ac.destination); src.start(); lfo.start();
+    this.loopNodes = { src, lfo, g, base:vol * .18 }; },
+  crowdOff(){ if(this.loopNodes){ try{ this.loopNodes.src.stop(); this.loopNodes.lfo.stop(); }catch(e){} this.loopNodes = null; } },
+  swell(){ const n = this.loopNodes, ac = this.ac; if(!n || !ac) return; const t = ac.currentTime;
+    n.g.gain.cancelScheduledValues(t); n.g.gain.setValueAtTime(n.g.gain.value, t); n.g.gain.linearRampToValueAtTime(n.base * 2.4, t + .3); n.g.gain.linearRampToValueAtTime(n.base, t + 2.2); },
+  // the narrator: the browser reads the line out loud
+  lines(id){ const s = SOUNDS.find(x => x.id === id); if(!s) return []; const q = s.line.match(/"([^"]+)"/g) || []; return q.map(x => x.slice(1, -1)); },
+  say(id, vol){ if(!window.speechSynthesis) return; const L = this.lines(id); if(!L.length) return;
+    const u = new SpeechSynthesisUtterance(L[Math.floor(Math.random() * L.length)]); u.rate = 1.08; u.pitch = .85; u.volume = Math.max(0, Math.min(1, vol));
+    const v = speechSynthesis.getVoices().find(x => /en(-|_)US/i.test(x.lang) && /male|david|guy|daniel|google us/i.test(x.name)) || speechSynthesis.getVoices().find(x => /^en/i.test(x.lang)); if(v) u.voice = v;
+    speechSynthesis.speak(u); },
+  talking(){ return !!(window.speechSynthesis && speechSynthesis.speaking); },
+  hush(){ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} }
+};
+
+/* =====================================================================
+   TOWER OF CHAMPIONS — the game screens
+   ===================================================================== */
+const app = document.getElementById('app');
+let S = { screen:'title', tk:'normal', qdiff:'normal', me:null, foe:null, tower:[], floor:0, quick:false, askAll:false };
+const TW = () => towerDef(S.tk);                       // the tower being climbed
+const LEVEL = () => S.quick ? S.qdiff : TW().level;   // how good the computer is
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- practice wallet ---------- */
+function wallet(){ let w = null; try{ w = JSON.parse(localStorage.getItem(WALLET_KEY) || 'null'); }catch(e){} if(!w || w.day !== today()) w = { day:today(), earned:0, total:(w && w.total) || 0 }; return w; }
+function saveWallet(w){ try{ localStorage.setItem(WALLET_KEY, JSON.stringify(w)); }catch(e){} drawWallet(); }
+function drawWallet(){ const a = document.getElementById('wAmt'); if(!a) return;
+  if(LIVE){ const t = TODAY || {}; const wl = a.closest('.wallet'); if(wl) wl.title = 'Tower money you earned today, paid into your WCA balance';
+    a.textContent = t.signed_in ? '$' + Number(t.earned || 0).toLocaleString() : 'Sign in';
+    document.getElementById('wSub').textContent = t.signed_in ? 'today · limit $' + Number(t.cap || 0).toLocaleString() : 'to earn money'; return; }
+  const w = wallet(); a.textContent = '$' + w.earned.toLocaleString(); document.getElementById('wSub').textContent = 'today · limit $' + CFG.settings.dailyCap.toLocaleString(); }
+/* the website: money is paid by the database (tower_start / tower_fight / tower_win / tower_lose) */
+let TODAY = null;
+async function refreshToday(){ if(!LIVE) return; try{ const r = await sbc().rpc('tower_today'); if(!r.error) TODAY = r.data; }catch(e){} drawWallet(); }
+const SIGNED = () => !!(LIVE && TODAY && TODAY.signed_in);
+async function beginClimb(){
+  S.tower = towerFloors(S.tk, S.me); S.floor = 0; S.run = null; S.runErr = '';
+  if(SIGNED()){ try{ const r = await sbc().rpc('tower_start', { p_tower:S.tk }); if(r.error) throw r.error; S.run = r.data && r.data.run; }
+    catch(e){ S.runErr = String(e.message || e); } }
+  startBattle();
+}
+function pay(n){ const w = wallet(), got = Math.min(Math.max(0, CFG.settings.dailyCap - w.earned), n); w.earned += got; w.total += got; saveWallet(w); return got; }
+
+function toggleMute(){ SND.muted = !SND.muted; try{ localStorage.setItem('wcaTowerMute', SND.muted ? '1' : '0'); }catch(e){} if(SND.muted) SND.crowdStop(); drawMute(); }
+function drawMute(){ const b = document.getElementById('muteBtn'); if(b) b.textContent = SND.muted ? 'Sound off' : 'Sound on'; }
+function go(screen){ if(screen !== 'battle') SND.crowdStop(); S.screen = screen; window.scrollTo(0,0); CFG = loadCfg(); render(); }
+function render(){ ({ title, pick, moveset, foe, vs, tower:towerScreen, battle:battleScreen, result }[S.screen] || title)(); drawWallet(); drawMute(); }
+
+/* ---------- title: choose your tower (like the classic Mortal Kombat towers) ---------- */
+let towerSel = null;
+const floorsOf = t => t.stack;   // '' = a floor that changes every climb
+function title(){
+  const defs = towerDefs(); if(!towerSel || !defs.some(t => t.key === towerSel)) towerSel = defs[0].key;
+  app.innerHTML = `<div class="kick">WCA Universe · mini game · Tower of Champions</div><h1 class="big f chrome">Choose your destiny</h1>
+  ${ONLINE ? '' : '<p class="note"><b style="color:var(--gold)">Couldn\'t reach the website, so this is using a sample roster.</b></p>'}
+  ${LIVE ? (SIGNED() ? `<p class="note">Every floor you win pays real WCA money into your balance, up to $${Number(TODAY.cap || 0).toLocaleString()} a day. The boss pays 3 times as much.</p>`
+    : '<p class="note"><b style="color:var(--gold)">Sign in on WCAUniverse.com to earn money for every floor you win.</b> You can still play for fun.</p>') : ''}
+  <div class="towers">${defs.map(t => { const fl = floorsOf(t);
+    return `<button class="twr${t.key === towerSel ? ' on' : ''}" style="--c:${esc(t.color)}" data-t="${esc(t.key)}">
+      <span class="col">${fl.map((n, i) => `<span class="blk${i === fl.length - 1 ? ' boss' : ''}"><span class="bfc">${n ? face(W(n)) : sil(true)}</span></span>`).reverse().join('')}</span>
+      <span class="twr-n f">${esc(t.name)}</span><span class="twr-s">${fl.length - 1} floors + boss</span></button>`; }).join('')}</div>
+  <div class="panel twr-info" id="twInfo"></div>
+  <div class="panel quick"><div><b class="f">Quick match</b><span class="muted">One match, no money, just for fun. Pick how good the computer is:</span></div>
+    <div class="row">${['easy','normal','hard'].map(d => `<button class="qbtn" style="--c:${DIFF_COL[d]}" onclick="S.quick=true;S.qdiff='${d}';S.me=null;S.pickFoe=false;go('pick')">${d}</button>`).join('')}</div></div>
+  <div class="howto">
+    <div><b>1. Circling</b>Strike beats Grapple. Grapple beats Block. Block stops a Strike. Both strike: a slugfest. Both grapple: a tie-up.</div>
+    <div><b>2. Take control</b>Win the exchange and pick your offense from where they are: standing, off the ropes, in the corner, behind them, on the ground or from the top rope.</div>
+    <div><b>3. Finish it</b>Build momentum for your Signature and Finisher, then pin or make them tap. Reverse big moves by hitting the arrows on time.</div>
+  </div>`;
+  const info = () => { const t = towerDef(towerSel), fl = floorsOf(t), boss = fl[fl.length - 1], rot = fl.filter(n => !n).length;
+    document.getElementById('twInfo').innerHTML = `<div class="twr-i"><div><div class="kick" style="color:${esc(t.color)}">${t.builtin ? 'Daily tower' : esc(t.level) + ' difficulty'}${rot ? ' · ' + (rot === fl.length ? 'new opponents every climb' : rot + ' floors change every climb') : ' · set by WCA'}</div>
+      <div class="f" style="font-size:44px;line-height:1">${esc(t.name)} tower</div>
+      <p class="note" style="margin:6px 0 0">${fl.length - 1} floors, then ${boss ? esc(boss) + (champOf(boss).length ? ' (C)' : '') : 'a champion'} at the top.${rot ? ' The ? floors are a surprise.' : ''}${t.about ? ' ' + esc(t.about) : ''}</p>
+      <div class="rw">$${t.reward} a floor · the boss pays $${t.reward * 3}</div></div>
+      <button class="cta big-go" onclick="S.tk=towerSel;S.quick=false;S.me=null;S.pickFoe=false;go('pick')">Choose your wrestler ▶</button></div>`; };
+  app.querySelectorAll('.twr').forEach(b => { b.onclick = () => { if(towerSel === b.dataset.t){ S.tk = towerSel; S.quick = false; S.me = null; S.pickFoe = false; go('pick'); return; }
+    towerSel = b.dataset.t; app.querySelectorAll('.twr').forEach(x => x.classList.toggle('on', x === b)); info(); }; });
+  info();
+}
+
+/* ---------- character select ---------- */
+let pickSel = null, pickQ = '';
+function pick(){
+  const step2 = S.quick && S.pickFoe && S.me;
+  if(!pickSel || !W(pickSel) || (step2 && pickSel === S.me)) pickSel = (ROSTER.find(w => w.name !== S.me) || ROSTER[0]).name;
+  const list = ROSTER.filter(w => (!pickQ || w.name.toLowerCase().includes(pickQ.toLowerCase())) && !(step2 && w.name === S.me));
+  const card = n => { const w = W(n), st = styleOf(setupOf(n).style); return `<button class="slot${n===pickSel?' sel':''}" data-n="${esc(n)}">${face(w)}${st.id!=='allround'?`<span class="st">${esc(st.name)}</span>`:''}<span class="nm">${esc(n)}${champOf(n).length?' (C)':''}</span></button>`; };
+  app.innerHTML = `<div class="kick">${S.quick ? 'Quick match · ' + esc(S.qdiff) : esc(TW().name) + ' tower'} · step ${step2 ? 2 : 1}</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">${step2 ? 'Choose the opponent' : 'Choose your wrestler'}</h1>
+  <input class="search" id="q" placeholder="Find a wrestler" value="${esc(pickQ)}">
+  <div class="pick-side"><div class="roster">${list.map(w => card(w.name)).join('')}</div><aside class="panel preview" id="pv"></aside></div>`;
+  const q = document.getElementById('q'); q.oninput = () => { pickQ = q.value; const p = q.selectionStart; pick(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(p,p); };
+  app.querySelectorAll('.slot').forEach(b => { b.onclick = () => { pickSel = b.dataset.n; drawPv(); app.querySelectorAll('.slot').forEach(x => x.classList.toggle('sel', x === b)); }; });
+  drawPv();
+}
+function abilList(n){ const su = setupOf(n), st = styleOf(su.style); return [st.trait].concat(su.abilities).filter(Boolean).map(abilityOf).filter(Boolean); }
+function drawPv(){
+  const pv = document.getElementById('pv'); if(!pv || !pickSel) return;
+  const n = pickSel, su = setupOf(n), st = styleOf(su.style), ab = abilList(n), step2 = S.quick && S.pickFoe && S.me;
+  pv.innerHTML = `<div class="ph">${face(W(n))}</div><div class="f" style="font-size:34px;line-height:1">${esc(n)}${champOf(n).length?' <span style="color:var(--gold);font-size:.6em">(C)</span>':''}</div>
+    <div class="chips" style="margin:10px 0"><span class="chip gold"><span>${esc(st.name)}</span></span>${ab.map(a => `<span class="chip blue"><span>${esc(a.name)}</span></span>`).join('')}</div>
+    <p class="note" style="font-size:16px;margin:0 0 6px">${esc(st.desc)}</p>
+    <p style="margin:6px 0;font-size:16px"><b>Signature:</b> ${esc(su.sigName)} <span class="muted">(${esc(POS[su.sigFrom])})</span><br><b>Finisher:</b> ${esc(su.finName)} <span class="muted">(${esc(POS[su.finFrom])})</span></p>
+    ${ab.map(a => `<p class="muted" style="margin:6px 0;font-size:15px"><b style="color:var(--blue)">${esc(a.name)}:</b> ${esc(sentence(a))}</p>`).join('')}
+    ${step2 ? `<button class="cta" style="margin-top:12px;width:100%;justify-content:center" onclick="S.foe=pickSel;startBattle()">Fight ▶</button>`
+      : `<button class="cta" style="margin-top:12px;width:100%;justify-content:center" onclick="S.me=pickSel;go('moveset')">Choose moves ▶</button>`}`;
+}
+
+/* ---------- moveset ---------- */
+function moveset(){
+  const n = S.me, su = setupOf(n), max = CFG.settings.maxMovesPerPos;
+  let chosen = new Set(loadoutOf(n));
+  const fixed = m => ['pin','pickup','climb','whip'].includes(m.kind);
+  const draw = () => {
+    app.innerHTML = `<div class="kick">${esc(n)} · step 2</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Choose your moves</h1>
+    <p class="note">Pick up to ${max} moves for each spot. These are what you'll be able to do when you're in control. Pins, whips, picking them up and climbing are always there. Your Signature (<b>${esc(su.sigName)}</b>, ${esc(POS[su.sigFrom].toLowerCase())}) and Finisher (<b>${esc(su.finName)}</b>, ${esc(POS[su.finFrom].toLowerCase())}) are set by the admin.</p>
+    <div class="ms">${Object.keys(POS).map(p => { const moves = CFG.moves.filter(m => m.from === p); if(!moves.length) return '';
+      const count = moves.filter(m => !fixed(m) && chosen.has(m.id)).length;
+      return `<section class="panel ms-pos"><div class="ms-h"><b class="f">${esc(POS[p])}</b><span class="muted">${count} / ${max}</span></div>
+        <div class="ms-list">${moves.map(m => { const on = fixed(m) || chosen.has(m.id);
+          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}><b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}${m.rev?' · '+'◆'.repeat(m.rev)+' to reverse':''}</small></button>`; }).join('')}</div></section>`; }).join('')}</div>
+    <div class="row" style="margin-top:16px"><button class="cta big-go" id="msGo">${S.quick ? 'Next: your opponent ▶' : 'Fight! ▶'}</button><button class="cta ghost" id="msDef">Use the default moves</button><button class="cta ghost" onclick="pickSel=S.me;S.pickFoe=false;go('pick')">Back</button></div>`;
+    app.querySelectorAll('.mvpick:not(.fixed)').forEach(b => b.onclick = () => {
+      const m = moveOf(b.dataset.m), here = CFG.moves.filter(x => x.from === m.from && !fixed(x) && chosen.has(x.id)).length;
+      if(chosen.has(m.id)){ if(here <= 1) return; chosen.delete(m.id); } else { if(here >= max) return; chosen.add(m.id); }
+      saveLoadout(n, [...chosen]); draw();
+    });
+    document.getElementById('msDef').onclick = () => { chosen = new Set(defaultLoadout()); saveLoadout(n, [...chosen]); draw(); };
+    document.getElementById('msGo').onclick = () => { saveLoadout(n, [...chosen]);
+      if(S.quick){ go('foe'); return; } beginClimb(); };
+  };
+  draw();
+}
+
+/* ---------- quick match: choose the opponent, or take a random one ---------- */
+function foe(){
+  app.innerHTML = `<div class="kick">Quick match · ${esc(S.qdiff)} · step 3</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Your opponent</h1>
+  <div class="foe2"><button class="foec" onclick="S.pickFoe=true;S.foeHidden=false;go('pick')"><span class="fpic">${sil()}</span><b class="f">Choose your opponent</b><span>Pick exactly who you want to face.</span></button>
+    <button class="foec" onclick="randomFoe()"><span class="fpic">${sil(true)}</span><b class="f">Random opponent</b><span>You won't know who it is until the bell rings.</span></button></div>
+  <div class="row" style="margin-top:16px"><button class="cta ghost" onclick="go('moveset')">Back</button></div>`;
+}
+function randomFoe(){ const all = ROSTER.filter(w => w.name !== S.me); S.foe = all[Math.floor(Math.random() * all.length)].name; S.foeHidden = true; go('vs'); }
+/* the last stop before the bell: press Fight and the match starts */
+function vs(){
+  const f = S.foeHidden ? null : W(S.foe);
+  app.innerHTML = `<div class="vsw"><div class="vsp me"><span class="vpic">${face(W(S.me))}</span><b class="f">${esc(S.me)}</b></div><div class="vsx f">VS</div>
+    <div class="vsp them"><span class="vpic">${f ? face(f) : sil(true)}</span><b class="f">${f ? esc(S.foe) : '???'}</b></div></div>
+  <div class="row" style="justify-content:center;margin-top:18px"><button class="cta big-go" onclick="startBattle()">Fight! ▶</button><button class="cta ghost" onclick="go('foe')">Back</button></div>`;
+}
+
+/* ---------- tower ---------- */
+function towerScreen(){
+  const r = TW().reward;
+  app.innerHTML = `<div class="kick">${esc(TW().name)} tower · ${TW().stack.length ? 'set by WCA' : today()}</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">${esc(S.me)}'s climb</h1>
+  <p class="note">Win every floor to reach ${esc(S.tower[S.tower.length-1])} at the top. Lose and this climb ends. You can try again any time.</p>
+  <div class="row" style="margin-top:10px"><button class="cta" onclick="startBattle()">Fight floor ${S.floor+1} ▶</button><button class="cta ghost" onclick="go('moveset')">Change moves</button><button class="cta ghost" onclick="S.me=null;go('pick')">Change wrestler</button></div>
+  <div class="tower">${S.tower.map((n,i) => { const boss = i === S.tower.length-1, st = styleOf(setupOf(n).style);
+    return `<div class="floor${i<S.floor?' done':''}${i===S.floor?' next':''}${boss?' boss':''}"><span class="no">${boss?'BOSS':'F'+(i+1)}</span><span class="fc">${face(W(n))}</span>
+      <span><b>${esc(n)}${champOf(n).length?' <span style="color:var(--gold)">(C)</span>':''}</b><small>${esc(st.name)}${boss&&champOf(n).length?' · '+esc(champOf(n).join(', '))+' Champion':''}</small></span>
+      <span class="floor-r muted">${i<S.floor?'✓ Beaten':'$'+(boss?r*3:r)}</span></div>`; }).join('')}</div>`;
+}
+
+/* =====================================================================
+   THE FIGHT SCREEN
+   ===================================================================== */
+let MT = null;
+function startBattle(){
+  const foe = S.quick ? S.foe : S.tower[S.floor], level = LEVEL(), lv = AI_LEVEL[level] || AI_LEVEL.normal;
+  const me = makeFighter(S.me, { brain:humanBrain(), loadout:loadoutOf(S.me) });
+  const op = makeFighter(foe, { brain:slowAI(aiBrain(level)), level, hpScale:lv.hp, dmgScale:lv.dmg, loadout:defaultLoadout() });
+  me.side = 'L'; op.side = 'R';
+  S.screen = 'battle'; battleScreen();
+  MT = new Match(me, op, uiHooks());
+  drawBars(); SOUNDS_ON.start();
+  if(LIVE && !S.quick && S.run) sbc().rpc('tower_fight', { p_run:S.run }).then(r => { if(r.error){ S.runErr = r.error.message; S.run = null; } }, () => {});
+  MT.run().then(m => finish(m.winner === me, m.how));
+}
+function slowAI(brain){ return { neutral:brain.neutral, chain:brain.chain, reversal:brain.reversal, kickout:brain.kickout, escape:brain.escape,
+  async control(m,f,o){ setStage(`${f.name} is in control`, posLine(m)); await sleep(950); return brain.control(m,f,o); } }; }
+
+function battleScreen(){
+  app.innerHTML = `<div class="arena" id="arena">
+      <div class="fighter l" id="fL"></div>
+      <div class="mid"><div class="stage f" id="stage">Circling</div><div class="stage-sub" id="stageSub"></div></div>
+      <div class="fighter r" id="fR"></div></div>
+    <div class="panel call" id="call"><div class="big f">The bell rings!</div></div>
+    <div id="ctl"></div>
+    <div class="row" style="justify-content:space-between;margin-top:10px"><label class="muted" style="font-size:15px"><input type="checkbox" id="askAll" ${S.askAll?'checked':''} style="accent-color:var(--gold)"> Ask me to reverse every move (not just the big ones)</label>
+      <button class="mini" onclick="if(confirmQuit(this)) go('title')">Leave the match</button></div>
+    <div class="log" id="log"></div>`;
+  document.getElementById('askAll').onchange = e => S.askAll = e.target.checked;
+}
+function confirmQuit(b){ if(b.dataset.sure === '1'){ if(MT){ MT.over = true; MT.ui = {}; } SOUNDS_ON.stop(); return true; } b.dataset.sure = '1'; b.textContent = 'Click again to leave (counts as a loss)'; return false; }
+function fighterHTML(f){
+  return `<div class="portrait${f.stun?' stun':''}" id="p${f.side}"><div class="pimg">${face(f.w)}</div><div class="tint"></div></div>
+    <div class="nm f">${esc(f.name)}${champOf(f.name).length?' <span style="color:var(--gold);font-size:.55em">(C)</span>':''}</div>
+    <div class="chips"><span class="chip gold"><span>${esc(f.st.name)}</span></span></div>
+    <div class="barlbl">Health <b id="hp${f.side}"></b></div><div class="bar hp"><span id="hb${f.side}"></span></div>
+    <div class="barlbl">Momentum <b id="mo${f.side}"></b></div><div class="bar mo"><span id="mb${f.side}"></span><i class="tick"></i></div>
+    <div class="barlbl">Reversals <span class="revs" id="rv${f.side}"></span></div>`;
+}
+function drawBars(){
+  if(!MT) return;
+  [MT.a, MT.b].forEach(f => {
+    const el = document.getElementById('f' + f.side); if(!el) return;
+    if(!el.dataset.ready){ el.innerHTML = fighterHTML(f); el.dataset.ready = '1'; }
+    const hp = Math.max(0, Math.round(f.hp));
+    document.getElementById('hp' + f.side).textContent = `${hp} / ${f.max}`;
+    document.getElementById('hb' + f.side).style.width = Math.max(0, f.hp)/f.max*100 + '%';
+    document.getElementById('mo' + f.side).textContent = Math.round(f.mom);
+    document.getElementById('mb' + f.side).style.width = Math.min(100, f.mom) + '%';
+    document.getElementById('rv' + f.side).innerHTML = Array.from({length:Math.max(f.revs, CFG.settings.reversal.slots)}, (_,i) => `<i class="${i < f.revs ? 'on' : ''}"></i>`).join('');
+    const p = document.getElementById('p' + f.side); if(p) p.classList.toggle('stun', !!f.stun);
+  });
+}
+function posLine(m){ if(!m.ctrl) return 'Both standing'; const op = m.other(m.ctrl);
+  return { standing:`${op.name} is standing in front of them`, ropes:`${op.name} is bouncing off the ropes`, corner:`${op.name} is in the corner`, behind:`${m.ctrl.name} is behind ${op.name}`, ground:`${op.name} is down on the mat`, top:`${m.ctrl.name} is on the top rope` }[m.pos] || ''; }
+function setStage(t, sub){ const a = document.getElementById('stage'), b = document.getElementById('stageSub'); if(a) a.textContent = t; if(b) b.textContent = sub || ''; }
+
+/* the play by play: the big line on top, everything in the log */
+function say(t, kind){
+  const log = document.getElementById('log'); if(!log) return;
+  const d = document.createElement('div'); d.className = 'l-' + (kind || 'info'); d.textContent = t; log.appendChild(d); log.scrollTop = log.scrollHeight;
+  if(['call','big','bighit','hit','move','ability'].includes(kind)){
+    const c = document.getElementById('call');
+    if(kind === 'ability') c.insertAdjacentHTML('beforeend', `<span class="ab-pop">⚡ ${esc(t.split(':')[0].replace('⚡','').trim())}</span>`);
+    else c.innerHTML = `<div class="big f${kind==='big'||kind==='bighit'?' huge':''}">${esc(t)}</div>`;
+  }
+  drawBars();
+}
+
+/* simple picture animations: lunges, hits with a red tint, shakes and flashes */
+let fxT = 0;
+function fx(kind, who, data){
+  const now = performance.now(); if(now > fxT) fxT = now; const delay = fxT - now; fxT += kind === 'lunge' ? 140 : kind === 'hit' || kind === 'crash' ? 260 : 0;
+  setTimeout(() => runFx(kind, who, data), delay);
+}
+function runFx(kind, who, data){
+  drawBars(); try{ soundFx(kind, who, data); }catch(e){}
+  const el = who ? document.getElementById('p' + who.side) : null;
+  const again = (n, c) => { if(!n) return; n.classList.remove(c); void n.offsetWidth; n.classList.add(c); };
+  const arena = document.getElementById('arena');
+  if(kind === 'lunge' && el){ again(el, who.side === 'L' ? 'lungeL' : 'lungeR'); if(data && data.big) again(arena, 'flashbig'); }
+  if((kind === 'hit' || kind === 'crash') && el){
+    again(el, data && data.big ? 'hitbig' : 'hit');
+    const n = document.createElement('div'); n.className = 'dmg' + (kind === 'crash' ? ' crash' : ''); n.textContent = '-' + data.dmg; el.parentElement.appendChild(n); setTimeout(() => n.remove(), 1000);
+    if(data && data.big) again(arena, 'quake');
+  }
+  if(kind === 'heal' && el){ again(el, 'healfx'); const n = document.createElement('div'); n.className = 'dmg heal'; n.textContent = '+' + data; el.parentElement.appendChild(n); setTimeout(() => n.remove(), 1000); }
+  if(kind === 'block' && el){ again(el, 'blockfx'); const n = document.createElement('div'); n.className = 'dmg block'; n.textContent = 'BLOCKED'; el.parentElement.appendChild(n); setTimeout(() => n.remove(), 1000); }
+  if(kind === 'windup' && el){ again(el, 'windup'); }
+  if(kind === 'tieup'){ ['L','R'].forEach(s => again(document.getElementById('p' + s), s === 'L' ? 'pushL' : 'pushR')); setStage('Tie-up', 'Chain wrestling for the advantage'); }
+  if(kind === 'circle'){ ['L','R'].forEach(s => again(document.getElementById('p' + s), 'sway')); }
+  if(kind === 'control' && who){ setStage(`${who.name} in control`, posLine(MT)); }
+  if(kind === 'recover' || (kind === 'state' && data && data.stage === 'neutral' && MT && !MT.ctrl)){ setStage('Circling', 'Both standing'); }
+  if(kind === 'pin' && el){ setStage('The cover!', ''); }
+  if(kind === 'count'){ showCount(data.n); }
+  if(kind === 'sub' && el){ setStage('Submission!', data && data.name); }
+  if(kind === 'ability' && el){ again(el, 'abilityfx'); }
+}
+function uiHooks(){ return { say, fx, wait:ms => sleep(ms) }; }
+
+/* ---------- sound: what the crowd and the narrator do for each moment ---------- */
+const SOUNDS_ON = {
+  start(){ SND.check().then(() => { SND.fx('sfx-bell'); SND.crowdStart(); SND.vo('vo-start', 2); }); this.ctrl = null; this.ready = false; this.trouble = false; },
+  stop(){ SND.crowdStop(); }
+};
+function soundFx(kind, who, data){
+  if(!MT) return;
+  const mine = who && who === MT.a;           // the person playing is always on the left
+  if(kind === 'control' && who && SOUNDS_ON.ctrl !== who){ SOUNDS_ON.ctrl = who; SND.vo(mine ? 'vo-you-control' : 'vo-opp-control', 1, 6000); }
+  if(kind === 'recover' || (kind === 'state' && data && data.stage === 'neutral' && !MT.ctrl)) SOUNDS_ON.ctrl = null;
+  if(kind === 'slugfest'){ SND.vo('vo-slugfest', 2); SND.swell('crowd-cheer'); }
+  if(kind === 'tieup') SND.vo('vo-tieup', 1, 8000);
+  if(kind === 'windup' && data && data.kind === 'sig') SND.vo('vo-signature', 3);
+  if(kind === 'windup' && data && data.kind === 'fin'){ SND.vo('vo-finisher', 3); SND.swell('crowd-pop'); }
+  if(kind === 'hit' && data){ const big = data.big || data.dmg >= 13;
+    SND.fx(big || data.dmg >= 9 ? 'sfx-slam' : 'sfx-hit');
+    if(big){ SND.vo('vo-big', 1, 4000); SND.swell(who === MT.a ? 'crowd-boo' : 'crowd-cheer'); } }
+  if(kind === 'crash'){ SND.fx('sfx-slam'); SND.swell('crowd-gasp'); }
+  if(kind === 'reversal'){ SND.fx('sfx-whoosh'); SND.vo('vo-reversal', 2); if(mine) SND.swell('crowd-cheer'); }
+  if(kind === 'dodge'){ SND.fx('sfx-whoosh'); SND.vo('vo-dodge', 2); }
+  if(kind === 'sub'){ SND.vo('vo-sub', 2); }
+  if(kind === 'escape') SND.vo('vo-escape', 2);
+  if(kind === 'ropebreak') SND.vo('vo-ropes', 2);
+  if(kind === 'pin'){ SND.vo('vo-cover', 2); }
+  if(kind === 'kickout'){ SND.vo('vo-kickout', 3); SND.swell(data && data.n >= 2 ? 'crowd-pop' : 'crowd-gasp'); }
+  if(kind === 'end' && data){ if(data.how === 'submission') SND.vo('vo-tap', 4); SND.fx('sfx-bell'); setTimeout(() => SND.swell(who === MT.a ? 'crowd-pop' : 'crowd-boo'), 300); }
+  // your own warnings
+  const me = MT.a;
+  if(!SOUNDS_ON.ready && me.mom >= CFG.settings.mom.finCost){ SOUNDS_ON.ready = true; SND.vo('vo-ready', 1); }
+  if(SOUNDS_ON.ready && me.mom < CFG.settings.mom.finCost) SOUNDS_ON.ready = false;
+  if(!SOUNDS_ON.trouble && me.hp > 0 && me.hp / me.max < .3){ SOUNDS_ON.trouble = true; SND.vo('vo-trouble', 1); }
+}
+/* the referee's count, big in the middle */
+function showCount(n){
+  SND.fx('sfx-mat'); SND.vo('vo-count-' + n, 5);
+  const a = document.getElementById('arena'); if(!a) return;
+  const c = document.createElement('div'); c.className = 'count f'; c.textContent = n; a.appendChild(c); setTimeout(() => c.remove(), 900);
+}
+
+/* ---------- the person's choices ---------- */
+function choose(html, keys){
+  return new Promise(res => {
+    const ctl = document.getElementById('ctl'); ctl.innerHTML = html;
+    const done = v => { document.removeEventListener('keydown', kd); ctl.innerHTML = '<div class="waiting">…</div>'; res(v); };
+    ctl.querySelectorAll('[data-v]').forEach(b => b.onclick = () => done(JSON.parse(b.dataset.v)));
+    const kd = e => { if(e.target.tagName === 'INPUT') return; const k = keys && keys[e.key]; if(k !== undefined){ e.preventDefault(); done(k); } };
+    document.addEventListener('keydown', kd);
+  });
+}
+function humanBrain(){
+  return {
+    neutral(m, f){ setStage('Circling', 'Both standing. Pick your move.');
+      return choose(`<div class="moves">
+        <button class="mv s" data-v='"strike"'>Strike<small>beats Grapple · key 1</small></button>
+        <button class="mv g" data-v='"grapple"'>Grapple<small>beats Block · key 2</small></button>
+        <button class="mv b" data-v='"block"'>Block<small>stops a Strike · key 3</small></button></div>
+        <div class="legend">Both Strike: slugfest, you both get hit. Both Grapple: tie-up and chain wrestling. Both Block: you circle.</div>`, { '1':'strike', '2':'grapple', '3':'block' }); },
+    chain(m, f, r){ setStage('Tie-up', `Chain wrestling, round ${r}`);
+      return choose(`<div class="moves">
+        <button class="mv s" data-v='"power"'>Power<small>shove into the corner · beats Speed</small></button>
+        <button class="mv g" data-v='"technique"'>Technique<small>wristlock · beats Power</small></button>
+        <button class="mv b" data-v='"speed"'>Speed<small>go behind · beats Technique</small></button></div>`, { '1':'power', '2':'technique', '3':'speed' }); },
+    control(m, f, opts){
+      setStage('You are in control', posLine(m));
+      const btn = (o, i) => {
+        if(o.type === 'backoff') return `<button class="mvo back" data-v='${JSON.stringify(i)}'><b>Back off</b><small>go back to circling</small></button>`;
+        if(o.type === 'sig') return `<button class="mvo sig ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.sigName)}</b><small>Signature · ${f.su.sigDmg} dmg</small></button>`;
+        if(o.type === 'fin') return `<button class="mvo fin ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.finName)}</b><small>Finisher · ${f.su.finDmg} dmg</small></button>`;
+        const mv = o.move;
+        return `<button class="mvo k-${mv.kind}" data-v='${JSON.stringify(i)}'><b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}${mv.to!==mv.from&&mv.dmg===0?' · '+esc(POS[mv.to].toLowerCase()):''}</small></button>`;
+      };
+      const s = CFG.settings, need = [];
+      if(f.mom < s.mom.sigCost) need.push(`Signature at ${s.mom.sigCost} momentum (${POS[f.su.sigFrom].toLowerCase()})`);
+      else if(f.su.sigFrom !== m.pos) need.push(`Signature is ready: get them ${POS[f.su.sigFrom].toLowerCase()}`);
+      if(f.mom >= s.mom.finCost && f.su.finFrom !== m.pos) need.push(`Finisher is ready: get them ${POS[f.su.finFrom].toLowerCase()}`);
+      return choose(`<div class="mvgrid">${opts.map(btn).join('')}</div>${need.length ? `<div class="legend">${need.map(esc).join(' · ')}</div>` : ''}`).then(i => opts[i]);
+    },
+    async reversal(m, f, move, len, kind){
+      const big = kind !== 'move' || move.kind === 'highrisk' || move.rev >= 2;
+      if(!big && !S.askAll) return null;
+      const verb = move.kind === 'highrisk' ? 'Dodge' : 'Reverse';
+      const go = await choose(`<div class="incoming"><div class="f big">${esc(m.other(f).name)} goes for the ${esc(move.name)}!</div>
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="cta" data-v='true'>${verb} it! (${f.revs} left)</button><button class="cta ghost" data-v='false'>Take it</button></div>
+        <div class="legend">${len} arrows. Hit more than you miss.${move.kind==='highrisk'?' If you dodge, they crash and hurt themselves.':''}</div></div>`, { 'Enter':true, ' ':true, 'Escape':false });
+      if(!go) return null;
+      return await seqGame(`${verb} the ${move.name}!`, len);
+    },
+    kickout(m, f, zone){ return needleGame(zone); },
+    escape(m, f, move, len){ return seqGame(`Fight out of the ${move.name}!`, len); }
+  };
+}
+
+/* ---------- mini game 1: the arrow sequence (reversals and submissions) ---------- */
+const ARROWS = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→' };
+function seqGame(titleText, len){
+  return new Promise(res => {
+    const keys = Object.keys(ARROWS), seq = Array.from({length:len}, () => keys[Math.floor(Math.random()*4)]);
+    const ov = document.createElement('div'); ov.className = 'mg';
+    ov.innerHTML = `<div class="mg-box"><div class="kick">Hit each arrow as it reaches the ring</div><div class="f mg-t">${esc(titleText)}</div>
+      <div class="lane" id="lane"><div class="target"></div></div>
+      <div class="mg-score"><span class="ok" id="sOk">0 hit</span><span class="no" id="sNo">0 missed</span></div>
+      <div class="pads">${keys.map(k => `<button class="pad" data-k="${k}">${ARROWS[k]}</button>`).join('')}</div>
+      <div class="legend">Arrow keys or tap the buttons. Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
+    document.body.appendChild(ov);
+    const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(30, W * .045);
+    const speed = (W * .55) * (CFG.settings.seq.speed / 100);       // pixels per second
+    const gap = .62 / (CFG.settings.seq.speed / 100);                // seconds between arrows
+    const notes = seq.map((k, i) => { const n = document.createElement('div'); n.className = 'lnote'; n.textContent = ARROWS[k]; lane.appendChild(n); return { k, el:n, t0:i * gap + .5, done:false }; });
+    let ok = 0, no = 0, start = performance.now(), raf;
+    const xOf = (nt, t) => W + 30 - (t - nt.t0) * speed;
+    const judge = (nt, hit) => { nt.done = true; nt.el.classList.add(hit ? 'hitn' : 'missn'); if(hit) ok++; else no++;
+      ov.querySelector('#sOk').textContent = ok + ' hit'; ov.querySelector('#sNo').textContent = no + ' missed';
+      if(notes.every(x => x.done)) end(); };
+    const press = k => { const t = (performance.now() - start) / 1000;
+      const nt = notes.find(x => !x.done); if(!nt) return;
+      const d = Math.abs(xOf(nt, t) - targetX);
+      if(d <= tol) judge(nt, nt.k === k); else if(d <= tol * 2.4) judge(nt, false);
+      const pad = ov.querySelector(`[data-k="${k}"]`); if(pad){ pad.classList.remove('pressed'); void pad.offsetWidth; pad.classList.add('pressed'); } };
+    const kd = e => { if(ARROWS[e.key]){ e.preventDefault(); press(e.key); } };
+    document.addEventListener('keydown', kd);
+    ov.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); press(b.dataset.k); }));
+    const loop = () => { const t = (performance.now() - start) / 1000;
+      notes.forEach(nt => { if(nt.done && !nt.el.classList.contains('gone')){ if(!nt.fade){ nt.fade = 1; setTimeout(() => nt.el.classList.add('gone'), 250); } return; }
+        const x = xOf(nt, t); nt.el.style.transform = `translateX(${x}px)`; if(!nt.done && x < targetX - tol) judge(nt, false); });
+      raf = requestAnimationFrame(loop); };
+    let ended = false;
+    function end(){ if(ended) return; ended = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
+      const win = ok > len / 2; ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${win?'good':'bad'}">${win ? 'Success!' : 'Failed!'}</div>`);
+      setTimeout(() => { ov.remove(); res(win); }, 750); }
+    raf = requestAnimationFrame(loop);
+  });
+}
+
+/* ---------- mini game 2: the kick out needle ----------
+   Every miss is a count. Miss once: ONE. Twice: TWO. Three times: THREE, it's over.
+   Waiting too long also counts. Stop the needle in the green to kick out.
+   The needle speeds up a little after each count. */
+function needleGame(zone){
+  return new Promise(res => {
+    const P = CFG.settings.pin, ov = document.createElement('div'); ov.className = 'mg';
+    const left = 50 - zone / 2;
+    ov.innerHTML = `<div class="mg-box"><div class="kick">Stop the needle in the green</div><div class="f mg-t">Kick out!</div>
+      <div class="refcount f" id="rc"><span>1</span><span>2</span><span>3</span></div>
+      <div class="needlebar" id="nb"><div class="green" style="left:${left}%;width:${zone}%"></div><div class="needle" id="nd"></div></div>
+      <div class="ctimer"><span id="ct"></span></div>
+      <div class="row" style="justify-content:center;margin-top:14px"><button class="cta" id="stop">STOP (space or tap)</button></div>
+      <div class="legend">Every miss is a count, and so is waiting too long. Three and it's over. The green gets smaller the more damage you've taken. It's ${Math.round(zone)}% wide right now.</div></div>`;
+    document.body.appendChild(ov);
+    const nd = ov.querySelector('#nd'), ct = ov.querySelector('#ct'), win0 = Math.max(.8, +P.countTime || 1.8) * 1000;
+    let period = 1500, phase = 0, last = performance.now(), raf, done = false, x = 0, count = 0, ready = false, deadline = performance.now() + win0 + 350;
+    const loop = now => { phase = (phase + (now - last) / period) % 1; last = now; x = phase < .5 ? phase * 200 : (1 - phase) * 200; nd.style.left = x + '%';
+      const left2 = Math.max(0, deadline - now); ct.style.width = (left2 / win0 * 100) + '%';
+      if(ready && now >= deadline) miss();
+      if(!done) raf = requestAnimationFrame(loop); };
+    const finish = (out) => { done = true; cancelAnimationFrame(raf); document.removeEventListener('keydown', kd);
+      ov.querySelector('.mg-box').insertAdjacentHTML('beforeend', `<div class="mg-res f ${out?'good':'bad'}">${out ? (count ? 'Kick out at ' + count + '!' : 'Kick out!') : 'Three!'}</div>`);
+      setTimeout(() => { ov.remove(); res({ out, count }); }, out ? 800 : 1000); };
+    function miss(){ if(done) return; count++;
+      ov.querySelectorAll('#rc span').forEach((s, i) => s.classList.toggle('on', i < count));
+      SND.fx('sfx-mat'); SND.vo('vo-count-' + count, 5);
+      const a = document.getElementById('arena'); if(a){ const c = document.createElement('div'); c.className = 'count f'; c.textContent = count; a.appendChild(c); setTimeout(() => c.remove(), 900); }
+      nd.classList.remove('missed'); void nd.offsetWidth; nd.classList.add('missed');
+      if(count >= 3){ finish(false); return; }
+      period = period / (1 + (+P.speedUp || 0) / 100); deadline = performance.now() + win0; }
+    const stop = () => { if(done || !ready) return;
+      if(x >= left && x <= left + zone) finish(true); else miss(); };
+    const kd = e => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); stop(); } };
+    // a short beat before the needle can be stopped, so a held key doesn't stop it at once
+    setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop; ov.querySelector('#nb').onclick = stop; }, 350);
+    raf = requestAnimationFrame(loop);
+  });
+}
+
+/* ---------- after the match ---------- */
+async function finish(won, how){
+  if(!MT || MT.ui.say === undefined) return;
+  let paid = 0, note = '';
+  if(LIVE && !S.quick){
+    // real money: the database decides and pays, inside the daily limit
+    if(!SIGNED()) note = 'Sign in on WCAUniverse.com to earn money for every floor.';
+    else if(!S.run) note = S.runErr ? 'No money this climb: ' + S.runErr : 'No money this climb.';
+    else if(won){ try{ const r = await sbc().rpc('tower_win', { p_run:S.run }); if(r.error) throw r.error; const d = r.data || {};
+        paid = +d.paid || 0; TODAY = Object.assign(TODAY || {}, { earned:d.earned, cap:d.cap, balance:d.balance, signed_in:true });
+        if(d.why === 'too_fast') note = 'That match was too quick to pay. Matches have to last a little longer to earn money.';
+        else if(d.why === 'cap') note = paid ? `You hit today's $${Number(d.cap).toLocaleString()} limit, so you got $${paid}.` : `You've reached today's $${Number(d.cap).toLocaleString()} limit. Keep playing for fun!`;
+        if(d.balance != null) note = (note ? note + ' ' : '') + `Your WCA balance: $${Number(d.balance).toLocaleString()}.`;
+      }catch(e){ note = 'Could not pay this floor: ' + (e.message || e); } }
+    else { try{ await sbc().rpc('tower_lose', { p_run:S.run }); }catch(e){} }
+    if(won) S.floor++;
+    drawWallet();
+  }
+  else if(won && !S.quick){ const boss = S.floor === S.tower.length - 1, amount = TW().reward * (boss ? 3 : 1);
+    paid = pay(amount); if(paid < amount) note = paid ? `You hit today's $${CFG.settings.dailyCap.toLocaleString()} limit, so you got $${paid}.` : `You've reached today's $${CFG.settings.dailyCap.toLocaleString()} limit. Keep playing for fun!`; S.floor++; }
+  S.last = { won, how, paid, note, foe:MT.b.name, topped:won && !S.quick && S.floor >= S.tower.length };
+  setTimeout(() => { SOUNDS_ON.stop(); SND.vo(S.last.topped ? 'vo-tower' : won ? 'vo-win' : 'vo-lose', 6); go('result'); }, 1500);
+}
+function result(){
+  const r = S.last, how = { pinfall:'by pinfall', submission:'by submission', decision:'on the scorecards' }[r.how] || '';
+  const champ = r.won ? S.me : r.foe, loser = r.won ? r.foe : S.me;
+  app.innerHTML = `<div class="panel result${r.won ? ' won' : ' lost'}">
+    <div class="res-pics"><div class="res-win">${face(W(champ))}<span class="res-tag f">Winner</span></div><div class="res-lose">${face(W(loser))}</div></div>
+    <div class="res-body"><div class="kick">${r.won ? 'Victory' : 'Defeat'} ${esc(how)}</div>
+    <h1 class="big f chrome">${r.topped ? 'Tower conquered!' : `${esc(champ)} wins!`}</h1>
+    ${r.paid ? `<p class="f" style="font-size:40px;color:var(--bet);margin:6px 0">+$${r.paid.toLocaleString()}</p>` : ''}${r.note ? `<p class="note res-note">${esc(r.note)}</p>` : ''}
+    <p class="note res-note">${S.quick ? 'Quick matches are just for fun.' : r.topped ? 'You beat the champion at the top of the tower.' : r.won ? `Next up, floor ${S.floor+1} of ${S.tower.length}${S.floor === S.tower.length - 1 ? ', the boss' : ''}: ${esc(S.tower[S.floor])}.` : `The climb is over on floor ${S.floor+1}. Try again from the bottom, or change your moves.`}</p>
+    ${!S.quick ? `<div class="climb">${S.tower.map((n, i) => `<span class="cf${i < S.floor ? ' done' : ''}${i === S.floor && !r.topped ? ' next' : ''}${i === S.tower.length - 1 ? ' boss' : ''}" title="${esc(n)}">${face(W(n))}</span>`).join('')}</div>` : ''}
+    <div class="row res-btns">
+      ${!S.quick && r.won && !r.topped ? `<button class="cta big-go" onclick="startBattle()">Next fight ▶</button>` : ''}
+      ${!S.quick && !r.won ? `<button class="cta big-go" onclick="beginClimb()">Try again ▶</button><button class="cta ghost" onclick="go('moveset')">Change moves</button>` : ''}
+      ${!S.quick && r.topped ? `<button class="cta big-go" onclick="beginClimb()">Climb again ▶</button>` : ''}
+      ${S.quick ? `<button class="cta big-go" onclick="startBattle()">Rematch ▶</button><button class="cta ghost" onclick="S.me=null;S.pickFoe=false;go('pick')">New match</button>` : ''}
+      <button class="cta ghost" onclick="go('title')">Main menu</button></div></div></div>`;
+
+}
+
+(async function(){ app.innerHTML = '<div class="kick">Loading the roster…</div>'; await loadRoster(); await refreshToday();
+  if(LIVE){ document.querySelectorAll('.top a[href*="tower-admin"], .top .chip').forEach(x => x.remove()); }
+  render(); SND.check(); })();
+
+</script>
+</body>
+</html>
