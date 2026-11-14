@@ -409,7 +409,13 @@ const DEFAULTS = {
     { id:'hardcore', name:'Hardcore', desc:'Lives for pain. Gets stronger the more punishment they take.', hp:10, strike:1.1, grapple:1, highrisk:1.1, submission:.9, reversal:-3, kickout:4, chain:0, mom:1, trait:'glutton' },
     { id:'heel', name:'Dirty Heel', desc:'Cheats to win. Eye rakes and low blows when things go wrong.', hp:0, strike:1, grapple:1, highrisk:.9, submission:1.05, reversal:5, kickout:0, chain:0, mom:1.1, trait:'dirtytactics' },
     { id:'underdog', name:'Underdog', desc:'Never stays down. Hardest of all to pin when they are hurt.', hp:0, strike:1, grapple:.95, highrisk:1.05, submission:.95, reversal:4, kickout:8, chain:0, mom:1.05, trait:'resilient' },
-    { id:'monster', name:'Monster', desc:'Huge and terrifying. Shrugs off hits, but slow to react.', hp:20, strike:1.15, grapple:1.2, highrisk:.7, submission:.95, reversal:-8, kickout:6, chain:10, mom:.85, trait:'nosell' }
+    { id:'monster', name:'Monster', desc:'Huge and terrifying. Shrugs off hits, but slow to react.', hp:20, strike:1.15, grapple:1.2, highrisk:.7, submission:.95, reversal:-8, kickout:6, chain:10, mom:.85, trait:'nosell' },
+    // jobbers: wrestlers who are meant to lose (Nov 2026)
+    { id:'jobber', name:'Jobber', desc:'Enhancement talent. Here to make the other person look good. Weaker at everything.', hp:-15, strike:.8, grapple:.8, highrisk:.8, submission:.8, reversal:-15, kickout:-4, chain:-10, mom:.75, trait:'' },
+    { id:'rookie', name:'Green Rookie', desc:'Brand new and a little lost, but every now and then they surprise people.', hp:-8, strike:.9, grapple:.9, highrisk:.9, submission:.85, reversal:-10, kickout:-2, chain:-5, mom:.85, trait:'beginnersluck' },
+    { id:'punchbag', name:'Punching Bag', desc:'Can take a beating for a long time, but barely hits back.', hp:15, strike:.75, grapple:.8, highrisk:.7, submission:.75, reversal:-12, kickout:2, chain:-10, mom:.7, trait:'' },
+    { id:'journeyman', name:'Journeyman', desc:'Been everywhere, won almost nowhere. Knows the moves, just not strong enough.', hp:-8, strike:.82, grapple:.82, highrisk:.8, submission:.85, reversal:0, kickout:-3, chain:5, mom:.8, trait:'veteran' },
+    { id:'comedy', name:'Comedy Act', desc:'The crowd loves them, but they are not a serious threat. Sometimes a silly move gets them going.', hp:-10, strike:.85, grapple:.85, highrisk:.9, submission:.8, reversal:-8, kickout:-2, chain:-5, mom:1, trait:'crowdpop' }
   ],
   abilities: [
     { id:'overpower', name:'Overpower', when:'land', kind:'grapple', cond:'none', condVal:0, chance:20, once:false, effects:[{type:'stun',val:0}] },
@@ -434,6 +440,7 @@ const DEFAULTS = {
     { id:'glutton', name:'Glutton for Punishment', when:'hitby', kind:'any', cond:'none', condVal:0, chance:25, once:false, effects:[{type:'mom',val:10}] },
     { id:'dirtytactics', name:'Dirty Tactics', when:'neutrallose', kind:'any', cond:'none', condVal:0, chance:25, once:false, effects:[{type:'stun',val:0},{type:'mom',val:8}] },
     { id:'resilient', name:'Resilient', when:'pinned', kind:'any', cond:'myHpBelow', condVal:25, chance:40, once:false, effects:[{type:'kickout',val:0}] },
+    { id:'beginnersluck', name:"Beginner's Luck", when:'neutralwin', kind:'any', cond:'none', condVal:0, chance:15, once:true, effects:[{type:'mom',val:20},{type:'boost',val:30}] },
     { id:'nosell', name:'No Sell', when:'hitby', kind:'any', cond:'none', condVal:0, chance:20, once:false, effects:[{type:'shield',val:50}] }
   ],
   wrestlers:{}   // name -> { style, abilities:[], sigName, sigDmg, sigFrom, finName, finDmg, finFrom }
@@ -464,17 +471,17 @@ function mergeDeep(base, over){ if(!over || typeof over !== 'object' || Array.is
   const out = Array.isArray(base) ? base.slice() : Object.assign({}, base); for(const k in over){ out[k] = (base && typeof base[k] === 'object' && !Array.isArray(base[k])) ? mergeDeep(base[k], over[k]) : over[k]; } return out; }
 function loadCfg(){
   let c = null; if(LIVE) c = PUBLISHED ? deep(PUBLISHED) : null; else { try{ c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); }catch(e){} }
-  const d = deep(DEFAULTS); if(!c){ d.v = 3; return d; }
+  const d = deep(DEFAULTS); if(!c){ d.v = 4; return d; }
   const out = { v:c.v || 1, settings:mergeDeep(d.settings, c.settings || {}), moves:Array.isArray(c.moves) && c.moves.length ? c.moves : d.moves,
     styles:Array.isArray(c.styles) && c.styles.length ? c.styles : d.styles, abilities:Array.isArray(c.abilities) ? c.abilities : d.abilities, wrestlers:c.wrestlers || {},
     towers:Array.isArray(c.towers) ? c.towers : [] };
   // settings saved before Nov 13: add the new styles and abilities, and give the High Flyer its health back
-  if(out.v < 3){
+  if(out.v < 4){
     d.styles.forEach(st => { if(!out.styles.some(x => x.id === st.id)) out.styles.push(st); });
     d.abilities.forEach(a => { if(!out.abilities.some(x => x.id === a.id)) out.abilities.push(a); });
     const fl = out.styles.find(x => x.id === 'flyer');
     if(fl && +fl.hp === -8){ Object.assign(fl, d.styles.find(x => x.id === 'flyer')); }
-    out.v = 3;
+    out.v = 4;
   }
   return out;
 }
