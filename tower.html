@@ -353,12 +353,160 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 /* the Crowd on/off button (Nov 14) */
 .tbtn.off{color:var(--muted)}
 
+/* =====================================================================
+   Nov 14 redesign: one screen, no scrolling (title + climb)
+   ===================================================================== */
+body.fit{overflow:hidden}
+body.fit .wrap{max-width:none;margin:0;padding:0;overflow:hidden;position:relative}
+.fsbtn{border-color:rgba(var(--gold-rgb),.6);color:var(--gold)}
+
+/* title: left menu | tower rotator | tower info */
+.t2{display:grid;grid-template-columns:250px minmax(0,1fr) 350px;height:100%}
+.t2.t2-noinfo{grid-template-columns:250px minmax(0,1fr)}
+.t2-menu{display:flex;flex-direction:column;gap:4px;padding:22px 0;background:linear-gradient(90deg,rgba(0,0,0,.6),rgba(0,0,0,.2));border-right:1px solid var(--line);min-height:0;overflow-y:auto}
+.t2-k{padding:0 22px 10px}
+.t2-mi{display:block;width:100%;text-align:left;padding:13px 22px;border:0;background:transparent;color:var(--txt2)}
+.t2-mi b{display:block;font-size:26px;line-height:1}
+.t2-mi small{display:block;margin-top:3px;font-size:14px;color:var(--muted)}
+.t2-mi:hover{background:rgba(var(--gold-rgb),.08);color:var(--txt)}
+.t2-mi.on{background:linear-gradient(90deg,rgba(var(--gold-rgb),.22),transparent);box-shadow:inset 4px 0 0 var(--gold);color:var(--txt)}
+.t2-sp{flex:1}
+.t2-warn{margin:8px 18px 0;padding:10px 12px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:14px;line-height:1.45;color:var(--txt2)}
+.t2-warn b{color:var(--gold)}
+.t2-stage{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
+.t2-pos{text-align:center;padding-top:18px}
+.t2-ring{position:relative;flex:1;min-height:0;perspective:1300px;perspective-origin:50% 40%;overflow:hidden}
+.t2-twr{position:absolute;left:50%;bottom:10px;padding:0;border:0;background:none;transform-style:preserve-3d;
+  transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s,filter .45s}
+.t2-twr[data-d="0"]{transform:translateX(-50%);opacity:1;z-index:3}
+.t2-twr[data-d="1"]{transform:translateX(calc(-50% + var(--side,300px))) rotateY(-48deg) scale(.66);opacity:.5;z-index:2;filter:brightness(.65) saturate(.7)}
+.t2-twr[data-d="-1"]{transform:translateX(calc(-50% - var(--side,300px))) rotateY(48deg) scale(.66);opacity:.5;z-index:2;filter:brightness(.65) saturate(.7)}
+.t2-twr[data-d="x"]{transform:translateX(-50%) translateZ(-420px) scale(.6);opacity:0;z-index:1;pointer-events:none}
+.t2-twr:not([data-d="0"]):hover{opacity:.75}
+.t2-col{display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:4px;background:rgba(0,0,0,.35)}
+.t2-twr[data-d="0"] .t2-col{box-shadow:0 0 0 3px var(--c),0 0 40px color-mix(in srgb,var(--c) 55%,transparent)}
+.t2-blk{width:var(--bw,250px);height:var(--bh,62px);box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 3px 0 10px;border:1px solid #1d1d22;border-radius:2px;
+  background:linear-gradient(180deg,#5b5b60,#3c3c42 40%,#2d2d33);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.t2-blk.boss{border-color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 45%,#3c3c42),#3c3c42 70%,#2d2d33)}
+.t2-blk i{width:34px;flex:0 0 34px;font-size:14px;letter-spacing:1px;color:#a3a3ab;text-align:left}
+.t2-blk.boss i{color:var(--c)}
+.t2-blk b{flex:1;min-width:0;font-size:clamp(13px,calc(var(--bh,62px) * .28),18px);line-height:1;text-transform:uppercase;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t2-fc{width:calc(var(--bh,62px) - 6px);height:calc(var(--bh,62px) - 6px);flex:0 0 auto;overflow:hidden;display:grid;background:#0b0b0e;border:2px solid rgba(0,0,0,.6)}
+.t2-fc img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.t2-fc .sil{width:100%;height:100%}
+.t2-nm{display:block;margin-top:8px;text-align:center;font-size:30px;color:var(--c);text-shadow:0 2px 10px #000}
+.t2-arr{position:absolute;top:44%;z-index:5;width:60px;height:60px;display:grid;place-items:center;border-radius:50%;border:2px solid #3a3a44;background:rgba(0,0,0,.6);color:var(--gold)}
+.t2-arr svg{width:26px;height:26px}.t2-arr.l{left:18px}.t2-arr.r{right:18px}
+.t2-arr:hover{border-color:var(--gold);background:rgba(var(--gold-rgb),.18)}
+.t2-dots{display:flex;justify-content:center;gap:10px;padding:6px 0 18px}
+.t2-dot{width:12px;height:12px;padding:0;border:0;border-radius:6px;background:#3a3a44;transition:width .3s,background .3s}
+.t2-dot.on{width:34px;background:var(--c)}
+.t2-info{display:flex;flex-direction:column;gap:12px;padding:24px;background:linear-gradient(160deg,rgba(26,26,32,.95),rgba(10,10,14,.95));border-left:1px solid var(--line);min-height:0;overflow-y:auto}
+.t2-bar{height:3px;width:110px;background:var(--c,var(--gold));box-shadow:0 0 12px var(--c,var(--gold))}
+.t2-tn{font-size:clamp(34px,3.6vw,52px);line-height:.92}
+.t2-desc{margin:0;font-size:16px;line-height:1.5;color:var(--txt2)}
+.t2-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.t2-stats > div{padding:10px 14px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+.t2-stats small{display:block;font-size:13px;color:var(--muted)}.t2-stats b{font-size:26px;color:var(--bet)}
+.t2-sec{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid rgba(176,107,255,.5);background:rgba(176,107,255,.08);font-size:14px;line-height:1.4;color:#d6c5ee}
+.t2-sec .f{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;background:#1a1424;color:#d6b3ff;font-size:22px}
+.t2-go{width:100%;justify-content:center}
+.t2-go:disabled{opacity:.45;cursor:default}
+.t2-hint{margin:0;text-align:center;font-size:13px;color:var(--muted)}
+.t2-panel{margin:auto;width:min(620px,92%);display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.t2-panel h2{margin:0;font-size:clamp(34px,4vw,54px);line-height:.95}
+.t2-panel .note{margin:0}
+.t2-diffs{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.t2-wide{width:min(980px,94%);padding:24px 0;overflow-y:auto;max-height:100%}
+.t2-how{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px}
+
+/* the climb: the camera on the tower */
+.cl{display:grid;grid-template-columns:minmax(0,1fr) 350px;height:100%;position:relative}
+.cl-view{position:relative;overflow:hidden;background:radial-gradient(700px 520px at 50% 50%,color-mix(in srgb,var(--c) 18%,transparent),transparent 70%),radial-gradient(1200px 300px at 50% 110%,rgba(120,90,200,.25),transparent 70%)}
+.cl-cam{position:absolute;top:0;left:50%;transform-origin:top center;display:flex;flex-direction:column;--rh:120px}
+.cl-cam.pan{transition:transform 1.5s cubic-bezier(.45,0,.2,1)}
+.cl-row{height:var(--rh);display:flex;align-items:center;gap:calc(var(--rh) * .16)}
+.cl-you,.cl-sp{width:calc(var(--rh) * 1.9);flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.cl-me{position:relative;width:calc(var(--rh) * 1.15);height:calc(var(--rh) * .86);overflow:hidden;display:grid;background:#0b0b0e;border:3px solid var(--blue);box-shadow:0 0 26px rgba(95,180,255,.55)}
+.cl-me img{width:100%;height:100%;object-fit:cover;object-position:center top}.cl-me .sil{width:100%;height:100%}
+.cl-me b{position:absolute;left:0;right:0;bottom:0;padding:3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.92),transparent);font-size:14px;text-align:center;line-height:1.05}
+.cl-vs{font-size:calc(var(--rh) * .26);color:#fff;text-shadow:0 0 16px var(--hot),0 0 32px var(--hot)}
+.cl-you > *{opacity:0;transform:translateX(-30px);transition:opacity .45s,transform .45s}
+.cl-row.here .cl-you > *{opacity:1;transform:none}
+.cl-blk{width:calc(var(--rh) * 3.3);height:calc(var(--rh) - 8px);box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 7px 0 16px;border:2px solid #1d1d22;
+  background:linear-gradient(180deg,#5b5b60,#3c3c42 40%,#2d2d33);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.cl-blk.boss{border-color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 40%,#3c3c42),#3c3c42 60%,#2d2d33)}
+.cl-row.cur .cl-blk{border-color:var(--gold);box-shadow:0 0 30px rgba(var(--gold-rgb),.55),inset 0 1px 0 rgba(255,255,255,.2)}
+.cl-blk > i{width:calc(var(--rh) * .42);font-size:calc(var(--rh) * .17);color:#a3a3ab}
+.cl-blk.boss > i{color:var(--c)}.cl-row.cur .cl-blk > i{color:var(--gold)}
+.cl-nm{flex:1;min-width:0}
+.cl-nm b{display:block;font-size:calc(var(--rh) * .2);line-height:1;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-nm small{display:block;margin-top:4px;font-size:14px;color:var(--muted)}
+.cl-fc{position:relative;width:calc(var(--rh) - 22px);height:calc(var(--rh) - 22px);flex:0 0 auto;overflow:hidden;display:grid;background:#0b0b0e;border:2px solid rgba(0,0,0,.6)}
+.cl-fc img{width:100%;height:100%;object-fit:cover;object-position:center top}.cl-fc .sil{width:100%;height:100%}
+.cl-blk.done .cl-fc img,.cl-blk.done .cl-fc .sil{filter:grayscale(1) brightness(.65)}
+.cl-blk.done .cl-nm b{color:var(--muted)}.cl-blk.done .cl-nm small{color:var(--win)}
+.cl-chk{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.4);color:var(--win)}.cl-chk svg{width:55%;height:55%}
+.cl-blk.flip{animation:clflip .55s ease-in-out}
+@keyframes clflip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+.cl-info{display:flex;flex-direction:column;gap:12px;padding:24px;background:linear-gradient(160deg,rgba(26,26,32,.96),rgba(10,10,14,.96));border-left:1px solid var(--line);min-height:0;overflow-y:auto}
+.cl-vsx{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer;
+  background:radial-gradient(900px 600px at 50% 50%,rgba(226,75,74,.28),rgba(0,0,0,.95) 70%)}
+.cl-vsx[hidden]{display:none}
+.cl-vsrow{display:flex;align-items:center;justify-content:center;gap:clamp(16px,4vw,56px);width:100%;padding:0 16px;box-sizing:border-box}
+.cl-side{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.cl-side .vpic{width:min(30vw,380px,calc((100vh - 260px) * .75))}
+.cl-side b{font-size:clamp(24px,3.4vw,46px);line-height:1;text-align:center}
+.cl-side.r .vpic img{transform:scaleX(-1)}
+.cl-side.l{animation:clL .45s ease-out both}.cl-side.r{animation:clR .45s ease-out both}
+.cl-vsbig{font-size:clamp(60px,9vw,150px);color:#fff;text-shadow:0 0 30px var(--hot),0 0 70px var(--hot);animation:clV .5s .35s both}
+@keyframes clL{0%{transform:translateX(-60vw)}100%{transform:none}}
+@keyframes clR{0%{transform:translateX(60vw)}100%{transform:none}}
+@keyframes clV{0%{opacity:0;transform:scale(1.5)}100%{opacity:1;transform:none}}
+
+/* phones and narrow screens: the menu goes along the bottom, the info sits under the tower */
+@media(max-width:900px){
+  .t2,.t2.t2-noinfo{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto}
+  .t2-stage{grid-row:1}.t2-info{grid-row:2}.t2-menu{grid-row:3}
+  .t2-menu{flex-direction:row;padding:0;gap:0;border-right:0;border-top:1px solid rgba(var(--gold-rgb),.3);background:rgba(0,0,0,.85);overflow:visible}
+  .t2-k,.t2-sp,.t2-warn,.t2-mi small{display:none}
+  .t2-mi{flex:1;padding:12px 4px;text-align:center}.t2-mi b{font-size:16px}
+  .t2-mi.on{box-shadow:inset 0 3px 0 var(--gold)}
+  .t2-info{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .t2-info .t2-bar,.t2-info .kick,.t2-desc,.t2-sec,.t2-info .t2-sp,.t2-hint,.t2-stats small{display:none}
+  .t2-info .t2-tn{font-size:28px;flex:1 1 140px}
+  .t2-info .t2-stats{display:flex;gap:6px}.t2-info .t2-stats > div{padding:4px 8px}.t2-info .t2-stats b{font-size:18px}
+  .t2-info .t2-go{width:auto;flex:1 1 100%;padding:10px 18px;font-size:20px}
+  .t2-arr{width:46px;height:46px}.t2-arr.l{left:6px}.t2-arr.r{right:6px}
+  .t2-how{grid-template-columns:1fr}
+  .cl{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .cl-info{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .cl-info .t2-bar,.cl-info .t2-desc,.cl-info .t2-sp,.cl-info .t2-stats small{display:none}
+  .cl-info .kick{flex:1 1 100%}.cl-info .t2-tn{font-size:26px;flex:1 1 120px}
+  .cl-info .t2-stats{display:flex;gap:6px}.cl-info .t2-stats > div{padding:4px 8px}.cl-info .t2-stats b{font-size:17px}
+  .cl-info .t2-go{width:auto;flex:1 1 40%;padding:10px 14px;font-size:19px}
+  .cl-sp{display:none}
+  .cl-you{width:calc(var(--rh) * 1.3)}.cl-vs{display:none}
+  .cl-vsrow{gap:10px}.cl-side .vpic{width:min(38vw,calc((100vh - 260px) * .75))}
+}
+.t2-fc .sil.mystery b{top:4%;font-size:calc(var(--bh,62px) * .72)}
+.cl-fc .sil.mystery b{top:6%;font-size:calc(var(--rh,120px) * .7)}
+.t2-stats b{white-space:nowrap;font-size:clamp(18px,1.8vw,26px)}
+@media(max-width:900px){
+  .cl-row{gap:8px}
+  .cl-you{width:calc(var(--rh) * 1.1)}.cl-me{width:calc(var(--rh) * 1.05)}
+  .cl-blk{width:calc(var(--rh) * 2.75);gap:8px;padding:0 5px 0 10px}
+  .cl-blk > i{width:auto;font-size:15px}
+  .cl-nm small{display:none}
+  .cl-nm b{font-size:18px}
+}
+
 </style>
 </head>
 <body>
 <div class="top"><span class="f title chrome">Tower of Champions</span><span class="chip"><span>Practice</span></span><span class="sp"></span>
   <div class="wallet" title="Practice money, only in this browser"><span class="coin">$</span><span><b id="wAmt">$0</b><small id="wSub">today</small></span></div>
-  <button class="tbtn" type="button" id="muteBtn" onclick="toggleMute()" title="Crowd, effects and narrator">Sound on</button><button class="tbtn" type="button" id="crowdBtn" onclick="toggleCrowd()" title="Just the constant crowd noise. The narrator, cheers and boos still play.">Crowd on</button><button class="tbtn" type="button" onclick="go('title')">Menu</button><a class="tbtn" href="tower-admin.html" target="_blank" rel="noopener">Admin</a></div>
+  <button class="tbtn" type="button" id="muteBtn" onclick="toggleMute()" title="Crowd, effects and narrator">Sound on</button><button class="tbtn" type="button" id="crowdBtn" onclick="toggleCrowd()" title="Just the constant crowd noise. The narrator, cheers and boos still play.">Crowd on</button><button class="tbtn fsbtn" type="button" id="fsBtn" onclick="toggleFull()" title="Fill the whole screen with the game. Esc to come back.">Full screen</button><button class="tbtn" type="button" onclick="go('title')">Menu</button><a class="tbtn" href="tower-admin.html" target="_blank" rel="noopener">Admin</a></div>
 <main class="wrap" id="app"></main>
 <script>
 /* =====================================================================
@@ -1375,7 +1523,7 @@ async function beginClimb(){
   S.tower = towerFloors(S.tk, S.me); S.floor = 0; S.run = null; S.runErr = ''; S.secret = null; S.inSecret = false; S.carry = null;
   if(SIGNED()){ try{ const r = await sbc().rpc('tower_start', { p_tower:S.tk }); if(r.error) throw r.error; S.run = r.data && r.data.run; }
     catch(e){ S.runErr = String(e.message || e); } }
-  startBattle();
+  S.climbFrom = null; S.revealed = {}; go('climb');   // Nov 14: the climb screen first (camera drops to floor 1), then the VS and the match
 }
 function pay(n){ const w = wallet(), got = Math.min(Math.max(0, CFG.settings.dailyCap - w.earned), n); w.earned += got; w.total += got; saveWallet(w); return got; }
 
@@ -1385,12 +1533,13 @@ function drawMute(){ const b = document.getElementById('muteBtn'); if(b) b.textC
 /* Nov 14: players can turn off just the constant crowd loop. Narrator, cheers, boos and hits still play. Remembered in this browser. */
 function toggleCrowd(){ SND.setCrowd(!SND.crowdMuted); try{ localStorage.setItem('wcaTowerMuteCrowd', SND.crowdMuted ? '1' : '0'); }catch(e){} drawMute(); }
 function go(screen){ if(screen !== 'battle') SND.crowdStop(); S.screen = screen; window.scrollTo(0,0); CFG = loadCfg(); render(); }
-function render(){ ({ title, pick, moveset, foe, vs, tower:towerScreen, battle:battleScreen, result }[S.screen] || title)(); drawWallet(); drawMute(); }
+function render(){ fitMode(); ({ title, pick, moveset, foe, vs, tower:towerScreen, battle:battleScreen, result, climb }[S.screen] || title)(); drawWallet(); drawMute(); drawFull(); }
 
 /* ---------- title: choose your tower (like the classic Mortal Kombat towers) ---------- */
 let towerSel = null;
 const floorsOf = t => t.stack;   // '' = a floor that changes every climb
-function title(){
+/* the old title screen (before Nov 14), kept as a backup. Not used. */
+function titleClassic(){
   const defs = towerDefs(); if(!towerSel || !defs.some(t => t.key === towerSel)) towerSel = defs[0].key;
   app.innerHTML = `<div class="kick">WCA Universe · mini game · Tower of Champions</div><h1 class="big f chrome">Choose your destiny</h1>
   ${ONLINE ? '' : '<p class="note"><b style="color:var(--gold)">Couldn\'t reach the website, so this is using a sample roster.</b></p>'}
@@ -1518,7 +1667,7 @@ function startBattle(){
   me.side = 'L'; op.side = 'R';
   // in a tower, health and reversals carry over from the last floor
   if(!S.quick && S.carry){ me.hp = Math.max(1, Math.min(me.max, S.carry.hp)); me.revs = S.carry.revs; }
-  S.screen = 'battle'; battleScreen();
+  S.screen = 'battle'; fitMode(); window.scrollTo(0, 0); battleScreen();
   MT = new Match(me, op, uiHooks());
   drawBars(); SOUNDS_ON.start();
   if(LIVE && !S.quick && S.run) sbc().rpc('tower_fight', { p_run:S.run }).then(r => { if(r.error){ S.runErr = r.error.message; S.run = null; } }, () => {});
@@ -1761,18 +1910,175 @@ function result(){
     ${r.secret ? `<div class="secret-box"><div class="kick">Wait… someone's coming down the ramp!</div><div class="f secret-t">A secret boss appears!</div>
       <div class="secret-sil">${sil(true)}</div><p class="note">Beat the secret boss for a big bonus${TW().secret.mult ? `: <b style="color:var(--bet)">$${Math.round(TW().reward * TW().secret.mult).toLocaleString()}</b>` : ''}. They fight on Hard. Lose and you keep the money you already won.</p>
       <button class="cta big-go" onclick="S.inSecret=true;startBattle()">Fight the secret boss ▶</button></div>` : ''}
-    <p class="note res-note">${S.quick ? 'Quick matches are just for fun.' : r.secretFight ? (r.won ? 'You beat the secret boss. Not many people ever see them.' : 'So close. The secret boss only shows up sometimes, so climb again for another shot.') : r.topped ? 'You beat the champion at the top of the tower.' : r.won ? `Next up, floor ${S.floor+1} of ${S.tower.length}${S.floor === S.tower.length - 1 ? ', the boss' : ''}: ${esc(S.tower[S.floor])}.` : `The climb is over on floor ${S.floor+1}. Try again from the bottom, or change your moves.`}</p>
+    <p class="note res-note">${S.quick ? 'Quick matches are just for fun.' : r.secretFight ? (r.won ? 'You beat the secret boss. Not many people ever see them.' : 'So close. The secret boss only shows up sometimes, so climb again for another shot.') : r.topped ? 'You beat the champion at the top of the tower.' : r.won ? `Next up, floor ${S.floor+1} of ${S.tower.length}${S.floor === S.tower.length - 1 ? ', the boss' : ''}: ${clHidden(S.floor) ? 'a mystery opponent' : esc(S.tower[S.floor])}.` : `The climb is over on floor ${S.floor+1}. Try again from the bottom, or change your moves.`}</p>
     ${r.carry ? `<div class="carry"><div><span class="muted">Health for the next fight</span><b>${r.carry.hp} / ${r.carry.max}</b><small>${r.carry.gotHp ? '+' + r.carry.gotHp + ' recovered' : 'already full'}</small></div>
       <div><span class="muted">Reversals</span><b>${'◆'.repeat(r.carry.revs) || '0'}</b><small>${r.carry.gotRevs ? '+' + r.carry.gotRevs + ' back' : 'none back'}</small></div></div>` : ''}
-    ${!S.quick ? `<div class="climb">${S.tower.map((n, i) => `<span class="cf${i < S.floor ? ' done' : ''}${i === S.floor && !r.topped ? ' next' : ''}${i === S.tower.length - 1 ? ' boss' : ''}" title="${esc(n)}">${face(W(n))}</span>`).join('')}</div>` : ''}
+    ${!S.quick ? `<div class="climb">${S.tower.map((n, i) => `<span class="cf${i < S.floor ? ' done' : ''}${i === S.floor && !r.topped ? ' next' : ''}${i === S.tower.length - 1 ? ' boss' : ''}" title="${clHidden(i) ? '???' : esc(n)}">${clHidden(i) ? sil(true) : face(W(n))}</span>`).join('')}</div>` : ''}
     <div class="row res-btns">
-      ${!S.quick && r.won && !r.topped ? `<button class="cta big-go" onclick="startBattle()">Next fight ▶</button>` : ''}
+      ${!S.quick && r.won && !r.topped ? `<button class="cta big-go" onclick="S.climbFrom=S.floor-1;go('climb')">Next fight ▶</button>` : ''}
       ${!S.quick && !r.won && !r.secretFight ? `<button class="cta big-go" onclick="beginClimb()">Try again ▶</button><button class="cta ghost" onclick="go('moveset')">Change moves</button>` : ''}
       ${!S.quick && ((r.topped && !r.secret) || r.secretFight) ? `<button class="cta${r.secret ? ' ghost' : ' big-go'}" onclick="beginClimb()">Climb again ▶</button>` : ''}
       ${S.quick ? `<button class="cta big-go" onclick="startBattle()">Rematch ▶</button><button class="cta ghost" onclick="S.me=null;S.pickFoe=false;go('pick')">New match</button>` : ''}
       <button class="cta ghost" onclick="go('title')">Main menu</button></div></div></div>`;
 
 }
+
+/* =====================================================================
+   Nov 14 REDESIGN: everything on one screen
+   - fit to screen: the title and climb screens fill the game's box exactly (no scrolling)
+   - Full screen button in the top bar
+   - title: left menu, a 3D tower rotator with big faces, the tower's info on the right
+   - the climb: the camera drops to floor 1 with your wrestler beside it, VS, and climbs as you win.
+     Floors that change every climb stay a mystery (?) until you reach them. Floor 1 is always shown.
+   ===================================================================== */
+const FIT_SCREENS = ['title', 'climb'];
+function fitMode(){ const fit = FIT_SCREENS.includes(S.screen); document.body.classList.toggle('fit', fit); fitSize(); }
+function fitSize(){ const top = document.querySelector('.top');
+  app.style.height = document.body.classList.contains('fit') ? Math.max(360, window.innerHeight - (top ? top.offsetHeight : 0)) + 'px' : ''; }
+window.addEventListener('resize', () => { fitSize(); if(S.screen === 'title') t2Fit(); if(S.screen === 'climb') clFit(); });
+
+/* full screen: the game fills the whole monitor (the website's frame allows it); Esc comes back */
+const FS_OK = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function toggleFull(){ const d = document, el = d.documentElement;
+  try{ if(d.fullscreenElement || d.webkitFullscreenElement){ (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+    else { const p = (el.requestFullscreen || el.webkitRequestFullscreen).call(el); if(p && p.catch) p.catch(() => {}); } }catch(e){} }
+function drawFull(){ const b = document.getElementById('fsBtn'); if(!b) return; b.style.display = FS_OK() ? '' : 'none';
+  b.textContent = (document.fullscreenElement || document.webkitFullscreenElement) ? 'Exit full screen' : 'Full screen'; }
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { drawFull(); setTimeout(() => { fitSize(); if(S.screen === 'title') t2Fit(); if(S.screen === 'climb') clFit(); }, 60); }));
+
+/* keyboard: ← → turn the towers, Enter picks; Enter on the climb = Fight */
+document.addEventListener('keydown', e => { if(e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return; if(document.querySelector('.mg')) return;
+  if(S.screen === 'title' && titleMenu === 'tower'){
+    if(e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); t2Turn(e.key === 'ArrowLeft' ? -1 : 1); }
+    else if(e.key === 'Enter' && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); t2Go(); } }
+  else if(S.screen === 'climb' && e.key === 'Enter' && CL && CL.ready && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); clFight(); } });
+
+/* ---------- the title screen ---------- */
+let titleMenu = 'tower';
+const T2_MENU = [['tower','Tower climb','Win floors, earn WCA money'],['quick','Quick match','One match, just for fun'],['custom','Customize moves','Pick moves for a wrestler'],['how','How to play','Circling, reversals, pins']];
+const ARW_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+const ARW_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+function title(){
+  const defs = towerDefs(); if(!towerSel || !defs.some(t => t.key === towerSel)) towerSel = defs[0].key;
+  const m = titleMenu, liveNote = LIVE ? (SIGNED() ? '' : '<p class="t2-warn"><b>Sign in on WCAUniverse.com</b> to earn money for every floor you win. You can still play for fun.</p>') : '';
+  let stage = '';
+  if(m === 'tower') stage = `<div class="kick t2-pos" id="t2Pos"></div>
+    <div class="t2-ring" id="t2Ring">${defs.map(t2Tower).join('')}
+      <button class="t2-arr l" id="t2Prev" aria-label="Previous tower">${ARW_L}</button><button class="t2-arr r" id="t2Next" aria-label="Next tower">${ARW_R}</button></div>
+    <div class="t2-dots">${defs.map(t => `<button class="t2-dot" data-t="${esc(t.key)}" style="--c:${esc(t.color)}" aria-label="${esc(t.name)} tower"></button>`).join('')}</div>`;
+  else if(m === 'quick') stage = `<div class="t2-panel panel"><div class="kick">Quick match</div><h2 class="f">One match, just for fun</h2>
+      <p class="note">No money. Pick how good the computer is, then your wrestler, then your opponent (or a random one).</p>
+      <div class="t2-diffs">${['easy','normal','hard'].map(d => `<button class="qbtn" style="--c:${DIFF_COL[d]}" onclick="S.custom=false;S.quick=true;S.qdiff='${d}';S.me=null;S.pickFoe=false;go('pick')">${d}</button>`).join('')}</div></div>`;
+  else if(m === 'custom') stage = `<div class="t2-panel panel"><div class="kick">Customize moves</div><h2 class="f">Your moves, your way</h2>
+      <p class="note">Optional. Pick the moves a wrestler takes into every match. Everyone else just plays with their saved or default moves.</p>
+      <button class="cta big-go" onclick="S.custom=true;S.quick=false;S.me=null;S.pickFoe=false;go('pick')">Choose a wrestler ▶</button></div>`;
+  else stage = `<div class="t2-panel t2-wide"><div class="kick">How to play</div><div class="howto t2-how">
+      <div><b>1. Circling</b>Strike beats Grapple. Grapple beats Block. Block stops a Strike. Both strike: a slugfest. Both grapple: a tie-up.</div>
+      <div><b>2. Take control</b>Win the exchange and pick your offense from where they are: standing, off the ropes, in the corner, behind them, on the ground or from the top rope.</div>
+      <div><b>3. Finish it</b>Build momentum for your Signature and Finisher, then pin or make them tap. Reverse big moves by hitting the arrows on time.</div>
+      <div><b>4. Climb the tower</b>Win every floor to reach the boss at the top. Your health and reversals carry over from floor to floor.</div></div></div>`;
+  app.innerHTML = `<div class="t2${m === 'tower' ? '' : ' t2-noinfo'}">
+    <nav class="t2-menu" aria-label="Game menu"><div class="kick t2-k">Choose your destiny</div>
+      ${T2_MENU.map(([k, l, s]) => `<button class="t2-mi${k === m ? ' on' : ''}" data-m="${k}"><b class="f">${l}</b><small>${s}</small></button>`).join('')}
+      <span class="t2-sp"></span>${ONLINE ? '' : '<p class="t2-warn">Couldn\'t reach the website, so this is using a sample roster.</p>'}${liveNote}</nav>
+    <section class="t2-stage">${stage}</section>
+    ${m === 'tower' ? '<aside class="t2-info" id="t2Info"></aside>' : ''}</div>`;
+  app.querySelectorAll('.t2-mi').forEach(b => b.onclick = () => { titleMenu = b.dataset.m; title(); });
+  if(m !== 'tower') return;
+  app.querySelectorAll('.t2-twr, .t2-dot').forEach(b => b.onclick = () => { if(b.classList.contains('t2-twr') && b.dataset.t === towerSel){ t2Go(); return; } towerSel = b.dataset.t; t2Spin(); });
+  document.getElementById('t2Prev').onclick = () => t2Turn(-1); document.getElementById('t2Next').onclick = () => t2Turn(1);
+  t2Fit(); t2Spin();
+}
+// one tower: big blocks, bottom floor last in the markup so it sits at the bottom. '' = changes every climb (a ? until you reach it)
+function t2Tower(t){ const fl = floorsOf(t);
+  return `<button class="t2-twr" data-t="${esc(t.key)}" style="--c:${esc(t.color)}" aria-label="${esc(t.name)} tower"><span class="t2-col">${fl.map((n, i) => { const boss = i === fl.length - 1;
+    return `<span class="t2-blk${boss ? ' boss' : ''}"><i class="f">${boss ? 'BOSS' : 'F' + (i + 1)}</i><b class="f">${n ? esc(n) : '???'}</b><span class="t2-fc">${n ? face(W(n)) : sil(true)}</span></span>`; }).reverse().join('')}</span>
+    <span class="t2-nm f">${esc(t.name)}</span></button>`; }
+function t2Turn(dir){ const defs = towerDefs(), i = defs.findIndex(t => t.key === towerSel); towerSel = defs[((i < 0 ? 0 : i) + dir + defs.length) % defs.length].key; t2Spin(); }
+function t2Go(){ S.custom = false; S.tk = towerSel; S.quick = false; S.me = null; S.pickFoe = false; go('pick'); }
+// put each tower in its spot: the picked one in front, its neighbours turned to the sides, the rest hidden behind
+function t2Spin(){ const defs = towerDefs(), n = defs.length, idx = Math.max(0, defs.findIndex(t => t.key === towerSel));
+  app.querySelectorAll('.t2-twr').forEach(b => { const i = defs.findIndex(t => t.key === b.dataset.t), d = ((i - idx) % n + n) % n;
+    b.dataset.d = d === 0 ? '0' : d === 1 ? '1' : d === n - 1 ? '-1' : 'x'; b.tabIndex = d === 0 ? 0 : -1; });
+  app.querySelectorAll('.t2-dot').forEach(b => b.classList.toggle('on', b.dataset.t === towerSel));
+  const pos = document.getElementById('t2Pos'); if(pos) pos.textContent = `Pick a tower · ${idx + 1} of ${n}`;
+  t2Info(); }
+function t2Info(){ const box = document.getElementById('t2Info'); if(!box) return;
+  const t = towerDef(towerSel), fl = floorsOf(t), boss = fl[fl.length - 1], rot = fl.filter(n => !n).length, sc = t.secret || {};
+  box.style.setProperty('--c', t.color);
+  box.innerHTML = `<div class="t2-bar"></div><div class="kick" style="color:${esc(t.color)}">${t.builtin ? 'Daily tower' : esc(t.level) + ' difficulty'}${rot ? ' · ' + (rot === fl.length ? 'new opponents every climb' : rot + ' floors change every climb') : ' · set by WCA'}</div>
+    <div class="f t2-tn">${esc(t.name)} tower</div>
+    <p class="t2-desc">${fl.length - 1} floors, then ${boss ? esc(boss) + (champOf(boss).length ? ' (C)' : '') : 'a champion'} at the top.${rot ? ' The ? floors are a mystery until you reach them.' : ''}${t.about ? ' ' + esc(t.about) : ''}</p>
+    <div class="t2-stats"><div><small>Each floor</small><b class="f">$${t.reward.toLocaleString()}</b></div><div><small>The boss</small><b class="f">$${(t.reward * 3).toLocaleString()}</b></div></div>
+    ${sc.chance > 0 ? `<div class="t2-sec"><span class="f">?</span><span>Beat the boss and a secret boss might come down the ramp.</span></div>` : ''}
+    <span class="t2-sp"></span>
+    <button class="cta big-go t2-go" onclick="t2Go()">Choose your wrestler ▶</button><p class="t2-hint">Arrows or ← → keys turn the towers</p>`; }
+// size the blocks so the tallest tower fits the screen
+function t2Fit(){ const ring = document.getElementById('t2Ring'); if(!ring) return;
+  const maxB = Math.max(...towerDefs().map(t => floorsOf(t).length), 1), h = ring.clientHeight, w = ring.clientWidth;
+  const bh = Math.max(26, Math.min(66, Math.floor((h - 76) / maxB) - 4));
+  ring.style.setProperty('--bh', bh + 'px'); ring.style.setProperty('--bw', Math.round(Math.min(260, Math.max(170, bh * 4))) + 'px');
+  ring.style.setProperty('--side', Math.round(Math.min(330, w * .3)) + 'px'); }
+
+/* ---------- the climb: the camera on the tower between fights ---------- */
+let CL = null;
+const clMystery = i => i > 0 && !(TW().stack || [])[i];   // a floor that changes every climb, and isn't floor 1
+const clHidden = i => !S.quick && clMystery(i) && !(S.revealed || {})[i];   // still a mystery: not reached yet (result screen never spoils it)
+function climb(){
+  const t = TW(), n = S.tower.length, f = Math.min(S.floor, n - 1), me = W(S.me);
+  S.revealed = S.revealed || {};
+  const hidden = i => clMystery(i) && !S.revealed[i] && i >= f;   // the current one flips over when the camera gets there
+  const rows = S.tower.map((nm, i) => ({ nm, i })).reverse().map(({ nm, i }) => { const boss = i === n - 1, beat = i < f, hid = hidden(i);
+    return `<div class="cl-row${i === f ? ' cur' : ''}" data-i="${i}">
+      <div class="cl-you">${i === f ? `<span class="cl-me">${face(me)}<b class="f">${esc(S.me)}</b></span><span class="cl-vs f">VS</span>` : ''}</div>
+      <div class="cl-blk${boss ? ' boss' : ''}${beat ? ' done' : ''}${hid ? ' hid' : ''}"><i class="f">${boss ? 'BOSS' : 'F' + (i + 1)}</i>
+        <span class="cl-nm"><b class="f">${hid ? '???' : esc(nm)}</b><small>${beat ? 'Beaten' : hid ? 'A mystery until you get here' : esc(styleOf(setupOf(nm).style).name)}</small></span>
+        <span class="cl-fc">${hid ? sil(true) : face(W(nm))}${beat ? '<span class="cl-chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' : ''}</span></div>
+      <div class="cl-sp"></div></div>`; }).join('');
+  const boss = f === n - 1, payNow = t.reward * (boss ? 3 : 1), c = S.carry;
+  app.innerHTML = `<div class="cl" style="--c:${esc(t.color)}">
+    <div class="cl-view" id="clView"><div class="cl-cam" id="clCam">${rows}</div></div>
+    <aside class="cl-info"><div class="t2-bar"></div><div class="kick" style="color:${esc(t.color)}">${esc(t.name)} tower · ${boss ? 'the boss' : 'floor ' + (f + 1) + ' of ' + n}</div>
+      <div class="f t2-tn" id="clFoe">${hidden(f) ? '???' : esc(S.tower[f])}</div>
+      <p class="t2-desc">${f === 0 ? 'Your climb starts here. ' : ''}${boss ? 'Beat the boss to conquer the tower.' : 'Win and the camera climbs to the next floor.'}</p>
+      <div class="t2-stats"><div><small>This floor pays</small><b class="f">$${payNow.toLocaleString()}</b></div>
+        <div><small>Your health</small><b class="f">${c ? c.hp + ' / ' + c.max : 'Full'}</b></div></div>
+      ${c ? `<p class="t2-desc">Reversals: <b style="color:var(--gold)">${'◆'.repeat(c.revs) || '0'}</b></p>` : ''}
+      <span class="t2-sp"></span>
+      <button class="cta big-go t2-go" id="clGo" disabled>Fight ▶</button><button class="cta ghost t2-go" onclick="go('title')">Main menu</button></aside>
+    <div class="cl-vsx" id="clVs" hidden></div></div>`;
+  CL = { f, n, ready:false, from:S.climbFrom };
+  document.getElementById('clGo').onclick = clFight;
+  clFit(true);
+  // the camera: start where we were (or the whole tower), then glide to this floor
+  const cam = document.getElementById('clCam');
+  requestAnimationFrame(() => requestAnimationFrame(() => { cam.classList.add('pan'); setTimeout(() => { if(!CL || S.screen !== 'climb') return; clCam(CL.f); }, CL.from == null ? 650 : 350); }));
+  setTimeout(clArrive, (CL.from == null ? 650 : 350) + 1500);
+}
+// where the camera points: a floor (zoomed in) or null (the whole tower)
+function clTarget(i){ const v = document.getElementById('clView'), cam = document.getElementById('clCam'); if(!v || !cam) return null;
+  const vh = v.clientHeight, rh = parseFloat(getComputedStyle(cam).getPropertyValue('--rh')) || 120, total = CL.n * rh;
+  const fitW = (v.clientWidth - 12) / Math.max(1, cam.offsetWidth);   // never wider than the screen (phones)
+  if(i == null){ const s = Math.min(1, (vh - 30) / total, fitW); return { s, ty:(vh - total * s) / 2 }; }
+  const s = Math.min(1.08, fitW), yc = (CL.n - 1 - i) * rh + rh / 2; return { s, ty:vh / 2 - yc * s }; }
+function clCam(i){ const cam = document.getElementById('clCam'), p = clTarget(i); if(!cam || !p) return; CL.at = i;
+  cam.style.transform = `translateX(-50%) translateY(${p.ty.toFixed(1)}px) scale(${p.s.toFixed(3)})`; }
+function clFit(first){ const v = document.getElementById('clView'), cam = document.getElementById('clCam'); if(!v || !cam || !CL) return;
+  const rh = Math.round(Math.max(84, Math.min(140, v.clientHeight / 4.6))); cam.style.setProperty('--rh', rh + 'px');
+  if(first){ cam.classList.remove('pan'); clCam(CL.from == null ? null : Math.max(0, CL.from)); } else { const was = cam.classList.contains('pan'); cam.classList.remove('pan'); clCam(CL.at); if(was) requestAnimationFrame(() => cam.classList.add('pan')); } }
+// the camera got there: your wrestler steps up, a mystery floor flips over, Fight lights up
+function clArrive(){ if(!CL || S.screen !== 'climb') return; const f = CL.f, row = app.querySelector(`.cl-row[data-i="${f}"]`); if(!row) return;
+  row.classList.add('here'); const blk = row.querySelector('.cl-blk');
+  if(blk && blk.classList.contains('hid')){ blk.classList.add('flip'); setTimeout(() => { const nm = S.tower[f];
+      blk.classList.remove('hid'); blk.querySelector('.cl-nm').innerHTML = `<b class="f">${esc(nm)}</b><small>${esc(styleOf(setupOf(nm).style).name)}</small>`;
+      blk.querySelector('.cl-fc').innerHTML = face(W(nm)); const fo = document.getElementById('clFoe'); if(fo) fo.textContent = nm; }, 260); }
+  S.revealed[f] = true; CL.ready = true; const b = document.getElementById('clGo'); if(b){ b.disabled = false; b.focus({ preventScroll:true }); } }
+// the VS screen, then the match
+function clFight(){ if(!CL || !CL.ready || CL.going) return; CL.going = true; const nm = S.tower[CL.f], ov = document.getElementById('clVs');
+  ov.innerHTML = `<div class="cl-vsrow"><div class="cl-side l"><span class="vpic">${face(W(S.me))}</span><b class="f">${esc(S.me)}</b></div>
+    <span class="cl-vsbig f">VS</span><div class="cl-side r"><span class="vpic">${face(W(nm))}</span><b class="f">${esc(nm)}</b></div></div><p class="t2-hint">Click to skip</p>`;
+  ov.hidden = false; let gone = false; const start = () => { if(gone) return; gone = true; if(S.screen === 'climb') startBattle(); };
+  ov.onclick = start; setTimeout(start, 2600); }
 
 (async function(){ app.innerHTML = '<div class="kick">Loading the roster…</div>'; await loadRoster(); await refreshToday();
   if(LIVE){ document.querySelectorAll('.top a[href*="tower-admin"], .top .chip').forEach(x => x.remove()); }
