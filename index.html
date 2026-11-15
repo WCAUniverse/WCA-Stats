@@ -23,7 +23,7 @@ try{ window.__wcaFirstVisit = !localStorage.getItem('wca-seen-home'); }catch(e){
 var WCA_PATHS = /^https?:$/.test(location.protocol);
 var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
                  'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate',
-                 'promotions','promotion','my-promotion','mypromo','relationships','starmap','games'];
+                 'promotions','promotion','my-promotion','mypromo','relationships','starmap','games','exchange'];
 var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };                       // tab id -> address
 var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };   // address -> tab id
 (function(){
@@ -9848,6 +9848,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
         <a href="/rankings" data-page="rankings">Rankings</a>
         <a href="/leaderboard" data-page="leaderboard">Betting</a>
         <a href="/games" data-page="games">Games</a>
+        <a href="/exchange" data-page="exchange">Exchange</a>
         <a href="/promotions" data-page="promotions">Promotions</a>
         <a href="/timeline" data-page="timeline" class="nav-off" tabindex="-1" aria-hidden="true">Timeline</a>
         <a href="/showdown" data-page="showdown" class="nav-off" tabindex="-1" aria-hidden="true">Showdown</a>
@@ -10115,6 +10116,8 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
   <!-- LEADERBOARD (points: recent event standings + all-time winnings) -->
   <!-- GAMES (Nov 2026): Tower of Champions. The game is its own file (tower.html, next to this one) shown in a frame.
        It pays real WCA money through the database (SUPABASE_SETUP_tower.sql), never from this page. -->
+  <!-- WCA EXCHANGE (Nov 2026): the stock market. Drawn by the WCA EXCHANGE block near the end of the file. -->
+  <div class="page" id="page-exchange"><div id="ex-body"></div></div>
   <div class="page" id="page-games">
     <iframe id="games-frame" title="Tower of Champions" src="about:blank" allow="autoplay; fullscreen"
       style="display:block;width:100%;height:calc(100vh - 170px);min-height:620px;border:0;border-radius:6px;background:#0b0b0e"></iframe>
@@ -10326,6 +10329,11 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <p class="sl-intro">What's happening in the WCA right now, social-media drama, breaking
       news, official announcements and reaction, newest first. For the history of how it all
       got here, head to the <a href="/timeline" data-page="timeline">Timeline</a>.</p>
+    <!-- FEED REVAMP (Nov 2026, look only): three columns in Fight Hub. In Classic these
+         wrappers are invisible (display:contents) and the extra parts are hidden. -->
+    <div class="slx" id="slx">
+    <aside class="slx-l" id="slx-l" aria-label="Feed sections">
+    <nav class="slx-nav" id="slx-nav" aria-label="Feed sections"></nav>
     <div class="sl-filters" id="sl-filters">
       <div class="sl-frow"><div class="sl-flab">Promotion</div>
         <div class="sl-fchips" id="sl-f-promo">
@@ -10351,12 +10359,19 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
         <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
         </div></div>
     </div>
+    </aside>
+    <div class="slx-c" id="slx-c">
+    <div class="slx-tabs" id="slx-tabs" role="tablist" aria-label="Feed views"></div>
     <div id="fr-composer"></div>
     <div id="sp-composer"></div>
     <div id="cp-promo-card"></div>
     <div id="motn-strip" class="motn-strip"></div>
     <div class="sl-feed" id="sl-feed"><div class="loading">Loading…</div></div>
     <div id="sl-pager"></div>
+    </div>
+    <aside class="slx-r" id="slx-r" aria-label="Around the WCA"></aside>
+    </div>
+    <nav class="slx-bottom" id="slx-bottom" aria-label="Feed"></nav>
   </div>
 
   <!-- APPLY (wrestler sign-up / character application) -->
@@ -17893,6 +17908,7 @@ function slName(p, name, ck){
 }
 // the check mark: WCA's own posts, a promotion's characters, and a promotion speaking as itself
 function slVerify(p, name){
+  if(p && p.payload && p.payload.fan) return '';   // a fan's own post (WCA Exchange trades) is never verified
   const src = slSrc(p);
   if(!src || slPcOf(p, name)) return SL_CHECK;
   if(src.type !== 'promotion') return '';
@@ -18044,17 +18060,18 @@ function slRenderSocial(p){
     return `<article class="slpost sl-social sl-repost">${slPin(p)}<div class="sl-repost-by"><i class="ti ti-repeat"></i> ${esc(who)} reposted</div>${slQuotedHTML(p.payload.repost_of)}${slEngageBar(p)}</article>`;
   }
   const stats = p.payload || {};
-  const fake = !src || stats.likes || stats.replies || stats.reposts;
+  const fake = !stats.fan && (!src || stats.likes || stats.replies || stats.reposts);   // a fan's own post shows only real counts
   const main = `
     <div class="sl-head">
       ${slSrcAvatar(p, author)}
       <div class="sl-who">
-        <div class="sl-name">${slName(p, author, slVerify(p, author))}</div>
+        <div class="sl-name">${slName(p, author, slVerify(p, author))}${p.payload && p.payload.fan ? '<span class="sl-fan">Fan</span>' : ''}</div>
         <div class="sl-handle">${slHandle(p)} · <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
       </div>
     </div>
     <div class="sl-text">${slFmt(p.body)}</div>
     ${slMedia(p.body)}
+    ${p.payload && p.payload.exchange && typeof exPostCard === 'function' ? exPostCard(p.payload.exchange) : ''}
     ${p.payload && p.payload.quote_of ? slQuotedHTML(p.payload.quote_of) : ''}
     ${fake ? `<div class="sl-foot">
       <span class="sl-stat heart"><i class="ti ti-heart-filled"></i> ${esc(stats.likes||'0')}</span>
@@ -19193,7 +19210,8 @@ function slAddSourceStrip(html, p){
 function slRenderPostInner(p){
   switch(p.kind){
     case 'social':    return slRenderSocial(p);
-    case 'article':   return (p.payload && p.payload.report==='betting_results')
+    case 'article':   if(p.payload && p.payload.report==='exchange' && typeof exRenderReport==='function') return exRenderReport(p);   // WCA Exchange Market Report
+                      return (p.payload && p.payload.report==='betting_results')
                         ? brRenderReport(p, { after: slEngageBar(p) })
                         : slRenderArticle(p);
     case 'notice':    return slRenderNotice(p);
@@ -25888,6 +25906,7 @@ function activatePage(pg){
   { const gf = document.getElementById('games-frame');
     if(gf){ if(pg==='games'){ if(!/tower\.html/.test(gf.src)) gf.src = WCA_PATHS ? '/tower.html' : 'tower.html'; } else if(gf.src && !/about:blank/.test(gf.src)) gf.src = 'about:blank'; } }
   if(pg==='mypromo' && typeof mpOpen==='function') mpOpen();
+  if(pg==='exchange' && typeof exOpen==='function') exOpen();
   // Roster star map: only run its render loop while the tab is actually open,
   // and drop out of fullscreen when navigating away.
   try{
@@ -39441,7 +39460,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
 
   /* ── page names for the page bar and the loading screen ── */
   const NAMES = { storylines:'Feed', events:'Events', archive:'Past Events', live:'Watch Live', roster:'Roster', rivalries:'Rivalries', rankings:'Rankings',
-    leaderboard:'Betting', games:'Games', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'About WCA', dash:'Dashboard',
+    leaderboard:'Betting', games:'Games', exchange:'Exchange', promotions:'Promotions', promotion:'Promotion', apply:'Apply', sponsors:'Sponsors', home:'About WCA', dash:'Dashboard',
     account:'Account', mypromo:'My Promotion', relationships:'Relationships', showdown:'Showdown', timeline:'Timeline', starmap:'Star Map' };
   const TIPS = [
     'When you bet, you can hide your pick. The amount always shows.',
@@ -39495,7 +39514,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   const HELP = { home:'What WCA is, the intro video, and how to get started.', storylines:'What every promotion is saying right now.', events:'Pick a promotion, then pick its upcoming show or past events.',
     live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable, from every promotion.', rivalries:'Who is at war right now.',
     starmap:'The whole WCA Universe in the stars. Every promotion, every superstar.',
-    rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', games:'Tower of Champions: climb the tower and earn WCA money.', promotions:'Every promotion in the WCA Universe.',
+    rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', games:'Tower of Champions: climb the tower and earn WCA money.', exchange:'Buy shares in your favorite superstars with WCA money.', promotions:'Every promotion in the WCA Universe.',
     more:'Apply, Sponsors, Donate, Get the App and more.' };
   function mi(label, o){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'fh-mi' + (o.sel ? ' sel' : '') + (o.back ? ' back' : '');
@@ -39764,6 +39783,887 @@ const FHBG = (function(){
 })();
 </script>
 
+
+<!-- ═══════════════ WCA EXCHANGE (Nov 2026) ═══════════════
+     /exchange: buy shares in WCA wrestlers, factions and promotions with WCA money.
+     Every buy, sell and price change happens in the database (SUPABASE_SETUP_exchange.sql):
+     ex_board, ex_me, ex_buy, ex_sell, ex_share_trade. This page only shows and asks.
+     Works in every design. Also feeds the Feed: ticker card, Market Report posts, trade cards. -->
+<style id="ex-style">
+  #page-exchange{max-width:1240px; margin:0 auto;}
+  html{--ex-up:var(--win,#3ECF8E); --ex-dn:var(--loss,#E24B4A); --ex-f:var(--fh-fight,var(--font-cond));}
+  .ex{color:var(--txt);}
+  .ex-head{display:flex; align-items:flex-end; gap:18px; flex-wrap:wrap; margin:6px 0 16px;}
+  .ex-kick{font-family:var(--ex-f); font-weight:800; font-size:15px; letter-spacing:3px; text-transform:uppercase; color:var(--gold);}
+  .ex-title{font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:clamp(40px,6vw,72px); line-height:.95; text-transform:uppercase; margin:2px 0 6px;}
+  .ex-tag{font-size:18px; color:var(--txt-2); margin:0; max-width:60ch; line-height:1.45;}
+  .ex-wallet{margin-left:auto; text-align:right; padding:10px 16px; border:1px solid var(--line); background:rgba(0,0,0,.35);}
+  .ex-wallet small{display:block; font-family:var(--ex-f); font-weight:800; font-size:14px; letter-spacing:2px; color:var(--muted); text-transform:uppercase;}
+  .ex-wallet b{font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:30px; color:var(--gold); font-variant-numeric:tabular-nums;}
+  .ex-tick{display:flex; gap:26px; overflow:hidden; white-space:nowrap; padding:10px 14px; margin:0 0 14px; border:1px solid var(--line); background:rgba(0,0,0,.45); font-family:var(--ex-f); font-weight:800; font-size:17px; letter-spacing:.5px; text-transform:uppercase;}
+  .ex-tick-in{display:inline-flex; gap:26px; animation:exTick 60s linear infinite;}
+  .ex-tick:hover .ex-tick-in{animation-play-state:paused;}
+  @keyframes exTick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .ex-up{color:var(--ex-up);} .ex-dn{color:var(--ex-dn);} .ex-flat{color:var(--muted);}
+  .ex-tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin:0 0 16px; overflow-x:auto;}
+  .ex-tabs button{padding:13px 18px 11px; background:none; border:0; border-bottom:3px solid transparent; color:var(--muted); cursor:pointer; white-space:nowrap;
+    font-family:var(--ex-f); font-style:italic; font-weight:800; font-size:18px; letter-spacing:1.5px; text-transform:uppercase;}
+  .ex-tabs button.on{color:var(--txt); border-bottom-color:var(--gold);}
+  .ex-tools{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 14px;}
+  .ex-chip{padding:7px 14px; border:1px solid var(--line); background:rgba(0,0,0,.3); color:var(--txt-2); cursor:pointer; font-family:var(--ex-f); font-weight:800; font-size:16px; letter-spacing:1px; text-transform:uppercase;}
+  .ex-chip.on{background:var(--gold); color:var(--on-gold); border-color:var(--gold);}
+  .ex-in{padding:9px 12px; background:rgba(0,0,0,.45); border:1px solid var(--line); color:var(--txt); font:16px var(--font-body);}
+  .ex-tools .ex-in[type=search]{flex:1; min-width:180px;}
+  .ex-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px;}
+  .ex-card{position:relative; display:flex; flex-direction:column; gap:8px; padding:14px; border:1px solid var(--line); background:linear-gradient(160deg,rgba(26,26,32,.92),rgba(10,10,14,.92)); cursor:pointer; text-align:left; color:var(--txt); font:inherit;}
+  .ex-card:hover{border-color:var(--gold);}
+  .ex-card-top{display:flex; gap:12px; align-items:center;}
+  .ex-face{flex:0 0 58px; width:58px; height:58px; overflow:hidden; display:grid; place-items:center; background:linear-gradient(140deg,var(--pc,var(--gold)),#111); border:2px solid var(--pc,var(--gold));
+    font-family:var(--ex-f); font-weight:900; font-size:20px; color:#fff;}
+  .ex-face img{width:100%; height:100%; object-fit:cover; object-position:center top;}
+  .ex-face.big{flex-basis:120px; width:120px; height:120px; font-size:40px;}
+  .ex-nm{min-width:0;}
+  .ex-nm b{display:block; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:22px; line-height:1.05; text-transform:uppercase; overflow-wrap:anywhere;}
+  .ex-nm small{display:block; margin-top:3px; font-size:14px; color:var(--muted); letter-spacing:.5px;}
+  .ex-grade{position:absolute; top:10px; right:10px; padding:2px 9px; border:1px solid var(--gold); color:var(--gold); font-family:var(--ex-f); font-weight:900; font-size:16px;}
+  .ex-price{display:flex; align-items:baseline; gap:10px;}
+  .ex-price b{font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:32px; font-variant-numeric:tabular-nums;}
+  .ex-price span{font-weight:700; font-size:16px;}
+  .ex-spark{width:100%; height:44px; display:block;}
+  .ex-card .ex-buybtn{align-self:flex-start;}
+  .ex-btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 20px; border:0; cursor:pointer; background:var(--gold); color:var(--on-gold);
+    font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:18px; letter-spacing:1.5px; text-transform:uppercase; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  .ex-btn:hover{filter:brightness(1.1);} .ex-btn[disabled]{opacity:.45; cursor:default; filter:none;}
+  .ex-btn.sell{background:var(--ex-dn); color:#fff;}
+  .ex-btn.ghost{background:transparent; color:var(--txt); border:1px solid var(--line); clip-path:none;}
+  .ex-btn.sm{padding:7px 14px; font-size:15px;}
+  .ex-empty{padding:30px; text-align:center; font-size:18px; color:var(--txt-2); border:1px dashed var(--line);}
+  /* one stock */
+  .ex-back{margin:0 0 14px;}
+  .ex-detail{display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:18px; align-items:start;}
+  .ex-panel{padding:18px; border:1px solid var(--line); background:linear-gradient(160deg,rgba(26,26,32,.94),rgba(10,10,14,.94));}
+  .ex-dhead{display:flex; gap:16px; align-items:center; margin-bottom:12px;}
+  .ex-dhead .ex-nm b{font-size:clamp(30px,4vw,46px);}
+  .ex-bigprice{font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:52px; line-height:1; font-variant-numeric:tabular-nums;}
+  .ex-chart{width:100%; height:220px; display:block; margin:10px 0;}
+  .ex-facts{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-top:10px;}
+  .ex-fact{padding:10px 12px; border:1px solid var(--line); background:rgba(0,0,0,.3);}
+  .ex-fact small{display:block; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-family:var(--ex-f); font-weight:800;}
+  .ex-fact b{font-size:20px; font-variant-numeric:tabular-nums;}
+  .ex-note{font-size:16px; line-height:1.5; color:var(--txt-2); margin:10px 0 0;}
+  .ex-trade h3{margin:0 0 10px; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:26px; text-transform:uppercase;}
+  .ex-side{display:grid; grid-template-columns:1fr 1fr; margin-bottom:12px; border:1px solid var(--line);}
+  .ex-side button{padding:11px; background:none; border:0; color:var(--muted); cursor:pointer; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:19px; text-transform:uppercase;}
+  .ex-side button.on.b{background:var(--ex-up); color:#04140c;} .ex-side button.on.s{background:var(--ex-dn); color:#fff;}
+  .ex-qty{display:flex; align-items:center; gap:8px; margin:6px 0 10px;}
+  .ex-qty input{width:110px; text-align:center; font-size:22px; font-weight:700; padding:8px;}
+  .ex-qty button{width:44px; height:44px; border:1px solid var(--line); background:rgba(0,0,0,.35); color:var(--txt); font-size:22px; cursor:pointer;}
+  .ex-quick{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .ex-quick button{padding:6px 12px; border:1px solid var(--line); background:none; color:var(--txt-2); cursor:pointer; font-size:15px; font-weight:700;}
+  .ex-sum{border-top:1px solid var(--line); padding-top:10px; margin-bottom:14px;}
+  .ex-sum div{display:flex; justify-content:space-between; gap:10px; padding:5px 0; font-size:17px;}
+  .ex-sum div b{font-variant-numeric:tabular-nums;}
+  .ex-sum .big{font-size:21px;} .ex-sum .big b{color:var(--gold);}
+  .ex-msg{margin-top:12px; padding:12px 14px; font-size:16px; line-height:1.45; border:1px solid var(--line); background:rgba(0,0,0,.35);}
+  .ex-msg.ok{border-color:var(--ex-up);} .ex-msg.bad{border-color:var(--ex-dn);}
+  .ex-msg textarea{width:100%; min-height:70px; margin:8px 0; resize:vertical;}
+  /* portfolio */
+  .ex-sumrow{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-bottom:16px;}
+  .ex-table{width:100%; border-collapse:collapse; font-size:17px;}
+  .ex-table th{text-align:left; padding:10px; font-family:var(--ex-f); font-weight:800; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--line);}
+  .ex-table td{padding:11px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums;}
+  .ex-table tr[data-s]{cursor:pointer;} .ex-table tr[data-s]:hover td{background:rgba(255,255,255,.03);}
+  .ex-tablewrap{overflow-x:auto;}
+  /* guide */
+  .ex-guide{display:grid; gap:14px; max-width:900px;}
+  .ex-step{display:grid; grid-template-columns:56px 1fr; gap:14px; padding:16px; border:1px solid var(--line); background:rgba(10,10,14,.8);}
+  .ex-step .n{width:56px; height:56px; display:grid; place-items:center; background:var(--gold); color:var(--on-gold); font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:30px; clip-path:polygon(12% 0,100% 0,88% 100%,0 100%);}
+  .ex-step h3{margin:2px 0 6px; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:24px; text-transform:uppercase;}
+  .ex-step p, .ex-step li{font-size:17px; line-height:1.55; color:var(--txt-2); margin:0 0 6px;}
+  .ex-step ul{margin:6px 0 0; padding-left:20px;}
+  .ex-ex{margin-top:8px; padding:10px 12px; border-left:3px solid var(--gold); background:rgba(var(--gold-rgb),.07); font-size:16px; line-height:1.5;}
+  .ex-rules{width:100%; border-collapse:collapse; margin-top:6px;}
+  .ex-rules td{padding:7px 8px; border-bottom:1px solid var(--line); font-size:17px;}
+  .ex-rules td:last-child{text-align:right; font-weight:700;}
+  .ex-faq details{padding:12px 16px; border:1px solid var(--line); background:rgba(10,10,14,.8); margin-bottom:8px;}
+  .ex-faq summary{cursor:pointer; font-size:18px; font-weight:700;}
+  .ex-faq p{font-size:17px; line-height:1.55; color:var(--txt-2); margin:8px 0 0;}
+  /* Feed: trade card and Market Report */
+  .ex-postcard{display:flex; align-items:center; gap:12px; margin:10px 0 4px; padding:12px 14px; border:1px solid var(--line); background:rgba(0,0,0,.35); cursor:pointer;}
+  .ex-postcard:hover{border-color:var(--gold);}
+  .ex-postcard .ex-face{flex-basis:46px; width:46px; height:46px; font-size:16px;}
+  .ex-postcard .w{flex:1; min-width:0;}
+  .ex-postcard .w b{display:block; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:20px; text-transform:uppercase;}
+  .ex-postcard .w small{display:block; font-size:15px; color:var(--txt-2);}
+  .ex-postcard .act{font-family:var(--ex-f); font-weight:900; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; padding:3px 9px;}
+  .ex-postcard .act.buy{background:var(--ex-up); color:#04140c;} .ex-postcard .act.sell{background:var(--ex-dn); color:#fff;}
+  .sl-fan{display:inline-block; margin-left:6px; padding:1px 7px; border:1px solid var(--line); color:var(--muted); font-family:var(--ex-f); font-weight:800; font-size:13px; letter-spacing:1px; text-transform:uppercase; vertical-align:2px;}
+  .ex-rep{margin-top:10px;}
+  .ex-rep-cols{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .ex-rep-col h4{margin:0 0 6px; font-family:var(--ex-f); font-weight:900; font-size:17px; letter-spacing:1.5px; text-transform:uppercase;}
+  .ex-rep-row{display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px solid var(--line); font-size:17px;}
+  .ex-rep-row b{font-variant-numeric:tabular-nums;}
+  .ex-rep-paid{margin-top:10px; font-size:17px;}
+  .ex-rep-paid b{color:var(--gold);}
+  /* Feed right column ticker */
+  .slx-exrow{display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; padding:9px 14px; background:none; border:0; border-top:1px solid var(--line); color:var(--txt); cursor:pointer; font:inherit; text-align:left;}
+  .slx-exrow:hover{background:rgba(255,255,255,.04);}
+  .slx-exrow b{font-family:var(--ex-f,var(--font-cond)); font-style:italic; font-weight:900; font-size:17px; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .slx-exrow span{flex:none; font-weight:700; font-size:16px; font-variant-numeric:tabular-nums;}
+  @media(max-width:900px){
+    .ex-detail{grid-template-columns:1fr;}
+    .ex-wallet{margin-left:0; text-align:left;}
+    .ex-rep-cols{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){ .ex-tick-in{animation:none;} }
+</style>
+<script>
+/* ===================== WCA EXCHANGE ===================== */
+(function(){
+  const $ = id => document.getElementById(id);
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = n => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+  const money2 = n => '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const hasSb = () => { try{ return typeof sb !== 'undefined' && !!sb; }catch(e){ return false; } };
+  const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
+  const KINDS = { wrestler:'Wrestler', faction:'Faction', promotion:'Promotion', promo_char:'Wrestler', promo_team:'Team' };
+  const DEF = { booked_pct:3, win_pct:5, loss_pct:3, title_pct:12, defense_pct:6, motn_pct:4, decay_after:2, decay_pct:1, max_rise:30, max_drop:20,
+    pay_win:1, pay_title:4, pay_defense:2, max_shares:500, sell_fee:0, nudge_pct:0.1, nudge_cap:5, sell_needs_ok:false, open:true, fan_posts:true };
+  const X = window.EX = { board:null, cfg:Object.assign({}, DEF), me:null, hist:{}, faces:{}, view:'market', filter:'all', sort:'price', q:'', stock:null, side:'buy', qty:1, msg:null, loaded:0, missing:false };
+
+  /* ── data ── */
+  async function loadBoard(force){
+    if(!hasSb()) return null;
+    if(X.board && !force && Date.now() - X.loaded < 30000) return X.board;
+    try{
+      const [b, c] = await Promise.all([sb.rpc('ex_board'), sb.from('ex_config').select('cfg').eq('id', 1).maybeSingle()]);
+      if(b.error){ X.missing = true; X.board = []; return X.board; }
+      X.missing = false;
+      X.board = Array.isArray(b.data) ? b.data : [];
+      X.cfg = Object.assign({}, DEF, (c && c.data && c.data.cfg) || {});
+      X.loaded = Date.now();
+    }catch(e){ X.board = X.board || []; }
+    return X.board;
+  }
+  window.exLoadBoard = loadBoard;
+  async function loadMe(){
+    if(!hasSb() || !signedIn()){ X.me = null; return null; }
+    try{ const r = await sb.rpc('ex_me'); X.me = r.error ? null : r.data; }catch(e){ X.me = null; }
+    return X.me;
+  }
+  async function loadHist(){
+    if(!hasSb()) return;
+    try{
+      const r = await sb.from('ex_history').select('stock_id,at,price').order('at', { ascending:true }).limit(5000);
+      X.hist = {};
+      (r.data || []).forEach(h => { (X.hist[h.stock_id] = X.hist[h.stock_id] || []).push(Number(h.price)); });
+    }catch(e){}
+  }
+  async function loadFaces(){
+    if(!hasSb() || X.facesDone) return;
+    X.facesDone = true;
+    try{
+      const [w, f, p] = await Promise.all([sb.from('wrestlers').select('id,image_url,avatar_url'), sb.from('factions').select('id,color'), sb.from('promotions').select('id,logo_url,color')]);
+      (w.data || []).forEach(r => { X.faces['wrestler:' + r.id] = { img:r.avatar_url || r.image_url || '' }; });
+      (f.data || []).forEach(r => { X.faces['faction:' + r.id] = { col:r.color || '' }; });
+      (p.data || []).forEach(r => { X.faces['promotion:' + r.id] = { img:r.logo_url || '', col:r.color || '' }; });
+    }catch(e){}
+  }
+  const stockById = id => (X.board || []).find(s => String(s.id) === String(id));
+  const chg = s => { const a = Number(s.prev_price), b = Number(s.price); return a > 0 ? (b - a) / a * 100 : 0; };
+  const chgHTML = s => { const c = chg(s); const cls = c > 0.05 ? 'ex-up' : c < -0.05 ? 'ex-dn' : 'ex-flat';
+    return `<span class="${cls}">${c > 0.05 ? '▲' : c < -0.05 ? '▼' : '•'} ${Math.abs(c).toFixed(1)}%</span>`; };
+  function face(s, big){
+    const f = X.faces[s.kind + ':' + s.ref_id] || {};
+    const col = /^#[0-9a-f]{3,8}$/i.test(f.col || '') ? f.col : '';
+    const ini = String(s.name || '?').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    const img = /^https:\/\//i.test(f.img || '') ? `<img src="${E(f.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    return `<span class="ex-face${big ? ' big' : ''}"${col ? ` style="--pc:${E(col)}"` : ''}>${img || E(ini)}</span>`;
+  }
+  function spark(id, w, h, cls){
+    let pts = (X.hist[id] || []).slice(-30);
+    const s = stockById(id);
+    if(s){ if(!pts.length && s.prev_price) pts = [Number(s.prev_price)]; pts = pts.concat([Number(s.price)]); }
+    if(pts.length < 2) pts = [pts[0] || 1, pts[0] || 1];
+    const mn = Math.min(...pts), mx = Math.max(...pts), rg = mx - mn || 1;
+    const xy = pts.map((v, i) => `${(i / (pts.length - 1) * w).toFixed(1)},${(h - 4 - (v - mn) / rg * (h - 8)).toFixed(1)}`).join(' ');
+    const up = pts[pts.length - 1] >= pts[0];
+    return `<svg class="${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${xy}" fill="none" stroke="${up ? 'var(--ex-up)' : 'var(--ex-dn)'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>`;
+  }
+  const holding = id => { const h = X.me && (X.me.holdings || []).find(x => String(x.stock_id) === String(id)); return h || { shares:0, cost:0 }; };
+  const balance = () => { if(X.me && X.me.balance != null) return Number(X.me.balance); try{ return Number(MY_PROFILE && MY_PROFILE.balance) || 0; }catch(e){ return 0; } };
+
+  /* ── page ── */
+  async function exOpen(){
+    const host = $('ex-body'); if(!host) return;
+    if(!X.board) host.innerHTML = '<div class="loading">Loading the Exchange…</div>';
+    let qs = ''; try{ qs = wcaRoute().qs || ''; }catch(e){}
+    const m = qs.match(/(?:^|&)s=(\d+)/); const g = /(?:^|&)guide=1/.test(qs);
+    await Promise.all([loadBoard(true), loadMe(), loadHist(), loadFaces()]);
+    let seen = null; try{ seen = localStorage.getItem('wca-ex-guide'); }catch(e){}
+    if(m && stockById(m[1])){ X.stock = Number(m[1]); X.view = 'stock'; }
+    else if(g || !seen){ X.view = 'guide'; try{ localStorage.setItem('wca-ex-guide', '1'); }catch(e){} }
+    else if(X.view === 'stock' && !stockById(X.stock)) X.view = 'market';
+    draw();
+  }
+  window.exOpen = exOpen;
+  function setView(v, stock){
+    X.view = v; X.msg = null;
+    if(v === 'stock'){ X.stock = Number(stock); X.side = 'buy'; X.qty = 1; }
+    try{ wcaSetAddress('exchange', v === 'stock' ? 's=' + X.stock : v === 'guide' ? 'guide=1' : '', true); }catch(e){}
+    draw();
+    const host = $('page-exchange'); if(host && host.getBoundingClientRect().top < 0) window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  window.exGo = setView;
+
+  function draw(){
+    const host = $('ex-body'); if(!host) return;
+    if(X.missing){
+      host.innerHTML = `<div class="ex">${head()}<div class="ex-empty">The Exchange opens soon. Check back after the next show.</div></div>`; return;
+    }
+    const tabs = [['market', 'Market'], ['portfolio', 'My Portfolio'], ['guide', 'How it works']];
+    let body = '';
+    if(X.view === 'stock') body = stockView();
+    else if(X.view === 'portfolio') body = portfolioView();
+    else if(X.view === 'guide') body = guideView();
+    else body = marketView();
+    host.innerHTML = `<div class="ex">${head()}${ticker()}
+      <div class="ex-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" data-v="${k}"${(X.view === k || (k === 'market' && X.view === 'stock')) ? ' class="on" aria-selected="true"' : ''}>${t}</button>`).join('')}</div>
+      ${body}</div>`;
+    host.querySelectorAll('[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
+    host.querySelectorAll('[data-s]').forEach(b => b.onclick = e => { if(e.target.closest('[data-buy]')) return; setView('stock', b.dataset.s); });
+    host.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => setView('stock', b.dataset.buy));
+    wire();
+  }
+  function head(){
+    const w = signedIn() ? `<div class="ex-wallet"><small>Your WCA money</small><b>${money(balance())}</b></div>`
+      : `<div class="ex-wallet"><small>Want to invest?</small><button type="button" class="ex-btn sm" data-signin>Sign in</button></div>`;
+    return `<div class="ex-head"><div><div class="ex-kick">WCA Universe</div><div class="ex-title">The Exchange</div>
+      <p class="ex-tag">Buy shares in your favorite superstars with WCA money. When they win, you win.</p></div>${w}</div>`;
+  }
+  function ticker(){
+    const list = (X.board || []).filter(s => s.prev_price).slice(0, 20);
+    if(!list.length) return '';
+    const one = list.map(s => `<span>${E(s.ticker || s.name)} ${money2(s.price)} ${chgHTML(s)}</span>`).join('');
+    return `<div class="ex-tick" aria-label="Prices"><div class="ex-tick-in">${one}${one}</div></div>`;
+  }
+  function marketView(){
+    let list = (X.board || []).slice();
+    if(X.filter !== 'all') list = list.filter(s => (X.filter === 'wrestler' ? (s.kind === 'wrestler' || s.kind === 'promo_char') : X.filter === 'faction' ? (s.kind === 'faction' || s.kind === 'promo_team') : s.kind === X.filter));
+    if(X.q) list = list.filter(s => (s.name + ' ' + (s.ticker || '')).toLowerCase().indexOf(X.q.toLowerCase()) >= 0);
+    const by = { price:(a, b) => b.price - a.price, up:(a, b) => chg(b) - chg(a), down:(a, b) => chg(a) - chg(b), owned:(a, b) => b.owned - a.owned, name:(a, b) => a.name.localeCompare(b.name) };
+    list.sort(by[X.sort] || by.price);
+    const chips = [['all', 'All'], ['wrestler', 'Wrestlers'], ['faction', 'Factions'], ['promotion', 'Promotions']]
+      .map(([k, t]) => `<button type="button" class="ex-chip${X.filter === k ? ' on' : ''}" data-f="${k}">${t}</button>`).join('');
+    const tools = `<div class="ex-tools">${chips}
+      <select class="ex-in" id="ex-sort" aria-label="Sort">${[['price', 'Highest price'], ['up', 'Biggest risers'], ['down', 'Biggest fallers'], ['owned', 'Most owned'], ['name', 'A to Z']].map(([k, t]) => `<option value="${k}"${X.sort === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      <input class="ex-in" type="search" id="ex-q" placeholder="Find a superstar" value="${E(X.q)}"></div>`;
+    if(!(X.board || []).length) return tools + `<div class="ex-empty">No stocks are listed yet. They open after WCA sets the starting prices.</div>`;
+    if(!list.length) return tools + `<div class="ex-empty">Nothing matches that.</div>`;
+    return tools + `<div class="ex-grid">${list.map(card).join('')}</div>`;
+  }
+  function card(s){
+    const h = holding(s.id);
+    return `<div class="ex-card" role="button" tabindex="0" data-s="${s.id}">
+      ${s.grade ? `<span class="ex-grade" title="Grade">${E(s.grade)}</span>` : ''}
+      <div class="ex-card-top">${face(s)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
+      <div class="ex-price"><b>${money2(s.price)}</b>${chgHTML(s)}</div>
+      ${spark(s.id, 220, 44, 'ex-spark')}
+      <small style="font-size:15px;color:var(--txt-2)">${h.shares ? `You own <b>${h.shares}</b> · ` : ''}${Number(s.holders) || 0} ${Number(s.holders) === 1 ? 'fan owns' : 'fans own'} shares${Number(s.trend) > 0 ? ' · <span class="ex-up">Climbing</span>' : Number(s.trend) < 0 ? ' · <span class="ex-dn">Sliding</span>' : ''}${s.frozen ? ' · Price frozen' : ''}</small>
+      <button type="button" class="ex-btn sm ex-buybtn" data-buy="${s.id}">Buy shares</button></div>`;
+  }
+
+  function stockView(){
+    const s = stockById(X.stock);
+    if(!s) return `<div class="ex-empty">That stock is not listed right now.</div>`;
+    const h = holding(s.id), worth = h.shares * s.price, profit = worth - h.cost;
+    const c = X.cfg;
+    const hist = (X.hist[s.id] || []).length;
+    const left = `<div class="ex-panel">
+      <div class="ex-dhead">${face(s, true)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}${s.grade ? ' · Grade ' + E(s.grade) : ''}</small></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span class="ex-bigprice">${money2(s.price)}</span><span style="font-size:20px">${chgHTML(s)} <small style="color:var(--muted);font-size:15px">since the last show</small></span></div>
+      ${spark(s.id, 600, 220, 'ex-chart')}
+      ${hist < 2 ? '<p class="ex-note">The chart fills in as the price moves after each show.</p>' : ''}
+      <div class="ex-facts">
+        <div class="ex-fact"><small>Fans who own it</small><b>${Number(s.holders) || 0}</b></div>
+        <div class="ex-fact"><small>Shares owned</small><b>${(Number(s.owned) || 0).toLocaleString()}</b></div>
+        <div class="ex-fact"><small>Your shares</small><b>${h.shares}</b></div>
+        <div class="ex-fact"><small>Yours are worth</small><b>${money(worth)}</b></div>
+        ${h.shares ? `<div class="ex-fact"><small>Your profit</small><b class="${profit >= 0 ? 'ex-up' : 'ex-dn'}">${profit >= 0 ? '+' : '-'}${money(Math.abs(profit))}</b></div>` : ''}
+      </div>
+      <p class="ex-note">${s.frozen ? 'WCA has frozen this price for now. ' : ''}${Number(s.trend) > 0 ? 'This stock is climbing a little every day right now. ' : Number(s.trend) < 0 ? 'This stock is sliding a little every day right now. ' : ''}
+        After each show this price moves: booked on the show +${c.booked_pct}%, a win +${c.win_pct}%, a loss -${c.loss_pct}%, a title win +${c.title_pct}%. Every share you own pays ${c.pay_win}% of the price when ${s.kind === 'promotion' ? 'it' : 'they'} win.</p>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ex-btn ghost sm" id="ex-share-link">Share this stock</button><button type="button" class="ex-btn ghost sm" data-v="guide">How it works</button></div>
+    </div>`;
+    return `<button type="button" class="ex-btn ghost sm ex-back" data-v="market">◀ Back to the market</button><div class="ex-detail">${left}${tradeBox(s, h)}</div>`;
+  }
+  function tradeBox(s, h){
+    if(!signedIn()) return `<div class="ex-panel ex-trade"><h3>Buy shares</h3><p class="ex-note">Sign in to buy shares. Everyone starts with WCA money to spend.</p><div style="margin-top:12px"><button type="button" class="ex-btn" data-signin>Sign in</button></div></div>`;
+    const c = X.cfg, buy = X.side === 'buy';
+    const maxBuy = Math.max(0, Math.min(Number(c.max_shares) - h.shares, Math.floor(balance() / Math.max(0.01, s.price))));
+    const maxSell = h.shares;
+    const mx = buy ? maxBuy : maxSell;
+    X.qty = Math.max(1, Math.min(Number(X.qty) || 1, Math.max(1, mx)));
+    const fee = Number(c.sell_fee) || 0;
+    const total = buy ? Math.ceil(s.price * X.qty) : Math.floor(s.price * X.qty * (1 - fee / 100));
+    const after = buy ? balance() - total : balance() + total;
+    const can = mx > 0 && X.qty <= mx && c.open !== false;
+    let why = '';
+    if(c.open === false) why = 'The Exchange is closed right now.';
+    else if(buy && maxBuy < 1) why = h.shares >= Number(c.max_shares) ? `You own the most shares allowed (${c.max_shares}).` : 'You need more WCA money to buy a share.';
+    else if(!buy && maxSell < 1) why = 'You do not own any shares of this yet.';
+    return `<div class="ex-panel ex-trade">
+      <div class="ex-side"><button type="button" class="b${buy ? ' on' : ''}" data-side="buy">Buy</button><button type="button" class="s${buy ? '' : ' on'}" data-side="sell">Sell</button></div>
+      <h3>${buy ? 'Buy' : 'Sell'} ${E(s.name)}</h3>
+      <label for="ex-qty" style="font-size:16px;color:var(--txt-2)">How many shares?</label>
+      <div class="ex-qty"><button type="button" data-q="-1" aria-label="One less">−</button><input class="ex-in" id="ex-qty" type="number" min="1" max="${Math.max(1, mx)}" value="${X.qty}"><button type="button" data-q="1" aria-label="One more">+</button></div>
+      <div class="ex-quick">${[1, 5, 10, 25].filter(n => n <= Math.max(1, mx)).map(n => `<button type="button" data-set="${n}">${n}</button>`).join('')}${mx > 1 ? `<button type="button" data-set="${mx}">Max (${mx})</button>` : ''}</div>
+      <div class="ex-sum">
+        <div><span>Price per share</span><b>${money2(s.price)}</b></div>
+        ${!buy && fee ? `<div><span>Sell fee</span><b>${fee}%</b></div>` : ''}
+        <div class="big"><span>${buy ? 'You pay' : 'You get'}</span><b>${money(total)}</b></div>
+        <div><span>Your money after</span><b>${money(after)}</b></div>
+        ${buy ? '' : `<div><span>You keep</span><b>${maxSell - X.qty} shares</b></div>`}
+      </div>
+      ${why ? `<p class="ex-note">${why}</p>` : ''}
+      <button type="button" class="ex-btn${buy ? '' : ' sell'}" id="ex-go" ${can ? '' : 'disabled'} style="width:100%">${buy ? 'Buy' : 'Sell'} ${X.qty} ${X.qty === 1 ? 'share' : 'shares'} for ${money(total)}</button>
+      ${!buy && c.sell_needs_ok ? '<p class="ex-note">Sales are checked by WCA first. You get paid the price on the day WCA says OK.</p>' : ''}
+      ${X.msg ? msgHTML() : ''}
+    </div>`;
+  }
+  function msgHTML(){
+    const m = X.msg;
+    if(m.bad) return `<div class="ex-msg bad">${E(m.text)}</div>`;
+    const share = m.trade && X.cfg.fan_posts !== false && m.status !== 'pending'
+      ? `<div style="margin-top:8px"><b>Tell the WCA Universe?</b><textarea class="ex-in" id="ex-post-txt" maxlength="280">${E(m.suggest || '')}</textarea>
+         <button type="button" class="ex-btn sm" id="ex-post">Share to the Feed</button></div>` : '';
+    return `<div class="ex-msg ok">${E(m.text)}${share}</div>`;
+  }
+  function wire(){
+    const host = $('ex-body'); if(!host) return;
+    host.querySelectorAll('[data-signin]').forEach(b => b.onclick = () => { if(typeof frSignIn === 'function') frSignIn(); });
+    host.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { X.filter = b.dataset.f; draw(); });
+    const so = $('ex-sort'); if(so) so.onchange = () => { X.sort = so.value; draw(); };
+    const q = $('ex-q'); if(q) q.oninput = () => { X.q = q.value; const pos = q.selectionStart; draw(); const n = $('ex-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } };
+    host.querySelectorAll('[data-side]').forEach(b => b.onclick = () => { X.side = b.dataset.side; X.qty = 1; X.msg = null; draw(); });
+    host.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { X.qty = (Number(X.qty) || 1) + Number(b.dataset.q); X.msg = null; draw(); });
+    host.querySelectorAll('[data-set]').forEach(b => b.onclick = () => { X.qty = Number(b.dataset.set); X.msg = null; draw(); });
+    const qi = $('ex-qty'); if(qi) qi.onchange = () => { X.qty = Math.floor(Number(qi.value) || 1); X.msg = null; draw(); };
+    const go = $('ex-go'); if(go) go.onclick = trade;
+    const sl = $('ex-share-link'); if(sl) sl.onclick = () => shareLink(X.stock);
+    const po = $('ex-post'); if(po) po.onclick = postTrade;
+    host.querySelectorAll('.ex-card[data-s]').forEach(c => c.onkeydown = e => { if(e.key === 'Enter'){ setView('stock', c.dataset.s); } });
+  }
+  async function trade(){
+    const s = stockById(X.stock); if(!s) return;
+    const go = $('ex-go'); if(go){ go.disabled = true; go.textContent = 'Working…'; }
+    const buy = X.side === 'buy', n = Number(X.qty) || 1;
+    const r = await sb.rpc(buy ? 'ex_buy' : 'ex_sell', { p_stock:Number(s.id), p_shares:n });
+    if(r.error){ X.msg = { bad:true, text:String(r.error.message || 'That did not go through.').replace(/^.*?ERROR:\s*/, '') }; draw(); return; }
+    const d = r.data || {};
+    try{ if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE && d.balance != null){ MY_PROFILE.balance = Number(d.balance); renderUserChip(); } }catch(e){}
+    if(d.status === 'pending') X.msg = { text:`Your sale of ${n} ${n === 1 ? 'share' : 'shares'} is waiting for WCA to say OK. You get paid the price on that day.`, status:'pending' };
+    else if(buy) X.msg = { trade:d.trade, text:`Done. You bought ${n} ${n === 1 ? 'share' : 'shares'} of ${s.name} for ${money(d.total)}. You own ${d.shares} now.`, suggest:`Just bought ${n} ${n === 1 ? 'share' : 'shares'} of ${s.name} at ${money2(d.price)}. Let's go!` };
+    else X.msg = { trade:d.trade, text:`Done. You sold ${n} ${n === 1 ? 'share' : 'shares'} of ${s.name} for ${money(d.total)}.${d.profit != null ? (d.profit >= 0 ? ` That is ${money(d.profit)} profit.` : ` That is ${money(-d.profit)} less than you paid.`) : ''}`, suggest:`Sold ${n} ${n === 1 ? 'share' : 'shares'} of ${s.name} at ${money2(d.price)}.` };
+    const keep = X.msg;
+    await Promise.all([loadBoard(true), loadMe(), loadHist()]);
+    X.msg = keep; X.qty = 1;
+    draw();
+    try{ if(window.slxRefresh) slxRefresh(); }catch(e){}
+  }
+  async function postTrade(){
+    const b = $('ex-post'), t = $('ex-post-txt'); if(!X.msg || !X.msg.trade) return;
+    if(b){ b.disabled = true; b.textContent = 'Posting…'; }
+    const r = await sb.rpc('ex_share_trade', { p_trade:Number(X.msg.trade), p_text:t ? t.value : '' });
+    if(r.error){ X.msg = { bad:true, text:String(r.error.message || 'Could not post that.') }; draw(); return; }
+    X.msg = { text:'Posted to the Feed.' }; draw();
+    if(typeof wcaToast === 'function') wcaToast('Posted to the Feed', 'Your trade is on the Feed now.');
+  }
+  function linkFor(id){ try{ return location.origin + wcaHref('exchange', 's=' + id); }catch(e){ return location.href; } }
+  async function shareLink(id){
+    const s = stockById(id), url = linkFor(id);
+    if(navigator.share && matchMedia('(max-width:820px)').matches){ try{ await navigator.share({ title:(s ? s.name : 'WCA') + ' on the WCA Exchange', url }); return; }catch(e){ if(e && e.name === 'AbortError') return; } }
+    let copied = false; try{ await navigator.clipboard.writeText(url); copied = true; }catch(e){}
+    try{ wcaShowSharePopup(url, copied, 'Share this stock', s ? E(s.name) + ' on the WCA Exchange' : ''); }catch(e){ window.prompt('Copy this link:', url); }
+  }
+  window.exShareLink = shareLink;
+
+  function portfolioView(){
+    if(!signedIn()) return `<div class="ex-empty">Sign in to see your shares.<div style="margin-top:12px"><button type="button" class="ex-btn" data-signin>Sign in</button></div></div>`;
+    const hs = ((X.me && X.me.holdings) || []).map(h => ({ h, s:stockById(h.stock_id) })).filter(x => x.s);
+    const worth = hs.reduce((a, x) => a + x.h.shares * x.s.price, 0), cost = hs.reduce((a, x) => a + Number(x.h.cost), 0), pr = worth - cost;
+    const paid = Number(X.me && X.me.paid) || 0;
+    const pend = (X.me && X.me.pending) || [];
+    const top = `<div class="ex-sumrow">
+      <div class="ex-fact"><small>Your shares are worth</small><b>${money(worth)}</b></div>
+      <div class="ex-fact"><small>You paid</small><b>${money(cost)}</b></div>
+      <div class="ex-fact"><small>Profit if you sold now</small><b class="${pr >= 0 ? 'ex-up' : 'ex-dn'}">${pr >= 0 ? '+' : '-'}${money(Math.abs(pr))}</b></div>
+      <div class="ex-fact"><small>Win payouts so far</small><b>${money(paid)}</b></div>
+      <div class="ex-fact"><small>WCA money</small><b>${money(balance())}</b></div></div>`;
+    const rows = hs.length ? `<div class="ex-tablewrap"><table class="ex-table"><thead><tr><th>Stock</th><th>Shares</th><th>Paid per share</th><th>Price now</th><th>Worth</th><th>Profit</th></tr></thead><tbody>
+      ${hs.map(({ h, s }) => { const w = h.shares * s.price, p = w - h.cost; return `<tr data-s="${s.id}"><td><b>${E(s.name)}</b></td><td>${h.shares}</td><td>${money2(h.cost / Math.max(1, h.shares))}</td><td>${money2(s.price)} ${chgHTML(s)}</td><td>${money(w)}</td><td class="${p >= 0 ? 'ex-up' : 'ex-dn'}">${p >= 0 ? '+' : '-'}${money(Math.abs(p))}</td></tr>`; }).join('')}
+      </tbody></table></div>` : `<div class="ex-empty">You don't own any shares yet. Pick someone on the Market tab and press Buy shares.</div>`;
+    const pe = pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
+      ${pend.map(p => { const s = stockById(p.stock_id); return `<div class="ex-msg">${p.shares} ${p.shares === 1 ? 'share' : 'shares'} of ${E(s ? s.name : 'a stock')}. You get paid the price on the day WCA says OK.</div>`; }).join('')}` : '';
+    return top + rows + pe;
+  }
+
+  function guideView(){
+    const c = X.cfg;
+    const ex = (p => ({ p, n:10, cost:p * 10, win:p * 10 * c.pay_win / 100, up:p * (1 + (c.booked_pct + c.win_pct) / 100) }))(200);
+    return `<div class="ex-guide">
+      <div class="ex-step"><span class="n">1</span><div><h3>What is a share?</h3>
+        <p>Every superstar, faction and promotion on the Exchange has a price. Buying a share means you are backing them. If they do well, your share is worth more.</p>
+        <p>It is all WCA money, the same money you bet with. It is part of the WCA story, not real money.</p></div></div>
+      <div class="ex-step"><span class="n">2</span><div><h3>Buy</h3>
+        <p>Open the Market, pick someone and press <b>Buy shares</b>. Choose how many. Before you press the button, the page shows exactly what you pay and how much money you will have left.</p>
+        <p>You buy straight from WCA, so it happens right away. You can own up to ${c.max_shares} shares of one stock.</p></div></div>
+      <div class="ex-step"><span class="n">3</span><div><h3>How prices move</h3>
+        <p>After every show, WCA updates the Exchange. This is what each superstar's price does:</p>
+        <table class="ex-rules">
+          <tr><td>Booked on the show</td><td class="ex-up">+${c.booked_pct}%</td></tr>
+          <tr><td>Wins a match</td><td class="ex-up">+${c.win_pct}%</td></tr>
+          <tr><td>Loses a match</td><td class="ex-dn">-${c.loss_pct}%</td></tr>
+          <tr><td>Wins a title</td><td class="ex-up">+${c.title_pct}%</td></tr>
+          <tr><td>Defends a title</td><td class="ex-up">+${c.defense_pct}%</td></tr>
+          <tr><td>Match of the Night</td><td class="ex-up">+${c.motn_pct}%</td></tr>
+          <tr><td>Not booked for more than ${c.decay_after} shows in a row</td><td class="ex-dn">-${c.decay_pct}% each show</td></tr>
+        </table>
+        <p style="margin-top:8px">Being on the show matters. A superstar who keeps showing up keeps climbing, even after a tough loss. Fans buying a stock also nudges its price up a little, and selling nudges it down. WCA can also move prices to fit the story.</p></div></div>
+      <div class="ex-step"><span class="n">4</span><div><h3>Two ways to earn</h3>
+        <ul><li><b>Sell for more than you paid.</b> If the price went up since you bought, selling gives you a profit.</li>
+          <li><b>Win payouts.</b> After each show, every share you own pays you ${c.pay_win}% of its price when that superstar wins (${c.pay_defense}% for a title defense, ${c.pay_title}% for a title win). You keep the shares.</li></ul>
+        <div class="ex-ex"><b>Example:</b> you buy ${ex.n} shares at ${money(200)} each, so you pay ${money(ex.cost)}. They are booked and win. You get a win payout of ${money(ex.win)} and the price climbs to about ${money2(ex.up)}. Sell now and you get about ${money(ex.up * ex.n)}.</div></div></div>
+      <div class="ex-step"><span class="n">5</span><div><h3>Sell</h3>
+        <p>Open the stock, switch to <b>Sell</b>, pick how many and press the button. WCA buys your shares back at that moment's price${c.sell_needs_ok ? ' once WCA says OK' : ', and the money goes straight into your account'}.${Number(c.sell_fee) ? ` There is a ${c.sell_fee}% sell fee.` : ''}</p></div></div>
+      <div class="ex-step"><span class="n">6</span><div><h3>Tips</h3>
+        <ul><li>Spread your money over a few superstars instead of one.</li><li>Superstars on a hot streak and champions tend to climb.</li><li>Prices can go down too. Only put in what you're happy to risk.</li><li>Share your trades to the Feed and brag when you call it right.</li></ul></div></div>
+      <div class="ex-faq">
+        <details><summary>Does owning shares change my betting or watch money?</summary><p>No. Betting and watch money work exactly the same. The Exchange is a separate way to earn.</p></details>
+        <details><summary>Who do I buy from and sell to?</summary><p>WCA. WCA is the company behind the Exchange, so you never have to wait for another fan to buy your shares.</p></details>
+        <details><summary>What if the price drops?</summary><p>Your shares are worth less until it climbs again. You only lose money if you sell for less than you paid.</p></details>
+        <details><summary>Can WCA change prices?</summary><p>Yes. WCA can set a price, start a climb or a slide, or freeze a stock to fit the story.</p></details>
+        <details><summary>Which promotions are on it?</summary><p>WCA superstars, WCA factions and the promotions themselves. More promotions' rosters may join later.</p></details>
+      </div>
+      <div><button type="button" class="ex-btn" data-v="market">Go to the Market ▶</button></div>
+    </div>`;
+  }
+
+  /* ── on the Feed ── */
+  // a trade card inside a fan's post
+  window.exPostCard = function(x){
+    try{
+      if(!x || !x.stock_id) return '';
+      const s = { id:x.stock_id, name:x.name, kind:x.kind, ref_id:(stockById(x.stock_id) || {}).ref_id };
+      const sell = x.side === 'sell';
+      return `<div class="ex-postcard" role="link" tabindex="0" onclick="event.stopPropagation();goPage('exchange');setTimeout(()=>exGo('stock',${Number(x.stock_id)}),80)">
+        ${face(s)}<div class="w"><b>${E(x.name)}</b><small>${Number(x.shares)} ${Number(x.shares) === 1 ? 'share' : 'shares'} at ${money2(x.price)} · on the WCA Exchange</small></div>
+        <span class="act ${sell ? 'sell' : 'buy'}">${sell ? 'Sold' : 'Bought'}</span></div>`;
+    }catch(e){ return ''; }
+  };
+  // the Market Report after a show
+  window.exRenderReport = function(p){
+    const pl = p.payload || {};
+    const row = x => `<div class="ex-rep-row"><span>${E(x.name)}</span><b class="${Number(x.pct) >= 0 ? 'ex-up' : 'ex-dn'}">${Number(x.pct) >= 0 ? '+' : ''}${Number(x.pct).toFixed(1)}% · ${money2(x.to)}</b></div>`;
+    const up = (pl.risers || []), dn = (pl.fallers || []);
+    let foot = ''; try{ foot = slEngageBar(p); }catch(e){}
+    let when = ''; try{ when = slDate(p.story_date); }catch(e){}
+    return `<article class="slpost sl-article ex">${typeof slPin === 'function' ? slPin(p) : ''}
+      ${typeof slKicker === 'function' ? slKicker('Market Report', '', pl.publication || 'WCA EXCHANGE') : ''}
+      <h3 class="sl-title" style="font-family:var(--ex-f);font-style:italic;font-weight:900;font-size:clamp(26px,3.2vw,36px);text-transform:uppercase;margin:6px 0">${E(p.title || 'Market Report')}</h3>
+      <div class="sl-date" style="margin-bottom:8px">${E(when)}</div>
+      <div class="ex-rep"><div class="ex-rep-cols">
+        <div class="ex-rep-col"><h4 class="ex-up">▲ Risers</h4>${up.length ? up.map(row).join('') : '<div class="ex-rep-row"><span>None this time</span></div>'}</div>
+        <div class="ex-rep-col"><h4 class="ex-dn">▼ Fallers</h4>${dn.length ? dn.map(row).join('') : '<div class="ex-rep-row"><span>None this time</span></div>'}</div>
+      </div>${Number(pl.paid) > 0 ? `<div class="ex-rep-paid">Shareholders earned <b>${money(pl.paid)}</b> in win payouts.</div>` : ''}
+      <div style="margin-top:12px"><button type="button" class="ex-btn sm" onclick="event.stopPropagation();goPage('exchange')">Open the Exchange ▶</button></div></div>
+      ${foot}</article>`;
+  };
+  // the Feed's right column: the biggest movers
+  window.exTickerCard = function(){
+    if(!X.board){ if(!X.asked){ X.asked = true; Promise.all([loadBoard(), loadFaces()]).then(() => { try{ if(window.slxRefresh) slxRefresh(); }catch(e){} }); } return ''; }
+    if(X.missing || !X.board.length) return '';
+    const list = X.board.slice().sort((a, b) => Math.abs(chg(b)) - Math.abs(chg(a)) || b.price - a.price).slice(0, 5);
+    return `<section class="slx-card"><h3>WCA Exchange <small>PRICES</small></h3>
+      ${list.map(s => `<button type="button" class="slx-exrow" data-exs="${s.id}"><b>${E(s.name)}</b><span>${money2(s.price)} ${chgHTML(s)}</span></button>`).join('')}
+      <div style="padding:10px 14px;border-top:1px solid var(--line)"><button type="button" class="slx-btn" data-exopen>Open the Exchange ▶</button></div></section>`;
+  };
+
+  // the page may already be open (the router can run before this script)
+  function boot(){
+    const p = $('page-exchange'); if(p && p.classList.contains('active')) exOpen();
+    // the Feed may have drawn before this script was ready: draw it again so Market Reports and trade cards show
+    const f = $('page-storylines'); if(f && f.classList.contains('active') && typeof renderStorylines === 'function'){ try{ renderStorylines(); }catch(e){} }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
+})();
+</script>
+
+<!-- ═══════════════ FEED REVAMP, step 1 (Fight Hub, Nov 2026) ═══════════════
+     Look only. Three columns like X/Twitter: left = sections and the existing
+     Promotion/Type filters, center = view tabs and the feed, right = next show,
+     trending, awards, who to follow, and a spot saved for the WCA Exchange.
+     Every tab and button calls the Feed's existing functions (slSetFilter,
+     slSetPromo, slFocusSharedPost, peFollowToggle, goPage ...). Nothing new is
+     saved anywhere. Classic design never sees any of this. -->
+<style id="slx-style">
+  /* Classic: the wrappers vanish and the page stays exactly as it was */
+  .slx, .slx-l, .slx-c{display:contents;}
+  .slx-nav, .slx-tabs, .slx-r, #slx-bottom{display:none;}
+
+  html[data-design="fight"] #page-storylines{max-width:1380px;}
+  html[data-design="fight"] #page-storylines > .section-title{display:none;}
+  html[data-design="fight"] #page-storylines > .sl-intro{max-width:none; margin:4px 0 16px; padding:8px 14px; text-align:left; font-size:16px; line-height:1.5; color:var(--txt-2); border:1px dashed var(--line); background:rgba(0,0,0,.25);}
+
+  /* the three columns */
+  html[data-design="fight"] .slx{display:grid; grid-template-columns:250px minmax(0,660px) 340px; grid-template-areas:"l c r"; gap:24px; justify-content:center; align-items:start;}
+  html[data-design="fight"] .slx-l{grid-area:l; display:flex; flex-direction:column; gap:14px;}
+  html[data-design="fight"] .slx-c{grid-area:c; display:block; min-width:0;}
+  html[data-design="fight"] .slx-r{grid-area:r; display:flex; flex-direction:column; gap:14px;}
+  html[data-design="fight"] .slx-l, html[data-design="fight"] .slx-r{position:sticky; top:calc(var(--fh-top,72px) + 12px); max-height:calc(100vh - var(--fh-top,72px) - 24px); overflow-y:auto; scrollbar-width:thin; overscroll-behavior:contain; padding-bottom:12px;}
+  html[data-design="fight"] .slx-l::-webkit-scrollbar, html[data-design="fight"] .slx-r::-webkit-scrollbar{width:6px;}
+  html[data-design="fight"] .slx-l::-webkit-scrollbar-thumb, html[data-design="fight"] .slx-r::-webkit-scrollbar-thumb{background:var(--line);}
+
+  /* left: sections */
+  html[data-design="fight"] .slx-nav{display:flex; flex-direction:column;}
+  .slx-nav button{display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px; background:none; border:0; border-left:3px solid transparent; cursor:pointer; text-align:left;
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:20px; letter-spacing:1.5px; text-transform:uppercase; color:var(--txt-2);}
+  .slx-nav button:hover{background:rgba(255,255,255,.04); color:var(--txt);}
+  .slx-nav button.on{color:var(--gold); border-left-color:var(--gold); background:linear-gradient(90deg,rgba(var(--gold-rgb),.14),transparent);}
+  .slx-nav button i{font-style:normal; font-size:22px; width:24px; text-align:center;}
+  .slx-nav .n{margin-left:auto; font-style:normal; font-family:var(--font-body); font-size:13px; font-weight:700; letter-spacing:0; background:var(--loss); color:#fff; padding:1px 8px; border-radius:10px;}
+  .slx-nav .soon{margin-left:auto; font-style:normal; font-size:13px; letter-spacing:1px; color:var(--muted); border:1px solid var(--line); padding:1px 7px;}
+
+  /* left: the existing filters, stacked */
+  html[data-design="fight"] .slx-l .sl-filters{display:flex; flex-direction:column; gap:14px; margin:0; padding:14px; border-radius:0; border:1px solid var(--line); background:rgba(10,10,14,.75);}
+  html[data-design="fight"] .slx-l .sl-frow{display:block;}
+  html[data-design="fight"] .slx-l .sl-flab{font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:3px; color:var(--muted); margin-bottom:8px;}
+  html[data-design="fight"] .slx-l .sl-fchips{flex-wrap:wrap; overflow:visible; gap:6px;}
+  html[data-design="fight"] .slx-l .sl-fchips .rfilter{padding:5px 11px; font-size:15px; border-radius:0;}
+
+  /* center: view tabs */
+  html[data-design="fight"] .slx-tabs{display:flex; position:sticky; top:var(--fh-top,72px); z-index:6; margin:0 0 14px; background:rgba(10,10,14,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+  .slx-tabs button{flex:1; padding:14px 6px 12px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);}
+  .slx-tabs button:hover{color:var(--txt); background:rgba(255,255,255,.03);}
+  .slx-tabs button.on{color:var(--txt); border-bottom-color:var(--gold);}
+
+  /* center: posts as clean Fight Hub cards, bigger text */
+  html[data-design="fight"] #page-storylines .sl-feed{gap:14px;}
+  html[data-design="fight"] #page-storylines .sl-feed > .slpost:not(.sl-commenting){max-width:none;}
+  html[data-design="fight"] #page-storylines .slpost{border-radius:4px; scroll-margin-top:150px;}
+  html[data-design="fight"] #page-storylines .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury),
+  html[data-design="fight"] #page-storylines .slpost.sl-article:not(.sl-hr){padding:18px 20px;}
+  html[data-design="fight"] #page-storylines .sl-social .sl-name{font-family:var(--font-body); font-weight:700; font-size:17px; letter-spacing:0; text-transform:none;}
+  html[data-design="fight"] #page-storylines .sl-social .sl-handle{font-size:15px;}
+  html[data-design="fight"] #page-storylines .sl-social .sl-text{font-size:18px; line-height:1.5;}
+  html[data-design="fight"] #page-storylines .sl-reply .sl-name{font-size:17px;}
+  html[data-design="fight"] #page-storylines .sl-reply .sl-text{font-size:17px;}
+  html[data-design="fight"] #page-storylines .sl-prose,
+  html[data-design="fight"] #page-storylines .sl-para{font-size:18px; line-height:1.6;}
+  html[data-design="fight"] #page-storylines .sl-engage{font-size:16px;}
+  html[data-design="fight"] #page-storylines .sl-engage > span{font-size:16px;}
+  /* a post's photos never get taller than the column needs */
+  html[data-design="fight"] #page-storylines .sl-photo-carousel.rauto{max-height:520px;}
+  html[data-design="fight"] #page-storylines .sl-photo-carousel.rauto .sl-photo-slide img{height:520px;}
+
+  /* comments open UNDER the post (the column is too narrow for the side panel) */
+  html[data-design="fight"] #page-storylines .slpost.sl-commenting{display:block; max-height:none; overflow:hidden; padding:18px 20px !important;}
+  html[data-design="fight"] #page-storylines .slpost.sl-commenting > .sl-postmain{padding:0; overflow:visible;}
+  html[data-design="fight"] #page-storylines .slpost.sl-commenting > .sl-comments.open{width:auto; margin:14px 0 0; padding:14px 0 0; border-left:0; border-top:1px solid var(--line); background:none; overflow:visible;}
+  html[data-design="fight"] #page-storylines .sl-hr.sl-commenting, html[data-design="fight"] #page-storylines .sl-signing.sl-commenting, html[data-design="fight"] #page-storylines .sl-injury.sl-commenting{padding:0 !important;}
+  html[data-design="fight"] #page-storylines .sl-hr.sl-commenting > .sl-comments.open,
+  html[data-design="fight"] #page-storylines .sl-signing.sl-commenting > .sl-comments.open,
+  html[data-design="fight"] #page-storylines .sl-injury.sl-commenting > .sl-comments.open{padding:14px 20px 18px;}
+
+  /* verified: a gold circle with a dark check (both kinds of check the site draws) */
+  html[data-design="fight"] .sl-verify{display:inline-grid !important; place-items:center; width:20px; height:20px; margin-left:5px; border-radius:50%; background:var(--gold); color:#111 !important;
+    font-size:0 !important; vertical-align:-3px; box-shadow:0 0 0 2px rgba(0,0,0,.55),0 0 8px rgba(var(--gold-rgb),.55);}
+  html[data-design="fight"] .sl-verify::before{content:"\2713" !important; font-family:var(--font-body), sans-serif !important; font-size:13px; font-weight:900; line-height:1; color:#111;}
+  html[data-design="fight"] .sl-verified{width:18px; height:18px; padding:2px; border-radius:50%; background:var(--gold); filter:none; box-shadow:0 0 0 2px rgba(0,0,0,.55),0 0 8px rgba(var(--gold-rgb),.55);}
+  html[data-design="fight"] .sl-verified path:first-child{fill:transparent;}
+
+  /* right: cards */
+  .slx-card{border:1px solid var(--line); background:rgba(10,10,14,.78);}
+  .slx-card > h3{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0; padding:11px 14px; border-bottom:1px solid var(--line);
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:20px; letter-spacing:.5px; text-transform:uppercase; color:var(--txt);}
+  .slx-card > h3 small{font-style:normal; font-weight:700; font-size:13px; letter-spacing:2px; color:var(--muted);}
+  .slx-next{padding:14px; text-align:center; background:linear-gradient(180deg,rgba(var(--gold-rgb),.10),transparent);}
+  .slx-next .k{font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:3px; color:var(--muted); text-transform:uppercase;}
+  .slx-next .sn{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:46px; line-height:1; text-transform:uppercase; color:var(--gold); margin:4px 0;}
+  .slx-cd{display:flex; justify-content:center; gap:14px; margin:8px 0 12px;}
+  .slx-cd div{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:28px; line-height:1; font-variant-numeric:tabular-nums;}
+  .slx-cd small{display:block; margin-top:3px; font-style:normal; font-size:13px; letter-spacing:2px; color:var(--muted);}
+  .slx-btn{display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border:0; cursor:pointer; background:var(--gold); color:var(--on-gold);
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:16px; letter-spacing:1.5px; text-transform:uppercase; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  .slx-btn:hover{filter:brightness(1.1);}
+  .slx-btn.ghost{background:transparent; color:var(--txt); border:1px solid var(--line); clip-path:none;}
+  .slx-row{display:block; width:100%; padding:10px 14px; background:none; border:0; border-top:1px solid var(--line); text-align:left; color:var(--txt); cursor:default; font:inherit;}
+  button.slx-row{cursor:pointer;} button.slx-row:hover{background:rgba(255,255,255,.04);}
+  .slx-row b{display:block; font-size:16px; line-height:1.3;}
+  .slx-row .m{display:block; font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; text-transform:uppercase; line-height:1.15;}
+  .slx-row small{display:block; margin-top:2px; font-size:14px; color:var(--muted); line-height:1.35;}
+  .slx-row .sn2{display:block; margin-top:3px; font-size:15px; color:var(--txt-2); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .slx-who{display:flex; align-items:center; gap:10px; padding:10px 14px; border-top:1px solid var(--line);}
+  .slx-who .av{flex:0 0 38px; width:38px; height:38px; display:grid; place-items:center; overflow:hidden; border-radius:6px; border:2px solid var(--pc,var(--gold)); background:linear-gradient(140deg,var(--pc,var(--gold)),#111);
+    font-family:var(--fh-fight); font-weight:900; font-size:15px; color:#fff;}
+  .slx-who .av img{width:100%; height:100%; object-fit:cover;}
+  .slx-who .nm{flex:1; min-width:0; background:none; border:0; padding:0; text-align:left; color:var(--txt); cursor:pointer; font:inherit;}
+  .slx-who .nm b{display:block; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .slx-who .nm small{display:block; font-size:14px; color:var(--muted);}
+  .slx-who .f{flex:none; padding:6px 13px; border:1px solid var(--line); background:none; color:var(--txt); cursor:pointer; font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:1px; text-transform:uppercase;}
+  .slx-who .f:hover{border-color:var(--gold); color:var(--gold);}
+  .slx-note{padding:12px 14px; font-size:15px; line-height:1.45; color:var(--txt-2);}
+  .slx-aw{border-color:rgba(var(--gold-rgb),.45);}
+  .slx-tick{display:flex; gap:14px; margin-bottom:6px; white-space:nowrap; overflow:hidden; font-family:var(--fh-fight); font-weight:800; font-size:15px;}
+  .slx-tick .up{color:var(--win,#3ECF8E);} .slx-tick .dn{color:var(--loss);}
+
+  /* phone bottom bar */
+  html[data-design="fight"][data-slx-feed] #slx-bottom{flex-direction:row !important; align-items:stretch; height:auto; width:auto; gap:0; margin:0;}
+  #slx-bottom a{display:block !important; flex:1 1 0 !important; min-width:0; margin:0 !important; border:0 !important; background:none !important; padding:9px 0 11px; text-align:center; color:var(--muted); text-decoration:none; cursor:pointer; white-space:nowrap;
+    font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:.3px; text-transform:uppercase;}
+  #slx-bottom a i{display:block; font-size:22px; font-style:normal; margin-bottom:2px;}
+  #slx-bottom a.on{color:var(--gold);}
+
+  /* medium screens: filters go above the feed, the left menu hides */
+  @media (max-width:1240px){
+    html[data-design="fight"] .slx{grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"l r" "c r"; gap:16px 20px;}
+    html[data-design="fight"] .slx-l{position:static; max-height:none; overflow:visible; padding:0;}
+    html[data-design="fight"] .slx-nav{display:none;}
+    html[data-design="fight"] .slx-r{grid-row:1 / span 2;}
+    html[data-design="fight"] .slx-l .sl-frow{display:grid; grid-template-columns:110px 1fr; gap:10px; align-items:center;}
+    html[data-design="fight"] .slx-l .sl-flab{margin:0;}
+  }
+  /* phones: one column and a bottom tab bar like the X app */
+  @media (max-width:820px){
+    html[data-design="fight"] .slx{grid-template-columns:minmax(0,1fr); grid-template-areas:"l" "c"; gap:12px;}
+    html[data-design="fight"] .slx-r{display:none;}
+    html[data-design="fight"] .slx-l .sl-frow{grid-template-columns:1fr; gap:6px;}
+    html[data-design="fight"] .slx-l .sl-fchips{flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px;}
+    html[data-design="fight"] .slx-l .sl-fchips .rfilter{flex:none;}
+    html[data-design="fight"] .slx-tabs{overflow-x:auto; scrollbar-width:none;}
+    html[data-design="fight"] .slx-tabs button{flex:0 0 auto; padding:12px 14px; font-size:16px;}
+    html[data-design="fight"] #page-storylines .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury),
+    html[data-design="fight"] #page-storylines .slpost.sl-article:not(.sl-hr){padding:16px 14px;}
+    html[data-design="fight"][data-slx-feed] #slx-bottom{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60; padding-bottom:env(safe-area-inset-bottom,0px);
+      background:rgba(0,0,0,.94); border-top:1px solid rgba(var(--gold-rgb),.35);}
+    html[data-design="fight"][data-slx-feed] body{padding-bottom:72px;}
+    html[data-design="fight"][data-slx-feed] .sm-player:not([style*="top:"]){bottom:calc(76px + env(safe-area-inset-bottom,0px)) !important;}
+  }
+</style>
+<script>
+/* ===================== FEED REVAMP, step 1 (look only) ===================== */
+(function(){
+  const root = document.documentElement;
+  const $ = id => document.getElementById(id);
+  const isFight = () => root.dataset.design === 'fight';
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
+  const feedOn = () => { const p = $('page-storylines'); return !!(p && p.classList.contains('active')); };
+  const has = f => typeof window[f] === 'function';
+  const st = () => { try{ return { f:SL_FILTER, p:SL_PROMO }; }catch(e){ return { f:'all', p:'all' }; } };
+  const followsAny = () => { const b = $('sl-f-follow'); return !!(b && !b.hidden); };
+  const signIn = () => { if(has('frSignIn')) frSignIn(); };
+
+  /* ── what each tab / section does: only the Feed's own functions ── */
+  function goForYou(){ try{ SL_PROMO = 'all'; }catch(e){} slSetFilter('all'); }
+  function goFollowing(){
+    if(!signedIn()){ signIn(); return; }
+    if(!followsAny()){ if(has('wcaToast')) wcaToast('You are not following anyone yet', 'Pick a promotion under Who to follow, and its posts show up here.'); return; }
+    try{ SL_FILTER = 'all'; }catch(e){} slSetPromo('following');
+  }
+  const TABS = [
+    { k:'foryou',    t:'For You',   go:goForYou,                         on:s => s.f === 'all' && s.p === 'all' },
+    { k:'following', t:'Following', go:goFollowing,                      on:s => s.f === 'all' && s.p === 'following' },
+    { k:'news',      t:'News',      go:() => slSetFilter('article'),     on:s => s.f === 'article' },
+    { k:'promos',    t:'Promos',    go:() => slSetFilter('promo'),       on:s => s.f === 'promo' },
+    { k:'social',    t:'Social',    go:() => slSetFilter('social'),      on:s => s.f === 'social' }
+  ];
+  function toTop(){ const c = $('slx-c'); if(c && c.getBoundingClientRect().top < 0) window.scrollTo({ top:Math.max(0, scrollY + c.getBoundingClientRect().top - 90), behavior:'smooth' }); }
+  function runTab(k){ const t = TABS.find(x => x.k === k); if(t){ t.go(); toTop(); } }
+
+  function goAwards(){
+    goForYou();
+    setTimeout(() => {
+      const el = document.querySelector('#sl-feed .motn-card, #sl-feed [id^="motn-"]');
+      if(el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+      else if(has('wcaToast')) wcaToast('No votes open right now', 'Award shows for every promotion are coming soon.');
+    }, 120);
+  }
+  function goAlerts(){ if(!signedIn()){ signIn(); return; } if(has('wcaNotifToggle')) wcaNotifToggle(); }
+  function goMe(){ if(!signedIn()){ signIn(); return; } if(has('goPage')) goPage('account'); }
+  function notifCount(){ const c = $('notifCount'); return c && !c.hidden ? (c.textContent || '').trim() : ''; }
+
+  /* ── left column ── */
+  function drawNav(){
+    const nav = $('slx-nav'); if(!nav) return;
+    const s = st(), n = notifCount();
+    const items = [
+      ['foryou', 'ti-home', 'Feed', () => runTab('foryou'), TABS[0].on(s)],
+      ['news', 'ti-news', 'News', () => runTab('news'), TABS[2].on(s)],
+      ['following', 'ti-users', 'Following', () => runTab('following'), TABS[1].on(s)],
+      ['awards', 'ti-trophy', 'Awards', goAwards, false, '<span class="soon">Soon</span>'],
+      ['alerts', 'ti-bell', 'Notifications', goAlerts, false, n ? `<span class="n">${E(n)}</span>` : ''],
+      ['me', 'ti-user-circle', signedIn() ? 'My profile' : 'Sign in', goMe, false]
+    ];
+    nav.innerHTML = items.map(([k, ic, t, , on, extra]) => `<button type="button" data-slx="${k}"${on ? ' class="on" aria-current="true"' : ''}><i class="ti ${ic}" aria-hidden="true"></i>${E(t)}${extra || ''}</button>`).join('');
+    nav.querySelectorAll('button').forEach((b, i) => b.onclick = items[i][3]);
+  }
+  function drawTabs(){
+    const bar = $('slx-tabs'); if(!bar) return;
+    const s = st();
+    bar.innerHTML = TABS.map(t => `<button type="button" role="tab" data-k="${t.k}" aria-selected="${t.on(s)}"${t.on(s) ? ' class="on"' : ''}>${E(t.t)}</button>`).join('');
+    bar.querySelectorAll('button').forEach(b => b.onclick = () => runTab(b.dataset.k));
+  }
+  function drawBottom(){
+    const bar = $('slx-bottom'); if(!bar) return;
+    if(bar.parentElement !== document.body) document.body.appendChild(bar);   // fixed bars sit on the page itself
+    const s = st(), n = notifCount();
+    const items = [
+      ['ti-home', 'Feed', () => { runTab('foryou'); window.scrollTo({ top:0, behavior:'smooth' }); }, TABS[0].on(s)],
+      ['ti-news', 'News', () => runTab('news'), TABS[2].on(s)],
+      ['ti-users', 'Following', () => runTab('following'), TABS[1].on(s)],
+      ['ti-bell', n ? 'Alerts ' + n : 'Alerts', goAlerts, false],
+      ['ti-user-circle', 'Me', goMe, false]
+    ];
+    bar.innerHTML = items.map(([ic, t, , on]) => `<a role="button" tabindex="0"${on ? ' class="on"' : ''}><i class="ti ${ic}" aria-hidden="true"></i>${E(t)}</a>`).join('');
+    bar.querySelectorAll('a').forEach((a, i) => { a.onclick = items[i][2]; a.onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); items[i][2](); } }; });
+  }
+
+  /* ── right column ── */
+  let featTried = false, promosAsked = false, cdT = null;
+  function nextShowCard(){
+    let ev = null, list = [];
+    try{ ev = CURRENT_EVENT; list = CURRENT_MATCHES || []; }catch(e){}
+    if(!ev){
+      if(!featTried && has('loadFeaturedData')){ featTried = true; try{ if(typeof sb !== 'undefined' && sb) loadFeaturedData().then(() => slxRefresh()).catch(() => {}); }catch(e){} }
+      return '';
+    }
+    const when = ev.event_date ? new Date(ev.event_date) : null;
+    const future = when && when.getTime() > Date.now();
+    const rows = list.slice().sort((a, b) => (a.slot || 99) - (b.slot || 99)).slice(0, 2).map((m, i) => {
+      let names = '';
+      try{ const sides = parseSides(m); names = sides.length > 3 ? (m.match_type || sides.length + ' way') + ', ' + sides.length + ' in it' : sides.map(s => sideLabel(s)).filter(Boolean).join(' vs '); }catch(e){}
+      const sub = m.championship ? m.championship + ' Championship' : (i === 0 ? 'Main Event' : (m.match_type || 'Match'));
+      return names ? `<div class="slx-row"><span class="m">${E(names)}</span><small>${E(sub)}</small></div>` : '';
+    }).join('');
+    return `<section class="slx-card"><div class="slx-next"><div class="k">${future ? 'Next show' : 'Latest show'}</div><div class="sn">${E(ev.name || 'WCA')}</div>
+      ${future ? '<div class="slx-cd" id="slx-cd"></div>' : ''}
+      <button type="button" class="slx-btn" id="slx-card-btn">See the card ▶</button></div>${rows}</section>`;
+  }
+  function tickCd(){
+    const el = $('slx-cd'); if(!el){ clearInterval(cdT); cdT = null; return; }
+    let ev = null; try{ ev = CURRENT_EVENT; }catch(e){}
+    if(!ev || !ev.event_date) return;
+    const s = Math.max(0, Math.floor((new Date(ev.event_date) - Date.now()) / 1000));
+    const v = [Math.floor(s / 86400), Math.floor(s % 86400 / 3600), Math.floor(s % 3600 / 60)];
+    el.innerHTML = ['DAYS', 'HRS', 'MIN'].map((l, i) => `<div>${v[i]}<small>${l}</small></div>`).join('');
+  }
+  const KIND = { social:'Social', article:'News', notice:'HR', promo:'Promo', interview:'Interview', press_qa:'Press Q&A', signing:'Signing', injury:'Injury', rankings:'Rankings', mystery:'Mystery', snafu:'Snafu Facts', spotlight:'Spotlight', review:'Review', timeline:'Timeline' };
+  function plain(s){ return String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function trendingCard(){
+    let all = []; try{ all = SL_ALL || []; }catch(e){}
+    if(!all.length) return '';
+    const now = Date.now(), cc = id => { try{ return SL_CCOUNT[id] || 0; }catch(e){ return 0; } };
+    const score = p => { try{ return cc(p.id) * 100 + slLikeTotal(p) + slDislikeTotal(p); }catch(e){ return 0; } };
+    let recent = all.filter(p => p.story_date && now - Date.parse(p.story_date) < 30 * 864e5);
+    if(recent.length < 3) recent = all.slice();
+    // hashtags that more than one post uses
+    const tags = {};
+    recent.forEach(p => { const seen = new Set((plain(p.body).match(/#[A-Za-z][\w]{1,30}/g) || []).map(t => t.toLowerCase()));
+      seen.forEach(t => { tags[t] = tags[t] || { t:(plain(p.body).match(new RegExp(t.replace(/[^\w#]/g, ''), 'i')) || [t])[0], n:0 }; tags[t].n++; }); });
+    const tagRows = Object.values(tags).filter(x => x.n > 1).sort((a, b) => b.n - a.n).slice(0, 2)
+      .map(x => `<div class="slx-row"><small>Trending</small><b>${E(x.t)}</b><small>${x.n} posts</small></div>`).join('');
+    const top = recent.slice().sort((a, b) => score(b) - score(a)).slice(0, 4).map(p => {
+      const who = (p.payload && (p.payload.author || p.payload.publication)) || (has('slOrg') ? slOrg(p) : 'WCA');
+      const txt = p.title ? plain(p.title) : plain(p.body);
+      const n = cc(p.id);
+      return `<button type="button" class="slx-row" data-post="${E(p.id)}"><small>${E(KIND[p.kind] || 'Post')} · ${E(plain(who))}</small><span class="sn2">${E(txt.slice(0, 120))}</span>${n ? `<small>${n} ${n === 1 ? 'comment' : 'comments'}</small>` : ''}</button>`;
+    }).join('');
+    return `<section class="slx-card"><h3>Trending <small>IN THE WCA</small></h3>${tagRows}${top}</section>`;
+  }
+  function awardsCard(){
+    let rows = [];
+    try{ rows = (MOTN.feed || []).map(f => MOTN.rows[f.motn_id]).filter(Boolean); }catch(e){}
+    const open = rows.filter(r => r.status !== 'closed');
+    const body = open.length
+      ? open.slice(0, 3).map(r => `<button type="button" class="slx-row" data-motn="${E(r.id)}"><b>${E(r.award || 'Match of the Night')}</b><small>${E(r.promotion || 'WCA')}${r.show_name ? ' · ' + E(r.show_name) : ''} · voting open</small></button>`).join('')
+      : `<div class="slx-note">No votes are open right now. Award shows for every promotion, with nominees, fan votes and a presentation, are coming soon.</div>`;
+    return `<section class="slx-card slx-aw"><h3>Awards season <small>${open.length ? open.length + ' OPEN' : 'SOON'}</small></h3>${body}</section>`;
+  }
+  function whoCard(){
+    let list = null;
+    try{ list = PE.promos; }catch(e){}
+    if(!list){
+      if(!promosAsked && has('peLoadPromoList')){ promosAsked = true; peLoadPromoList().then(() => slxRefresh()).catch(() => {}); }
+      return '';
+    }
+    let fol = null; try{ fol = PE.follows; }catch(e){}
+    const show = list.filter(p => !(fol && fol.has(Number(p.id)))).slice(0, 4);
+    if(!show.length) return '';
+    const rows = show.map(p => {
+      const col = has('pmColor') ? pmColor(p.color, '#E9B949') : '#E9B949';
+      const nm = has('peShort') ? peShort(p) : p.name;
+      const logo = String(p.logo_url || p.logo || '');
+      const av = /^https:\/\//i.test(logo) ? `<img src="${E(logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : E(String(nm || '?').slice(0, 2).toUpperCase());
+      return `<div class="slx-who"><span class="av" style="--pc:${E(col)}">${av}</span>
+        <button type="button" class="nm" data-open="${E(p.id)}"><b>${E(nm)}</b><small>Promotion</small></button>
+        <button type="button" class="f" data-follow="${E(p.id)}">Follow</button></div>`;
+    }).join('');
+    return `<section class="slx-card"><h3>Who to follow</h3>${rows}</section>`;
+  }
+  function exchangeCard(){
+    return `<section class="slx-card"><h3>WCA Exchange <small>COMING LATER</small></h3><div class="slx-note">
+      <div class="slx-tick" aria-hidden="true"><span class="up">▲</span><span>·</span><span class="dn">▼</span></div>A spot saved for the WCA Exchange.</div></section>`;
+  }
+  function drawRail(){
+    const r = $('slx-r'); if(!r) return;
+    const keep = r.scrollTop;
+    r.innerHTML = nextShowCard() + trendingCard() + awardsCard() + whoCard() + ((typeof window.exTickerCard === 'function' && window.exTickerCard()) || exchangeCard());
+    r.scrollTop = keep;
+    const cb = $('slx-card-btn');
+    if(cb) cb.onclick = () => { try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){} if(window.fhLoad) fhLoad('Events', () => goPage('events')); else goPage('events'); };
+    r.querySelectorAll('[data-post]').forEach(b => b.onclick = () => { if(has('slFocusSharedPost')) slFocusSharedPost(b.dataset.post); });
+    r.querySelectorAll('[data-motn]').forEach(b => b.onclick = () => { goForYou(); setTimeout(() => { const el = $('motn-' + b.dataset.motn); if(el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }, 120); });
+    r.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { if(has('pmGo')) pmGo(Number(b.dataset.open)); });
+    r.querySelectorAll('[data-exs]').forEach(b => b.onclick = () => { goPage('exchange'); setTimeout(() => { if(window.exGo) exGo('stock', b.dataset.exs); }, 80); });
+    r.querySelectorAll('[data-exopen]').forEach(b => b.onclick = () => goPage('exchange'));
+    r.querySelectorAll('[data-follow]').forEach(b => b.onclick = async () => { if(!has('peFollowToggle')) return; b.disabled = true; try{ await peFollowToggle(Number(b.dataset.follow), true); }catch(e){} slxRefresh(); });
+    if($('slx-cd')){ tickCd(); if(!cdT) cdT = setInterval(() => { if(!feedOn()) return; tickCd(); }, 15000); }
+  }
+
+  /* ── keep it all in step with the Feed ── */
+  let rT = 0;
+  function slxRefresh(){
+    clearTimeout(rT);
+    rT = setTimeout(() => {
+      if(feedOn()) root.dataset.slxFeed = ''; else delete root.dataset.slxFeed;
+      if(!isFight()) return;
+      drawNav(); drawTabs(); drawBottom();
+      if(feedOn()) drawRail();
+    }, 40);
+  }
+  window.slxRefresh = slxRefresh;
+  // after the Feed redraws or a filter changes, repaint the tabs and the side columns
+  if(typeof renderStorylines === 'function'){
+    const _render = renderStorylines;
+    renderStorylines = function(){ const out = _render.apply(this, arguments); slxRefresh(); return out; };
+  }
+  if(typeof slPaintFilters === 'function'){
+    const _paint = slPaintFilters;
+    slPaintFilters = function(){ const out = _paint.apply(this, arguments); slxRefresh(); return out; };
+  }
+  function init(){
+    const pg = $('page-storylines');
+    if(pg) new MutationObserver(slxRefresh).observe(pg, { attributes:true, attributeFilter:['class'] });
+    new MutationObserver(slxRefresh).observe(root, { attributes:true, attributeFilter:['data-design'] });
+    const nc = $('notifCount'); if(nc) new MutationObserver(slxRefresh).observe(nc, { attributes:true, childList:true, characterData:true, subtree:true });
+    const fb = $('sl-f-follow'); if(fb) new MutationObserver(slxRefresh).observe(fb, { attributes:true, attributeFilter:['hidden'] });
+    slxRefresh();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
 
 <!-- ═══════════════ WCA UNIVERSE (Fight Hub, Nov 2026) ═══════════════
      Star Map (/starmap), character Select (/roster), full profile with every match,
