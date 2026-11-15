@@ -10326,6 +10326,11 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     <p class="sl-intro">What's happening in the WCA right now, social-media drama, breaking
       news, official announcements and reaction, newest first. For the history of how it all
       got here, head to the <a href="/timeline" data-page="timeline">Timeline</a>.</p>
+    <!-- FEED REVAMP (Nov 2026, look only): three columns in Fight Hub. In Classic these
+         wrappers are invisible (display:contents) and the extra parts are hidden. -->
+    <div class="slx" id="slx">
+    <aside class="slx-l" id="slx-l" aria-label="Feed sections">
+    <nav class="slx-nav" id="slx-nav" aria-label="Feed sections"></nav>
     <div class="sl-filters" id="sl-filters">
       <div class="sl-frow"><div class="sl-flab">Promotion</div>
         <div class="sl-fchips" id="sl-f-promo">
@@ -10351,12 +10356,19 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
         <button class="rfilter" data-slfilter="snafu" onclick="slSetFilter('snafu',this)">Snafu Facts</button>
         </div></div>
     </div>
+    </aside>
+    <div class="slx-c" id="slx-c">
+    <div class="slx-tabs" id="slx-tabs" role="tablist" aria-label="Feed views"></div>
     <div id="fr-composer"></div>
     <div id="sp-composer"></div>
     <div id="cp-promo-card"></div>
     <div id="motn-strip" class="motn-strip"></div>
     <div class="sl-feed" id="sl-feed"><div class="loading">Loading…</div></div>
     <div id="sl-pager"></div>
+    </div>
+    <aside class="slx-r" id="slx-r" aria-label="Around the WCA"></aside>
+    </div>
+    <nav class="slx-bottom" id="slx-bottom" aria-label="Feed"></nav>
   </div>
 
   <!-- APPLY (wrestler sign-up / character application) -->
@@ -39764,6 +39776,370 @@ const FHBG = (function(){
 })();
 </script>
 
+
+<!-- ═══════════════ FEED REVAMP, step 1 (Fight Hub, Nov 2026) ═══════════════
+     Look only. Three columns like X/Twitter: left = sections and the existing
+     Promotion/Type filters, center = view tabs and the feed, right = next show,
+     trending, awards, who to follow, and a spot saved for the WCA Exchange.
+     Every tab and button calls the Feed's existing functions (slSetFilter,
+     slSetPromo, slFocusSharedPost, peFollowToggle, goPage ...). Nothing new is
+     saved anywhere. Classic design never sees any of this. -->
+<style id="slx-style">
+  /* Classic: the wrappers vanish and the page stays exactly as it was */
+  .slx, .slx-l, .slx-c{display:contents;}
+  .slx-nav, .slx-tabs, .slx-r, #slx-bottom{display:none;}
+
+  html[data-design="fight"] #page-storylines{max-width:1380px;}
+  html[data-design="fight"] #page-storylines > .section-title{display:none;}
+  html[data-design="fight"] #page-storylines > .sl-intro{max-width:none; margin:4px 0 16px; padding:8px 14px; text-align:left; font-size:16px; line-height:1.5; color:var(--txt-2); border:1px dashed var(--line); background:rgba(0,0,0,.25);}
+
+  /* the three columns */
+  html[data-design="fight"] .slx{display:grid; grid-template-columns:250px minmax(0,660px) 340px; grid-template-areas:"l c r"; gap:24px; justify-content:center; align-items:start;}
+  html[data-design="fight"] .slx-l{grid-area:l; display:flex; flex-direction:column; gap:14px;}
+  html[data-design="fight"] .slx-c{grid-area:c; display:block; min-width:0;}
+  html[data-design="fight"] .slx-r{grid-area:r; display:flex; flex-direction:column; gap:14px;}
+  html[data-design="fight"] .slx-l, html[data-design="fight"] .slx-r{position:sticky; top:calc(var(--fh-top,72px) + 12px); max-height:calc(100vh - var(--fh-top,72px) - 24px); overflow-y:auto; scrollbar-width:thin; overscroll-behavior:contain; padding-bottom:12px;}
+  html[data-design="fight"] .slx-l::-webkit-scrollbar, html[data-design="fight"] .slx-r::-webkit-scrollbar{width:6px;}
+  html[data-design="fight"] .slx-l::-webkit-scrollbar-thumb, html[data-design="fight"] .slx-r::-webkit-scrollbar-thumb{background:var(--line);}
+
+  /* left: sections */
+  html[data-design="fight"] .slx-nav{display:flex; flex-direction:column;}
+  .slx-nav button{display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px; background:none; border:0; border-left:3px solid transparent; cursor:pointer; text-align:left;
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:20px; letter-spacing:1.5px; text-transform:uppercase; color:var(--txt-2);}
+  .slx-nav button:hover{background:rgba(255,255,255,.04); color:var(--txt);}
+  .slx-nav button.on{color:var(--gold); border-left-color:var(--gold); background:linear-gradient(90deg,rgba(var(--gold-rgb),.14),transparent);}
+  .slx-nav button i{font-style:normal; font-size:22px; width:24px; text-align:center;}
+  .slx-nav .n{margin-left:auto; font-style:normal; font-family:var(--font-body); font-size:13px; font-weight:700; letter-spacing:0; background:var(--loss); color:#fff; padding:1px 8px; border-radius:10px;}
+  .slx-nav .soon{margin-left:auto; font-style:normal; font-size:13px; letter-spacing:1px; color:var(--muted); border:1px solid var(--line); padding:1px 7px;}
+
+  /* left: the existing filters, stacked */
+  html[data-design="fight"] .slx-l .sl-filters{display:flex; flex-direction:column; gap:14px; margin:0; padding:14px; border-radius:0; border:1px solid var(--line); background:rgba(10,10,14,.75);}
+  html[data-design="fight"] .slx-l .sl-frow{display:block;}
+  html[data-design="fight"] .slx-l .sl-flab{font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:3px; color:var(--muted); margin-bottom:8px;}
+  html[data-design="fight"] .slx-l .sl-fchips{flex-wrap:wrap; overflow:visible; gap:6px;}
+  html[data-design="fight"] .slx-l .sl-fchips .rfilter{padding:5px 11px; font-size:15px; border-radius:0;}
+
+  /* center: view tabs */
+  html[data-design="fight"] .slx-tabs{display:flex; position:sticky; top:var(--fh-top,72px); z-index:6; margin:0 0 14px; background:rgba(10,10,14,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+  .slx-tabs button{flex:1; padding:14px 6px 12px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap;
+    font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);}
+  .slx-tabs button:hover{color:var(--txt); background:rgba(255,255,255,.03);}
+  .slx-tabs button.on{color:var(--txt); border-bottom-color:var(--gold);}
+
+  /* center: posts as clean Fight Hub cards, bigger text */
+  html[data-design="fight"] #page-storylines .sl-feed{gap:14px;}
+  html[data-design="fight"] #page-storylines .sl-feed > .slpost:not(.sl-commenting){max-width:none;}
+  html[data-design="fight"] #page-storylines .slpost{border-radius:4px; scroll-margin-top:150px;}
+  html[data-design="fight"] #page-storylines .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury),
+  html[data-design="fight"] #page-storylines .slpost.sl-article:not(.sl-hr){padding:18px 20px;}
+  html[data-design="fight"] #page-storylines .sl-social .sl-name{font-family:var(--font-body); font-weight:700; font-size:17px; letter-spacing:0; text-transform:none;}
+  html[data-design="fight"] #page-storylines .sl-social .sl-handle{font-size:15px;}
+  html[data-design="fight"] #page-storylines .sl-social .sl-text{font-size:18px; line-height:1.5;}
+  html[data-design="fight"] #page-storylines .sl-reply .sl-name{font-size:17px;}
+  html[data-design="fight"] #page-storylines .sl-reply .sl-text{font-size:17px;}
+  html[data-design="fight"] #page-storylines .sl-prose,
+  html[data-design="fight"] #page-storylines .sl-para{font-size:18px; line-height:1.6;}
+  html[data-design="fight"] #page-storylines .sl-engage{font-size:16px;}
+  html[data-design="fight"] #page-storylines .sl-engage > span{font-size:16px;}
+  /* a post's photos never get taller than the column needs */
+  html[data-design="fight"] #page-storylines .sl-photo-carousel.rauto{max-height:520px;}
+  html[data-design="fight"] #page-storylines .sl-photo-carousel.rauto .sl-photo-slide img{height:520px;}
+
+  /* comments open UNDER the post (the column is too narrow for the side panel) */
+  html[data-design="fight"] #page-storylines .slpost.sl-commenting{display:block; max-height:none; overflow:hidden; padding:18px 20px !important;}
+  html[data-design="fight"] #page-storylines .slpost.sl-commenting > .sl-postmain{padding:0; overflow:visible;}
+  html[data-design="fight"] #page-storylines .slpost.sl-commenting > .sl-comments.open{width:auto; margin:14px 0 0; padding:14px 0 0; border-left:0; border-top:1px solid var(--line); background:none; overflow:visible;}
+  html[data-design="fight"] #page-storylines .sl-hr.sl-commenting, html[data-design="fight"] #page-storylines .sl-signing.sl-commenting, html[data-design="fight"] #page-storylines .sl-injury.sl-commenting{padding:0 !important;}
+  html[data-design="fight"] #page-storylines .sl-hr.sl-commenting > .sl-comments.open,
+  html[data-design="fight"] #page-storylines .sl-signing.sl-commenting > .sl-comments.open,
+  html[data-design="fight"] #page-storylines .sl-injury.sl-commenting > .sl-comments.open{padding:14px 20px 18px;}
+
+  /* verified: a gold circle with a dark check (both kinds of check the site draws) */
+  html[data-design="fight"] .sl-verify{display:inline-grid !important; place-items:center; width:20px; height:20px; margin-left:5px; border-radius:50%; background:var(--gold); color:#111 !important;
+    font-size:0 !important; vertical-align:-3px; box-shadow:0 0 0 2px rgba(0,0,0,.55),0 0 8px rgba(var(--gold-rgb),.55);}
+  html[data-design="fight"] .sl-verify::before{content:"\2713" !important; font-family:var(--font-body), sans-serif !important; font-size:13px; font-weight:900; line-height:1; color:#111;}
+  html[data-design="fight"] .sl-verified{width:18px; height:18px; padding:2px; border-radius:50%; background:var(--gold); filter:none; box-shadow:0 0 0 2px rgba(0,0,0,.55),0 0 8px rgba(var(--gold-rgb),.55);}
+  html[data-design="fight"] .sl-verified path:first-child{fill:transparent;}
+
+  /* right: cards */
+  .slx-card{border:1px solid var(--line); background:rgba(10,10,14,.78);}
+  .slx-card > h3{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0; padding:11px 14px; border-bottom:1px solid var(--line);
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:20px; letter-spacing:.5px; text-transform:uppercase; color:var(--txt);}
+  .slx-card > h3 small{font-style:normal; font-weight:700; font-size:13px; letter-spacing:2px; color:var(--muted);}
+  .slx-next{padding:14px; text-align:center; background:linear-gradient(180deg,rgba(var(--gold-rgb),.10),transparent);}
+  .slx-next .k{font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:3px; color:var(--muted); text-transform:uppercase;}
+  .slx-next .sn{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:46px; line-height:1; text-transform:uppercase; color:var(--gold); margin:4px 0;}
+  .slx-cd{display:flex; justify-content:center; gap:14px; margin:8px 0 12px;}
+  .slx-cd div{font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:28px; line-height:1; font-variant-numeric:tabular-nums;}
+  .slx-cd small{display:block; margin-top:3px; font-style:normal; font-size:13px; letter-spacing:2px; color:var(--muted);}
+  .slx-btn{display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border:0; cursor:pointer; background:var(--gold); color:var(--on-gold);
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:16px; letter-spacing:1.5px; text-transform:uppercase; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  .slx-btn:hover{filter:brightness(1.1);}
+  .slx-btn.ghost{background:transparent; color:var(--txt); border:1px solid var(--line); clip-path:none;}
+  .slx-row{display:block; width:100%; padding:10px 14px; background:none; border:0; border-top:1px solid var(--line); text-align:left; color:var(--txt); cursor:default; font:inherit;}
+  button.slx-row{cursor:pointer;} button.slx-row:hover{background:rgba(255,255,255,.04);}
+  .slx-row b{display:block; font-size:16px; line-height:1.3;}
+  .slx-row .m{display:block; font-family:var(--fh-fight); font-style:italic; font-weight:800; font-size:17px; text-transform:uppercase; line-height:1.15;}
+  .slx-row small{display:block; margin-top:2px; font-size:14px; color:var(--muted); line-height:1.35;}
+  .slx-row .sn2{display:block; margin-top:3px; font-size:15px; color:var(--txt-2); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .slx-who{display:flex; align-items:center; gap:10px; padding:10px 14px; border-top:1px solid var(--line);}
+  .slx-who .av{flex:0 0 38px; width:38px; height:38px; display:grid; place-items:center; overflow:hidden; border-radius:6px; border:2px solid var(--pc,var(--gold)); background:linear-gradient(140deg,var(--pc,var(--gold)),#111);
+    font-family:var(--fh-fight); font-weight:900; font-size:15px; color:#fff;}
+  .slx-who .av img{width:100%; height:100%; object-fit:cover;}
+  .slx-who .nm{flex:1; min-width:0; background:none; border:0; padding:0; text-align:left; color:var(--txt); cursor:pointer; font:inherit;}
+  .slx-who .nm b{display:block; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .slx-who .nm small{display:block; font-size:14px; color:var(--muted);}
+  .slx-who .f{flex:none; padding:6px 13px; border:1px solid var(--line); background:none; color:var(--txt); cursor:pointer; font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:1px; text-transform:uppercase;}
+  .slx-who .f:hover{border-color:var(--gold); color:var(--gold);}
+  .slx-note{padding:12px 14px; font-size:15px; line-height:1.45; color:var(--txt-2);}
+  .slx-aw{border-color:rgba(var(--gold-rgb),.45);}
+  .slx-tick{display:flex; gap:14px; margin-bottom:6px; white-space:nowrap; overflow:hidden; font-family:var(--fh-fight); font-weight:800; font-size:15px;}
+  .slx-tick .up{color:var(--win,#3ECF8E);} .slx-tick .dn{color:var(--loss);}
+
+  /* phone bottom bar */
+  html[data-design="fight"][data-slx-feed] #slx-bottom{flex-direction:row !important; align-items:stretch; height:auto; width:auto; gap:0; margin:0;}
+  #slx-bottom a{display:block !important; flex:1 1 0 !important; min-width:0; margin:0 !important; border:0 !important; background:none !important; padding:9px 0 11px; text-align:center; color:var(--muted); text-decoration:none; cursor:pointer; white-space:nowrap;
+    font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:.3px; text-transform:uppercase;}
+  #slx-bottom a i{display:block; font-size:22px; font-style:normal; margin-bottom:2px;}
+  #slx-bottom a.on{color:var(--gold);}
+
+  /* medium screens: filters go above the feed, the left menu hides */
+  @media (max-width:1240px){
+    html[data-design="fight"] .slx{grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"l r" "c r"; gap:16px 20px;}
+    html[data-design="fight"] .slx-l{position:static; max-height:none; overflow:visible; padding:0;}
+    html[data-design="fight"] .slx-nav{display:none;}
+    html[data-design="fight"] .slx-r{grid-row:1 / span 2;}
+    html[data-design="fight"] .slx-l .sl-frow{display:grid; grid-template-columns:110px 1fr; gap:10px; align-items:center;}
+    html[data-design="fight"] .slx-l .sl-flab{margin:0;}
+  }
+  /* phones: one column and a bottom tab bar like the X app */
+  @media (max-width:820px){
+    html[data-design="fight"] .slx{grid-template-columns:minmax(0,1fr); grid-template-areas:"l" "c"; gap:12px;}
+    html[data-design="fight"] .slx-r{display:none;}
+    html[data-design="fight"] .slx-l .sl-frow{grid-template-columns:1fr; gap:6px;}
+    html[data-design="fight"] .slx-l .sl-fchips{flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px;}
+    html[data-design="fight"] .slx-l .sl-fchips .rfilter{flex:none;}
+    html[data-design="fight"] .slx-tabs{overflow-x:auto; scrollbar-width:none;}
+    html[data-design="fight"] .slx-tabs button{flex:0 0 auto; padding:12px 14px; font-size:16px;}
+    html[data-design="fight"] #page-storylines .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury),
+    html[data-design="fight"] #page-storylines .slpost.sl-article:not(.sl-hr){padding:16px 14px;}
+    html[data-design="fight"][data-slx-feed] #slx-bottom{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60; padding-bottom:env(safe-area-inset-bottom,0px);
+      background:rgba(0,0,0,.94); border-top:1px solid rgba(var(--gold-rgb),.35);}
+    html[data-design="fight"][data-slx-feed] body{padding-bottom:72px;}
+    html[data-design="fight"][data-slx-feed] .sm-player:not([style*="top:"]){bottom:calc(76px + env(safe-area-inset-bottom,0px)) !important;}
+  }
+</style>
+<script>
+/* ===================== FEED REVAMP, step 1 (look only) ===================== */
+(function(){
+  const root = document.documentElement;
+  const $ = id => document.getElementById(id);
+  const isFight = () => root.dataset.design === 'fight';
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
+  const feedOn = () => { const p = $('page-storylines'); return !!(p && p.classList.contains('active')); };
+  const has = f => typeof window[f] === 'function';
+  const st = () => { try{ return { f:SL_FILTER, p:SL_PROMO }; }catch(e){ return { f:'all', p:'all' }; } };
+  const followsAny = () => { const b = $('sl-f-follow'); return !!(b && !b.hidden); };
+  const signIn = () => { if(has('frSignIn')) frSignIn(); };
+
+  /* ── what each tab / section does: only the Feed's own functions ── */
+  function goForYou(){ try{ SL_PROMO = 'all'; }catch(e){} slSetFilter('all'); }
+  function goFollowing(){
+    if(!signedIn()){ signIn(); return; }
+    if(!followsAny()){ if(has('wcaToast')) wcaToast('You are not following anyone yet', 'Pick a promotion under Who to follow, and its posts show up here.'); return; }
+    try{ SL_FILTER = 'all'; }catch(e){} slSetPromo('following');
+  }
+  const TABS = [
+    { k:'foryou',    t:'For You',   go:goForYou,                         on:s => s.f === 'all' && s.p === 'all' },
+    { k:'following', t:'Following', go:goFollowing,                      on:s => s.f === 'all' && s.p === 'following' },
+    { k:'news',      t:'News',      go:() => slSetFilter('article'),     on:s => s.f === 'article' },
+    { k:'promos',    t:'Promos',    go:() => slSetFilter('promo'),       on:s => s.f === 'promo' },
+    { k:'social',    t:'Social',    go:() => slSetFilter('social'),      on:s => s.f === 'social' }
+  ];
+  function toTop(){ const c = $('slx-c'); if(c && c.getBoundingClientRect().top < 0) window.scrollTo({ top:Math.max(0, scrollY + c.getBoundingClientRect().top - 90), behavior:'smooth' }); }
+  function runTab(k){ const t = TABS.find(x => x.k === k); if(t){ t.go(); toTop(); } }
+
+  function goAwards(){
+    goForYou();
+    setTimeout(() => {
+      const el = document.querySelector('#sl-feed .motn-card, #sl-feed [id^="motn-"]');
+      if(el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+      else if(has('wcaToast')) wcaToast('No votes open right now', 'Award shows for every promotion are coming soon.');
+    }, 120);
+  }
+  function goAlerts(){ if(!signedIn()){ signIn(); return; } if(has('wcaNotifToggle')) wcaNotifToggle(); }
+  function goMe(){ if(!signedIn()){ signIn(); return; } if(has('goPage')) goPage('account'); }
+  function notifCount(){ const c = $('notifCount'); return c && !c.hidden ? (c.textContent || '').trim() : ''; }
+
+  /* ── left column ── */
+  function drawNav(){
+    const nav = $('slx-nav'); if(!nav) return;
+    const s = st(), n = notifCount();
+    const items = [
+      ['foryou', 'ti-home', 'Feed', () => runTab('foryou'), TABS[0].on(s)],
+      ['news', 'ti-news', 'News', () => runTab('news'), TABS[2].on(s)],
+      ['following', 'ti-users', 'Following', () => runTab('following'), TABS[1].on(s)],
+      ['awards', 'ti-trophy', 'Awards', goAwards, false, '<span class="soon">Soon</span>'],
+      ['alerts', 'ti-bell', 'Notifications', goAlerts, false, n ? `<span class="n">${E(n)}</span>` : ''],
+      ['me', 'ti-user-circle', signedIn() ? 'My profile' : 'Sign in', goMe, false]
+    ];
+    nav.innerHTML = items.map(([k, ic, t, , on, extra]) => `<button type="button" data-slx="${k}"${on ? ' class="on" aria-current="true"' : ''}><i class="ti ${ic}" aria-hidden="true"></i>${E(t)}${extra || ''}</button>`).join('');
+    nav.querySelectorAll('button').forEach((b, i) => b.onclick = items[i][3]);
+  }
+  function drawTabs(){
+    const bar = $('slx-tabs'); if(!bar) return;
+    const s = st();
+    bar.innerHTML = TABS.map(t => `<button type="button" role="tab" data-k="${t.k}" aria-selected="${t.on(s)}"${t.on(s) ? ' class="on"' : ''}>${E(t.t)}</button>`).join('');
+    bar.querySelectorAll('button').forEach(b => b.onclick = () => runTab(b.dataset.k));
+  }
+  function drawBottom(){
+    const bar = $('slx-bottom'); if(!bar) return;
+    if(bar.parentElement !== document.body) document.body.appendChild(bar);   // fixed bars sit on the page itself
+    const s = st(), n = notifCount();
+    const items = [
+      ['ti-home', 'Feed', () => { runTab('foryou'); window.scrollTo({ top:0, behavior:'smooth' }); }, TABS[0].on(s)],
+      ['ti-news', 'News', () => runTab('news'), TABS[2].on(s)],
+      ['ti-users', 'Following', () => runTab('following'), TABS[1].on(s)],
+      ['ti-bell', n ? 'Alerts ' + n : 'Alerts', goAlerts, false],
+      ['ti-user-circle', 'Me', goMe, false]
+    ];
+    bar.innerHTML = items.map(([ic, t, , on]) => `<a role="button" tabindex="0"${on ? ' class="on"' : ''}><i class="ti ${ic}" aria-hidden="true"></i>${E(t)}</a>`).join('');
+    bar.querySelectorAll('a').forEach((a, i) => { a.onclick = items[i][2]; a.onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); items[i][2](); } }; });
+  }
+
+  /* ── right column ── */
+  let featTried = false, promosAsked = false, cdT = null;
+  function nextShowCard(){
+    let ev = null, list = [];
+    try{ ev = CURRENT_EVENT; list = CURRENT_MATCHES || []; }catch(e){}
+    if(!ev){
+      if(!featTried && has('loadFeaturedData')){ featTried = true; try{ if(typeof sb !== 'undefined' && sb) loadFeaturedData().then(() => slxRefresh()).catch(() => {}); }catch(e){} }
+      return '';
+    }
+    const when = ev.event_date ? new Date(ev.event_date) : null;
+    const future = when && when.getTime() > Date.now();
+    const rows = list.slice().sort((a, b) => (a.slot || 99) - (b.slot || 99)).slice(0, 2).map((m, i) => {
+      let names = '';
+      try{ const sides = parseSides(m); names = sides.length > 3 ? (m.match_type || sides.length + ' way') + ', ' + sides.length + ' in it' : sides.map(s => sideLabel(s)).filter(Boolean).join(' vs '); }catch(e){}
+      const sub = m.championship ? m.championship + ' Championship' : (i === 0 ? 'Main Event' : (m.match_type || 'Match'));
+      return names ? `<div class="slx-row"><span class="m">${E(names)}</span><small>${E(sub)}</small></div>` : '';
+    }).join('');
+    return `<section class="slx-card"><div class="slx-next"><div class="k">${future ? 'Next show' : 'Latest show'}</div><div class="sn">${E(ev.name || 'WCA')}</div>
+      ${future ? '<div class="slx-cd" id="slx-cd"></div>' : ''}
+      <button type="button" class="slx-btn" id="slx-card-btn">See the card ▶</button></div>${rows}</section>`;
+  }
+  function tickCd(){
+    const el = $('slx-cd'); if(!el){ clearInterval(cdT); cdT = null; return; }
+    let ev = null; try{ ev = CURRENT_EVENT; }catch(e){}
+    if(!ev || !ev.event_date) return;
+    const s = Math.max(0, Math.floor((new Date(ev.event_date) - Date.now()) / 1000));
+    const v = [Math.floor(s / 86400), Math.floor(s % 86400 / 3600), Math.floor(s % 3600 / 60)];
+    el.innerHTML = ['DAYS', 'HRS', 'MIN'].map((l, i) => `<div>${v[i]}<small>${l}</small></div>`).join('');
+  }
+  const KIND = { social:'Social', article:'News', notice:'HR', promo:'Promo', interview:'Interview', press_qa:'Press Q&A', signing:'Signing', injury:'Injury', rankings:'Rankings', mystery:'Mystery', snafu:'Snafu Facts', spotlight:'Spotlight', review:'Review', timeline:'Timeline' };
+  function plain(s){ return String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function trendingCard(){
+    let all = []; try{ all = SL_ALL || []; }catch(e){}
+    if(!all.length) return '';
+    const now = Date.now(), cc = id => { try{ return SL_CCOUNT[id] || 0; }catch(e){ return 0; } };
+    const score = p => { try{ return cc(p.id) * 100 + slLikeTotal(p) + slDislikeTotal(p); }catch(e){ return 0; } };
+    let recent = all.filter(p => p.story_date && now - Date.parse(p.story_date) < 30 * 864e5);
+    if(recent.length < 3) recent = all.slice();
+    // hashtags that more than one post uses
+    const tags = {};
+    recent.forEach(p => { const seen = new Set((plain(p.body).match(/#[A-Za-z][\w]{1,30}/g) || []).map(t => t.toLowerCase()));
+      seen.forEach(t => { tags[t] = tags[t] || { t:(plain(p.body).match(new RegExp(t.replace(/[^\w#]/g, ''), 'i')) || [t])[0], n:0 }; tags[t].n++; }); });
+    const tagRows = Object.values(tags).filter(x => x.n > 1).sort((a, b) => b.n - a.n).slice(0, 2)
+      .map(x => `<div class="slx-row"><small>Trending</small><b>${E(x.t)}</b><small>${x.n} posts</small></div>`).join('');
+    const top = recent.slice().sort((a, b) => score(b) - score(a)).slice(0, 4).map(p => {
+      const who = (p.payload && (p.payload.author || p.payload.publication)) || (has('slOrg') ? slOrg(p) : 'WCA');
+      const txt = p.title ? plain(p.title) : plain(p.body);
+      const n = cc(p.id);
+      return `<button type="button" class="slx-row" data-post="${E(p.id)}"><small>${E(KIND[p.kind] || 'Post')} · ${E(plain(who))}</small><span class="sn2">${E(txt.slice(0, 120))}</span>${n ? `<small>${n} ${n === 1 ? 'comment' : 'comments'}</small>` : ''}</button>`;
+    }).join('');
+    return `<section class="slx-card"><h3>Trending <small>IN THE WCA</small></h3>${tagRows}${top}</section>`;
+  }
+  function awardsCard(){
+    let rows = [];
+    try{ rows = (MOTN.feed || []).map(f => MOTN.rows[f.motn_id]).filter(Boolean); }catch(e){}
+    const open = rows.filter(r => r.status !== 'closed');
+    const body = open.length
+      ? open.slice(0, 3).map(r => `<button type="button" class="slx-row" data-motn="${E(r.id)}"><b>${E(r.award || 'Match of the Night')}</b><small>${E(r.promotion || 'WCA')}${r.show_name ? ' · ' + E(r.show_name) : ''} · voting open</small></button>`).join('')
+      : `<div class="slx-note">No votes are open right now. Award shows for every promotion, with nominees, fan votes and a presentation, are coming soon.</div>`;
+    return `<section class="slx-card slx-aw"><h3>Awards season <small>${open.length ? open.length + ' OPEN' : 'SOON'}</small></h3>${body}</section>`;
+  }
+  function whoCard(){
+    let list = null;
+    try{ list = PE.promos; }catch(e){}
+    if(!list){
+      if(!promosAsked && has('peLoadPromoList')){ promosAsked = true; peLoadPromoList().then(() => slxRefresh()).catch(() => {}); }
+      return '';
+    }
+    let fol = null; try{ fol = PE.follows; }catch(e){}
+    const show = list.filter(p => !(fol && fol.has(Number(p.id)))).slice(0, 4);
+    if(!show.length) return '';
+    const rows = show.map(p => {
+      const col = has('pmColor') ? pmColor(p.color, '#E9B949') : '#E9B949';
+      const nm = has('peShort') ? peShort(p) : p.name;
+      const logo = String(p.logo_url || p.logo || '');
+      const av = /^https:\/\//i.test(logo) ? `<img src="${E(logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : E(String(nm || '?').slice(0, 2).toUpperCase());
+      return `<div class="slx-who"><span class="av" style="--pc:${E(col)}">${av}</span>
+        <button type="button" class="nm" data-open="${E(p.id)}"><b>${E(nm)}</b><small>Promotion</small></button>
+        <button type="button" class="f" data-follow="${E(p.id)}">Follow</button></div>`;
+    }).join('');
+    return `<section class="slx-card"><h3>Who to follow</h3>${rows}</section>`;
+  }
+  function exchangeCard(){
+    return `<section class="slx-card"><h3>WCA Exchange <small>COMING LATER</small></h3><div class="slx-note">
+      <div class="slx-tick" aria-hidden="true"><span class="up">▲</span><span>·</span><span class="dn">▼</span></div>A spot saved for the WCA Exchange.</div></section>`;
+  }
+  function drawRail(){
+    const r = $('slx-r'); if(!r) return;
+    const keep = r.scrollTop;
+    r.innerHTML = nextShowCard() + trendingCard() + awardsCard() + whoCard() + exchangeCard();
+    r.scrollTop = keep;
+    const cb = $('slx-card-btn');
+    if(cb) cb.onclick = () => { try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){} if(window.fhLoad) fhLoad('Events', () => goPage('events')); else goPage('events'); };
+    r.querySelectorAll('[data-post]').forEach(b => b.onclick = () => { if(has('slFocusSharedPost')) slFocusSharedPost(b.dataset.post); });
+    r.querySelectorAll('[data-motn]').forEach(b => b.onclick = () => { goForYou(); setTimeout(() => { const el = $('motn-' + b.dataset.motn); if(el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }, 120); });
+    r.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { if(has('pmGo')) pmGo(Number(b.dataset.open)); });
+    r.querySelectorAll('[data-follow]').forEach(b => b.onclick = async () => { if(!has('peFollowToggle')) return; b.disabled = true; try{ await peFollowToggle(Number(b.dataset.follow), true); }catch(e){} slxRefresh(); });
+    if($('slx-cd')){ tickCd(); if(!cdT) cdT = setInterval(() => { if(!feedOn()) return; tickCd(); }, 15000); }
+  }
+
+  /* ── keep it all in step with the Feed ── */
+  let rT = 0;
+  function slxRefresh(){
+    clearTimeout(rT);
+    rT = setTimeout(() => {
+      if(feedOn()) root.dataset.slxFeed = ''; else delete root.dataset.slxFeed;
+      if(!isFight()) return;
+      drawNav(); drawTabs(); drawBottom();
+      if(feedOn()) drawRail();
+    }, 40);
+  }
+  window.slxRefresh = slxRefresh;
+  // after the Feed redraws or a filter changes, repaint the tabs and the side columns
+  if(typeof renderStorylines === 'function'){
+    const _render = renderStorylines;
+    renderStorylines = function(){ const out = _render.apply(this, arguments); slxRefresh(); return out; };
+  }
+  if(typeof slPaintFilters === 'function'){
+    const _paint = slPaintFilters;
+    slPaintFilters = function(){ const out = _paint.apply(this, arguments); slxRefresh(); return out; };
+  }
+  function init(){
+    const pg = $('page-storylines');
+    if(pg) new MutationObserver(slxRefresh).observe(pg, { attributes:true, attributeFilter:['class'] });
+    new MutationObserver(slxRefresh).observe(root, { attributes:true, attributeFilter:['data-design'] });
+    const nc = $('notifCount'); if(nc) new MutationObserver(slxRefresh).observe(nc, { attributes:true, childList:true, characterData:true, subtree:true });
+    const fb = $('sl-f-follow'); if(fb) new MutationObserver(slxRefresh).observe(fb, { attributes:true, attributeFilter:['hidden'] });
+    slxRefresh();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
 
 <!-- ═══════════════ WCA UNIVERSE (Fight Hub, Nov 2026) ═══════════════
      Star Map (/starmap), character Select (/roster), full profile with every match,
