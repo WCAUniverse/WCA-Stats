@@ -10362,6 +10362,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     </aside>
     <div class="slx-c" id="slx-c">
     <div class="slx-tabs" id="slx-tabs" role="tablist" aria-label="Feed views"></div>
+    <div class="slx-compose" id="slx-compose" aria-label="Write a post"></div>
     <div id="fr-composer"></div>
     <div id="sp-composer"></div>
     <div id="cp-promo-card"></div>
@@ -19405,6 +19406,8 @@ function slEngageBar(p){
         <i class="ti ti-pencil"></i> Edit
       </span>`
     : '';
+  const myFanPost = CURRENT_USER && p.payload && p.payload.fan && String(p.payload.by_user) === String(CURRENT_USER.id);
+  const fanDel = myFanPost ? `<span class="sl-sharebtn" onclick="slxFanDelete(${Number(p.id)},this)" title="Delete your post"><i class="ti ti-trash"></i> Delete</span>` : '';
   const whoBtn = isMyOwnerPost
     ? `<span class="sl-sharebtn" onclick="slWhoReacted(${p.id})" title="See which members really liked or disliked this">
         <i class="ti ti-users"></i> Who reacted
@@ -19425,6 +19428,7 @@ function slEngageBar(p){
       </span>
       ${slCharButtons(p)}
       ${editBtn}
+      ${fanDel}
       ${whoBtn}
     </div>
     ${slCharBoxHTML(p)}
@@ -19869,15 +19873,19 @@ function slCharBoxHTML(p){
   const mode = SL_CHAR_OPEN[p.id]; if(!mode) return '';
   const list = slCharsFor(mode);
   if(!list.length) return '';
-  const opts = list.map((c, i) => `<option value="${i}">${esc(c.name)}${c.promo ? ' (' + esc(c.promo) + ')' : c.any ? ' (as admin)' : ''}</option>`).join('');
+  let pick = 0;   // start on the character picked in the Feed's "Posting as" box
+  try{ const a = typeof slxPostAs === 'function' ? slxPostAs() : null; if(a && a.k === 'char'){ const i = list.findIndex(c => a.w && (a.w.promo ? (c.kind === 'promo' && String(c.id) === String(a.w.roster_id)) : (c.kind === 'wca' && String(c.id) === String(a.w.id)))); if(i >= 0) pick = i; } }catch(e){}
+  const opts = list.map((c, i) => `<option value="${i}"${i === pick ? ' selected' : ''}>${esc(c.name)}${c.promo ? ' (' + esc(c.promo) + ')' : c.any ? ' (as admin)' : ''}</option>`).join('');
+  const nm0 = esc(list[pick].name);
+  const relabel = `onchange="var n=this.options[this.selectedIndex].text.replace(/ \\(.*\\)$/,'');this.closest('.sl-charbox').querySelectorAll('[data-asname]').forEach(function(b){b.textContent=b.dataset.asname+' '+n;})"`;
   if(mode === 'reply') return `<div class="sl-charbox" data-keep="creply:${Number(p.id)}">
-      <div class="sl-charrow"><b>Reply in this thread as</b><select id="sl-cas-${Number(p.id)}" aria-label="Reply as">${opts}</select></div>
+      <div class="sl-charrow"><b>Reply in this thread as</b><select id="sl-cas-${Number(p.id)}" aria-label="Reply as" ${relabel}>${opts}</select></div>
       <textarea id="sl-ctx-${Number(p.id)}" maxlength="1000" rows="3" placeholder="What does your character say?"></textarea>
-      <div class="sl-characts"><button type="button" class="spc-post-btn" onclick="slCharReply(${Number(p.id)},this)">Post reply</button>
+      <div class="sl-characts"><button type="button" class="spc-post-btn" data-asname="Reply as" onclick="slCharReply(${Number(p.id)},this)">Reply as ${nm0}</button>
         <button type="button" class="spc-mini" onclick="delete SL_CHAR_OPEN[${Number(p.id)}];slCharRepaint(${Number(p.id)})">Cancel</button></div>
       <div class="sl-charnote">It goes live right away, at the bottom of this thread. You can edit it later.</div></div>`;
   return `<div class="sl-charbox" data-keep="cquote:${Number(p.id)}">
-      <div class="sl-charrow"><b>Repost or quote as</b><select id="sl-cas-${Number(p.id)}" aria-label="Post as">${opts}</select></div>
+      <div class="sl-charrow"><b>Repost or quote as</b><select id="sl-cas-${Number(p.id)}" aria-label="Post as" ${relabel}>${opts}</select></div>
       <textarea id="sl-ctx-${Number(p.id)}" maxlength="2000" rows="3" placeholder="Add your character's words to quote it. Leave this empty to just repost it."></textarea>
       <div class="sl-characts"><button type="button" class="spc-post-btn" onclick="slCharQuote(${Number(p.id)},true,this)"><i class="ti ti-quote"></i> Quote</button>
         <button type="button" class="spc-ghost-btn" onclick="slCharQuote(${Number(p.id)},false,this)"><i class="ti ti-repeat"></i> Repost</button>
@@ -39784,6 +39792,228 @@ const FHBG = (function(){
 </script>
 
 
+<!-- ═══════════════ FEED REVAMP, step 2: "Posting as" (Fight Hub, Nov 2026) ═══════════════
+     One box on top of the Feed that always says who you are posting as:
+       You (a fan post, feed_fan_post)  ·  a character you play (submit_storyline / submit_char_post)
+       ·  a promotion or publication you run (submit_creator_post).
+     The Post button names them ("Post as Ivan"). "More options" opens the full editor that was
+     already there (review, character editor, Promotion Portal / Publications) with your text in it.
+     The old prompt bars hide in Fight Hub only; their editors and "your posts" lists still work. -->
+<style id="slx2-style">
+  .slx-compose{display:none;}
+  html[data-design="fight"] .slx-compose{display:block; margin:0 0 14px; border:1px solid var(--line); background:rgba(10,10,14,.82);}
+  html[data-design="fight"] #slx-c .fr-bar, html[data-design="fight"] #slx-c .spc-bar{display:none;}
+  .slx-cas{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--line); font-size:16px; color:var(--muted);}
+  .slx-whowrap{position:relative;}
+  .slx-whobtn{display:inline-flex; align-items:center; gap:8px; padding:4px 12px 4px 4px; border:1px solid var(--c,var(--gold)); border-radius:22px; cursor:pointer;
+    background:color-mix(in srgb,var(--c,var(--gold)) 14%,transparent); color:var(--txt); font:700 16px var(--font-body);}
+  .slx-whobtn small{font-weight:700; font-size:13px; letter-spacing:.5px; text-transform:uppercase; color:var(--c,var(--gold));}
+  .slx-whobtn .car{font-size:14px; color:var(--muted);}
+  .slx-av{flex:0 0 30px; width:30px; height:30px; border-radius:50%; overflow:hidden; display:inline-grid; place-items:center; border:1px solid var(--c,var(--gold));
+    background:linear-gradient(140deg,var(--c,var(--gold)),#111); font:900 13px var(--font-body); color:#fff;}
+  .slx-av img, .slx-av .sl-av{width:100%; height:100%; object-fit:cover; border-radius:50%;}
+  .slx-av.sq{border-radius:6px;} .slx-av.sq img{border-radius:6px;}
+  .slx-menu{position:absolute; z-index:70; top:calc(100% + 6px); left:0; width:330px; max-height:60vh; overflow-y:auto; background:#121215; border:1px solid var(--line); box-shadow:0 20px 50px rgba(0,0,0,.6);}
+  .slx-menu .g{padding:10px 14px 4px; font-family:var(--fh-fight,var(--font-cond)); font-weight:800; font-size:13px; letter-spacing:2px; color:var(--muted); text-transform:uppercase;}
+  .slx-menu button{display:flex; align-items:center; gap:10px; width:100%; padding:9px 14px; background:none; border:0; color:var(--txt); text-align:left; cursor:pointer; font:16px var(--font-body);}
+  .slx-menu button:hover, .slx-menu button:focus-visible{background:rgba(255,255,255,.06);}
+  .slx-menu button .slx-av{flex-basis:34px; width:34px; height:34px;}
+  .slx-menu button small{display:block; color:var(--muted); font-size:13px;}
+  .slx-menu button .ok{margin-left:auto; color:var(--gold); font-weight:900;}
+  .slx-compose textarea{display:block; width:100%; min-height:80px; padding:12px 14px; background:transparent; border:0; outline:0; resize:vertical; color:var(--txt); font:18px/1.5 var(--font-body); box-sizing:border-box;}
+  .slx-asline{padding:0 14px 10px; font-size:15px; line-height:1.45; color:var(--muted);}
+  .slx-asline b{color:var(--c,var(--gold));}
+  .slx-cbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; border-top:1px solid var(--line);}
+  .slx-ty{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--line); background:none; color:var(--txt-2); cursor:pointer; white-space:nowrap;
+    font-family:var(--fh-fight,var(--font-cond)); font-weight:800; font-size:15px; letter-spacing:1px; text-transform:uppercase;}
+  .slx-ty:hover{border-color:var(--gold); color:var(--gold);}
+  .slx-count{margin-left:auto; font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .slx-postbtn{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .slx-postbtn[disabled]{opacity:.5; cursor:default; filter:none;}
+  .slx-cmsg{display:none; margin:0 14px 12px; padding:10px 12px; font-size:15px; border:1px solid var(--line);}
+  .slx-cmsg.show{display:block;} .slx-cmsg.bad{border-color:var(--loss);} .slx-cmsg.ok{border-color:var(--win,#3ECF8E);}
+  .slx-signin{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px; font-size:16px; line-height:1.45; color:var(--txt-2);}
+  .slx-signin b{color:var(--txt);}
+  @media (max-width:820px){
+    html[data-design="fight"] .slx-cbar .slx-postbtn{flex:1 1 100%; justify-content:center;}
+    .slx-menu{width:min(330px, calc(100vw - 30px));}
+  }
+</style>
+<script>
+/* ===================== FEED REVAMP, step 2: "Posting as" ===================== */
+(function(){
+  const $ = id => document.getElementById(id);
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
+  const isAdmin = () => { try{ return IS_ADMIN === true; }catch(e){ return false; } };
+  const myName = () => { try{ return (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'you'; }catch(e){ return 'you'; } };
+  const myPic = () => { try{ return (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || ''; }catch(e){ return ''; } };
+  const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const S = window.SLX_POST = { as:null, open:false, orgsAsked:false, sig:'', busy:false };
+  try{ S.as = JSON.parse(localStorage.getItem('wca-post-as') || 'null'); }catch(e){}
+
+  /* everyone this account can post as */
+  function identities(){
+    const out = [];
+    if(!signedIn()) return out;
+    out.push({ k:'me', id:'me', name:myName(), sub:'Your own account', kind:'You', c:'#9aa0aa', pic:myPic() });
+    let chars = []; try{ chars = SP_MY_WRESTLERS || []; }catch(e){}
+    chars.forEach(w => out.push({ k:'char', id:String(w.id), name:w.name, sub:'Character' + (w.promo ? ' · ' + w.promo.name : ' · WCA'), kind:'Character', c:'#cb5d5d', w }));
+    let promos = [], outlets = []; try{ promos = (CP_PROMOS || []).filter(p => p.status === 'approved'); outlets = CP_OUTLETS || []; }catch(e){}
+    promos.forEach(p => out.push({ k:'promotion', id:String(p.id), name:p.name, sub:'Promotion' + (p._role === 'coowner' ? ' · co-owner' : ''), kind:'Promotion', c:/^#[0-9a-f]{3,8}$/i.test(p.color || '') ? p.color : '#E9B949', pic:p.logo_url || '', sq:true }));
+    outlets.forEach(o => out.push({ k:'press', id:String(o.id), name:o.name, sub:'Publication' + (o.reporter ? ' · ' + o.reporter : ''), kind:'Publication', c:'#4cc3ff', pic:o.logo_url || '', sq:true }));
+    return out;
+  }
+  function current(list){
+    list = list || identities();
+    const f = S.as && list.find(x => x.k === S.as.k && String(x.id) === String(S.as.id));
+    if(f) return f;
+    // first time: a player posts as their character, everyone else as themselves
+    return list.find(x => x.k === 'char') || list[0] || null;
+  }
+  window.slxPostAs = () => current();
+  function avatar(x){
+    const sq = x.sq ? ' sq' : '';
+    if(x.k === 'char'){
+      let html = '';
+      try{ html = x.w && x.w.promo && typeof slPcAvatar === 'function' ? slPcAvatar(Number(x.w.roster_id), x.name) : (typeof slAvatar === 'function' ? slAvatar(x.name) : ''); }catch(e){}
+      if(html) return `<span class="slx-av" style="--c:${E(x.c)}">${html}</span>`;
+    }
+    if(/^https:\/\//i.test(x.pic || '')) return `<span class="slx-av${sq}" style="--c:${E(x.c)}"><img src="${E(x.pic)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"></span>`;
+    const ini = String(x.name || '?').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    return `<span class="slx-av${sq}" style="--c:${E(x.c)}">${E(ini)}</span>`;
+  }
+  function asLine(x){
+    if(!x) return '';
+    if(x.k === 'me') return `This will post as <b>you (${E(x.name)})</b>, as a fan, with a Fan tag. Not as a character.`;
+    if(x.k === 'char') return `This will post as <b>${E(x.name)}</b>, in character. Fans see ${E(x.name)}'s name and picture, not yours.`;
+    if(x.k === 'promotion') return `This will post as <b>${E(x.name)}</b>, your promotion.`;
+    let free = false; try{ free = CP_TRUSTED === true; }catch(e){}
+    return `This will post as <b>${E(x.name)}</b>, your publication.${free ? '' : ' It goes to WCA for approval first.'}`;
+  }
+  const moreLabel = x => x.k === 'me' ? '<i class="ti ti-star"></i> Review a show' : x.k === 'char' ? '<i class="ti ti-adjustments"></i> Promo, interview, photos' : '<i class="ti ti-adjustments"></i> Article, photos and more';
+
+  /* draw (only when something changed, so typing is never lost) */
+  function draw(force){
+    const host = $('slx-compose'); if(!host) return;
+    if(document.documentElement.dataset.design !== 'fight'){ return; }
+    if(signedIn() && !S.orgsAsked && typeof cpLoadMyOrgs === 'function'){
+      S.orgsAsked = true;
+      cpLoadMyOrgs().then(() => draw(true)).catch(() => {});
+    }
+    const list = identities(), cur = current(list);
+    const sig = (signedIn() ? CURRENT_USER.id : '-') + '|' + list.map(x => x.k + x.id + x.name).join(',') + '|' + (cur ? cur.k + cur.id : '') + '|' + S.open;
+    if(!force && sig === S.sig && host.firstElementChild) return;
+    S.sig = sig;
+    if(!signedIn()){
+      host.innerHTML = `<div class="slx-signin"><span style="flex:1;min-width:220px"><b>Join the conversation.</b> Sign in to post as yourself, as the characters you play, or as your promotion.</span>
+        <button type="button" class="slx-btn" onclick="frSignIn(event)">Sign in</button></div>`;
+      return;
+    }
+    const keep = $('slx-text') ? $('slx-text').value : (S.draft || '');
+    const groups = [['me', 'You'], ['char', 'Characters you play'], ['promotion', 'Promotions you run'], ['press', 'Publications you write for']];
+    const menu = groups.map(([k, t]) => { const g = list.filter(x => x.k === k); return g.length ? `<div class="g">${t}</div>` + g.map(x =>
+      `<button type="button" role="menuitemradio" aria-checked="${x === cur}" data-as="${x.k}:${E(x.id)}">${avatar(x)}<span>${E(x.name)}<small>${E(x.sub)}</small></span>${x === cur ? '<span class="ok">✓</span>' : ''}</button>`).join('') : ''; }).join('');
+    host.innerHTML = `<div class="slx-cas">Posting as
+        <span class="slx-whowrap"><button type="button" class="slx-whobtn" id="slx-whobtn" aria-haspopup="menu" aria-expanded="${S.open}" style="--c:${E(cur.c)}">${avatar(cur)}<span>${E(cur.name)}</span> <small>${E(cur.kind)}</small> <span class="car">▾</span></button>
+        <div class="slx-menu" id="slx-menu" role="menu"${S.open ? '' : ' hidden'}>${menu}</div></span></div>
+      <textarea id="slx-text" maxlength="${cur.k === 'me' ? 1000 : 2000}" placeholder="What's happening in the WCA?" aria-label="Your post">${E(keep)}</textarea>
+      <div class="slx-asline" style="--c:${E(cur.c)}">${asLine(cur)}</div>
+      <div class="slx-cmsg" id="slx-cmsg"></div>
+      <div class="slx-cbar"><button type="button" class="slx-ty" id="slx-more">${moreLabel(cur)}</button>
+        <span class="slx-count" id="slx-count"></span>
+        <button type="button" class="slx-btn slx-postbtn" id="slx-post">Post as ${E(cur.name)}</button></div>`;
+    $('slx-whobtn').onclick = e => { e.stopPropagation(); S.open = !S.open; draw(true); if(S.open){ const f = document.querySelector('#slx-menu button[aria-checked="true"]') || document.querySelector('#slx-menu button'); if(f) f.focus(); } };
+    host.querySelectorAll('[data-as]').forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const [k, ...rest] = b.dataset.as.split(':'); S.as = { k, id:rest.join(':') }; S.open = false;
+      try{ localStorage.setItem('wca-post-as', JSON.stringify(S.as)); }catch(err){}
+      draw(true); const t = $('slx-text'); if(t) t.focus();
+    });
+    const ta = $('slx-text');
+    const count = () => { const n = ta.value.length, mx = Number(ta.maxLength); $('slx-count').textContent = n ? `${n} / ${mx}` : ''; $('slx-post').disabled = !ta.value.trim() || S.busy; S.draft = ta.value; };
+    ta.oninput = count; count();
+    ta.onkeydown = e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); post(); } };
+    $('slx-post').onclick = post;
+    $('slx-more').onclick = more;
+  }
+  document.addEventListener('click', e => { if(S.open && !e.target.closest('.slx-whowrap')){ S.open = false; draw(true); } });
+  document.addEventListener('keydown', e => { if(S.open && e.key === 'Escape'){ S.open = false; draw(true); const b = $('slx-whobtn'); if(b) b.focus(); } });
+
+  function msg(t, ok){ const m = $('slx-cmsg'); if(!m) return; m.className = 'slx-cmsg show ' + (ok ? 'ok' : 'bad'); m.textContent = t; }
+  const errText = e => String((e && e.message) || e || 'That did not post. Try again.').replace(/^.*?ERROR:\s*/, '');
+
+  async function post(){
+    const cur = current(), ta = $('slx-text'); if(!cur || !ta) return;
+    const text = ta.value.trim(); if(!text || S.busy) return;
+    S.busy = true; const btn = $('slx-post'); btn.disabled = true; btn.textContent = 'Posting…';
+    let res, live = true, done = '';
+    try{
+      if(cur.k === 'me'){
+        res = await sb.rpc('feed_fan_post', { p_text:text });
+        if(res.error && /could not find the function|does not exist|PGRST202/i.test(res.error.message || '')) res.error = { message:'Fan posts are not switched on yet. (WCA: run SUPABASE_SETUP_fan_posts.sql.)' };
+      } else if(cur.k === 'char'){
+        const w = cur.w, asUser = (isAdmin() && typeof VIEW_AS_ID !== 'undefined' && VIEW_AS_ID) ? VIEW_AS_ID : null;
+        const payload = { author:w.name };
+        res = w.promo
+          ? await sb.rpc('submit_char_post', { p_roster_id:Number(w.roster_id), p_kind:'social', p_title:null, p_body:text, p_payload:payload, p_story_date:today(), p_as_user:asUser })
+          : await sb.rpc('submit_storyline', { p_wrestler_id:parseInt(w.id, 10), p_kind:'social', p_title:null, p_body:text, p_payload:payload, p_story_date:today(), p_as_user:asUser });
+        try{ if(typeof spLoadMySubmissions === 'function') spLoadMySubmissions(); }catch(e){}
+      } else {
+        res = await sb.rpc('submit_creator_post', { p_id:null, p_source:cur.k, p_source_id:Number(cur.id), p_kind:'social', p_title:null, p_body:text, p_payload:{ author:cur.name }, p_story_date:today() });
+        if(!res.error){
+          try{ const { data:row } = await sb.from('storylines').select('is_published').eq('id', Number(res.data)).maybeSingle(); if(row) live = row.is_published === true; }catch(e){}
+          try{ if(typeof cpLoadMine === 'function') cpLoadMine(); }catch(e){}
+        }
+      }
+    }catch(e){ res = { error:e }; }
+    S.busy = false;
+    if(res.error){ draw(true); msg(errText(res.error), false); return; }
+    S.draft = ''; ta.value = '';
+    draw(true);
+    done = live ? `Posted as ${cur.name}.` : `Sent to WCA. It shows on the Feed once it is approved.`;
+    msg(done, true);
+    try{ wcaToast(live ? 'Posted!' : 'Sent to WCA', live ? `Live on the Feed as ${cur.name}.` : 'Your post shows up once it is approved.'); }catch(e){}
+    if(live) try{ if(typeof loadStorylines === 'function') loadStorylines(); }catch(e){}
+  }
+
+  // the full editor that was already there, with what you typed carried over
+  async function more(){
+    const cur = current(); if(!cur) return;
+    const text = ($('slx-text') || {}).value || '';
+    if(cur.k === 'me'){ if(typeof frOpen === 'function') frOpen(); return; }
+    if(cur.k === 'char'){
+      try{ SP_ACTIVE_WID = cur.w.id; SP_KIND = 'social'; SP_EDITING = null; }catch(e){}
+      if(typeof spExpand === 'function') spExpand();
+      const as = $('spc_as'); if(as) as.value = String(cur.w.id);
+      const b = $('spc_body'); if(b && text) b.value = text;
+      return;
+    }
+    try{ CP_SRC_ID = cur.id; CP_KIND = 'social'; }catch(e){}
+    if(typeof cpOpen === 'function') await cpOpen(cur.k);
+    const b = document.getElementById(typeof cpFid === 'function' ? cpFid('body') : 'cpf_body'); if(b && text) b.value = text;
+  }
+
+  // keep in step: after the character list loads, after sign in, when the design changes
+  window.slxComposeDraw = draw;
+  window.slxFanDelete = async function(id, btn){
+    if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.innerHTML = '<i class="ti ti-trash"></i> Press again to delete'; return; }
+    const { error } = await sb.rpc('feed_fan_delete', { p_id:Number(id) });
+    if(error){ try{ wcaToast('Not deleted', errText(error), true); }catch(e){} return; }
+    try{ wcaToast('Post deleted', 'It is gone from the Feed.'); }catch(e){}
+    try{ if(typeof loadStorylines === 'function') loadStorylines(); }catch(e){}
+  };
+  if(typeof spOwnerComposerInit === 'function'){
+    const _init = spOwnerComposerInit;
+    spOwnerComposerInit = async function(){ const out = await _init.apply(this, arguments); try{ S.orgsAsked = false; draw(); }catch(e){} return out; };
+  }
+  function boot(){ draw(); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
+  new MutationObserver(() => draw()).observe(document.documentElement, { attributes:true, attributeFilter:['data-design'] });
+  setInterval(() => { const p = $('page-storylines'); if(p && p.classList.contains('active')) draw(); }, 3000);   // picks up sign in / sign out without touching any other code
+})();
+</script>
+
 <!-- ═══════════════ WCA EXCHANGE (Nov 2026) ═══════════════
      /exchange: buy shares in WCA wrestlers, factions and promotions with WCA money.
      Every buy, sell and price change happens in the database (SUPABASE_SETUP_exchange.sql):
@@ -40065,7 +40295,6 @@ const FHBG = (function(){
   function card(s){
     const h = holding(s.id);
     return `<div class="ex-card" role="button" tabindex="0" data-s="${s.id}">
-      ${s.grade ? `<span class="ex-grade" title="Grade">${E(s.grade)}</span>` : ''}
       <div class="ex-card-top">${face(s)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
       <div class="ex-price"><b>${money2(s.price)}</b>${chgHTML(s)}</div>
       ${spark(s.id, 220, 44, 'ex-spark')}
@@ -40080,7 +40309,7 @@ const FHBG = (function(){
     const c = X.cfg;
     const hist = (X.hist[s.id] || []).length;
     const left = `<div class="ex-panel">
-      <div class="ex-dhead">${face(s, true)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}${s.grade ? ' · Grade ' + E(s.grade) : ''}</small></div></div>
+      <div class="ex-dhead">${face(s, true)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
       <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span class="ex-bigprice">${money2(s.price)}</span><span style="font-size:20px">${chgHTML(s)} <small style="color:var(--muted);font-size:15px">since the last show</small></span></div>
       ${spark(s.id, 600, 220, 'ex-chart')}
       ${hist < 2 ? '<p class="ex-note">The chart fills in as the price moves after each show.</p>' : ''}
@@ -40420,8 +40649,8 @@ const FHBG = (function(){
 
   /* phone bottom bar */
   html[data-design="fight"][data-slx-feed] #slx-bottom{flex-direction:row !important; align-items:stretch; height:auto; width:auto; gap:0; margin:0;}
-  #slx-bottom a{display:block !important; flex:1 1 0 !important; min-width:0; margin:0 !important; border:0 !important; background:none !important; padding:9px 0 11px; text-align:center; color:var(--muted); text-decoration:none; cursor:pointer; white-space:nowrap;
-    font-family:var(--fh-fight); font-weight:800; font-size:14px; letter-spacing:.3px; text-transform:uppercase;}
+  #slx-bottom a{display:block !important; flex:1 1 0 !important; min-width:0; margin:0 !important; border:0 !important; background:none !important; padding:9px 0 11px; text-align:center; color:var(--muted); text-decoration:none; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:2px; padding-right:2px;
+    font-family:var(--fh-fight); font-weight:800; font-size:13px; letter-spacing:0; text-transform:uppercase;}
   #slx-bottom a i{display:block; font-size:22px; font-style:normal; margin-bottom:2px;}
   #slx-bottom a.on{color:var(--gold);}
 
@@ -40446,8 +40675,10 @@ const FHBG = (function(){
     html[data-design="fight"] #page-storylines .slpost:not(.sl-hr):not(.sl-signing):not(.sl-injury),
     html[data-design="fight"] #page-storylines .slpost.sl-article:not(.sl-hr){padding:16px 14px;}
     html[data-design="fight"][data-slx-feed] #slx-bottom{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60; padding-bottom:env(safe-area-inset-bottom,0px);
+      transform:translate3d(0,var(--slx-lift,0px),0); will-change:transform; backface-visibility:hidden; contain:layout paint; touch-action:manipulation;
       background:rgba(0,0,0,.94); border-top:1px solid rgba(var(--gold-rgb),.35);}
     html[data-design="fight"][data-slx-feed] body{padding-bottom:72px;}
+    html[data-design="fight"][data-slx-feed][data-slx-typing] #slx-bottom{display:none;}
     html[data-design="fight"][data-slx-feed] .sm-player:not([style*="top:"]){bottom:calc(76px + env(safe-area-inset-bottom,0px)) !important;}
   }
 </style>
@@ -40644,6 +40875,30 @@ const FHBG = (function(){
     }, 40);
   }
   window.slxRefresh = slxRefresh;
+
+  /* The phone bottom bar stays put. Some phone browsers slide their own toolbar in when you
+     scroll up, which used to push this bar down out of reach. We keep it glued to the bottom
+     of what you can actually see. */
+  (function pinBar(){
+    const vv = window.visualViewport;
+    if(!vv) return;
+    let raf = 0;
+    const place = () => {
+      raf = 0;
+      const lift = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+      root.style.setProperty('--slx-lift', (lift > 0.5 && vv.scale <= 1.01 ? -lift : 0) + 'px');
+    };
+    const ask = () => { if(!raf) raf = requestAnimationFrame(place); };
+    vv.addEventListener('resize', ask);
+    vv.addEventListener('scroll', ask);
+    window.addEventListener('scroll', ask, { passive:true });
+    window.addEventListener('orientationchange', ask);
+    // while typing, the phone keyboard is up: tuck the bar away so it never covers what you write
+    const typing = el => el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(button|checkbox|radio|range|submit|reset|file)$/i.test(el.type)) || el.isContentEditable);
+    document.addEventListener('focusin', e => { if(typing(e.target)) root.dataset.slxTyping = ''; });
+    document.addEventListener('focusout', () => setTimeout(() => { if(!typing(document.activeElement)) delete root.dataset.slxTyping; }, 50));
+    place();
+  })();
   // after the Feed redraws or a filter changes, repaint the tabs and the side columns
   if(typeof renderStorylines === 'function'){
     const _render = renderStorylines;
