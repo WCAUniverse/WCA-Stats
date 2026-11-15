@@ -663,6 +663,76 @@ body.fit #app[data-screen="pick"]{padding-left:max(18px,calc((100% - 1800px) / 2
 .owntag{display:inline-block;margin-bottom:3px;padding:1px 7px;background:var(--gold);color:var(--on-gold);font-family:var(--fight);font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .mvo .owntag{position:absolute;top:6px;left:12px;margin:0}.mvo.own{padding-top:24px}
 
+/* =====================================================================
+   Online play (Nov 15): lobby list, the room (match + line + chat). Nothing spills out of its box.
+   ===================================================================== */
+.pv-browser h2{margin:0}
+.pv-new{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
+.pv-new input{flex:1 1 220px;min-width:0}.pv-new select{flex:0 0 auto}
+.pv-note{margin:2px 0 0;font-size:15px;color:var(--txt2)}.pv-note b{color:var(--gold)}
+.pv-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:calc(var(--apph,600px) - 330px);overflow-y:auto;min-height:60px}
+.pv-lob{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:6px;min-width:0}
+.pv-lt{flex:1;min-width:0}.pv-lt b{display:block;font-size:24px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-lt small{display:block;color:var(--muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-live{display:inline-block;padding:0 6px;background:var(--hot);color:#fff;font-weight:800;font-size:11px;letter-spacing:.06em;border-radius:3px;vertical-align:middle}
+.pv{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;height:100%;min-height:0}
+.pv-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.pv-side{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;padding:12px;background:linear-gradient(160deg,rgba(26,26,32,.95),rgba(10,10,14,.95));border:1px solid var(--line)}
+.pv-head{min-width:0}.pv-title{display:block;font-size:26px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-q{flex:0 1 auto;min-height:60px;max-height:34%;overflow-y:auto}
+.pv-sub{font-family:var(--fight);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-size:13px;margin:6px 0 4px}
+.pv-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;min-width:0}
+.pv-row.me{background:rgba(95,180,255,.1)}.pv-row.on{box-shadow:inset 3px 0 0 var(--hot)}
+.pv-n{width:20px;color:var(--muted);font-weight:700}
+.pv-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-st{color:var(--win);font-weight:800;font-size:13px}
+.pv-watch{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:14px;color:var(--txt2)}.pv-watch span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-empty{margin:4px 0;font-size:14px}
+.pv-btns{display:flex;gap:8px}.pv-btns .cta{flex:1;justify-content:center;padding:10px 12px;font-size:18px;min-width:0}
+.pv-chat{flex:1;min-height:140px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.pv-tabs{display:grid;grid-template-columns:1fr 1fr}
+.pv-tabs button{padding:8px 6px;border:0;background:rgba(255,255,255,.04);color:var(--txt2);font-family:var(--fight);font-weight:800;text-transform:uppercase;letter-spacing:1px;font-size:15px}
+.pv-tabs button.on{background:rgba(var(--gold-rgb),.16);color:var(--gold);box-shadow:inset 0 -3px 0 var(--gold)}
+.pv-tabs i{font-style:normal;display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--hot);color:#fff;font-size:11px}.pv-tabs i:empty{display:none}
+.pv-msgs{flex:1;min-height:0;overflow-y:auto;padding:8px 10px;font-size:14px;line-height:1.45}
+.pv-m{overflow-wrap:anywhere;word-break:break-word;margin-bottom:3px}.pv-m b{color:#ff9f43}.pv-m.me b{color:var(--blue)}
+.pv-say{display:flex;gap:6px;padding:6px;border-top:1px solid var(--line)}
+.pv-say input{flex:1;min-width:0;padding:7px 9px;font-size:15px}.pv-say .cta{padding:7px 14px;font-size:16px}
+.pv-big{margin:auto;text-align:center;padding:20px;max-width:640px;min-width:0}
+.pv-big > b{display:block;font-size:clamp(30px,4vw,54px);line-height:1;overflow-wrap:anywhere}
+.pv-big p{margin:10px 0 0;color:var(--txt2)}.pv-win{color:var(--gold)}
+.pv-vsh{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line)}
+.pv-vsh > div{min-width:0;display:flex;flex-direction:column}.pv-vsh > div:last-child{text-align:right;align-items:flex-end}
+.pv-vsh b{font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pv-vs{font-size:34px;color:#fff;text-shadow:0 0 16px var(--hot)}.pv-ok{color:var(--win);font-weight:700;font-size:14px}
+.pv-pick{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:12px;padding-top:10px}
+.pv-pl{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
+.pv-pv{display:flex;flex-direction:column;gap:8px;min-width:0;align-items:flex-start;overflow:hidden}
+.pv-pv .ph{width:100%;aspect-ratio:1/1;max-height:calc(var(--apph,600px) * .34);overflow:hidden;display:grid;background:#0b0b0e}
+.pv-pv .ph img{width:100%;height:100%;object-fit:cover;object-position:center top}.pv-pv .ph .sil{width:100%;height:100%}
+.pv-pn{font-size:26px;line-height:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-pv p{margin:0;font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-pv .cta{width:100%;justify-content:center}
+.pv-user{max-width:100%;font-family:var(--fight);font-weight:800;font-size:15px;letter-spacing:.5px;color:#ff9f43;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-user.me{color:var(--blue)}
+/* the match inside the room: same fitting as the normal match screen */
+.pv-main .portrait{width:min(100%,260px,calc(var(--apph,600px) * .22))}
+.pv-main .fighter .nm{font-size:clamp(18px,3vh,34px);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-main .fighter .chips{display:none}
+.pv-main .call{min-height:0;margin:6px 0;padding:8px 14px;flex-shrink:0}.pv-main .call .big{font-size:clamp(18px,3vh,30px);overflow-wrap:anywhere}
+.pv-main .call .big.huge{font-size:clamp(22px,4vh,44px)}
+.pv-main .arena{flex-shrink:0}.pv-main #ctl{flex:0 1 auto;min-height:0;overflow-y:auto}
+.pv-main .mv{padding:clamp(8px,1.6vh,16px) 10px}.pv-main .mvo{padding:clamp(6px,1.1vh,11px) 12px}
+.pv-main > .row{flex-shrink:0;margin-top:4px !important}
+.pv-main .log{flex:1 1 0;min-height:0;max-height:none;margin-top:6px}
+@media(max-width:900px){
+  .pv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .pv-side{max-height:42%}.pv-q{max-height:70px}.pv-chat{min-height:120px}
+  .pv-pick{grid-template-columns:minmax(0,1fr)}.pv-pv .ph{display:none}.pv-pv{flex-direction:row;flex-wrap:wrap;align-items:center}.pv-pv .cta{width:auto}
+  .pv-main .portrait{width:min(100%,calc(var(--apph,600px) * .14))}
+}
+#app[data-screen="pvp"] .pv{flex:1;height:auto}
+
 </style>
 </head>
 <body>
@@ -763,6 +833,7 @@ const DEFAULTS = {
     maxMovesPerPos:4,
     stacks:{ easy:[], normal:[], hard:[] },   // old (before Nov 14): hand-picked floors. Now slots below.
     slots:{ easy:[], normal:[], hard:[] },    // each tower's floors, bottom first, boss last: { name, lock }. Unlocked = random every climb.
+    pvp:{ turnSecs:45, nextSecs:6, gauntletMax:12 },   // online play (Nov 15)
     sound:{ on:true, folder:'sounds/', crowd:35, cheer:60, voice:90, fx:60, placeholders:true, master:100, each:{} }   // each: file name -> its own volume % (Nov 14)
   },
   towers:[],   // custom towers made in the admin: { id, name, level, reward, color, on, stack:[names] }
@@ -1431,7 +1502,12 @@ const SOUNDS = [
   { id:'vo-kickout-3',  cat:'Narrator', n:1, line:'"So close!" (they kick out at two at the very last second, almost three)' },
   { id:'vo-win',        cat:'Narrator', n:2, line:'1: "You win!"   2: "Victory!"' },
   { id:'vo-lose',       cat:'Narrator', n:1, line:'"You lose."' },
-  { id:'vo-tower',      cat:'Narrator', n:1, line:'"Tower conquered!"' }
+  { id:'vo-tower',      cat:'Narrator', n:1, line:'"Tower conquered!"' },
+  // online play (suggested Nov 15)
+  { id:'vo-pvp-lockin', cat:'Narrator', n:2, line:'(ONLINE, both wrestlers picked) 1: "The wrestlers are locked in!"   2: "Here we go, online!"' },
+  { id:'vo-pvp-next',   cat:'Narrator', n:2, line:'(ONLINE gauntlet, a new challenger steps up) 1: "Here comes a new challenger!"   2: "Next up!"' },
+  { id:'vo-pvp-streak', cat:'Narrator', n:2, line:'(ONLINE gauntlet, the winner stays on with 2+ wins) 1: "Still standing!"   2: "Who can stop them?"' },
+  { id:'vo-pvp-forfeit',cat:'Narrator', n:1, line:'(ONLINE, someone left mid match) "They\'ve left the building!"' }
 ];
 const SND_FILE = (id, i, n) => n > 1 ? `${id}-${i}.mp3` : `${id}.mp3`;
 const SND = {
@@ -1703,8 +1779,8 @@ function drawMute(){ const b = document.getElementById('muteBtn'); if(b) b.textC
   const c = document.getElementById('crowdBtn'); if(c){ c.textContent = SND.crowdMuted ? 'Crowd off' : 'Crowd on'; c.classList.toggle('off', SND.crowdMuted); c.style.display = SND.muted ? 'none' : ''; } }
 /* Nov 14: players can turn off just the constant crowd loop. Narrator, cheers, boos and hits still play. Remembered in this browser. */
 function toggleCrowd(){ SND.setCrowd(!SND.crowdMuted); try{ localStorage.setItem('wcaTowerMuteCrowd', SND.crowdMuted ? '1' : '0'); }catch(e){} drawMute(); }
-function go(screen){ if(screen !== 'battle') SND.crowdStop(); S.screen = screen; window.scrollTo(0,0); CFG = loadCfg(); render(); }
-function render(){ fitMode(); ({ title, pick, moveset, foe, vs, tower:towerScreen, battle:battleScreen, result, climb }[S.screen] || title)(); drawWallet(); drawMute(); drawFull(); }
+function go(screen){ if(S.screen === 'pvp' && screen !== 'pvp' && typeof pvLeave === 'function') pvLeave(); if(screen !== 'battle') SND.crowdStop(); S.screen = screen; window.scrollTo(0,0); CFG = loadCfg(); render(); }
+function render(){ fitMode(); ({ title, pick, moveset, foe, vs, tower:towerScreen, battle:() => battleScreen(), result, climb, pvp:pvRoom }[S.screen] || title)(); drawWallet(); drawMute(); drawFull(); }
 
 /* ---------- title: choose your tower (like the classic Mortal Kombat towers) ---------- */
 let towerSel = null;
@@ -1869,15 +1945,15 @@ function startBattle(){
 function slowAI(brain){ return { neutral:brain.neutral, chain:brain.chain, reversal:brain.reversal, kickout:brain.kickout, escape:brain.escape,
   async control(m,f,o){ setStage(`${f.name} is in control`, posLine(m)); await sleep(950); return brain.control(m,f,o); } }; }
 
-function battleScreen(){
-  app.innerHTML = `<div class="arena" id="arena">
+function battleScreen(into, pvp){
+  (into || app).innerHTML = `<div class="arena" id="arena">
       <div class="fighter l" id="fL"></div>
       <div class="mid"><div class="stage f" id="stage">Circling</div><div class="stage-sub" id="stageSub"></div></div>
       <div class="fighter r" id="fR"></div></div>
     <div class="panel call" id="call"><div class="big f">The bell rings!</div></div>
     <div id="ctl"></div>
     <div class="row" style="justify-content:space-between;margin-top:10px"><label class="muted" style="font-size:15px"><input type="checkbox" id="askAll" ${S.askAll?'checked':''} style="accent-color:var(--gold)"> Ask me to reverse every move (not just the big ones)</label>
-      <button class="mini" onclick="if(confirmQuit(this)) go('title')">Leave the match</button></div>
+      ${pvp ? '' : `<button class="mini" onclick="if(confirmQuit(this)) go('title')">Leave the match</button>`}</div>
     <div class="log" id="log"></div>`;
   document.getElementById('askAll').onchange = e => S.askAll = e.target.checked;
 }
@@ -1885,6 +1961,7 @@ function confirmQuit(b){ if(b.dataset.sure === '1'){ if(MT){ MT.over = true; MT.
 function fighterHTML(f){
   return `<div class="portrait${f.stun?' stun':''}" id="p${f.side}"><div class="pimg">${face(f.w)}</div><div class="tint"></div></div>
     <div class="nm f">${esc(f.name)}${champOf(f.name).length?' <span style="color:var(--gold);font-size:.55em">(C)</span>':''}</div>
+    ${f.user ? `<div class="pv-user${f.isMe ? ' me' : ''}">${f.isMe ? 'YOU · ' : ''}${esc(f.user)}</div>` : ''}
     <div class="chips"><span class="chip gold"><span>${esc(f.st.name)}</span></span></div>
     <div class="barlbl">Health <b id="hp${f.side}"></b></div><div class="bar hp"><span id="hb${f.side}"></span></div>
     <div class="barlbl">Momentum <b id="mo${f.side}"></b></div><div class="bar mo"><span id="mb${f.side}"></span><i class="tick"></i></div>
@@ -1912,7 +1989,7 @@ function setStage(t, sub){ const a = document.getElementById('stage'), b = docum
 /* the play-by-play colors: names first, then damage in red and good news in green */
 const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function logColor(t){ let h = esc(t);
-  if(MT){ const names = [[MT.a.name, 'lg-me'], [MT.b.name, 'lg-op']].filter(x => x[0]).sort((x, y) => y[0].length - x[0].length);
+  if(MT){ const mineR = MT.meSide === 'R', names = [[MT.a.name, mineR ? 'lg-op' : 'lg-me'], [MT.b.name, mineR ? 'lg-me' : 'lg-op']].filter(x => x[0]).sort((x, y) => y[0].length - x[0].length);
     const re = new RegExp('(' + names.map(x => reEsc(esc(x[0]))).join('|') + ')', 'g'), cls = {}; names.forEach(x => cls[esc(x[0])] = x[1]);
     h = h.replace(re, m => `<b class="${cls[m]}">${m}</b>`); }
   h = h.replace(/(\d+) damage/g, '<span class="lg-dmg">$1 damage</span>')
@@ -1970,7 +2047,7 @@ const SOUNDS_ON = {
 };
 function soundFx(kind, who, data){
   if(!MT) return;
-  const mine = who && who === MT.a;           // the person playing is always on the left
+  const meSide = MT.meSide || 'L', mine = !!(who && who.side === meSide);   // online: you can be on either side
   if(kind === 'control' && who && SOUNDS_ON.ctrl !== who){ SOUNDS_ON.ctrl = who; SND.vo(mine ? 'vo-you-control' : 'vo-opp-control', 1, 6000); }
   if(kind === 'recover' || (kind === 'state' && data && data.stage === 'neutral' && !MT.ctrl)) SOUNDS_ON.ctrl = null;
   if(kind === 'slugfest'){ SND.vo('vo-slugfest', 2); SND.swell('crowd-cheer'); }
@@ -1980,7 +2057,7 @@ function soundFx(kind, who, data){
   if(kind === 'hit' && data){ const big = data.big || data.dmg >= 13;
     // a knockdown has its own sound (the hit, the impact, the body on the mat); without the file it's the slam as before
     SND.fx(data.down && SND.has('sfx-knockdown') ? 'sfx-knockdown' : big || data.dmg >= 9 ? 'sfx-slam' : 'sfx-hit');
-    if(big){ SND.vo('vo-big', 1, 4000); SND.swell(who === MT.a ? 'crowd-boo' : 'crowd-cheer'); } }
+    if(big){ SND.vo('vo-big', 1, 4000); SND.swell(mine ? 'crowd-boo' : 'crowd-cheer'); } }
   if(kind === 'crash'){ SND.fx('sfx-slam'); SND.swell('crowd-gasp'); }
   if(kind === 'reversal'){ SND.fx('sfx-whoosh'); SND.vo('vo-reversal', 2); if(mine) SND.swell('crowd-cheer'); }
   if(kind === 'dodge'){ SND.fx('sfx-whoosh'); SND.vo('vo-dodge', 2); }
@@ -1990,9 +2067,10 @@ function soundFx(kind, who, data){
   if(kind === 'pin'){ SND.vo('vo-cover', 2); }
   if(kind === 'kickout'){ const n = data ? +data.n || 0 : 1;   // the kick out line matches the count: none, one, two, or two at the last second
     SND.vo(n <= 0 ? 'vo-kickout-0' : n === 1 ? 'vo-kickout-1' : data.close ? 'vo-kickout-3' : 'vo-kickout-2', 3); SND.swell(data && data.n >= 2 ? 'crowd-pop' : 'crowd-gasp'); }
-  if(kind === 'end' && data){ if(data.how === 'submission') SND.vo('vo-tap', 4); SND.fx('sfx-bell'); setTimeout(() => SND.swell(who === MT.a ? 'crowd-pop' : 'crowd-boo'), 300); }
+  if(kind === 'end' && data){ if(data.how === 'submission') SND.vo('vo-tap', 4); SND.fx('sfx-bell'); setTimeout(() => SND.swell(mine ? 'crowd-pop' : 'crowd-boo'), 300); }
   // your own warnings
-  const me = MT.a;
+  if(MT.spectate) return;   // spectators get no personal warnings
+  const me = meSide === 'R' ? MT.b : MT.a;
   if(!SOUNDS_ON.ready && me.mom >= CFG.settings.mom.finCost){ SOUNDS_ON.ready = true; SND.vo('vo-ready', 1); }
   if(SOUNDS_ON.ready && me.mom < CFG.settings.mom.finCost) SOUNDS_ON.ready = false;
   if(!SOUNDS_ON.trouble && me.hp > 0 && me.hp / me.max < .3){ SOUNDS_ON.trouble = true; SND.vo('vo-trouble', 1); }
@@ -2136,7 +2214,7 @@ function result(){
    - the climb: the camera drops to floor 1 with your wrestler beside it, VS, and climbs as you win.
      Floors that change every climb stay a mystery (?) until you reach them. Floor 1 is always shown.
    ===================================================================== */
-const FIT_SCREENS = ['title', 'climb', 'pick', 'moveset', 'foe', 'vs', 'tower', 'battle', 'result'];   // every screen fits (Nov 14)
+const FIT_SCREENS = ['title', 'climb', 'pick', 'moveset', 'foe', 'vs', 'tower', 'battle', 'result', 'pvp'];   // every screen fits (Nov 14)
 function fitMode(){ const fit = FIT_SCREENS.includes(S.screen); document.body.classList.toggle('fit', fit); fitSize(); }
 function fitSize(){ const top = document.querySelector('.top'), fit = document.body.classList.contains('fit'), h = Math.max(360, window.innerHeight - (top ? top.offsetHeight : 0));
   app.style.height = fit ? h + 'px' : ''; app.style.setProperty('--apph', h + 'px'); app.dataset.screen = S.screen; }
@@ -2165,7 +2243,7 @@ document.addEventListener('keydown', e => { if(e.target && /INPUT|SELECT|TEXTARE
 
 /* ---------- the title screen ---------- */
 let titleMenu = 'tower';
-const T2_MENU = [['tower','Tower climb','Win floors, earn WCA money'],['quick','Quick match','One match, just for fun'],['custom','Customize moves','Pick moves for a wrestler'],['how','How to play','Circling, reversals, pins']];
+const T2_MENU = [['tower','Tower climb','Win floors, earn WCA money'],['online','Online','Play or watch other people'],['quick','Quick match','One match, just for fun'],['custom','Customize moves','Pick moves for a wrestler'],['how','How to play','Circling, reversals, pins']];
 const ARW_L = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 const ARW_R = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
 function title(){
@@ -2176,6 +2254,7 @@ function title(){
     <div class="t2-ring" id="t2Ring">${defs.map(t2Tower).join('')}
       <button class="t2-arr l" id="t2Prev" aria-label="Previous tower">${ARW_L}</button><button class="t2-arr r" id="t2Next" aria-label="Next tower">${ARW_R}</button></div>
     <div class="t2-dots">${defs.map(t => `<button class="t2-dot" data-t="${esc(t.key)}" style="--c:${esc(t.color)}" aria-label="${esc(t.name)} tower"></button>`).join('')}</div>`;
+  else if(m === 'online') stage = pvBrowserHTML();
   else if(m === 'quick') stage = `<div class="t2-panel panel"><div class="kick">Quick match</div><h2 class="f">One match, just for fun</h2>
       <p class="note">No money. Pick how good the computer is, then your wrestler, then your opponent (or a random one).</p>
       <div class="t2-diffs">${['easy','normal','hard'].map(d => `<button class="qbtn" style="--c:${DIFF_COL[d]}" onclick="S.custom=false;S.quick=true;S.qdiff='${d}';S.me=null;S.pickFoe=false;go('pick')">${d}</button>`).join('')}</div></div>`;
@@ -2194,6 +2273,7 @@ function title(){
     <section class="t2-stage">${stage}</section>
     ${m === 'tower' ? '<aside class="t2-info" id="t2Info"></aside>' : ''}</div>`;
   app.querySelectorAll('.t2-mi').forEach(b => b.onclick = () => { titleMenu = b.dataset.m; title(); });
+  if(m === 'online'){ pvBrowserWire(); return; } else pvBrowserStop();
   if(m !== 'tower') return;
   app.querySelectorAll('.t2-twr, .t2-dot').forEach(b => b.onclick = () => { if(b.classList.contains('t2-twr') && b.dataset.t === towerSel){ t2Go(); return; } towerSel = b.dataset.t; t2Spin(); });
   document.getElementById('t2Prev').onclick = () => t2Turn(-1); document.getElementById('t2Next').onclick = () => t2Turn(1);
@@ -2292,6 +2372,262 @@ function clFight(){ if(!CL || !CL.ready || CL.going) return; CL.going = true; co
     <span class="cl-vsbig f">VS</span><div class="cl-side r"><span class="vpic">${face(W(nm))}</span><b class="f">${esc(nm)}</b></div></div><p class="t2-hint">Click to skip</p>`;
   ov.hidden = false; let gone = false; const start = () => { if(gone) return; gone = true; if(S.screen === 'climb') startBattle(); };
   ov.onclick = start; setTimeout(start, 2600); }
+
+/* =====================================================================
+   ONLINE PLAY (Nov 15): lobbies, One on One and Gauntlet (winner stays on),
+   spectators, a Players chat and a Spectators chat. Just for fun (no money).
+   How it talks: Supabase live messages on the website (no database tables),
+   or the browser's own tab-to-tab channel when opened off the site (two tabs can play).
+   The left fighter's browser runs the match; the other fighter gets each choice and
+   mini game sent to them; everyone else watches. The lobby "leader" (whoever has been
+   in the lobby longest) runs the line.
+   ===================================================================== */
+const PV = { me:null, ch:null, idx:null, idxCh:null, lobs:{}, members:{}, st:null, joined:0, hb:null, chat:{ p:[], s:[] }, tab:'p', unread:{ p:0, s:0 }, run:null, view:null, pk:{ q:'', page:0, sel:null, locked:false }, asks:{} };
+const PVC = () => Object.assign({ turnSecs:45, nextSecs:6, gauntletMax:12 }, CFG.settings.pvp || {});
+const rid = () => Math.random().toString(36).slice(2, 9);
+async function pvIdentity(){ if(PV.me) return PV.me;
+  if(LIVE && SIGNED()){ try{ const c = sbc(), u = (await c.auth.getUser()).data.user;
+      if(u){ let nm = ''; try{ const p = await c.from('profiles').select('username,display_name').eq('id', u.id).maybeSingle(); nm = p.data && (p.data.display_name || p.data.username); }catch(e){}
+        return PV.me = { id:u.id, name:String(nm || 'Player').slice(0, 24), guest:false }; } }catch(e){} }
+  let g = null; try{ g = JSON.parse(sessionStorage.getItem('wcaPvpGuest') || 'null'); }catch(e){}
+  if(!g){ g = { id:'g' + rid(), name:'Guest ' + (1000 + Math.floor(Math.random() * 9000)) }; try{ sessionStorage.setItem('wcaPvpGuest', JSON.stringify(g)); }catch(e){} }
+  return PV.me = { id:g.id, name:g.name, guest:true }; }
+const pvCanPlay = () => !(LIVE && PV.me && PV.me.guest);   // on the website you sign in to play and chat; anyone can watch
+// one live channel: Supabase broadcast on the site, the browser's tab channel otherwise
+function pvChannel(name, onMsg){
+  const c = (typeof sbc === 'function') ? sbc() : null;
+  if(c && c.channel && ONLINE){ let ready = false; const q = [];
+    const ch = c.channel('tower-pvp-' + name, { config:{ broadcast:{ self:false } } });
+    ch.on('broadcast', { event:'m' }, ({ payload }) => { try{ onMsg(payload); }catch(e){} });
+    ch.subscribe(st => { if(st === 'SUBSCRIBED'){ ready = true; q.splice(0).forEach(p => ch.send({ type:'broadcast', event:'m', payload:p })); } });
+    return { send:p => { if(ready) ch.send({ type:'broadcast', event:'m', payload:p }); else q.push(p); }, close:() => { try{ c.removeChannel(ch); }catch(e){} } }; }
+  const bc = new BroadcastChannel('tower-pvp-' + name); bc.onmessage = e => { try{ onMsg(e.data); }catch(x){} };
+  return { send:p => bc.postMessage(p), close:() => bc.close() }; }
+
+/* ---------- the lobby list (in the title's Online menu) ---------- */
+function pvBrowserHTML(){
+  return `<div class="t2-panel t2-wide pv-browser"><div class="kick">Online · just for fun</div><h2 class="f">Lobbies</h2>
+    <p class="note">Join a lobby to watch, then hop in the line to fight. <b>One on One</b>: two players, rematches until someone leaves. <b>Gauntlet</b>: winner stays on, the loser goes to the back of the line.</p>
+    <div class="pv-new"><input id="pvName" maxlength="28" placeholder="Lobby name"><select id="pvMode"><option value="gauntlet">Gauntlet</option><option value="1v1">One on One</option></select><button class="cta" id="pvCreate">Create lobby</button></div>
+    <p class="pv-note" id="pvNote"></p>
+    <div class="pv-list" id="pvList"><p class="muted">Looking for lobbies…</p></div></div>`; }
+async function pvBrowserWire(){ await pvIdentity();
+  const note = document.getElementById('pvNote'); if(note) note.innerHTML = pvCanPlay() ? `You're <b>${esc(PV.me.name)}</b>.` : '<b>Sign in on WCAUniverse.com</b> to play and chat. You can still watch.';
+  const nm = document.getElementById('pvName'); if(nm && !nm.value) nm.value = PV.me.name + "'s lobby";
+  document.getElementById('pvCreate').onclick = () => { if(!pvCanPlay()){ note.innerHTML = '<b>Sign in on WCAUniverse.com</b> to make a lobby.'; return; }
+    const name = (nm.value || '').trim().slice(0, 28) || 'Lobby', mode = document.getElementById('pvMode').value; pvEnter({ id:'L' + rid(), name, mode, create:true }); };
+  if(!PV.idxCh) PV.idxCh = pvChannel('index', pvIdxMsg);
+  clearInterval(PV.idxT); PV.idxT = setInterval(pvList, 4000);
+  pvList(); }
+function pvIdxMsg(p){ if(p && p.t === 'lob' && p.id){ PV.lobs[p.id] = Object.assign(p, { seen:Date.now() }); pvList(); } }
+function pvBrowserStop(){ if(PV.idxCh && S.screen !== 'pvp'){ PV.idxCh.close(); PV.idxCh = null; clearInterval(PV.idxT); PV.lobs = {}; } }
+function pvList(){ const box = document.getElementById('pvList'); if(!box) return; const now = Date.now();
+  Object.keys(PV.lobs).forEach(k => { if(now - PV.lobs[k].seen > 12000) delete PV.lobs[k]; });
+  const L = Object.values(PV.lobs).sort((a, b) => (b.players || 0) - (a.players || 0));
+  box.innerHTML = L.length ? L.map(l => `<div class="pv-lob"><div class="pv-lt"><b class="f">${esc(l.name)}</b><small>${l.mode === '1v1' ? 'One on One' : 'Gauntlet'} · ${l.players || 0} in line · ${l.watchers || 0} watching${l.phase === 'fight' && l.fighters ? ' · <span class="pv-live">LIVE</span> ' + esc(l.fighters.join(' vs ')) : ''}</small></div>
+      <button class="cta" data-lob="${esc(l.id)}">Enter</button></div>`).join('') : '<p class="muted">No open lobbies right now. Make one!</p>';
+  box.querySelectorAll('[data-lob]').forEach(b => b.onclick = () => { const l = PV.lobs[b.dataset.lob]; if(l) pvEnter({ id:l.id, name:l.name, mode:l.mode }); }); }
+
+/* ---------- inside a lobby ---------- */
+async function pvEnter(lob){ await pvIdentity(); pvLeave(true);
+  PV.lob = lob; PV.members = {}; PV.joined = Date.now(); PV.chat = { p:[], s:[] }; PV.unread = { p:0, s:0 }; PV.view = null; PV.run = null; PV.asks = {};
+  PV.st = lob.create ? { v:1, id:lob.id, name:lob.name, mode:lob.mode, queue:[], names:{}, phase:'wait', picks:{}, streak:{}, last:null, fight:null, next:0 } : null;
+  PV.ch = pvChannel('lobby-' + lob.id, pvOnMsg);
+  if(!PV.idxCh) PV.idxCh = pvChannel('index', pvIdxMsg);
+  pvHb(); PV.hb = setInterval(pvHb, 3000);
+  pvSend({ t:'hello' });
+  S.quick = true; S.qdiff = 'normal'; S.screen = 'pvp'; render(); }
+function pvLeave(quiet){ if(!PV.ch) return; try{ pvSend({ t:'bye' }); }catch(e){}
+  if(PV.run && PV.run.match){ PV.run.match.over = true; PV.run.match.ui = {}; }
+  clearInterval(PV.hb); PV.ch.close(); PV.ch = null; PV.st = null; PV.run = null; PV.view = null; MT = null; SND.crowdStop();
+  document.querySelectorAll('.mg').forEach(x => x.remove()); }
+window.addEventListener('beforeunload', () => { if(PV.ch) pvSend({ t:'bye' }); });
+function pvSend(p){ if(!PV.ch) return; p.f = PV.me.id; p.n = PV.me.name; PV.ch.send(p); pvOnMsg(p, true); }
+function pvHb(){ if(!PV.ch) return; pvSend({ t:'hb', j:PV.joined });
+  const now = Date.now(); Object.keys(PV.members).forEach(id => { if(now - PV.members[id].seen > 10000) delete PV.members[id]; });
+  if(pvLeader()) pvLeaderTick(); pvSide(); }
+const pvLeaderId = () => { const m = Object.entries(PV.members).sort((a, b) => a[1].j - b[1].j || (a[0] < b[0] ? -1 : 1)); return m.length ? m[0][0] : PV.me.id; };
+const pvLeader = () => pvLeaderId() === PV.me.id;
+const pvName = id => (PV.members[id] && PV.members[id].n) || (PV.st && PV.st.names[id]) || 'Someone';
+const pvFighting = () => !!(PV.st && PV.st.fight && (PV.st.phase === 'fight' || PV.st.phase === 'pick') && [PV.st.fight.a.id, PV.st.fight.b.id].includes(PV.me.id));
+function pvOnMsg(p, self){
+  if(!p || !p.t) return;
+  if(p.t === 'hb' || p.t === 'hello'){ const isNew = !PV.members[p.f]; PV.members[p.f] = { n:String(p.n || '').slice(0, 24), j:p.j || PV.members[p.f] && PV.members[p.f].j || Date.now(), seen:Date.now() };
+    if(p.t === 'hello' && !self && pvLeader() && PV.st) pvSend({ t:'st', s:PV.st }); if(isNew) pvSide(); return; }
+  if(p.t === 'bye'){ delete PV.members[p.f]; if(pvLeader()) pvLeaderTick(); pvSide(); return; }
+  if(p.t === 'st'){ const s = p.s; if(!s) return; if(!PV.st || s.v > PV.st.v || (p.f === pvLeaderId() && s.v >= PV.st.v)){ const was = PV.st; PV.st = s; pvStateChanged(was); } return; }
+  if(p.t === 'chat'){ const tab = p.tab === 's' ? 's' : 'p', list = PV.chat[tab]; list.push({ n:String(p.n || '').slice(0, 24), x:String(p.x || '').slice(0, 200), f:p.f }); if(list.length > 120) list.shift();
+    if(tab !== PV.tab) PV.unread[tab]++; pvChatDraw(); return; }
+  // the match host's broadcast to everyone (opponent + spectators)
+  if(p.t === 'say' && !self){ if(PV.view) say(p.x, p.k); return; }
+  if(p.t === 'fx' && !self){ if(PV.view){ pvApplySnap(p.snap); const who = p.s ? (p.s === 'L' ? MT.a : MT.b) : null; fx(p.k, who, p.d); } return; }
+  if(p.t === 'ask' && !self && p.to === PV.me.id) return pvAnswer(p);
+  if(p.t === 'ans' && !self && PV.asks[p.id]){ const r = PV.asks[p.id]; delete PV.asks[p.id]; r(p.v); return; }
+  // requests for the leader
+  if(!pvLeader() || !PV.st) return;
+  const s = PV.st, C = PVC(), max = s.mode === '1v1' ? 2 : Math.max(2, +C.gauntletMax || 12);
+  if(p.t === 'join' && !s.queue.includes(p.f) && s.queue.length < max){ s.queue.push(p.f); s.names[p.f] = pvName(p.f); pvCommit(); }
+  else if(p.t === 'quit'){ s.queue = s.queue.filter(x => x !== p.f); pvCommit(); }
+  else if(p.t === 'pick' && s.phase === 'pick' && s.fight && [s.fight.a.id, s.fight.b.id].includes(p.f) && W(p.name)){
+    s.picks[p.f] = { name:p.name, ids:Array.isArray(p.ids) ? p.ids.slice(0, 80) : [] }; pvCommit(); }
+  else if(p.t === 'result' && s.phase === 'fight' && s.fight && p.mid === s.fight.mid && p.f === s.fight.a.id) pvResult(p.w, p.how);
+}
+// the leader keeps the line moving
+function pvCommit(){ const s = PV.st; s.v++; pvLeaderTick(true); }
+function pvLeaderTick(changed){ let s = PV.st; const lb = PV.lob;
+  if(!s){ s = PV.st = { v:1, id:lb.id, name:lb.name, mode:lb.mode, queue:[], names:{}, phase:'wait', picks:{}, streak:{}, last:null, fight:null, next:0 }; changed = true; }
+  const here = id => id === PV.me.id || !!PV.members[id];
+  const before = s.queue.length; s.queue = s.queue.filter(here); if(s.queue.length !== before) changed = true;
+  if(s.fight && (s.phase === 'pick' || s.phase === 'fight')){ const { a, b } = s.fight;
+    if(!here(a.id) || !here(b.id) || !s.queue.includes(a.id) || !s.queue.includes(b.id)){
+      if(s.phase === 'fight' && (here(a.id) || here(b.id))){ pvResult(here(a.id) && s.queue.includes(a.id) ? a.id : b.id, 'forfeit'); return; }
+      s.phase = 'wait'; s.fight = null; s.picks = {}; changed = true; } }
+  if(s.phase === 'result' && Date.now() >= s.next){ s.phase = 'wait'; changed = true; }
+  if(s.phase === 'wait' && s.queue.length >= 2){ const a = s.queue[0], b = s.queue[1];
+    s.phase = 'pick'; s.picks = {}; s.fight = { mid:rid(), a:{ id:a, user:s.names[a] || pvName(a) }, b:{ id:b, user:s.names[b] || pvName(b) } }; changed = true; }
+  if(s.phase === 'pick' && s.fight && s.picks[s.fight.a.id] && s.picks[s.fight.b.id]){ s.phase = 'fight';
+    s.fight.a.name = s.picks[s.fight.a.id].name; s.fight.b.name = s.picks[s.fight.b.id].name; changed = true; }
+  if(changed){ s.v++; pvSend({ t:'st', s }); }
+  if(PV.idxCh) PV.idxCh.send({ t:'lob', id:s.id, name:s.name, mode:s.mode, players:s.queue.length, watchers:Math.max(0, Object.keys(PV.members).length - s.queue.length), phase:s.phase,
+    fighters:s.phase === 'fight' && s.fight ? [s.fight.a.user, s.fight.b.user] : null }); }
+function pvResult(winId, how){ const s = PV.st, f = s.fight; if(!f) return; const loseId = winId === f.a.id ? f.b.id : f.a.id;
+  s.streak[winId] = (s.streak[winId] || 0) + 1; s.streak[loseId] = 0;
+  s.queue = [winId].concat(s.queue.filter(x => x !== winId && x !== loseId)).concat(s.queue.includes(loseId) ? [loseId] : []);   // winner stays on, loser to the back
+  s.last = { w:winId, wn:winId === f.a.id ? f.a.name : f.b.name, wu:s.names[winId] || pvName(winId), l:loseId, lu:s.names[loseId] || pvName(loseId), how, streak:s.streak[winId] };
+  s.phase = 'result'; s.fight = null; s.picks = {}; s.next = Date.now() + Math.max(2, +PVC().nextSecs || 6) * 1000; s.v++; pvSend({ t:'st', s }); }
+
+/* ---------- the room screen ---------- */
+function pvRoom(){ if(!PV.lob){ go('title'); return; }
+  app.innerHTML = `<div class="pv"><section class="pv-main" id="pvMain"></section>
+    <aside class="pv-side"><div class="pv-head"><div class="kick">${PV.lob.mode === '1v1' ? 'One on One' : 'Gauntlet · winner stays on'}</div><b class="f pv-title">${esc(PV.lob.name)}</b></div>
+      <div class="pv-q" id="pvQ"></div>
+      <div class="pv-btns"><button class="cta" id="pvJoin">Join the line</button><button class="cta ghost" id="pvOut" onclick="go('title')">Leave lobby</button></div>
+      <div class="pv-chat"><div class="pv-tabs" role="tablist"><button role="tab" data-tab="p">Players <i id="pvUp"></i></button><button role="tab" data-tab="s">Spectators <i id="pvUs"></i></button></div>
+        <div class="pv-msgs" id="pvMsgs" aria-live="polite"></div>
+        <form class="pv-say" id="pvSay"><input id="pvText" maxlength="200" autocomplete="off" placeholder="Say something"><button class="cta">Send</button></form></div></aside></div>`;
+  document.querySelectorAll('.pv-tabs [data-tab]').forEach(b => b.onclick = () => { PV.tab = b.dataset.tab; PV.unread[PV.tab] = 0; pvChatDraw(); });
+  document.getElementById('pvJoin').onclick = () => { if(!pvCanPlay()) return; const inQ = PV.st && PV.st.queue.includes(PV.me.id); pvSend({ t:inQ ? 'quit' : 'join' }); };
+  document.getElementById('pvSay').onsubmit = e => { e.preventDefault(); const i = document.getElementById('pvText'), x = (i.value || '').trim(); if(!x || !pvCanPlay()) return;
+    const tab = pvFighting() ? 'p' : 's'; pvSend({ t:'chat', tab, x }); i.value = ''; if(PV.tab !== tab){ PV.tab = tab; pvChatDraw(); } };
+  PV.shown = null; pvStateChanged(null); pvSide(); pvChatDraw(); }
+function pvSide(){ const q = document.getElementById('pvQ'); if(!q) return; const s = PV.st;
+  const inLine = s ? s.queue : [], watchers = Object.keys(PV.members).filter(id => !inLine.includes(id));
+  q.innerHTML = `<div class="pv-sub">In line (${inLine.length})</div>${inLine.map((id, i) => { const fighting = s.fight && [s.fight.a.id, s.fight.b.id].includes(id) && (s.phase === 'pick' || s.phase === 'fight');
+      return `<div class="pv-row${id === PV.me.id ? ' me' : ''}${fighting ? ' on' : ''}"><span class="pv-n">${i + 1}</span><span class="pv-nm">${esc(pvName(id))}${id === PV.me.id ? ' (you)' : ''}</span>${(s.streak[id] || 0) >= 1 ? `<span class="pv-st">${s.streak[id]}W</span>` : ''}${fighting ? '<span class="pv-live">FIGHTING</span>' : ''}</div>`; }).join('') || '<p class="muted pv-empty">Nobody yet. Join the line!</p>'}
+    <div class="pv-sub">Watching (${watchers.length})</div><div class="pv-watch">${watchers.map(id => `<span>${esc(pvName(id))}${id === PV.me.id ? ' (you)' : ''}</span>`).join('') || '<span class="muted">Nobody</span>'}</div>`;
+  const j = document.getElementById('pvJoin'); if(j){ const inQ = s && s.queue.includes(PV.me.id), C = PVC(), max = s && s.mode === '1v1' ? 2 : +C.gauntletMax || 12;
+    j.textContent = !pvCanPlay() ? 'Sign in to play' : inQ ? 'Leave the line' : (s && s.queue.length >= max ? 'Line is full' : 'Join the line'); j.disabled = !pvCanPlay() || (!inQ && !!s && s.queue.length >= max); j.classList.toggle('ghost', !!inQ); }
+  const ip = document.getElementById('pvText'); if(ip){ ip.disabled = !pvCanPlay(); ip.placeholder = !pvCanPlay() ? 'Sign in to chat' : pvFighting() ? 'Talk to your opponent' : 'Chat with the other spectators'; } }
+function pvChatDraw(){ const box = document.getElementById('pvMsgs'); if(!box) return;
+  document.querySelectorAll('.pv-tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === PV.tab));
+  const up = document.getElementById('pvUp'), us = document.getElementById('pvUs'); if(up) up.textContent = PV.unread.p ? PV.unread.p : ''; if(us) us.textContent = PV.unread.s ? PV.unread.s : '';
+  const list = PV.chat[PV.tab];
+  box.innerHTML = list.length ? list.map(m => `<div class="pv-m${m.f === PV.me.id ? ' me' : ''}"><b>${esc(m.n)}</b> ${esc(m.x)}</div>`).join('') : `<p class="muted">${PV.tab === 'p' ? 'The two fighters talk here. Everyone can read it.' : 'Spectators talk here.'}</p>`;
+  box.scrollTop = box.scrollHeight; }
+
+/* what the middle shows: waiting, picking, the match, or the result */
+function pvStateChanged(was){ pvSide(); const main = document.getElementById('pvMain'); const s = PV.st; if(!main) return;
+  if(!s){ main.innerHTML = '<div class="pv-big"><b class="f">Joining…</b></div>'; return; }
+  const key = s.phase + '|' + (s.fight ? s.fight.mid : '') + (s.phase === 'result' && s.last ? '|' + s.last.w + s.v : '') + (s.phase === 'wait' ? '|' + s.queue.length + pvCanPlay() : '');
+  if(s.phase === 'pick'){ const same = !!(s.fight && PV.pkMid === s.fight.mid); PV.pkMid = s.fight && s.fight.mid; pvPickDraw(same); PV.shown = key; return; }
+  if(PV.shown === key) return; PV.shown = key;
+  if(s.phase === 'fight'){ pvFightStart(); return; }
+  if(PV.run && PV.run.match){ PV.run.match.over = true; PV.run.match.ui = {}; } PV.run = null; PV.view = null; MT = null; SND.crowdStop();
+  if(s.phase === 'result' && s.last){ const L = s.last;
+    if(L.how === 'forfeit') SND.vo('vo-pvp-forfeit', 4); else if(s.mode !== '1v1' && L.streak >= 2) SND.vo('vo-pvp-streak', 4);
+    main.innerHTML = `<div class="pv-big"><div class="kick">${L.how === 'forfeit' ? 'Win by forfeit' : 'Winner'}</div><b class="f pv-win">${esc(L.wu)}</b><p>${esc(L.wn || '')}${L.streak >= 2 ? ` · <span class="pv-st">${L.streak} wins in a row</span>` : ''}</p>
+      <p class="muted">${s.mode === '1v1' ? 'Rematch coming up.' : `${esc(L.lu)} goes to the back of the line. Next match coming up.`}</p></div>`; return; }
+  const n = s.queue.length;
+  main.innerHTML = `<div class="pv-big"><div class="kick">${s.mode === '1v1' ? 'One on One' : 'Gauntlet'}</div><b class="f">${n ? 'Waiting for one more' : 'Waiting for players'}</b>
+    <p class="muted">${pvCanPlay() ? 'Press <b>Join the line</b> to fight.' : 'Sign in on WCAUniverse.com to fight.'} Everyone else watches.</p></div>`; }
+
+/* ---------- picking wrestlers (both fighters at once) ---------- */
+function pvPickDraw(same){ const s = PV.st, f = s.fight, main = document.getElementById('pvMain'); if(!main || !f) return;
+  const mine = [f.a.id, f.b.id].includes(PV.me.id), locked = !!s.picks[PV.me.id];
+  if(!same){ PV.pk = { q:'', page:0, sel:PV.pk.sel && W(PV.pk.sel) ? PV.pk.sel : (ROSTER[0] && ROSTER[0].name), locked:false };
+    if(s.mode !== '1v1' && was2nd(f)) SND.vo('vo-pvp-next', 3); }
+  const lockLine = id => s.picks[id] ? `<span class="pv-ok">Locked in</span>` : `<span class="muted">Choosing…</span>`;
+  const head = `<div class="pv-vsh"><div><b class="f">${esc(f.a.user)}</b>${lockLine(f.a.id)}</div><span class="f pv-vs">VS</span><div><b class="f">${esc(f.b.user)}</b>${lockLine(f.b.id)}</div></div>`;
+  if(!mine || locked){ main.innerHTML = `${head}<div class="pv-big"><b class="f">${locked ? 'Locked in! Waiting for your opponent' : 'The fighters are choosing'}</b>${locked ? `<p>${esc(s.picks[PV.me.id].name)}</p>` : ''}</div>`; return; }
+  if(same && document.getElementById('pvGrid')){ const h = main.querySelector('.pv-vsh'); if(h) h.outerHTML = head; return; }
+  main.innerHTML = `${head}<div class="pv-pick"><div class="pv-pl"><div class="pk-top"><input class="search" id="pvQs" placeholder="Find a wrestler"><span class="pk-pg" id="pvPg"></span></div>
+      <div class="pk-grid" id="pvGrid"></div><div class="pk-nav"><button class="t2-arr pk-arr" id="pvPrev" aria-label="Previous page">${ARW_L}</button><button class="t2-arr pk-arr" id="pvNext" aria-label="Next page">${ARW_R}</button></div></div>
+    <div class="pv-pv" id="pvPv"></div></div>`;
+  const q = document.getElementById('pvQs'); q.oninput = () => { PV.pk.q = q.value; PV.pk.page = 0; pvGrid(); };
+  document.getElementById('pvPrev').onclick = () => { PV.pk.page--; pvGrid(); }; document.getElementById('pvNext').onclick = () => { PV.pk.page++; pvGrid(); };
+  pvGrid(); }
+const was2nd = f => !!f;
+function pvGrid(){ const g = document.getElementById('pvGrid'); if(!g) return;
+  const list = ROSTER.filter(w => !PV.pk.q || w.name.toLowerCase().includes(PV.pk.q.toLowerCase())), tw = window.innerWidth <= 640 ? 70 : 96, th = tw + 26, gap = 8;
+  const cols = Math.max(2, Math.floor((g.clientWidth + gap) / (tw + gap))), rows = Math.max(1, Math.floor((g.clientHeight + gap) / (th + gap))), per = cols * rows, pages = Math.max(1, Math.ceil(list.length / per));
+  PV.pk.page = Math.max(0, Math.min(pages - 1, PV.pk.page)); g.style.setProperty('--tw', tw + 'px'); g.style.gridTemplateColumns = `repeat(${cols}, ${tw}px)`;
+  g.innerHTML = list.slice(PV.pk.page * per, PV.pk.page * per + per).map(w => `<button class="pkc${w.name === PV.pk.sel ? ' sel' : ''}" data-n="${esc(w.name)}" title="${esc(w.name)}"><span class="pkf">${face(w)}</span><b class="f">${esc(w.name)}</b></button>`).join('') || '<p class="muted">Nobody by that name.</p>';
+  g.querySelectorAll('.pkc').forEach(b => b.onclick = () => { PV.pk.sel = b.dataset.n; g.querySelectorAll('.pkc').forEach(x => x.classList.toggle('sel', x === b)); pvPv(); });
+  document.getElementById('pvPg').textContent = `Page ${PV.pk.page + 1} of ${pages}`; document.getElementById('pvPrev').disabled = PV.pk.page <= 0; document.getElementById('pvNext').disabled = PV.pk.page >= pages - 1; pvPv(); }
+function pvPv(){ if(!PV.pk.sel || !W(PV.pk.sel)) PV.pk.sel = ROSTER[0] && ROSTER[0].name; const box = document.getElementById('pvPv'), n = PV.pk.sel; if(!box || !n) return; const su = setupOf(n), st = styleOf(su.style);
+  box.innerHTML = `<div class="ph">${face(W(n))}</div><b class="f pv-pn">${esc(n)}</b><span class="chip gold"><span>${esc(st.name)}</span></span>
+    <p class="muted">${esc(su.sigName)} · ${esc(su.finName)}</p><button class="cta big-go" id="pvLock">Lock in ▶</button>`;
+  document.getElementById('pvLock').onclick = () => { if(!W(n)) return; pvSend({ t:'pick', name:n, ids:loadoutOf(n) }); SND.vo('vo-pvp-lockin', 2, 4000); }; }
+
+/* ---------- the match ---------- */
+const pvSnapF = f => ({ hp:f.hp, max:f.max, mom:f.mom, revs:f.revs, stun:!!f.stun, hist:(f.hist || []).slice(-4) });
+function pvSnap(m){ return { a:pvSnapF(m.a), b:pvSnapF(m.b), pos:m.pos, ctrl:m.ctrl ? m.ctrl.side : null, combo:m.combo || 0, turn:m.turn }; }
+const pvClean = d => { if(d == null || typeof d !== 'object') return d; const o = {}; for(const k in d){ const v = d[k]; if(v == null || typeof v !== 'object') o[k] = v; } return o; };
+function pvFightStart(){ const s = PV.st, f = s.fight, main = document.getElementById('pvMain'); if(!f || !main) return;
+  const iAmA = PV.me.id === f.a.id, iAmB = PV.me.id === f.b.id;
+  battleScreen(main, true); SND.crowdStop(); SOUNDS_ON.start();
+  const mk = (who, side, brain, ids) => { const fi = makeFighter(who.name, { brain, loadout:(ids && ids.length ? ids.filter(id => canUse(moveOf(id), who.name)) : defaultLoadout(who.name)).concat(ownMoves(who.name).map(m => m.id)).filter((x, i, a) => a.indexOf(x) === i) });
+    fi.side = side; fi.user = who.user; fi.isMe = who.id === PV.me.id; return fi; };
+  const pa = s.picks[f.a.id] || {}, pb = s.picks[f.b.id] || {};
+  if(iAmA){   // I run the match
+    const A = mk(f.a, 'L', pvTimed(humanBrain(), 'L'), pa.ids), B = mk(f.b, 'R', pvRemote(f.b.id), pb.ids);
+    const ui = { wait:ms => sleep(ms), voiceIdle:() => SND.waitIdle(2500),
+      say:(t, k) => { say(t, k); pvSend({ t:'say', x:t, k }); },
+      fx:(k, who, d) => { fx(k, who, d); if(PV.ch) PV.ch.send({ t:'fx', f:PV.me.id, k, s:who ? who.side : null, d:pvClean(d), snap:pvSnap(m) }); } };
+    const m = new Match(A, B, ui); m.meSide = 'L'; MT = m; PV.run = { mid:f.mid, match:m }; PV.view = null; drawBars();
+    m.run().then(r => { if(!PV.run || PV.run.mid !== f.mid) return; pvSend({ t:'result', mid:f.mid, w:r.winner === A ? f.a.id : f.b.id, how:r.how }); });
+    return; }
+  // the other fighter and the spectators: a mirror of the match, kept up to date by the host
+  const A = mk(f.a, 'L', null, pa.ids), B = mk(f.b, 'R', null, pb.ids);
+  MT = { a:A, b:B, pos:null, ctrl:null, combo:0, turn:0, meSide:iAmB ? 'R' : 'L', spectate:!iAmB, other(x){ return x === this.a ? this.b : this.a; } };
+  PV.view = { mid:f.mid }; PV.run = null; drawBars();
+  if(!iAmB){ const c = document.getElementById('ctl'); if(c) c.innerHTML = `<div class="waiting">You're watching ${esc(f.a.user)} vs ${esc(f.b.user)}</div>`;
+    const ask = document.getElementById('askAll'); if(ask) ask.closest('label').style.visibility = 'hidden'; } }
+function pvApplySnap(sn){ if(!sn || !MT || MT.run) return; ['a', 'b'].forEach(k => Object.assign(MT[k], sn[k])); MT.pos = sn.pos; MT.combo = sn.combo; MT.turn = sn.turn; MT.ctrl = sn.ctrl ? (sn.ctrl === 'L' ? MT.a : MT.b) : null; }
+// the other fighter's choices come over the wire (with a time limit, then the computer picks)
+function pvRemote(toId){ const ai = aiBrain('normal');
+  const ask = (kind, args, fallback) => new Promise(res => { const id = rid(); let done = false;
+    const fin = v => { if(done) return; done = true; delete PV.asks[id]; res(v); };
+    PV.asks[id] = fin; if(PV.ch) PV.ch.send({ t:'ask', f:PV.me.id, to:toId, id, kind, args, snap:MT ? pvSnap(MT) : null });
+    setTimeout(() => fin(fallback()), Math.max(10, +PVC().turnSecs || 45) * 1000 + 15000); });   // a little extra for the mini games
+  return {
+    neutral:(m, f) => ask('neutral', {}, () => ai.neutral(m, f)),
+    chain:(m, f, r) => ask('chain', { r }, () => ai.chain(m, f, r)),
+    control:async (m, f, opts) => { const ser = opts.map(o => ({ type:o.type, mv:o.move ? o.move.id : null, mvo:o.move && !moveOf(o.move.id) ? o.move : null }));
+      const i = await ask('control', { opts:ser }, () => opts.indexOf(ai.control(m, f, opts))); return opts[+i] || opts[opts.length - 1]; },
+    reversal:(m, f, move, len, kind) => ask('reversal', { move:pvClean(move), len, kind }, () => null),
+    kickout:(m, f, zone) => ask('kickout', { zone }, () => ai.kickout(m, f, zone)),
+    escape:(m, f, move, len) => ask('escape', { move:pvClean(move), len }, () => ai.escape(m, f, move, len)) }; }
+// my own choices as the host also have the time limit
+function pvTimed(brain, side){ const ai = aiBrain('normal'), T = () => Math.max(10, +PVC().turnSecs || 45) * 1000;
+  const race = (p, fb) => Promise.race([p, new Promise(r => setTimeout(() => r({ __to:true }), T() + 15000))]).then(v => { if(v && v.__to){ document.querySelectorAll('.mg').forEach(x => x.remove()); return fb(); } return v; });
+  return { neutral:(m, f) => race(brain.neutral(m, f), () => ai.neutral(m, f)), chain:(m, f, r) => race(brain.chain(m, f, r), () => ai.chain(m, f, r)),
+    control:(m, f, o) => race(brain.control(m, f, o), () => ai.control(m, f, o)), reversal:(m, f, mv, l, k) => race(brain.reversal(m, f, mv, l, k), () => null),
+    kickout:(m, f, z) => race(brain.kickout(m, f, z), () => ai.kickout(m, f, z)), escape:(m, f, mv, l) => race(brain.escape(m, f, mv, l), () => ai.escape(m, f, mv, l)) }; }
+// I'm the other fighter: answer the host's question with the normal controls
+async function pvAnswer(p){ if(!MT || MT.run) return; pvApplySnap(p.snap); const me = MT.b, a = p.args || {}, hb = humanBrain(); let v;
+  try{
+    if(p.kind === 'neutral') v = await hb.neutral(MT, me);
+    else if(p.kind === 'chain') v = await hb.chain(MT, me, a.r);
+    else if(p.kind === 'control'){ const opts = (a.opts || []).map(o => ({ type:o.type, move:o.mv ? (moveOf(o.mv) || o.mvo) : o.mvo || undefined }));
+      const pick = await hb.control(MT, me, opts); v = opts.indexOf(pick); }
+    else if(p.kind === 'reversal') v = await hb.reversal(MT, me, a.move, a.len, a.kind);
+    else if(p.kind === 'kickout') v = await hb.kickout(MT, me, a.zone);
+    else if(p.kind === 'escape') v = await hb.escape(MT, me, a.move, a.len);
+  }catch(e){ v = null; }
+  const c = document.getElementById('ctl'); if(c && p.kind !== 'kickout') c.innerHTML = '<div class="waiting">…</div>';
+  if(PV.ch) PV.ch.send({ t:'ans', f:PV.me.id, id:p.id, v }); }
+window.addEventListener('resize', () => { if(S.screen === 'pvp') pvGrid(); });
 
 (async function(){ app.innerHTML = '<div class="kick">Loading the roster…</div>'; await loadRoster(); await refreshToday();
   if(LIVE){ document.querySelectorAll('.top a[href*="tower-admin"], .top .chip').forEach(x => x.remove()); }
