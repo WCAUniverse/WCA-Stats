@@ -658,6 +658,10 @@ body.fit #app[data-screen="pick"]{padding-left:max(18px,calc((100% - 1800px) / 2
 .log-key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-top:4px}
 .log-key b{font-weight:700}
 .log .l-big,.log .l-bighit{color:#fff;font-weight:700}
+/* a wrestler's own moves (Nov 14) */
+.mvpick.own{opacity:1;border-color:rgba(var(--gold-rgb),.7);background:linear-gradient(90deg,rgba(var(--gold-rgb),.16),rgba(0,0,0,.35))}
+.owntag{display:inline-block;margin-bottom:3px;padding:1px 7px;background:var(--gold);color:var(--on-gold);font-family:var(--fight);font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.mvo .owntag{position:absolute;top:6px;left:12px;margin:0}.mvo.own{padding-top:24px}
 
 </style>
 </head>
@@ -929,11 +933,20 @@ const moveOf = id => CFG.moves.find(m => m.id === id);
 /* the player's chosen moves for a wrestler (picked before the match) */
 function loadouts(){ try{ return JSON.parse(localStorage.getItem(LOAD_KEY) || '{}') || {}; }catch(e){ return {}; } }
 function saveLoadout(name, ids){ const l = loadouts(); l[name] = ids; try{ localStorage.setItem(LOAD_KEY, JSON.stringify(l)); }catch(e){} }
-function defaultLoadout(){ const out = [], per = {}; CFG.moves.forEach(m => { per[m.from] = per[m.from] || 0;
-  const always = m.kind === 'pin' || m.kind === 'pickup' || m.kind === 'climb' || m.kind === 'whip';
+/* Nov 14: character-only moves. move.only = [wrestler names] (empty or missing = everyone can use it).
+   A wrestler's own moves are always in their set (players and the computer), and nobody else gets them. */
+const isOwn = (m, name) => !!(m && Array.isArray(m.only) && m.only.length && m.only.includes(name));
+const canUse = (m, name) => !!m && (!Array.isArray(m.only) || !m.only.length || (name != null && m.only.includes(name)));
+const ownMoves = name => CFG.moves.filter(m => isOwn(m, name));
+const moveIdx = id => { const i = CFG.moves.findIndex(m => m.id === id); return i < 0 ? 9999 : i; };   // the order set in the admin (drag and drop)
+function defaultLoadout(name){ const out = [], per = {}; CFG.moves.forEach(m => { if(!canUse(m, name)) return; per[m.from] = per[m.from] || 0;
+  const always = m.kind === 'pin' || m.kind === 'pickup' || m.kind === 'climb' || m.kind === 'whip' || isOwn(m, name);
   if(always || per[m.from] < CFG.settings.maxMovesPerPos){ out.push(m.id); if(!always) per[m.from]++; } }); return out; }
 function hasLoadout(name){ const l = loadouts()[name]; return Array.isArray(l) && l.some(moveOf); }
-function loadoutOf(name){ const l = loadouts()[name]; const ids = Array.isArray(l) ? l.filter(moveOf) : null; return ids && ids.length ? ids : defaultLoadout(); }
+function loadoutOf(name){ const l = loadouts()[name]; let ids = Array.isArray(l) ? l.filter(id => canUse(moveOf(id), name)) : null;
+  if(!ids || !ids.length) return defaultLoadout(name);
+  ownMoves(name).forEach(m => { if(!ids.includes(m.id)) ids.push(m.id); });   // their own moves are always in
+  return ids; }
 
 /* ---------- abilities in plain words ---------- */
 function sentenceWhen(a){ let s = 'When ' + (WHEN[a.when] || a.when);
@@ -1104,7 +1117,7 @@ class Match {
   /* ---- one wrestler on offense ---- */
   options(f){
     const s = CFG.settings, pos = this.pos, opp = this.other(f);
-    const list = f.loadout.filter(m => m.from === pos);
+    const list = f.loadout.filter(m => m.from === pos).sort((a, b) => moveIdx(a.id) - moveIdx(b.id));   // in the admin's order
     const out = list.map(m => ({ type:'move', move:m }));
     if(f.mom >= s.mom.sigCost && f.su.sigFrom === pos) out.push({ type:'sig' });
     if(f.mom >= s.mom.finCost && f.su.finFrom === pos) out.push({ type:'fin' });
@@ -1784,23 +1797,23 @@ function drawPv(){
 function moveset(){
   const n = S.me, su = setupOf(n), max = CFG.settings.maxMovesPerPos;
   let chosen = new Set(loadoutOf(n));
-  const fixed = m => ['pin','pickup','climb','whip'].includes(m.kind);
+  const fixed = m => ['pin','pickup','climb','whip'].includes(m.kind) || isOwn(m, n);   // their own moves are always in (Nov 14)
   const draw = () => {
     app.innerHTML = `<div class="msbar"><span class="f">${esc(n)}</span><span class="sp"></span><button class="cta ghost" id="msDef">Use the default moves</button><button class="cta big-go" id="msGo">${S.custom ? 'Done ✓' : S.quick ? 'Next: your opponent ▶' : 'Fight! ▶'}</button></div>
     <div class="kick">${esc(n)} · customize</div><h1 class="big f chrome" style="font-size:clamp(40px,6vw,70px)">Choose your moves</h1>
-    <p class="note">Pick up to ${max} moves for each spot. These are what you'll be able to do when you're in control. Pins, whips, picking them up and climbing are always there. Your Signature (<b>${esc(su.sigName)}</b>, ${esc(POS[su.sigFrom].toLowerCase())}) and Finisher (<b>${esc(su.finName)}</b>, ${esc(POS[su.finFrom].toLowerCase())}) are set by the admin.</p>
-    <div class="ms">${Object.keys(POS).map(p => { const moves = CFG.moves.filter(m => m.from === p).sort((a, b) => MOVE_KIND_ORDER.indexOf(a.kind) - MOVE_KIND_ORDER.indexOf(b.kind) || (+a.dmg||0) - (+b.dmg||0)); if(!moves.length) return '';
+    <p class="note">Pick up to ${max} moves for each spot. These are what you'll be able to do when you're in control. Pins, whips, picking them up and climbing are always there${ownMoves(n).length ? `, and so are ${esc(n)}'s own moves (marked <b style="color:var(--gold)">Their own</b>)` : ''}. Your Signature (<b>${esc(su.sigName)}</b>, ${esc(POS[su.sigFrom].toLowerCase())}) and Finisher (<b>${esc(su.finName)}</b>, ${esc(POS[su.finFrom].toLowerCase())}) are set by the admin.</p>
+    <div class="ms">${Object.keys(POS).map(p => { const moves = CFG.moves.filter(m => m.from === p && canUse(m, n)).sort((a, b) => MOVE_KIND_ORDER.indexOf(a.kind) - MOVE_KIND_ORDER.indexOf(b.kind) || moveIdx(a.id) - moveIdx(b.id));   // the admin's order if(!moves.length) return '';
       const count = moves.filter(m => !fixed(m) && chosen.has(m.id)).length;
       return `<section class="panel ms-pos"><div class="ms-h"><b class="f">${esc(POS[p])}</b><span class="muted">${count} / ${max}</span></div>
         <div class="ms-list">${moves.map(m => { const on = fixed(m) || chosen.has(m.id);
-          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}><b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(m))}${revMark(m)}</button>`; }).join('')}</div></section>`; }).join('')}</div>
+          return `<button class="mvpick${on?' on':''}${fixed(m)?' fixed':''}${isOwn(m, n)?' own':''}" data-m="${esc(m.id)}" ${fixed(m)?'disabled':''}>${isOwn(m, n) ? '<span class="owntag">Their own</span>' : ''}<b>${esc(m.name)}</b><small>${esc(KINDS[m.kind]||m.kind)}${m.dmg?' · '+m.dmg+' dmg':''}${m.kind==='highrisk'?' · misses hurt '+m.crash:''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(m))}${revMark(m)}</button>`; }).join('')}</div></section>`; }).join('')}</div>
     <div class="row" style="margin-top:16px"><button class="cta ghost" onclick="pickSel=S.me;S.pickFoe=false;if(S.backToPick){ S.custom = false; S.backToPick = false; } go('pick')">Back</button></div>`;
     app.querySelectorAll('.mvpick:not(.fixed)').forEach(b => b.onclick = () => {
-      const m = moveOf(b.dataset.m), here = CFG.moves.filter(x => x.from === m.from && !fixed(x) && chosen.has(x.id)).length;
+      const m = moveOf(b.dataset.m), here = CFG.moves.filter(x => x.from === m.from && canUse(x, n) && !fixed(x) && chosen.has(x.id)).length;
       if(chosen.has(m.id)){ if(here <= 1) return; chosen.delete(m.id); } else { if(here >= max) return; chosen.add(m.id); }
       saveLoadout(n, [...chosen]); draw();
     });
-    document.getElementById('msDef').onclick = () => { chosen = new Set(defaultLoadout()); saveLoadout(n, [...chosen]); draw(); };
+    document.getElementById('msDef').onclick = () => { chosen = new Set(defaultLoadout(n)); saveLoadout(n, [...chosen]); draw(); };
     document.getElementById('msGo').onclick = () => { saveLoadout(n, [...chosen]);
       if(S.custom){ S.custom = false; if(S.backToPick){ S.backToPick = false; pickSel = S.me; go('pick'); } else go('title'); return; }
       if(S.quick){ go('foe'); return; } beginClimb(); };
@@ -1843,7 +1856,7 @@ let MT = null;
 function startBattle(){
   const foe = S.quick ? S.foe : S.inSecret ? S.secret : S.tower[S.floor], level = LEVEL(), lv = AI_LEVEL[level] || AI_LEVEL.normal;
   const me = makeFighter(S.me, { brain:humanBrain(), loadout:loadoutOf(S.me) });
-  const op = makeFighter(foe, { brain:slowAI(aiBrain(level)), level, hpScale:lv.hp * (S.inSecret ? 1 + (+CFG.settings.secretHp || 0) / 100 : 1), dmgScale:lv.dmg, loadout:defaultLoadout() });
+  const op = makeFighter(foe, { brain:slowAI(aiBrain(level)), level, hpScale:lv.hp * (S.inSecret ? 1 + (+CFG.settings.secretHp || 0) / 100 : 1), dmgScale:lv.dmg, loadout:defaultLoadout(foe) });
   me.side = 'L'; op.side = 'R';
   // in a tower, health and reversals carry over from the last floor
   if(!S.quick && S.carry){ me.hp = Math.max(1, Math.min(me.max, S.carry.hp)); me.revs = S.carry.revs; }
@@ -2032,7 +2045,7 @@ function humanBrain(){
         if(o.type === 'sig') return `<button class="mvo sig ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.sigName)}</b><small>Signature · ${f.su.sigDmg} dmg</small>${revMark({ rev:2 })}</button>`;
         if(o.type === 'fin') return `<button class="mvo fin ready" data-v='${JSON.stringify(i)}'><b>${esc(f.su.finName)}</b><small>Finisher · ${f.su.finDmg} dmg</small>${revMark({ rev:3 })}</button>`;
         const mv = o.move;
-        return `<button class="mvo k-${mv.kind}" data-v='${JSON.stringify(i)}'><b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(mv))}${revMark(mv)}</button>`;
+        return `<button class="mvo k-${mv.kind}${isOwn(mv, f.name) ? ' own' : ''}" data-v='${JSON.stringify(i)}'>${isOwn(mv, f.name) ? '<span class="owntag">Their own</span>' : ''}<b>${esc(mv.name)}</b><small>${esc(KINDS[mv.kind]||mv.kind)}${mv.dmg?' · '+mv.dmg+' dmg':''}${mv.kind==='highrisk'?' · risky':''}</small>${(t => t ? `<span class="mtag t-${t.c}">${esc(t.t)}</span>` : '')(moveTag(mv))}${revMark(mv)}</button>`;
       };
       const s = CFG.settings, need = [];
       if(f.mom < s.mom.sigCost) need.push(`Signature at ${s.mom.sigCost} momentum (${POS[f.su.sigFrom].toLowerCase()})`);
