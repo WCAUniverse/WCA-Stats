@@ -12347,7 +12347,7 @@ async function loadChampions(){
       const stat=[];
       if(won!=='') stat.push(`${won}W`);
       if(lost!=='') stat.push(`${lost}L`);
-      const wl=stat.length?`<span class="chs-wl">${stat.join(' · ')}</span>`:'';
+      const wl=stat.length?`<span class="chs-wl" title="${r._auto?'Matches in this division during the reign, counting only shows in the records range':''}">${stat.join(' · ')}</span>`:'';
       return `<div class="chs-row${isCur?' cur':''}">
         <span class="chs-rk">${isCur?'<i class="ti ti-crown"></i>':(newest.length-i)}</span>
         <span class="chs-nm">${div==='Faction'?esc(r.champion):xlinkName(r.champion)}${isCur?'<span class="chs-curtag">CURRENT</span>':''}</span>
@@ -12379,7 +12379,7 @@ async function chReignStats(rows){
   if(!rows || !rows.length || typeof sb === 'undefined') return;
   const [er, mr, br, sr] = await Promise.all([
     sb.from('events').select('id,name,show_number,event_date,completed_at'),
-    sb.from('event_matches').select('event_id,slot,sides'),
+    sb.from('event_matches').select('event_id,slot,sides,championship,division'),
     sb.from('match_betting').select('event_id,slot,winner_idx'),
     sb.from('v_sd_episodes').select('id')
   ]);
@@ -12400,35 +12400,56 @@ async function chReignStats(rows){
   };
   const win = {}; (br.data||[]).forEach(b=>{ if(b.winner_idx!=null) win[b.event_id+'_'+b.slot] = Number(b.winner_idx); });
   const facMembers = name => { const f = (typeof FACTIONS!=='undefined'?FACTIONS:[]).find(x=>chNorm(x.name)===chNorm(name)); return f ? f.members.map(chNorm) : []; };
-  const canon = n => { const w = (typeof wrestlerByName==='function') ? wrestlerByName(n) : null; return chNorm(w ? w.name : n); };
+  // a champion typed as a short name ("Stella") still finds the roster name ("ParallaxStella")
+  const roster = window._rosterAll || window._roster || [];
+  const canon = n => { const w = (typeof wrestlerByName==='function') ? wrestlerByName(n) : null; if(w) return chNorm(w.name);
+    const k = chNorm(n); if(k.length >= 4){ const hits = roster.filter(x => x && chNorm(x.name).includes(k)); if(hits.length === 1) return chNorm(hits[0].name);
+      // or the other way round: "Dreammanifested" in Title History is Dream on the roster
+      const inside = roster.filter(x => x && chNorm(x.name).length >= 4 && k.includes(chNorm(x.name))); if(inside.length === 1) return chNorm(inside[0].name); }
+    return k; };
   // every saved result, as [show number, sides, winning side]
   const res = [];
   (mr.data||[]).forEach(m=>{
     const e = evById[m.event_id]; const w = win[m.event_id+'_'+m.slot];
     if(!e || e.no==null || w==null) return;
     let sides = m.sides; if(typeof sides==='string'){ try{ sides = JSON.parse(sides); }catch(x){ sides = []; } }
-    if(Array.isArray(sides) && sides.length >= 2) res.push({ no:e.no, sides, w });
+    if(Array.isArray(sides) && sides.length >= 2) res.push({ no:e.no, sides, w, champ:chNorm(m.championship), div:chNorm(m.division) });
   });
+  // Nov 15 (Ivan): which shows count toward records (Admin > Records range, WCA 34 and up)
+  try{ if(typeof loadRecordsRange === 'function') await loadRecordsRange(); }catch(e){}
+  const rf = (typeof REC_RANGE !== 'undefined' && REC_RANGE && REC_RANGE.from != null) ? REC_RANGE.from : null,
+        rt = (typeof REC_RANGE !== 'undefined' && REC_RANGE && REC_RANGE.to != null) ? REC_RANGE.to : null;
+  const inRange = no => (rf == null || no >= rf) && (rt == null || no <= rt);
   rows.forEach(r=>{
     const from = placeShow(r.won_at, r.won_date);
     if(from == null) return;
     const lostTxt = String(r.lost_at||'').trim().toLowerCase();
     const isCur = !lostTxt && !String(r.lost_date||'').trim();
     let to = isCur ? Infinity : placeShow(r.lost_at, r.lost_date);
+    // "Vacated" with no date: the reign ends where the next champion of this belt starts
+    if(to == null){ const nx = rows.filter(x => x.division === r.division && x !== r).map(x => placeShow(x.won_at, x.won_date)).filter(n => n != null && n > from).sort((a, b) => a - b)[0]; if(nx != null) to = nx; }
     if(to == null) return;
     const team = r.division === 'Faction', who = team ? chNorm(r.champion) : canon(r.champion), mem = team ? facMembers(r.champion) : [];
     const onSide = sd => { if(!sd) return false;
       const ms = (Array.isArray(sd.members)?sd.members:[]).filter(Boolean);
       if(team){ if(sd.team_name && chNorm(sd.team_name)===who) return true;
-        return ms.length > 0 && mem.length > 0 && ms.every(x=>mem.includes(chNorm(x))); }
+        // two or more members teaming up; one member wrestling alone isn't the faction
+        return ms.length >= 2 && mem.length > 0 && ms.every(x=>mem.includes(chNorm(x))); }
       return ms.some(x=>canon(x)===who); };
-    let w = 0, l = 0;
+    /* Nov 15 (Ivan): a DEFENSE is only a match marked as a title match for this belt
+       (event_matches.championship = the reign's division) that the champion won, any show
+       during the reign (before WCA 34 counts too). The W/L shown for the reign only counts
+       matches in this division, and only shows inside the records range (WCA 34 and up). */
+    const div = chNorm(r.division);
+    let w = 0, l = 0, d = 0;
     res.forEach(x=>{
       if(x.no <= from || x.no > to) return;
       const i = x.sides.findIndex(onSide); if(i < 0) return;
+      if(x.champ && x.champ === div && i === x.w) d++;
+      if(x.div !== div || !inRange(x.no)) return;
       if(i === x.w) w++; else if(x.sides.length === 2) l++;
     });
-    r._auto = true; r._w = w; r._l = l; r.defenses = w;
+    r._auto = true; r._w = w; r._l = l; r.defenses = d;
   });
 }
 function chToggle(id, btn){
