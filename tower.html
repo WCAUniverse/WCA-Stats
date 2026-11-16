@@ -817,7 +817,7 @@ const DEFAULTS = {
     neutral:{ slug:7, slugWinnerTakes:60, strikeFirst:7, blockMom:12, circleMom:5, winMom:10, samePick:3 },
     chain:{ rounds:3, techDmg:3, winMom:8 },
     control:{ recoverBase:20, recoverStep:15, quickStep:8, maxCombo:5, healthResist:10 },
-    reversal:{ slots:3, refillTurns:8, counterDmg:4, ai:{ easy:30, normal:45, hard:60 }, refillMode:'big', maxHold:3, bigHit:15 },
+    reversal:{ slots:3, refillTurns:8, counterDmg:4, ai:{ easy:30, normal:45, hard:60 }, refillMode:'big', maxHold:3, bigHit:15, bigCost:2 },   // bigCost: reversals it costs to reverse a Signature or Finisher (Nov 15)
     // between tower floors (Nov 14): health and reversals carry over. heal = % of full health back, revs = reversals back
     carry:{ easy:{ heal:25, revs:1 }, normal:{ heal:25, revs:1 }, hard:{ heal:25, revs:1 } },
     // wrestlers who can never show up on a tower's rotating floors (champs = no champions either)
@@ -826,7 +826,7 @@ const DEFAULTS = {
     heal:{ on:true, bigDmg:10, pct:35, lowAt:35, lowMult:2, block:4 },
     // secret boss (Nov 14): a % chance after beating a tower. name '' = a random wrestler. mult = times the money per floor
     secret:{ easy:{ name:'', chance:10, mult:5 }, normal:{ name:'', chance:10, mult:5 }, hard:{ name:'', chance:10, mult:5 } }, secretHp:20,
-    seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 } },   // levelSpeed: % arrow speed for each difficulty
+    seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 }, hurtSpeed:50 },   // hurtSpeed: % faster arrows at 0 health (Nov 15)   // levelSpeed: % arrow speed for each difficulty
     pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 }, closeAt:25, closeChance:30 },   // closeAt/closeChance: when a kick out at two is "so close" (Nov 14)
     sub:{ rounds:3, tapAt:25, seqLen:5 },
     mom:{ sigCost:50, finCost:100 },
@@ -1035,6 +1035,7 @@ function kickZone(f, opp){   // width of the green zone in %, from health
   if(opp && opp.pinBoost) z *= (1 - opp.pinBoost / 100);
   return Math.max(s.minZone * .75, Math.min(70, z));
 }
+const revCost = kind => kind === 'sig' || kind === 'fin' ? Math.max(1, +CFG.settings.reversal.bigCost || 1) : 1;
 function seqLen(move, defender, kind){   // how many arrows to hit for a reversal
   const s = CFG.settings.seq; let n = s.base + Math.max(0, (move && move.rev || 1) - 1) * s.perLevel;
   if(kind === 'sig') n += s.sigExtra; if(kind === 'fin') n += s.finExtra;
@@ -1224,10 +1225,11 @@ class Match {
     this.say(kind === 'move' ? `${att.name} goes for a ${move.name}!` : `${att.name} sets up the ${move.name}!`, kind === 'move' ? 'move' : 'big');
     this.fx('windup', att, { name:move.name, big:kind !== 'move', kind });
     let reversed = false;
-    if(move.rev > 0 && def.revs > 0){
+    const cost = revCost(kind);   // Nov 15: Signatures and Finishers cost more reversals
+    if(move.rev > 0 && def.revs >= cost){
       const len = seqLen(move, def, kind);
       const tried = await def.brain.reversal(this, def, move, len, kind);
-      if(tried !== null && tried !== undefined){ def.revs--; def.easyNext = false; reversed = !!tried; }
+      if(tried !== null && tried !== undefined){ def.revs = Math.max(0, def.revs - cost); def.easyNext = false; reversed = !!tried; }
     }
     if(reversed){
       this.stats.reversals++;
@@ -1504,6 +1506,7 @@ const SOUNDS = [
   { id:'vo-lose',       cat:'Narrator', n:1, line:'"You lose."' },
   { id:'vo-tower',      cat:'Narrator', n:1, line:'"Tower conquered!"' },
   // online play (suggested Nov 15)
+  { id:'vo-pvp-ready',  cat:'Narrator', n:1, line:'(ONLINE, you\'re about to face someone new) "Get ready for the next battle!"' },
   { id:'vo-pvp-lockin', cat:'Narrator', n:2, line:'(ONLINE, both wrestlers picked) 1: "The wrestlers are locked in!"   2: "Here we go, online!"' },
   { id:'vo-pvp-next',   cat:'Narrator', n:2, line:'(ONLINE gauntlet, a new challenger steps up) 1: "Here comes a new challenger!"   2: "Next up!"' },
   { id:'vo-pvp-streak', cat:'Narrator', n:2, line:'(ONLINE gauntlet, the winner stays on with 2+ wins) 1: "Still standing!"   2: "Who can stop them?"' },
@@ -1652,7 +1655,7 @@ const ARROWS = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'�
 // big, thick arrow pictures (easier to read than the thin text arrows)
 const ARW_ROT = { ArrowUp:0, ArrowRight:90, ArrowDown:180, ArrowLeft:270 };
 const arw = k => `<svg class="arw" viewBox="0 0 100 100" aria-label="${k.replace('Arrow','')}" style="transform:rotate(${ARW_ROT[k]}deg)"><path d="M50 6 L94 52 L66 52 L66 94 L34 94 L34 52 L6 52 Z" fill="currentColor" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/></svg>`;
-function seqGame(titleText, len, level){   // level: easy / normal / hard, how fast the arrows come
+function seqGame(titleText, len, level, hpFrac){   // level: easy / normal / hard, how fast the arrows come. hpFrac (0..1): the less health, the faster (Nov 15)
   return new Promise(res => {
     const keys = Object.keys(ARROWS), seq = Array.from({length:len}, () => keys[Math.floor(Math.random()*4)]);
     const ov = document.createElement('div'); ov.className = 'mg';
@@ -1663,7 +1666,7 @@ function seqGame(titleText, len, level){   // level: easy / normal / hard, how f
       <div class="legend">Arrow keys or tap the buttons. Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
     document.body.appendChild(ov);
     const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(40, W * .06);   // how close counts as a hit (made more forgiving Nov 14)
-    const ls = CFG.settings.seq.levelSpeed || {}, pace = (CFG.settings.seq.speed / 100) * ((+ls[level || 'easy'] || 100) / 100);
+    const ls = CFG.settings.seq.levelSpeed || {}, pace = (CFG.settings.seq.speed / 100) * ((+ls[level || 'easy'] || 100) / 100) * (1 + (+CFG.settings.seq.hurtSpeed || 0) / 100 * (1 - Math.max(0, Math.min(1, hpFrac == null ? 1 : hpFrac))));
     const speed = (W * .55) * pace;       // pixels per second
     const gap = .62 / pace;                // seconds between arrows
     const notes = seq.map((k, i) => { const n = document.createElement('div'); n.className = 'lnote'; n.innerHTML = arw(k); lane.appendChild(n); return { k, el:n, t0:i * gap + .5, done:false }; });
@@ -2141,13 +2144,13 @@ function humanBrain(){
       if(!big && !S.askAll) return null;
       const verb = move.kind === 'highrisk' ? 'Dodge' : 'Reverse';
       const go = await choose(`<div class="incoming"><div class="f big">${esc(m.other(f).name)} goes for the ${esc(move.name)}!</div>
-        <div class="row" style="justify-content:center;margin-top:10px"><button class="cta" data-v='true'>${verb} it! (${f.revs} left)</button><button class="cta ghost" data-v='false'>Take it</button></div>
+        <div class="row" style="justify-content:center;margin-top:10px"><button class="cta" data-v='true'>${verb} it! (${revCost(kind) > 1 ? 'costs ' + revCost(kind) + ', ' : ''}${f.revs} left)</button><button class="cta ghost" data-v='false'>Take it</button></div>
         <div class="legend">${len} arrows. Hit more than you miss.${move.kind==='highrisk'?' If you dodge, they crash and hurt themselves.':''}</div></div>`, { 'Enter':true, ' ':true, 'Escape':false });
       if(!go) return null;
-      return await seqGame(`${verb} the ${move.name}!`, len, LEVEL());
+      return await seqGame(`${verb} the ${move.name}!`, len, LEVEL(), f.max ? f.hp / f.max : 1);
     },
     kickout(m, f, zone){ return needleGame(zone); },
-    escape(m, f, move, len){ return seqGame(`Fight out of the ${move.name}!`, len, LEVEL()); }
+    escape(m, f, move, len){ return seqGame(`Fight out of the ${move.name}!`, len, LEVEL(), f.max ? f.hp / f.max : 1); }
   };
 }
 
@@ -2545,7 +2548,8 @@ function pvStateChanged(was){ pvSide(); const main = document.getElementById('pv
 function pvPickDraw(same){ const s = PV.st, f = s.fight, main = document.getElementById('pvMain'); if(!main || !f) return;
   const mine = [f.a.id, f.b.id].includes(PV.me.id), locked = !!s.picks[PV.me.id];
   if(!same){ PV.pk = { q:'', page:0, sel:PV.pk.sel && W(PV.pk.sel) ? PV.pk.sel : (ROSTER[0] && ROSTER[0].name), locked:false };
-    if(s.mode !== '1v1' && was2nd(f)) SND.vo('vo-pvp-next', 3); }
+    if([f.a.id, f.b.id].includes(PV.me.id)) SND.vo('vo-pvp-ready', 4);   // about to face someone: "Get ready for the next battle!"
+    else if(s.mode !== '1v1') SND.vo('vo-pvp-next', 3); }
   const lockLine = id => s.picks[id] ? `<span class="pv-ok">Locked in</span>` : `<span class="muted">Choosing…</span>`;
   const head = `<div class="pv-vsh"><div><b class="f">${esc(f.a.user)}</b>${lockLine(f.a.id)}</div><span class="f pv-vs">VS</span><div><b class="f">${esc(f.b.user)}</b>${lockLine(f.b.id)}</div></div>`;
   if(!mine || locked){ main.innerHTML = `${head}<div class="pv-big"><b class="f">${locked ? 'Locked in! Waiting for your opponent' : 'The fighters are choosing'}</b>${locked ? `<p>${esc(s.picks[PV.me.id].name)}</p>` : ''}</div>`; return; }
