@@ -11974,6 +11974,8 @@ function sortRanked(list){
     if(a.is_ready_contender!==b.is_ready_contender) return a.is_ready_contender?-1:1;
     if((b.contender_points||0)!==(a.contender_points||0)) return (b.contender_points||0)-(a.contender_points||0);
     if(b.wins!==a.wins) return b.wins-a.wins;
+    // Nov 16: fewer losses first, so someone with no matches sits above someone with a loss
+    if((+a.losses||0)!==(+b.losses||0)) return (+a.losses||0)-(+b.losses||0);
     return (b.win_pct||0)-(a.win_pct||0);
   });
 }
