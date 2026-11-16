@@ -40118,6 +40118,49 @@ const FHBG = (function(){
   .ex-faq details{padding:12px 16px; border:1px solid var(--line); background:rgba(10,10,14,.8); margin-bottom:8px;}
   .ex-faq summary{cursor:pointer; font-size:18px; font-weight:700;}
   .ex-faq p{font-size:17px; line-height:1.55; color:var(--txt-2); margin:8px 0 0;}
+  .ex-week{display:block; margin-top:-4px; font-size:15px; color:var(--txt-2);}
+  /* My Portfolio: trading cards */
+  .ex-binder{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:26px 20px; padding:6px 10px 10px 0;}
+  .ex-tc-wrap{position:relative; aspect-ratio:5/7.4;}
+  .ex-tc-back{position:absolute; inset:0; border-radius:12px; border:2px solid rgba(var(--gold-rgb),.35);
+    background:repeating-linear-gradient(45deg,#16161c 0 8px,#1d1d25 8px 16px); box-shadow:0 6px 14px rgba(0,0,0,.5);}
+  .ex-tc-back:nth-of-type(1){transform:translate(6px,6px) rotate(2deg);}
+  .ex-tc-back:nth-of-type(2){transform:translate(11px,10px) rotate(4deg);}
+  .ex-tc-back:nth-of-type(3){transform:translate(16px,13px) rotate(6deg);}
+  .ex-tc{--rc:#b8bcc6; --rc2:#5d626c; position:absolute; inset:0; display:flex; flex-direction:column; padding:8px; border-radius:12px; overflow:hidden; cursor:pointer; text-align:left; color:var(--txt); font:inherit;
+    border:3px solid var(--rc); background:linear-gradient(160deg,var(--rc2),#0d0d11 38%,#0d0d11 70%,var(--rc2)); box-shadow:0 10px 24px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.08);
+    transition:transform .2s ease, box-shadow .2s ease;}
+  .ex-tc:hover, .ex-tc:focus-visible{transform:translateY(-6px) rotate(-1deg); box-shadow:0 18px 34px rgba(0,0,0,.6),0 0 22px color-mix(in srgb,var(--rc) 45%,transparent); outline:none;}
+  .ex-tc.rare{--rc:#5FB4FF; --rc2:#1c3d5e;} .ex-tc.epic{--rc:#b48cff; --rc2:#3c2563;} .ex-tc.leg{--rc:#E9B949; --rc2:#6b5114;}
+  .ex-tc-top{display:flex; align-items:center; gap:6px; padding:2px 4px 6px;}
+  .ex-tc-top b{flex:1; min-width:0; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:19px; line-height:1.05; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ex-tc-qty{flex:none; padding:2px 8px; border-radius:12px; background:var(--rc); color:#111; font-family:var(--ex-f); font-weight:900; font-size:16px;}
+  .ex-tc-art{position:relative; flex:1 1 auto; min-height:0; border-radius:6px; overflow:hidden; border:2px solid color-mix(in srgb,var(--rc) 70%,#000);
+    background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--pc,var(--rc)) 55%,#000),#0b0b0e 75%); display:grid; place-items:center;}
+  .ex-tc-art img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;}
+  .ex-tc-art .ini{font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:54px; color:rgba(255,255,255,.85); text-shadow:0 4px 16px #000;}
+  .ex-tc-art img + .ini{display:none;}
+  .ex-tc-rar{position:absolute; left:6px; bottom:6px; padding:2px 8px; background:rgba(0,0,0,.75); border:1px solid var(--rc); color:var(--rc); font-family:var(--ex-f); font-weight:900; font-size:13px; letter-spacing:1.5px; text-transform:uppercase;}
+  .ex-tc-type{padding:5px 4px 3px; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:700;}
+  .ex-tc-stats{display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; padding:6px 6px 4px; border-radius:6px; background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.07);}
+  .ex-tc-stats small{display:block; font-size:13px; color:var(--muted); line-height:1.1;}
+  .ex-tc-stats b{font-size:15px; font-variant-numeric:tabular-nums;}
+  .ex-tc-foot{margin-top:6px; padding:4px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-radius:4px; font-family:var(--ex-f); font-weight:800; font-size:14px; letter-spacing:.5px; text-transform:uppercase;}
+  .ex-tc-foot.up{background:color-mix(in srgb,var(--ex-up) 22%,transparent); color:var(--ex-up);} .ex-tc-foot.dn{background:color-mix(in srgb,var(--ex-dn) 22%,transparent); color:var(--ex-dn);}
+  .ex-tc-shine{position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:0; transition:opacity .25s;
+    background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.18) 42%,rgba(160,220,255,.16) 50%,rgba(255,180,240,.14) 58%,transparent 70%); background-size:250% 100%;}
+  .ex-tc.leg .ex-tc-shine, .ex-tc.epic .ex-tc-shine{opacity:.55; animation:exShine 6s linear infinite;}
+  .ex-tc:hover .ex-tc-shine{opacity:.9; animation:exShine 2.2s linear infinite;}
+  @keyframes exShine{from{background-position:130% 0}to{background-position:-130% 0}}
+  .ex-tc-foot em{font-style:normal;}
+  @media (max-width:520px){ .ex-sumrow{grid-template-columns:1fr 1fr; gap:8px;} .ex-sumrow .ex-fact b{font-size:18px;}
+    .ex-binder{grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px 16px; padding-right:12px;}
+    .ex-tc-wrap{aspect-ratio:5/8;} .ex-tc{padding:6px;} .ex-tc-top b{font-size:15px;} .ex-tc-qty{font-size:14px; padding:1px 6px;}
+    .ex-tc-type{font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .ex-tc-stats{grid-template-columns:1fr; gap:2px;} .ex-tc-stats > span:nth-child(2), .ex-tc-stats > span:nth-child(3){display:none;}
+    .ex-tc-stats > span{display:flex; justify-content:space-between; align-items:baseline; gap:6px;} .ex-tc-stats b{font-size:15px;}
+    .ex-tc-foot .sy{display:none;} }
+  @media (prefers-reduced-motion:reduce){ .ex-tc-shine{animation:none !important;} .ex-tc{transition:none;} }
   /* Feed: trade card and Market Report */
   .ex-postcard{display:flex; align-items:center; gap:12px; margin:10px 0 4px; padding:12px 14px; border:1px solid var(--line); background:rgba(0,0,0,.35); cursor:pointer;}
   .ex-postcard:hover{border-color:var(--gold);}
@@ -40157,9 +40200,10 @@ const FHBG = (function(){
   const hasSb = () => { try{ return typeof sb !== 'undefined' && !!sb; }catch(e){ return false; } };
   const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
   const KINDS = { wrestler:'Wrestler', faction:'Faction', promotion:'Promotion', promo_char:'Wrestler', promo_team:'Team' };
-  const DEF = { booked_pct:3, win_pct:5, loss_pct:3, title_pct:12, defense_pct:6, motn_pct:4, decay_after:2, decay_pct:1, max_rise:30, max_drop:20,
-    pay_win:1, pay_title:4, pay_defense:2, max_shares:500, sell_fee:0, nudge_pct:0.1, nudge_cap:5, sell_needs_ok:false, open:true, fan_posts:true };
-  const X = window.EX = { board:null, cfg:Object.assign({}, DEF), me:null, hist:{}, faces:{}, view:'market', filter:'all', sort:'price', q:'', stock:null, side:'buy', qty:1, msg:null, loaded:0, missing:false };
+  const DEF = { booked_pct:10, win_pct:20, loss_pct:20, title_pct:40, defense_pct:20, motn_pct:15, decay_after:2, decay_pct:5, max_rise:80, max_drop:40,
+    pay_win:5, pay_title:15, pay_defense:8, max_shares:500, sell_fee:0, nudge_pct:0.25, nudge_cap:15, sell_needs_ok:false, open:true, fan_posts:true };
+  let _pv = 'cards'; try{ _pv = localStorage.getItem('wca-ex-pview') || 'cards'; }catch(e){}
+  const X = window.EX = { pview:_pv, board:null, cfg:Object.assign({}, DEF), me:null, hist:{}, faces:{}, view:'market', filter:'all', sort:'price', q:'', stock:null, side:'buy', qty:1, msg:null, loaded:0, missing:false };
 
   /* ── data ── */
   async function loadBoard(force){
@@ -40184,9 +40228,13 @@ const FHBG = (function(){
   async function loadHist(){
     if(!hasSb()) return;
     try{
-      const r = await sb.from('ex_history').select('stock_id,at,price').order('at', { ascending:true }).limit(5000);
-      X.hist = {};
-      (r.data || []).forEach(h => { (X.hist[h.stock_id] = X.hist[h.stock_id] || []).push(Number(h.price)); });
+      const r = await sb.from('ex_history').select('stock_id,at,price,reason').order('at', { ascending:false }).limit(5000);
+      X.hist = {}; X.histT = {};
+      (r.data || []).slice().reverse().forEach(h => {
+        (X.hist[h.stock_id] = X.hist[h.stock_id] || []).push(Number(h.price));
+        (X.histT[h.stock_id] = X.histT[h.stock_id] || []).push({ t:Date.parse(h.at), p:Number(h.price), why:h.reason || '' });
+      });
+      Object.values(X.histT).forEach(l => l.sort((x, y) => x.t - y.t));   // oldest first, always
     }catch(e){}
   }
   async function loadFaces(){
@@ -40200,6 +40248,18 @@ const FHBG = (function(){
     }catch(e){}
   }
   const stockById = id => (X.board || []).find(s => String(s.id) === String(id));
+  const WEEK = 7 * 864e5;
+  // % change over the last 7 days (from the last price before the week started)
+  function chgWeek(s){
+    const h = (X.histT && X.histT[s.id]) || []; if(!h.length) return chg(s);
+    const cut = Date.now() - WEEK; let base = null;
+    for(const x of h){ if(x.t <= cut) base = x.p; else break; }
+    if(base == null) base = Number(s.prev_price) || h[0].p;
+    return base > 0 ? (Number(s.price) - base) / base * 100 : 0;
+  }
+  // how much has happened lately: fan trades and show moves in the last 7 days
+  const busy = s => ((X.histT && X.histT[s.id]) || []).filter(x => x.t > Date.now() - WEEK).length;
+  const lastMove = s => { const h = (X.histT && X.histT[s.id]) || []; return h.length ? h[h.length - 1].t : 0; };
   const chg = s => { const a = Number(s.prev_price), b = Number(s.price); return a > 0 ? (b - a) / a * 100 : 0; };
   const chgHTML = s => { const c = chg(s); const cls = c > 0.05 ? 'ex-up' : c < -0.05 ? 'ex-dn' : 'ex-flat';
     return `<span class="${cls}">${c > 0.05 ? '▲' : c < -0.05 ? '▼' : '•'} ${Math.abs(c).toFixed(1)}%</span>`; };
@@ -40281,12 +40341,13 @@ const FHBG = (function(){
     let list = (X.board || []).slice();
     if(X.filter !== 'all') list = list.filter(s => (X.filter === 'wrestler' ? (s.kind === 'wrestler' || s.kind === 'promo_char') : X.filter === 'faction' ? (s.kind === 'faction' || s.kind === 'promo_team') : s.kind === X.filter));
     if(X.q) list = list.filter(s => (s.name + ' ' + (s.ticker || '')).toLowerCase().indexOf(X.q.toLowerCase()) >= 0);
-    const by = { price:(a, b) => b.price - a.price, up:(a, b) => chg(b) - chg(a), down:(a, b) => chg(a) - chg(b), owned:(a, b) => b.owned - a.owned, name:(a, b) => a.name.localeCompare(b.name) };
+    const by = { price:(a, b) => b.price - a.price, up:(a, b) => chg(b) - chg(a), down:(a, b) => chg(a) - chg(b), owned:(a, b) => b.owned - a.owned, name:(a, b) => a.name.localeCompare(b.name),
+      hot:(a, b) => busy(b) - busy(a) || Math.abs(chgWeek(b)) - Math.abs(chgWeek(a)), wup:(a, b) => chgWeek(b) - chgWeek(a), wdown:(a, b) => chgWeek(a) - chgWeek(b), recent:(a, b) => lastMove(b) - lastMove(a) };
     list.sort(by[X.sort] || by.price);
     const chips = [['all', 'All'], ['wrestler', 'Wrestlers'], ['faction', 'Factions'], ['promotion', 'Promotions']]
       .map(([k, t]) => `<button type="button" class="ex-chip${X.filter === k ? ' on' : ''}" data-f="${k}">${t}</button>`).join('');
     const tools = `<div class="ex-tools">${chips}
-      <select class="ex-in" id="ex-sort" aria-label="Sort">${[['price', 'Highest price'], ['up', 'Biggest risers'], ['down', 'Biggest fallers'], ['owned', 'Most owned'], ['name', 'A to Z']].map(([k, t]) => `<option value="${k}"${X.sort === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
+      <select class="ex-in" id="ex-sort" aria-label="Sort">${[['hot', 'Hot right now (most activity)'], ['wup', 'Rising this week'], ['wdown', 'Falling this week'], ['recent', 'Moved most recently'], ['up', 'Risers since the last show'], ['down', 'Fallers since the last show'], ['price', 'Highest price'], ['owned', 'Most owned'], ['name', 'A to Z']].map(([k, t]) => `<option value="${k}"${X.sort === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
       <input class="ex-in" type="search" id="ex-q" placeholder="Find a superstar" value="${E(X.q)}"></div>`;
     if(!(X.board || []).length) return tools + `<div class="ex-empty">No stocks are listed yet. They open after WCA sets the starting prices.</div>`;
     if(!list.length) return tools + `<div class="ex-empty">Nothing matches that.</div>`;
@@ -40297,6 +40358,7 @@ const FHBG = (function(){
     return `<div class="ex-card" role="button" tabindex="0" data-s="${s.id}">
       <div class="ex-card-top">${face(s)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
       <div class="ex-price"><b>${money2(s.price)}</b>${chgHTML(s)}</div>
+      ${/^(hot|wup|wdown|recent)$/.test(X.sort) ? (w => `<small class="ex-week">This week <span class="${w > 0.05 ? 'ex-up' : w < -0.05 ? 'ex-dn' : 'ex-flat'}">${w > 0.05 ? '▲' : w < -0.05 ? '▼' : '•'} ${Math.abs(w).toFixed(1)}%</span>${busy(s) ? ` · ${busy(s)} ${busy(s) === 1 ? 'move' : 'moves'}` : ''}</small>`)(chgWeek(s)) : ''}
       ${spark(s.id, 220, 44, 'ex-spark')}
       <small style="font-size:15px;color:var(--txt-2)">${h.shares ? `You own <b>${h.shares}</b> · ` : ''}${Number(s.holders) || 0} ${Number(s.holders) === 1 ? 'fan owns' : 'fans own'} shares${Number(s.trend) > 0 ? ' · <span class="ex-up">Climbing</span>' : Number(s.trend) < 0 ? ' · <span class="ex-dn">Sliding</span>' : ''}${s.frozen ? ' · Price frozen' : ''}</small>
       <button type="button" class="ex-btn sm ex-buybtn" data-buy="${s.id}">Buy shares</button></div>`;
@@ -40372,6 +40434,7 @@ const FHBG = (function(){
     const host = $('ex-body'); if(!host) return;
     host.querySelectorAll('[data-signin]').forEach(b => b.onclick = () => { if(typeof frSignIn === 'function') frSignIn(); });
     host.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { X.filter = b.dataset.f; draw(); });
+    host.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { X.pview = b.dataset.pv; try{ localStorage.setItem('wca-ex-pview', X.pview); }catch(e){} draw(); });
     const so = $('ex-sort'); if(so) so.onchange = () => { X.sort = so.value; draw(); };
     const q = $('ex-q'); if(q) q.oninput = () => { X.q = q.value; const pos = q.selectionStart; draw(); const n = $('ex-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } };
     host.querySelectorAll('[data-side]').forEach(b => b.onclick = () => { X.side = b.dataset.side; X.qty = 1; X.msg = null; draw(); });
@@ -40429,12 +40492,54 @@ const FHBG = (function(){
       <div class="ex-fact"><small>Profit if you sold now</small><b class="${pr >= 0 ? 'ex-up' : 'ex-dn'}">${pr >= 0 ? '+' : '-'}${money(Math.abs(pr))}</b></div>
       <div class="ex-fact"><small>Win payouts so far</small><b>${money(paid)}</b></div>
       <div class="ex-fact"><small>WCA money</small><b>${money(balance())}</b></div></div>`;
+    const view = X.pview || 'cards';
+    const toggle = hs.length ? `<div class="ex-tools" style="margin-top:4px"><span style="font-family:var(--ex-f);font-style:italic;font-weight:900;font-size:24px;text-transform:uppercase;margin-right:auto">Your collection <small style="font-style:normal;font-size:15px;color:var(--muted);letter-spacing:1px">${hs.length} ${hs.length === 1 ? 'card' : 'cards'} · ${hs.reduce((a, x) => a + x.h.shares, 0)} shares</small></span>
+      <button type="button" class="ex-chip${view === 'cards' ? ' on' : ''}" data-pv="cards">Cards</button><button type="button" class="ex-chip${view === 'list' ? ' on' : ''}" data-pv="list">List</button></div>` : '';
+    if(hs.length && view === 'cards'){
+      const order = hs.slice().sort((a, b) => b.h.shares * b.s.price - a.h.shares * a.s.price);
+      return top + toggle + `<div class="ex-binder">${order.map(({ h, s }) => tcard(h, s)).join('')}</div>` + pendHTML(pend);
+    }
     const rows = hs.length ? `<div class="ex-tablewrap"><table class="ex-table"><thead><tr><th>Stock</th><th>Shares</th><th>Paid per share</th><th>Price now</th><th>Worth</th><th>Profit</th></tr></thead><tbody>
       ${hs.map(({ h, s }) => { const w = h.shares * s.price, p = w - h.cost; return `<tr data-s="${s.id}"><td><b>${E(s.name)}</b></td><td>${h.shares}</td><td>${money2(h.cost / Math.max(1, h.shares))}</td><td>${money2(s.price)} ${chgHTML(s)}</td><td>${money(w)}</td><td class="${p >= 0 ? 'ex-up' : 'ex-dn'}">${p >= 0 ? '+' : '-'}${money(Math.abs(p))}</td></tr>`; }).join('')}
       </tbody></table></div>` : `<div class="ex-empty">You don't own any shares yet. Pick someone on the Market tab and press Buy shares.</div>`;
     const pe = pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
       ${pend.map(p => { const s = stockById(p.stock_id); return `<div class="ex-msg">${p.shares} ${p.shares === 1 ? 'share' : 'shares'} of ${E(s ? s.name : 'a stock')}. You get paid the price on the day WCA says OK.</div>`; }).join('')}` : '';
-    return top + rows + pe;
+    return top + toggle + rows + pe;
+  }
+  function pendHTML(pend){
+    return pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
+      ${pend.map(p => { const s = stockById(p.stock_id); return `<div class="ex-msg">${p.shares} ${p.shares === 1 ? 'share' : 'shares'} of ${E(s ? s.name : 'a stock')}. You get paid the price on the day WCA says OK.</div>`; }).join('')}` : '';
+  }
+  // rarity comes from today's price (never from the private grade)
+  function rarity(price){
+    const p = Number(price) || 0;
+    return p >= 1000 ? { k:'leg', t:'Legendary' } : p >= 500 ? { k:'epic', t:'Epic' } : p >= 200 ? { k:'rare', t:'Rare' } : { k:'com', t:'Common' };
+  }
+  // one trading card per stock you own; more shares = a thicker stack behind it
+  function tcard(h, s){
+    const f = X.faces[s.kind + ':' + s.ref_id] || {};
+    const img = /^https:\/\//i.test(f.img || '') ? f.img : '';
+    const col = /^#[0-9a-f]{3,8}$/i.test(f.col || '') ? f.col : '';
+    const ini = String(s.name || '?').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+    const worth = h.shares * s.price, paid = Number(h.cost) || 0, pr = worth - paid, pct = paid > 0 ? pr / paid * 100 : 0;
+    const r = rarity(s.price);
+    const stack = h.shares >= 20 ? 3 : h.shares >= 5 ? 2 : h.shares >= 2 ? 1 : 0;
+    return `<div class="ex-tc-wrap" data-stack="${stack}">
+      ${'<span class="ex-tc-back"></span>'.repeat(stack)}
+      <button type="button" class="ex-tc ${r.k}" data-s="${s.id}" aria-label="${E(s.name)}: ${h.shares} shares, worth ${money(worth)}">
+        <span class="ex-tc-top"><b>${E(s.name)}</b><span class="ex-tc-qty">×${h.shares}</span></span>
+        <span class="ex-tc-art"${col ? ` style="--pc:${E(col)}"` : ''}>${img ? `<img src="${E(img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<span class="ini">${E(ini)}</span>
+          <span class="ex-tc-rar">${r.t}</span></span>
+        <span class="ex-tc-type">${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</span>
+        <span class="ex-tc-stats">
+          <span><small>Worth now</small><b>${money(worth)}</b></span>
+          <span><small>You paid</small><b>${money(paid)}</b></span>
+          <span><small>Price</small><b>${money2(s.price)}</b></span>
+          <span><small>Profit</small><b class="${pr >= 0 ? 'ex-up' : 'ex-dn'}">${pr >= 0 ? '+' : '-'}${money(Math.abs(pr))}</b></span>
+        </span>
+        <span class="ex-tc-foot ${pr >= 0 ? 'up' : 'dn'}">${pr >= 0 ? '▲ +' : '▼ -'}${Math.abs(pct).toFixed(1)}%<em class="sy"> since you bought</em></span>
+        <span class="ex-tc-shine" aria-hidden="true"></span>
+      </button></div>`;
   }
 
   function guideView(){
