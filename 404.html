@@ -8835,6 +8835,35 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea{font-size:16px;}
   }
   .site-foot .sf-copy{max-width:1180px; margin:0 auto; padding:12px 24px 22px; border-top:1px solid rgba(255,255,255,.06); font-family:var(--font-body); font-size:14px; color:var(--muted2,#5c5c58); text-align:center;}
+
+/* ---------- Match ratings for promotions (Nov 2026) ----------
+   Stars fill to the exact amount, so 3.5 shows three and a half gold stars. */
+.prs{display:inline-flex; gap:2px; line-height:1; vertical-align:middle; font-size:20px;}
+.prs.big{font-size:24px;}
+.prs-s{position:relative; display:inline-block; color:rgba(255,255,255,.18);}
+.prs-s::before{content:'\2605';}
+.prs-f{position:absolute; left:0; top:0; bottom:0; overflow:hidden; white-space:nowrap; color:var(--gold, #e9b949); pointer-events:none;}
+.prs-f::before{content:'\2605';}
+.prp{font-size:30px; gap:3px;}
+.prp-b{position:absolute; top:0; bottom:0; left:0; width:100%; padding:0; margin:0; border:0; background:none; cursor:pointer;}
+.prp-b.l{width:50%;}
+.prp-b.r{left:50%; width:50%;}
+.prp-b:focus-visible{outline:2px solid var(--gold, #e9b949); outline-offset:1px; border-radius:3px;}
+.prp.hov .prs-f{color:#ffd86b;}
+.pr-box{margin-top:12px; padding-top:12px; border-top:1px solid var(--line, rgba(255,255,255,.1)); display:flex; flex-direction:column; gap:8px;}
+.pr-row{display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap;}
+.pr-k{font-family:var(--font-cond); font-size:16px; font-weight:600; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); min-width:130px;}
+.pr-n{font-family:var(--font-cond); font-size:20px; color:var(--gold, #e9b949);}
+.pr-v{font-family:var(--font-body); font-size:15px; color:var(--muted);}
+.pr-tag{display:inline-flex; align-items:center; gap:6px;}
+.pr-tag .prs{font-size:16px;}
+.pr-opts{display:flex; flex-direction:column; gap:2px; margin:4px 0 8px;}
+.pr-opts .ed-check{margin:6px 0 !important; align-items:flex-start !important;}
+.pr-opts .ed-check input{width:20px !important; height:20px !important; min-width:0 !important; flex:0 0 20px !important; margin:3px 0 0 !important; padding:0 !important; accent-color:var(--gold, #e9b949);}
+.pr-opts .ed-check > span{flex:1 1 auto; min-width:0;}
+.pr-opts .ed-check b{font-size:16px;}
+.pr-opts .ed-check small{display:block; color:var(--muted); font-size:14.5px;}
+.pr-demo{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:8px 0 4px; padding:12px 14px; border:1px solid var(--line, rgba(255,255,255,.1)); border-radius:12px; background:rgba(0,0,0,.2);}
 </style>
 
 <!-- ===== HOME PAGE styles ===== -->
@@ -24137,7 +24166,7 @@ function pmTabOrder(saved){
   const s = Array.isArray(saved) ? saved.filter(k => PM_TAB_DEF.includes(k)) : [];
   return [...new Set(s.concat(PM_TAB_DEF))];
 }
-var PM_PAGE_DEF = { nav:'side', roster:'split', ranks_on:true, ranks:'table', champs_on:true, cp:false, cp_w:3, cp_l:0, cp_nc:1 };
+var PM_PAGE_DEF = { nav:'side', roster:'split', ranks_on:true, ranks:'table', champs_on:true, cp:false, cp_w:3, cp_l:0, cp_nc:1, rate:'off', rate_who:'fans' };
 var PM_ROSTER_LAYOUTS = [
   ['split','Side by side','Names on the left, a big card on the right. This is the default.'],
   ['top','Card on top','The big card across the top, everyone in tiles below it.'],
@@ -24151,6 +24180,105 @@ var PM_RANK_LAYOUTS = [
   ['table','Table','Rows with wins, losses and no contests. This is the default.'],
   ['cards','Cards','A card for each name with their record in big numbers.'],
   ['list','Compact list','One short line each. Good for a big roster.']];
+
+/* ---------- Match ratings for promotions (Nov 2026) ----------
+   Each promotion picks, in My Promotion, Page layout:
+     the scale: off, whole stars (1 to 5) or half stars (0.5 to 5)
+     who rates: fans, the promotion's official rating, or both side by side
+   Fan votes live in promotion_match_ratings (average in v_promotion_match_ratings),
+   the official rating in promotion_matches.official_stars.
+   SQL: SUPABASE_SETUP_promotion_match_ratings.sql */
+var PR_SCALES = [
+  ['off','No match ratings','Matches on your shows are not rated.'],
+  ['whole','Whole stars, 1 to 5','1, 2, 3, 4 or 5 stars.'],
+  ['half','Half stars, 0.5 to 5','Half stars count too, like 1.5, 3.5 or 4.5 stars.']];
+var PR_WHO = [
+  ['fans','Fans rate them','Signed in fans tap the stars under each match once the show is live or finished.'],
+  ['official','Your official rating','You give each match one rating when you enter the result.'],
+  ['both','Both','Your official rating and the fans\' average show side by side.']];
+function prOn(pg){ return !!pg && (pg.rate === 'whole' || pg.rate === 'half'); }
+function prStep(pg){ return pg && pg.rate === 'half' ? 0.5 : 1; }
+function prFans(pg){ return prOn(pg) && pg.rate_who !== 'official'; }
+function prOfficial(pg){ return prOn(pg) && pg.rate_who !== 'fans'; }
+function prFix(v, pg){ const s = prStep(pg), n = Number(v); if(!isFinite(n) || n <= 0) return 0; return Math.max(s, Math.min(5, Math.round(n / s) * s)); }
+function prList(pg){ const s = prStep(pg), out = []; for(let v = s; v <= 5; v += s) out.push(v); return out; }
+function prTxt(n){ return String(Math.round((Number(n) || 0) * 2) / 2); }
+function prStarWord(n){ return prTxt(n) + (Number(n) === 1 ? ' star' : ' stars'); }
+// stars filled to the exact amount
+function prStarsHTML(n, cls){
+  n = Math.max(0, Math.min(5, Number(n) || 0));
+  let h = '';
+  for(let i = 1; i <= 5; i++){ const f = Math.max(0, Math.min(1, n - (i - 1))); h += `<span class="prs-s"><span class="prs-f" style="width:${Math.round(f * 100)}%"></span></span>`; }
+  return `<span class="prs ${cls || ''}" role="img" aria-label="${escAttr((Math.round(n * 100) / 100) + ' out of 5 stars')}">${h}</span>`;
+}
+// the stars a fan taps; with half stars each star has a left half and a right half
+function prPickerHTML(mid, pg, mine){
+  const s = prStep(pg); let b = '';
+  for(let i = 1; i <= 5; i++){
+    const f = Math.max(0, Math.min(1, (mine || 0) - (i - 1)));
+    const vals = s === 0.5 ? [i - 0.5, i] : [i];
+    b += `<span class="prs-s prp-s"><span class="prs-f" style="width:${Math.round(f * 100)}%"></span>${vals.map((v, k) =>
+      `<button type="button" class="prp-b${vals.length > 1 ? (k ? ' r' : ' l') : ''}" aria-label="Rate it ${escAttr(prStarWord(v))}" onclick="prRate(${Number(mid)},${v})" onmouseenter="prHover(this,${v})" onfocus="prHover(this,${v})" onblur="prHover(this,null)"></button>`).join('')}</span>`;
+  }
+  return `<span class="prs prp" data-mine="${Number(mine) || 0}" onmouseleave="prHover(this,null)">${b}</span>`;
+}
+function prHover(el, v){
+  const w = el.closest('.prp'); if(!w) return;
+  const n = v == null ? (Number(w.dataset.mine) || 0) : v;
+  w.classList.toggle('hov', v != null);
+  w.querySelectorAll('.prp-s').forEach((s, i) => { s.querySelector('.prs-f').style.width = Math.round(Math.max(0, Math.min(1, n - i)) * 100) + '%'; });
+}
+// fan ratings for these matches; S.rate stays null if the table is not set up yet
+async function prLoad(S, ids){
+  if(!prFans(S.page) || !ids.length) return;
+  const [a, m] = await Promise.all([
+    sb.from('v_promotion_match_ratings').select('*').in('match_id', ids),
+    frSignedIn() ? sb.from('promotion_match_ratings').select('match_id,stars').in('match_id', ids).eq('user_id', CURRENT_USER.id) : Promise.resolve({ data:[] })
+  ]);
+  if(a.error) return;
+  S.rate = S.rate || { agg:{}, mine:{} };
+  ids.forEach(id => { delete S.rate.agg[id]; delete S.rate.mine[id]; });
+  (a.data || []).forEach(r => { S.rate.agg[r.match_id] = { avg:Number(r.avg_stars) || 0, votes:Number(r.votes) || 0 }; });
+  ((m && m.data) || []).forEach(r => { S.rate.mine[r.match_id] = Number(r.stars) || 0; });
+}
+// the ratings under a match on the promotion's page
+function peRateHTML(S, e, m){
+  const pg = S.page; if(!prOn(pg)) return '';
+  const rows = [];
+  if(prOfficial(pg) && Number(m.official_stars) > 0)
+    rows.push(`<div class="pr-row"><span class="pr-k">Official rating</span>${prStarsHTML(m.official_stars, 'big')}<b class="pr-n">${esc(prTxt(m.official_stars))}</b></div>`);
+  if(prFans(pg) && S.rate && (e.status === 'live' || e.status === 'done')){
+    const a = S.rate.agg[m.id], mine = S.rate.mine[m.id] || 0;
+    rows.push(`<div class="pr-row"><span class="pr-k">Fan rating</span>${a && a.votes
+      ? `${prStarsHTML(a.avg)}<b class="pr-n">${a.avg.toFixed(2)}</b><span class="pr-v">${a.votes} vote${a.votes === 1 ? '' : 's'}</span>`
+      : '<span class="pr-v">No fan ratings yet</span>'}</div>`);
+    rows.push(frSignedIn()
+      ? `<div class="pr-row"><span class="pr-k">${mine ? 'You gave it ' + esc(prTxt(mine)) : 'Rate this match'}</span>${prPickerHTML(m.id, pg, mine)}${mine ? '<span class="pr-v">Tap the same star again to clear it</span>' : ''}</div>`
+      : `<div class="pr-row"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to rate this match</button></div>`);
+  }
+  return rows.length ? `<div class="pr-box" id="pr-${Number(m.id)}">${rows.join('')}</div>` : '';
+}
+function peRateRedraw(mid){
+  const S = PE.pub; if(!S) return;
+  const m = Object.values(S.matches || {}).flat().find(x => x.id === mid); if(!m) return;
+  const e = (S.events || []).find(x => x.id === m.event_id); if(!e) return;
+  const el = document.getElementById('pr-' + mid);
+  if(el) el.outerHTML = peRateHTML(S, e, m) || '';
+}
+async function prRate(mid, v){
+  const S = PE.pub; if(!S || !S.rate) return;
+  if(!frSignedIn()){ frSignIn(); return; }
+  const old = S.rate.mine[mid] || 0;
+  v = prFix(v, S.page);
+  if(v && v === old) v = 0;            // tapping your own rating again clears it
+  S.rate.mine[mid] = v; peRateRedraw(mid);
+  const res = v
+    ? await sb.from('promotion_match_ratings').upsert({ match_id:mid, promotion_id:S.pid, user_id:CURRENT_USER.id, stars:v, updated_at:new Date().toISOString() }, { onConflict:'match_id,user_id' })
+    : await sb.from('promotion_match_ratings').delete().eq('match_id', mid).eq('user_id', CURRENT_USER.id);
+  if(res.error){ S.rate.mine[mid] = old; wcaToast('Could not save', (res.error.message || '').replace(/^.*?:\s*/, '') || 'Your rating did not save, try again.', true); }
+  try{ await prLoad(S, [mid]); }catch(e){}
+  peRateRedraw(mid);
+}
 function pmPageOf(x){
   x = (x && typeof x === 'object') ? x : {};
   const o = Object.assign({}, PM_PAGE_DEF);
@@ -24160,6 +24288,9 @@ function pmPageOf(x){
   if(x.ranks_on === false) o.ranks_on = false;
   if(x.champs_on === false) o.champs_on = false;
   o.cp = x.cp === true;
+  // match ratings: off, whole stars or half stars, rated by fans, the promotion, or both
+  if(PR_SCALES.some(l => l[0] === x.rate)) o.rate = x.rate;
+  if(PR_WHO.some(l => l[0] === x.rate_who)) o.rate_who = x.rate_who;
   ['cp_w','cp_l','cp_nc'].forEach(k => { const n = Number(x[k]); if(x[k] !== undefined && x[k] !== null && x[k] !== '' && isFinite(n)) o[k] = Math.max(-99, Math.min(99, Math.round(n))); });
   return o;
 }
@@ -24901,6 +25032,15 @@ async function mpLayoutTab(box){
       </div>
       <div class="ed-sub-h"><i class="ti ti-trophy" aria-hidden="true"></i> Champions</div>
       <label class="ed-check" for="mpl_ch_on"><input type="checkbox" id="mpl_ch_on"${P.champs_on ? ' checked' : ''} onchange="mpLayoutPick()"><span>Show a Champions section, and your champions above the roster</span></label>
+      <div class="ed-sub-h"><i class="ti ti-star" aria-hidden="true"></i> Match ratings</div>
+      <p class="pm-small pm-dim">How matches on your shows get rated. The ratings show under each match on your page and in Events.</p>
+      <div class="pr-opts" role="radiogroup" aria-label="Rating scale">${PR_SCALES.map(([k, l, s]) => `<label class="ed-check" for="mpl_rate_${k}"><input type="radio" name="mpl_rate" id="mpl_rate_${k}" value="${k}"${P.rate === k ? ' checked' : ''} onchange="mpLayoutPick()"><span><b>${esc(l)}</b><small>${esc(s)}</small></span></label>`).join('')}</div>
+      <div id="mpl_rate_more">
+        <div class="pm-small" style="font-weight:700;margin-top:4px">Who rates the matches</div>
+        <div class="pr-opts" role="radiogroup" aria-label="Who rates the matches">${PR_WHO.map(([k, l, s]) => `<label class="ed-check" for="mpl_rate_who_${k}"><input type="radio" name="mpl_rate_who" id="mpl_rate_who_${k}" value="${k}"${P.rate_who === k ? ' checked' : ''} onchange="mpLayoutPick()"><span><b>${esc(l)}</b><small>${esc(s)}</small></span></label>`).join('')}</div>
+        <div class="pr-demo" id="mpl_rate_demo" aria-live="polite"></div>
+        <p class="pm-small pm-dim">Give your official rating in Events, when you edit a match.</p>
+      </div>
       <div id="mpt_box" data-nokeep>${typeof mpTabsHTML === 'function' ? mpTabsHTML(PM.tabOrder) : ''}</div>
       <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpLayoutSave()">Save page layout</button></div>
       <div class="msg" id="mpl_lmsg"></div>
@@ -24911,7 +25051,7 @@ async function mpLayoutTab(box){
 function mpLayoutRead(){
   const r = n => { const x = document.querySelector(`input[name="mpl_${n}"]:checked`); return x ? x.value : undefined; };
   const c = id => !!(pmEl(id) || {}).checked, v = id => (pmEl(id) || {}).value;
-  return pmPageOf({ nav:r('nav'), roster:r('roster'), ranks:r('ranks'), ranks_on:c('mpl_rk_on'), champs_on:c('mpl_ch_on'), cp:c('mpl_cp'), cp_w:v('mpl_cp_w'), cp_l:v('mpl_cp_l'), cp_nc:v('mpl_cp_nc') });
+  return pmPageOf({ nav:r('nav'), roster:r('roster'), ranks:r('ranks'), ranks_on:c('mpl_rk_on'), champs_on:c('mpl_ch_on'), cp:c('mpl_cp'), cp_w:v('mpl_cp_w'), cp_l:v('mpl_cp_l'), cp_nc:v('mpl_cp_nc'), rate:r('rate'), rate_who:r('rate_who') });
 }
 // sample names for a promotion with no roster yet
 function mpLayoutSample(){
@@ -24927,6 +25067,11 @@ function mpLayoutPick(){
   document.querySelectorAll('.ed-lay').forEach(l => l.classList.toggle('on', !!l.querySelector('input:checked')));
   const more = pmEl('mpl_rk_more'); if(more) more.hidden = !pg.ranks_on;
   const nums = pmEl('mpl_cp_nums'); if(nums) nums.hidden = !pg.cp;
+  const rmore = pmEl('mpl_rate_more'); if(rmore) rmore.hidden = !prOn(pg);
+  const rdemo = pmEl('mpl_rate_demo');
+  if(rdemo) rdemo.innerHTML = prOn(pg)
+    ? `<span class="pr-k">Looks like</span>${prStarsHTML(pg.rate === 'half' ? 3.5 : 4, 'big')}<b class="pr-n">${pg.rate === 'half' ? '3.5' : '4'}</b><span class="pr-v">${pg.rate === 'half' ? 'Ratings go up in half stars: 0.5, 1, 1.5 and so on to 5.' : 'Ratings are 1, 2, 3, 4 or 5 stars.'}</span>`
+    : '';
   const box = pmEl('mpl_lprev'); if(!box) return;
   const real = mpApproved() && (PM.roster || []).length && String(PM.rosterFor) === String(PM.curId);
   const D = real ? { cats:PM.cats, roster:PM.roster, facs:PM.facs || [], titles:PM.titles || [], reigns:PM.reigns || [], recs:PM.recsEd } : mpLayoutSample();
@@ -35261,6 +35406,10 @@ async function peLoadPublic(S){
       ((br && br.data) || []).forEach(b => { S.mine[b.match_id] = b; });
     }
   }
+  // match ratings: the promotion's choice, then the fans' votes
+  try{ const f = await sb.from('promotion_features').select('page').eq('promotion_id', pid).maybeSingle(); S.page = pmPageOf((f && f.data && f.data.page) || {}); }catch(e){ S.page = pmPageOf({}); }
+  S.rate = null;
+  try{ await prLoad(S, S.events.filter(e => e.status === 'live' || e.status === 'done').flatMap(e => (S.matches[e.id] || []).map(m => m.id))); }catch(e){ S.rate = null; }
   try{ const t = await sb.rpc('promo_leaderboard', { p_promotion:pid, p_limit:10 }); S.top = (t && t.data) || []; }catch(e){ S.top = []; }
   try{ await peCardData(S); }catch(e){ S.cd = null; }   // without it the card falls back to names only
 }
@@ -35468,6 +35617,7 @@ function peMatchHTML(S, e, m, i, n){
     ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
     ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
     ${m.notes ? `<div class="pe-note">${esc(m.notes)}</div>` : ''}
+    ${peRateHTML(S, e, m)}
     ${mineHTML}${signIn}${form}${peBetListHTML(S, m, sides)}
   </li>`;
 }
@@ -35731,6 +35881,7 @@ async function mpEventsTab(box){
   ]);
   if(er.error){ box.innerHTML = `<div class="pm-card pm-empty">${esc(peErr(er.error))}</div>`; return; }
   MPE.events = er.data || []; MPE.info = ir.data || {}; MPE.roster = (rr && rr.data) || [];
+  try{ const f = await sb.from('promotion_features').select('page').eq('promotion_id', MPE.pid).maybeSingle(); MPE.page = pmPageOf((f && f.data && f.data.page) || {}); }catch(e){ MPE.page = pmPageOf({}); }
   try{ const b = await sb.from('promotion_brands').select('*').eq('promotion_id', MPE.pid).order('sort').order('id'); MPE.brands = (b && !b.error && b.data) || []; }catch(e){ MPE.brands = []; }
   if(MPE.cur !== 'new' && !MPE.events.some(e => e.id === MPE.cur)) MPE.cur = (MPE.events.find(e => e.status !== 'done') || MPE.events[0] || {}).id || null;
   await mpeLoadCard();
@@ -35837,7 +35988,7 @@ function mpeMatchRow(m, i){
   else if(st === 'settled') acts = `<span>${m.winner_idx == null ? 'No winner, every bet was given back.' : 'Winner: <b>' + esc(peSideName(sides[m.winner_idx] || {})) + '</b>. Everyone has been paid.'}</span><button type="button" class="spc-mini" onclick="mpeUnsettle(${Number(m.id)},this)">Undo the result</button>`;
   return `<div class="mpe-m" id="mpe-m-${Number(m.id)}">
     <div class="mpe-mtop"><span class="pe-mno">${n > 1 && i === n - 1 ? 'Main event' : i === 0 && n > 1 ? 'Opener' : 'Match ' + (i + 1)}</span>
-      ${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title ? `<span class="pe-tag title">${esc(m.title)}</span>` : ''}
+      ${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title ? `<span class="pe-tag title">${esc(m.title)}</span>` : ''}${prOfficial(MPE.page) && Number(m.official_stars) > 0 ? `<span class="pe-tag pr-tag">${prStarsHTML(m.official_stars)} ${esc(prTxt(m.official_stars))}</span>` : ''}
       <span class="pe-bs ${st}">${esc(PE_BS[st] || '')}${pot && st !== 'settled' ? ', ' + esc(peMoney(I, pot)) + ' in the pot' : ''}</span>
       <div class="pe-sides">${sideHTML}</div></div>
     <div class="mpe-bet">${acts}</div>
@@ -35851,8 +36002,8 @@ function mpeEditMatch(id){
   MPE.edit = id;
   const m = id === 'new' ? null : MPE.matches.find(x => x.id === id);
   const sp = m ? peSplitType(m, peSides(m)) : null;
-  MPE.draft = m ? { match_type:sp.type, rules:sp.rules, elim:sp.elim, title:m.title || '', notes:m.notes || '', finish:m.finish || '', sides:JSON.parse(JSON.stringify(peSides(m))), odds:peOdds(m).slice() }
-    : { match_type:'Singles', rules:'', elim:false, title:'', notes:'', finish:'', sides:[{ name:'', members:[] }, { name:'', members:[] }], odds:[] };
+  MPE.draft = m ? { match_type:sp.type, rules:sp.rules, elim:sp.elim, title:m.title || '', notes:m.notes || '', finish:m.finish || '', stars:Number(m.official_stars) || 0, sides:JSON.parse(JSON.stringify(peSides(m))), odds:peOdds(m).slice() }
+    : { match_type:'Singles', rules:'', elim:false, title:'', notes:'', finish:'', stars:0, sides:[{ name:'', members:[] }, { name:'', members:[] }], odds:[] };
   while(MPE.draft.sides.length < 2) MPE.draft.sides.push({ name:'', members:[] });
   mpeDraw();
   const f = pmEl('mpm_form'); if(f) f.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -35862,6 +36013,7 @@ function mpeReadDraft(){
   D.match_type = peSelectVal('mpm_type'); D.rules = peSelectVal('mpm_rules'); D.elim = !!(pmEl('mpm_elim') || {}).checked;
   D.title = pmEl('mpm_title').value.trim();
   D.notes = pmEl('mpm_notes').value.trim(); D.finish = pmEl('mpm_finish').value.trim();
+  const ost = pmEl('mpm_stars'); if(ost) D.stars = Number(ost.value) || 0;
   D.sides.forEach((s, i) => { const n = pmEl('mpm_sn' + i); if(n) s.name = n.value.trim(); const o = pmEl('mpm_odds' + i); if(o) D.odds[i] = o.value === '' ? null : Number(o.value); });
   return D;
 }
@@ -35891,6 +36043,7 @@ function mpeMatchForm(m){
     <div class="pm-acts" style="margin-top:10px"><button type="button" class="spc-mini" onclick="mpeSideAdd()"><i class="ti ti-plus"></i> Add a side</button></div>
     ${I.payout_mode === 'odds' ? '<p class="pm-p pm-small">Odds: 2 means a winning bet doubles, 1.5 pays one and a half times the bet. Set every side before you open betting.</p>' : ''}
     <div class="mpe-fields" style="margin-top:12px">
+      ${prOfficial(MPE.page) ? `<div><label for="mpm_stars">Official rating <span class="pm-opt">(after, shown under the match)</span></label><select id="mpm_stars"><option value="0">Not rated yet</option>${prList(MPE.page).concat(D.stars && !prList(MPE.page).includes(D.stars) ? [D.stars] : []).map(v => `<option value="${v}"${Number(D.stars) === v ? ' selected' : ''}>${esc(prStarWord(v))}</option>`).join('')}</select></div>` : ''}
       <div><label for="mpm_finish">How it was won <span class="pm-opt">(after, like pinfall)</span></label><input id="mpm_finish" maxlength="80" value="${escAttr(D.finish)}"></div>
     </div>
     <label class="pe-l" for="mpm_notes" style="margin-top:12px">Notes <span class="pm-opt">(the story of the match, shown under it)</span></label>
@@ -35921,10 +36074,16 @@ async function mpeSaveMatch(){
   if(!D.match_type){ mpMsg('mpm_msg', 'Pick a match type, or type one in.', false); return; }
   const stip = [D.rules, D.elim ? 'Elimination' : ''].filter(Boolean).join(', ');
   const row = { match_type:D.match_type || null, stipulation:stip || null, title:D.title || null, notes:D.notes || null, finish:D.finish || null, sides, odds };
+  if(prOfficial(MPE.page)) row.official_stars = D.stars > 0 ? prFix(D.stars, MPE.page) : null;
   const save = r => MPE.edit === 'new'
     ? sb.from('promotion_matches').insert(Object.assign({ event_id:MPE.cur, promotion_id:MPE.pid, slot:MPE.matches.length + 1 }, r)).select('id')
     : sb.from('promotion_matches').update(r).eq('id', MPE.edit).select('id');
   let res = await save(row);
+  let noStars = false;
+  if(res.error && /official_stars/i.test(res.error.message || '')){
+    // the official rating column isn't there yet (SUPABASE_SETUP_promotion_match_ratings.sql): save the rest
+    noStars = true; delete row.official_stars; res = await save(row);
+  }
   if(res.error && /stipulation/i.test(res.error.message || '')){
     // the Rules column isn't there yet (WCA Promotion Co-owners and Match Rules SQL): keep both in the match type
     const old = Object.assign({}, row); delete old.stipulation;
@@ -35932,6 +36091,7 @@ async function mpeSaveMatch(){
     res = await save(old);
   }
   if(res.error || !res.data || !res.data.length){ mpMsg('mpm_msg', res.error ? peErr(res.error) : 'Not saved.', false); return; }
+  if(noStars) wcaToast('Match saved, rating was not', 'Official ratings are not switched on yet. Run SUPABASE_SETUP_promotion_match_ratings.sql in Supabase.', true);
   wcaKeepDone('mp-match:' + Number(MPE.cur) + ':' + (MPE.edit === 'new' ? 'new' : Number(MPE.edit)));
   MPE.edit = null; await mpeLoadCard(); mpeDraw();
 }
