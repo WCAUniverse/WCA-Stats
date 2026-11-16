@@ -7263,6 +7263,18 @@ a.pe-who:hover{color:var(--gold);}
 .pe-form .pe-est{flex:1 1 220px; color:var(--txt-2); font-size:14.5px;}
 
 .pe-note{margin-top:8px; color:var(--txt-2); font-size:15px; line-height:1.55; white-space:pre-line;}
+/* match details for fans: on the line, at ringside, the story */
+.pe-extras{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
+.pe-stakes{display:flex; gap:8px; align-items:flex-start; font-size:15px; line-height:1.5; color:var(--txt);}
+.pe-stakes .ti{color:var(--gold); margin-top:3px;}
+.pe-ring{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+.pe-ring-k{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:13.5px; color:var(--txt-2); margin-right:2px;}
+.pe-ring-p{display:inline-flex; align-items:baseline; gap:6px; padding:3px 10px; border-radius:16px; background:rgba(255,255,255,.07); font-size:14.5px;}
+.pe-ring-p small{color:var(--txt-2); font-size:12.5px;}
+.pe-build{border-left:3px solid color-mix(in srgb, var(--gold) 55%, transparent); padding:4px 0 4px 12px;}
+.pe-build-k{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:13.5px; color:var(--txt-2); margin-bottom:3px;}
+.pe-build-b{color:var(--txt-2); font-size:15px; line-height:1.55; white-space:pre-line;}
+
 
 .pe-msg{font-size:14.5px; margin-top:8px;}
  .pe-msg:empty{display:none;}
@@ -7334,6 +7346,10 @@ a.pe-who:hover{color:var(--gold);}
 .mpe-bet select{min-width:200px;}
 
 .mpe-side{border:1px solid #2a2a33; border-radius:10px; padding:12px; margin-top:10px;}
+.mpe-xtra{border:1px solid #2a2a33; border-radius:10px; padding:12px; margin-top:12px;}
+.mpe-xtra .mpe-addrow input{flex:1 1 160px;}
+.mpe-xtra textarea, .mpe-xtra > input{width:100%;}
+
 
 .mpe-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
 
@@ -19436,6 +19452,25 @@ function peLocal(d){
   return `${t.getFullYear()}-${z(t.getMonth() + 1)}-${z(t.getDate())}T${z(t.getHours())}:${z(t.getMinutes())}`;
 }
 function peSides(m){ let s = m && m.sides; if(typeof s === 'string'){ try{ s = JSON.parse(s); }catch(e){ s = []; } } return Array.isArray(s) ? s : []; }
+// Extra match details an owner can add for fans: who is at ringside (and their
+// role, like General Manager), why the match is happening, and what is on the line.
+// Saved in promotion_matches.extras (SUPABASE_SETUP_promotion_match_extras.sql).
+const PE_RING_ROLES = ['General Manager', 'Assistant General Manager', 'Authority figure', 'Manager', 'Valet', 'Bodyguard', 'Special guest referee', 'Special guest enforcer', 'Guest commentator', 'Watching from ringside'];
+function peExtras(m){
+  let x = m && m.extras;
+  if(typeof x === 'string'){ try{ x = JSON.parse(x); }catch(e){ x = null; } }
+  x = (x && typeof x === 'object') ? x : {};
+  return { ring:Array.isArray(x.ringside) ? x.ringside.filter(r => r && String(r.name || '').trim()) : [], build:String(x.build || '').trim(), stakes:String(x.stakes || '').trim() };
+}
+function peExtrasHTML(m){
+  const x = peExtras(m);
+  if(!x.ring.length && !x.build && !x.stakes) return '';
+  const stakes = x.stakes ? `<div class="pe-stakes"><i class="ti ti-flame" aria-hidden="true"></i><span><b>On the line:</b> ${esc(x.stakes)}</span></div>` : '';
+  const ring = x.ring.length ? `<div class="pe-ring"><span class="pe-ring-k"><i class="ti ti-eye" aria-hidden="true"></i> At ringside</span>${x.ring.map(r => `<span class="pe-ring-p"><b>${esc(r.name)}</b>${r.role ? `<small>${esc(r.role)}</small>` : ''}</span>`).join('')}</div>` : '';
+  const build = x.build ? `<div class="pe-build"><div class="pe-build-k"><i class="ti ti-book-2" aria-hidden="true"></i> Why this match is happening</div><div class="pe-build-b">${esc(x.build)}</div></div>` : '';
+  return `<div class="pe-extras">${stakes}${ring}${build}</div>`;
+}
+
 function peOdds(m){ let s = m && m.odds; if(typeof s === 'string'){ try{ s = JSON.parse(s); }catch(e){ s = []; } } return Array.isArray(s) ? s : []; }
 function peSideName(side){
   const names = ((side && side.members) || []).map(x => x && x.name).filter(Boolean);
@@ -19616,6 +19651,7 @@ function peMatchHTML(S, e, m, i, n){
     <div class="pe-mhead"><span class="pe-mno">${esc(label)}</span>${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title ? `<span class="pe-tag title"><i class="ti ti-trophy"></i> ${esc(m.title)}</span>` : ''}
       ${m.bet_status !== 'closed' ? `<span class="pe-bs ${m.bet_status}">${esc(PE_BS[m.bet_status] || '')}${tot && m.bet_status !== 'settled' ? ', ' + esc(peMoney(I, tot)) + ' in the pot' : ''}</span>` : ''}</div>
     <div class="pe-sides">${sideHTML || '<div class="pe-side"><div class="pe-sn">TBA</div></div>'}</div>
+    ${peExtrasHTML(m)}
     ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
     ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
     ${m.notes ? `<div class="pe-note">${esc(m.notes)}</div>` : ''}
@@ -19859,6 +19895,7 @@ function mpeMatchRow(m, i){
       ${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title ? `<span class="pe-tag title">${esc(m.title)}</span>` : ''}${prOfficial(MPE.page) && Number(m.official_stars) > 0 ? `<span class="pe-tag pr-tag">${prStarsHTML(m.official_stars)} ${esc(prTxt(m.official_stars))}</span>` : ''}
       <span class="pe-bs ${st}">${esc(PE_BS[st] || '')}${pot && st !== 'settled' ? ', ' + esc(peMoney(I, pot)) + ' in the pot' : ''}</span>
       <div class="pe-sides">${sideHTML}</div></div>
+    ${peExtrasHTML(m)}
     <div class="mpe-bet">${acts}</div>
     <div class="pm-acts" style="margin-top:8px"><button type="button" class="spc-mini" onclick="mpeEditMatch(${Number(m.id)})"><i class="ti ti-pencil"></i> Edit</button>
       ${i > 0 ? `<button type="button" class="spc-mini" onclick="mpeMove(${Number(m.id)},-1)" aria-label="Move earlier">Move earlier</button>` : ''}
@@ -19872,6 +19909,8 @@ function mpeEditMatch(id){
   const sp = m ? peSplitType(m, peSides(m)) : null;
   MPE.draft = m ? { match_type:sp.type, rules:sp.rules, elim:sp.elim, title:m.title || '', notes:m.notes || '', finish:m.finish || '', stars:Number(m.official_stars) || 0, sides:JSON.parse(JSON.stringify(peSides(m))), odds:peOdds(m).slice() }
     : { match_type:'Singles', rules:'', elim:false, title:'', notes:'', finish:'', stars:0, sides:[{ name:'', members:[] }, { name:'', members:[] }], odds:[] };
+  const xt = peExtras(m);
+  MPE.draft.ring = JSON.parse(JSON.stringify(xt.ring)); MPE.draft.build = xt.build; MPE.draft.stakes = xt.stakes;
   while(MPE.draft.sides.length < 2) MPE.draft.sides.push({ name:'', members:[] });
   mpeDraw();
   const f = pmEl('mpm_form'); if(f) f.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -19881,6 +19920,9 @@ function mpeReadDraft(){
   D.match_type = peSelectVal('mpm_type'); D.rules = peSelectVal('mpm_rules'); D.elim = !!(pmEl('mpm_elim') || {}).checked;
   D.title = pmEl('mpm_title').value.trim();
   D.notes = pmEl('mpm_notes').value.trim(); D.finish = pmEl('mpm_finish').value.trim();
+  if(pmEl('mpm_stakes')) D.stakes = pmEl('mpm_stakes').value.trim();
+  if(pmEl('mpm_build')) D.build = pmEl('mpm_build').value.trim();
+  if(!Array.isArray(D.ring)) D.ring = [];
   const ost = pmEl('mpm_stars'); if(ost) D.stars = Number(ost.value) || 0;
   D.sides.forEach((s, i) => { const n = pmEl('mpm_sn' + i); if(n) s.name = n.value.trim(); const o = pmEl('mpm_odds' + i); if(o) D.odds[i] = o.value === '' ? null : Number(o.value); });
   return D;
@@ -19910,11 +19952,27 @@ function mpeMatchForm(m){
     </div>`).join('')}
     <div class="pm-acts" style="margin-top:10px"><button type="button" class="spc-mini" onclick="mpeSideAdd()"><i class="ti ti-plus"></i> Add a side</button></div>
     ${I.payout_mode === 'odds' ? '<p class="pm-p pm-small">Odds: 2 means a winning bet doubles, 1.5 pays one and a half times the bet. Set every side before you open betting.</p>' : ''}
+    <div class="mpe-xtra">
+      <div class="pm-h3">Match details for fans <span class="pm-opt">(optional, shown on the match card)</span></div>
+      <p class="pm-p pm-small">Give fans and bettors more to go on: what is at stake, who is watching at ringside, and the story behind the match.</p>
+      <label class="pe-l" for="mpm_stakes" style="margin-top:8px">What's on the line</label>
+      <input id="mpm_stakes" maxlength="200" placeholder="Winner gets a title shot next week" value="${escAttr(D.stakes || '')}">
+      <label class="pe-l" for="mpm_rname" style="margin-top:12px">At ringside <span class="pm-opt">(general managers, managers, a special referee, anyone watching)</span></label>
+      <div class="mpe-chips">${(D.ring || []).map((r, k) => `<span class="mpe-chip">${esc(r.name)}${r.role ? ' <span class="pm-dim">' + esc(r.role) + '</span>' : ''}<button type="button" aria-label="Remove ${escAttr(r.name)}" onclick="mpeRingDrop(${k})">×</button></span>`).join('') || '<span class="pm-dim pm-small">Nobody at ringside yet</span>'}</div>
+      <div class="mpe-addrow">
+        <input id="mpm_rname" maxlength="80" list="mpm_rnames" placeholder="Name, from your roster or typed in" onkeydown="if(event.key==='Enter'){event.preventDefault();mpeRingAdd()}">
+        <input id="mpm_rrole" maxlength="60" list="mpm_rroles" placeholder="Role, like General Manager" onkeydown="if(event.key==='Enter'){event.preventDefault();mpeRingAdd()}">
+        <button type="button" class="spc-mini" onclick="mpeRingAdd()">Add</button></div>
+      <datalist id="mpm_rnames">${MPE.roster.map(p => `<option value="${escAttr(p.name)}"></option>`).join('')}</datalist>
+      <datalist id="mpm_rroles">${PE_RING_ROLES.map(r => `<option value="${escAttr(r)}"></option>`).join('')}</datalist>
+      <label class="pe-l" for="mpm_build" style="margin-top:12px">Why this match is happening <span class="pm-opt">(storyline beats, the build up)</span></label>
+      <textarea id="mpm_build" rows="4" maxlength="2000" placeholder="Last week she cost him the title. Tonight he gets his hands on her, with the GM watching.">${esc(D.build || '')}</textarea>
+    </div>
     <div class="mpe-fields" style="margin-top:12px">
       ${prOfficial(MPE.page) ? `<div><label for="mpm_stars">Official rating <span class="pm-opt">(after, shown under the match)</span></label><select id="mpm_stars"><option value="0">Not rated yet</option>${prList(MPE.page).concat(D.stars && !prList(MPE.page).includes(D.stars) ? [D.stars] : []).map(v => `<option value="${v}"${Number(D.stars) === v ? ' selected' : ''}>${esc(prStarWord(v))}</option>`).join('')}</select></div>` : ''}
       <div><label for="mpm_finish">How it was won <span class="pm-opt">(after, like pinfall)</span></label><input id="mpm_finish" maxlength="80" value="${escAttr(D.finish)}"></div>
     </div>
-    <label class="pe-l" for="mpm_notes" style="margin-top:12px">Notes <span class="pm-opt">(the story of the match, shown under it)</span></label>
+    <label class="pe-l" for="mpm_notes" style="margin-top:12px">Other notes <span class="pm-opt">(anything else, shown under the match)</span></label>
     <textarea id="mpm_notes" rows="3" maxlength="2000">${esc(D.notes)}</textarea>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpeSaveMatch()">${m ? 'Save match' : 'Add to the card'}</button>
       <button type="button" class="spc-mini" onclick="MPE.edit=null;mpeDraw()">Cancel</button></div>
@@ -19932,6 +19990,18 @@ function mpeMemberAdd(i, typed){
   const s2 = pmEl(typed ? 'mpm_typed' + i : 'mpm_add' + i); if(s2) s2.focus();
 }
 function mpeMemberDrop(i, k){ const D = mpeReadDraft(); D.sides[i].members.splice(k, 1); mpeDraw(); }
+function mpeRingAdd(){
+  const D = mpeReadDraft();
+  const n = pmEl('mpm_rname'), r = pmEl('mpm_rrole');
+  const name = (n && n.value || '').trim().slice(0, 80), role = (r && r.value || '').trim().slice(0, 60);
+  if(!name){ mpMsg('mpm_msg', 'Type or pick who is at ringside first.', false); if(n) n.focus(); return; }
+  if((D.ring || []).some(x => x.name.toLowerCase() === name.toLowerCase())){ mpMsg('mpm_msg', name + ' is already at ringside.', false); return; }
+  const hit = MPE.roster.find(p => p.name.trim().toLowerCase() === name.toLowerCase());
+  (D.ring = D.ring || []).push({ id:hit ? Number(hit.id) : null, name:hit ? hit.name : name, role });
+  mpeDraw();
+  const n2 = pmEl('mpm_rname'); if(n2) n2.focus();
+}
+function mpeRingDrop(k){ const D = mpeReadDraft(); D.ring.splice(k, 1); mpeDraw(); }
 function mpeSideAdd(){ const D = mpeReadDraft(); if(D.sides.length >= 30) return; D.sides.push({ name:'', members:[] }); mpeDraw(); }
 function mpeSideDrop(i){ const D = mpeReadDraft(); D.sides.splice(i, 1); D.odds.splice(i, 1); mpeDraw(); }
 async function mpeSaveMatch(){
@@ -19943,15 +20013,21 @@ async function mpeSaveMatch(){
   const stip = [D.rules, D.elim ? 'Elimination' : ''].filter(Boolean).join(', ');
   const row = { match_type:D.match_type || null, stipulation:stip || null, title:D.title || null, notes:D.notes || null, finish:D.finish || null, sides, odds };
   if(prOfficial(MPE.page)) row.official_stars = D.stars > 0 ? prFix(D.stars, MPE.page) : null;
+  const ex = { ringside:(D.ring || []).map(r => ({ id:r.id != null ? Number(r.id) : null, name:r.name, role:r.role || '' })), build:D.build || '', stakes:D.stakes || '' };
+  row.extras = (ex.ringside.length || ex.build || ex.stakes) ? ex : null;
   const save = r => MPE.edit === 'new'
     ? sb.from('promotion_matches').insert(Object.assign({ event_id:MPE.cur, promotion_id:MPE.pid, slot:MPE.matches.length + 1 }, r)).select('id')
     : sb.from('promotion_matches').update(r).eq('id', MPE.edit).select('id');
   let res = await save(row);
-  let noStars = false;
+  let noStars = false, noExtras = false;
+  // the match details column isn't there yet (SUPABASE_SETUP_promotion_match_extras.sql): save the rest
+  const dropExtras = async () => { if(res.error && /extras/i.test(res.error.message || '') && 'extras' in row){ noExtras = true; delete row.extras; res = await save(row); } };
+  await dropExtras();
   if(res.error && /official_stars/i.test(res.error.message || '')){
     // the official rating column isn't there yet (SUPABASE_SETUP_promotion_match_ratings.sql): save the rest
     noStars = true; delete row.official_stars; res = await save(row);
   }
+  await dropExtras();
   if(res.error && /stipulation/i.test(res.error.message || '')){
     // the Rules column isn't there yet (WCA Promotion Co-owners and Match Rules SQL): keep both in the match type
     const old = Object.assign({}, row); delete old.stipulation;
@@ -19959,6 +20035,7 @@ async function mpeSaveMatch(){
     res = await save(old);
   }
   if(res.error || !res.data || !res.data.length){ mpMsg('mpm_msg', res.error ? peErr(res.error) : 'Not saved.', false); return; }
+  if(noExtras) wcaToast('Match saved, the fan details were not', 'Ringside, the story and what is on the line are not switched on yet. Run SUPABASE_SETUP_promotion_match_extras.sql in Supabase.', true);
   if(noStars) wcaToast('Match saved, rating was not', 'Official ratings are not switched on yet. Run SUPABASE_SETUP_promotion_match_ratings.sql in Supabase.', true);
   wcaKeepDone('mp-match:' + Number(MPE.cur) + ':' + (MPE.edit === 'new' ? 'new' : Number(MPE.edit)));
   MPE.edit = null; await mpeLoadCard(); mpeDraw();
