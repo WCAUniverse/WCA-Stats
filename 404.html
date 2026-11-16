@@ -35213,6 +35213,18 @@ a.pe-who:hover{color:var(--gold);}
 .pe-form input{width:150px;}
 .pe-form .pe-est{flex:1 1 220px; color:var(--txt-2); font-size:14.5px;}
 .pe-note{margin-top:8px; color:var(--txt-2); font-size:15px; line-height:1.55; white-space:pre-line;}
+/* match details for fans: on the line, at ringside, the story */
+.pe-extras{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
+.pe-stakes{display:flex; gap:8px; align-items:flex-start; font-size:15px; line-height:1.5; color:var(--txt);}
+.pe-stakes .ti{color:var(--gold); margin-top:3px;}
+.pe-ring{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+.pe-ring-k{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:13.5px; color:var(--txt-2); margin-right:2px;}
+.pe-ring-p{display:inline-flex; align-items:baseline; gap:6px; padding:3px 10px; border-radius:16px; background:rgba(255,255,255,.07); font-size:14.5px;}
+.pe-ring-p small{color:var(--txt-2); font-size:12.5px;}
+.pe-build{border-left:3px solid color-mix(in srgb, var(--gold) 55%, transparent); padding:4px 0 4px 12px;}
+.pe-build-k{font-family:var(--font-cond); font-weight:700; letter-spacing:1.2px; text-transform:uppercase; font-size:13.5px; color:var(--txt-2); margin-bottom:3px;}
+.pe-build-b{color:var(--txt-2); font-size:15px; line-height:1.55; white-space:pre-line;}
+
 .pe-msg{font-size:14.5px; margin-top:8px;} .pe-msg:empty{display:none;} .pe-msg.bad{color:#ff8a96;} .pe-msg.ok{color:#5dcaa5;}
 .pe-top{border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px 18px; margin-top:8px;}
 .pe-top ol{list-style:none; margin:8px 0 0; padding:0;}
@@ -35353,6 +35365,25 @@ function peLocal(d){
   return `${t.getFullYear()}-${z(t.getMonth() + 1)}-${z(t.getDate())}T${z(t.getHours())}:${z(t.getMinutes())}`;
 }
 function peSides(m){ let s = m && m.sides; if(typeof s === 'string'){ try{ s = JSON.parse(s); }catch(e){ s = []; } } return Array.isArray(s) ? s : []; }
+// Extra match details an owner can add for fans: who is at ringside (and their
+// role, like General Manager), why the match is happening, and what is on the line.
+// Saved in promotion_matches.extras (SUPABASE_SETUP_promotion_match_extras.sql).
+const PE_RING_ROLES = ['General Manager', 'Assistant General Manager', 'Authority figure', 'Manager', 'Valet', 'Bodyguard', 'Special guest referee', 'Special guest enforcer', 'Guest commentator', 'Watching from ringside'];
+function peExtras(m){
+  let x = m && m.extras;
+  if(typeof x === 'string'){ try{ x = JSON.parse(x); }catch(e){ x = null; } }
+  x = (x && typeof x === 'object') ? x : {};
+  return { ring:Array.isArray(x.ringside) ? x.ringside.filter(r => r && String(r.name || '').trim()) : [], build:String(x.build || '').trim(), stakes:String(x.stakes || '').trim() };
+}
+function peExtrasHTML(m){
+  const x = peExtras(m);
+  if(!x.ring.length && !x.build && !x.stakes) return '';
+  const stakes = x.stakes ? `<div class="pe-stakes"><i class="ti ti-flame" aria-hidden="true"></i><span><b>On the line:</b> ${esc(x.stakes)}</span></div>` : '';
+  const ring = x.ring.length ? `<div class="pe-ring"><span class="pe-ring-k"><i class="ti ti-eye" aria-hidden="true"></i> At ringside</span>${x.ring.map(r => `<span class="pe-ring-p"><b>${esc(r.name)}</b>${r.role ? `<small>${esc(r.role)}</small>` : ''}</span>`).join('')}</div>` : '';
+  const build = x.build ? `<div class="pe-build"><div class="pe-build-k"><i class="ti ti-book-2" aria-hidden="true"></i> Why this match is happening</div><div class="pe-build-b">${esc(x.build)}</div></div>` : '';
+  return `<div class="pe-extras">${stakes}${ring}${build}</div>`;
+}
+
 function peOdds(m){ let s = m && m.odds; if(typeof s === 'string'){ try{ s = JSON.parse(s); }catch(e){ s = []; } } return Array.isArray(s) ? s : []; }
 function peSideName(side){
   const names = ((side && side.members) || []).map(x => x && x.name).filter(Boolean);
@@ -35692,6 +35723,7 @@ function peMatchHTML(S, e, m, i, n){
       ${m.bet_status !== 'closed' ? `<span class="pe-bs ${m.bet_status}">${esc(PE_BS[m.bet_status] || '')}${tot && m.bet_status !== 'settled' ? ', ' + esc(peMoney(I, tot)) + ' in the pot' : ''}</span>` : ''}</div>
     ${peMatchTop(S, m)}
     <div class="pe-sides">${sideHTML || '<div class="pe-side"><div class="pe-sn">TBA</div></div>'}</div>
+    ${peExtrasHTML(m)}
     ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
     ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
     ${m.notes ? `<div class="pe-note">${esc(m.notes)}</div>` : ''}
