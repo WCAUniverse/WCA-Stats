@@ -9876,20 +9876,20 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
              Sponsors lives in the footer, so their links stay here hidden
              (pages need a nav link to open) and show nowhere on the bar. -->
         <a href="/feed" data-page="storylines" class="active">Feed</a>
+        <a href="/exchange" data-page="exchange">Exchange</a>
         <a href="/events" data-page="events">Events</a>
+        <a href="/promotions" data-page="promotions">Promotions</a>
         <a href="/archive" data-page="archive" class="nav-off" tabindex="-1" aria-hidden="true">Past Events</a>
         <a href="/live" data-page="live" id="nav-live-btn">Watch Live</a>
         <a href="/roster" data-page="roster">Roster</a>
         <a href="/rivalries" data-page="rivalries">Rivalries</a>
         <a href="/rankings" data-page="rankings">Rankings</a>
         <a href="/leaderboard" data-page="leaderboard">Betting</a>
-        <a href="/games" data-page="games">Games</a>
-        <a href="/exchange" data-page="exchange">Exchange</a>
+        <a href="/apply" data-page="apply">Apply</a>
         <a href="/music" data-page="music">Music</a>
-        <a href="/promotions" data-page="promotions">Promotions</a>
+        <a href="/games" data-page="games">Games</a>
         <a href="/timeline" data-page="timeline" class="nav-off" tabindex="-1" aria-hidden="true">Timeline</a>
         <a href="/showdown" data-page="showdown" class="nav-off" tabindex="-1" aria-hidden="true">Showdown</a>
-        <a href="/apply" data-page="apply">Apply</a>
         <a href="/sponsors" data-page="sponsors" class="nav-off" tabindex="-1" aria-hidden="true">Sponsors</a>
       </nav>
       <!-- the glowing Fire Pro button: top left on a computer, in the menu on a phone -->
@@ -39753,7 +39753,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     live:'Sit back and watch. Channels and chat are right there.', roster:'Every competitor and stable, from every promotion.', rivalries:'Who is at war right now.',
     starmap:'The whole WCA Universe in the stars. Every promotion, every superstar.',
     rankings:'Champions first, then every division.', leaderboard:'The sharpest bettors in the universe.', games:'Tower of Champions: climb the tower and earn WCA money.', exchange:'Buy shares in your favorite superstars with WCA money.', music:'Every theme song in the WCA Universe. Press play and keep browsing.', promotions:'Every promotion in the WCA Universe.',
-    more:'Apply, Sponsors, Donate, Get the App and more.' };
+    more:'Music, Games, Fire Pro, Sponsors and Donate.' };
   function mi(label, o){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'fh-mi' + (o.sel ? ' sel' : '') + (o.back ? ' back' : '');
     b.innerHTML = (o.pl != null ? `<span class="pl" style="--pc:${escH(o.pc||'#555')}">${o.pl}</span>` : (o.back ? '' : '<span class="tri"></span>')) + escH(label);
@@ -39784,14 +39784,26 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     const c1 = $('fh-col1'), c2 = $('fh-col2'), st = $('fh-stage');
     const cur = curPage();
     c1.innerHTML = '<div class="fh-head">Main Menu</div>';
-    const items = [{ pg:'home', t:'About WCA' }].concat(navItems().filter(x => x.pg !== 'apply' && x.pg !== 'sponsors' && x.pg !== 'home'));
-    // the Star Map gets its own entry, right after the Roster (Nov 2026)
-    { const ri = items.findIndex(x => x.pg === 'roster'); items.splice(ri >= 0 ? ri + 1 : items.length, 0, { pg:'starmap', t:'Star Map' }); }
+    /* Main menu order (Nov 2026). Promotions sit right next to Events, as equals to WCA.
+       Extras (Music, Games, Fire Pro, Sponsors, Donate) live under More. A page added to
+       the site later that isn't placed here shows up just before More. */
+    const MAIN_ORDER = ['storylines','exchange','events','promotions','live','roster','starmap','rivalries','rankings','leaderboard','apply'];
+    const MORE_PAGES = ['music','games','sponsors'];
+    const nav = navItems(), have = new Set(nav.map(x => x.pg));
+    const label = pg => (nav.find(x => x.pg === pg) || {}).t || NAMES[pg] || pg;
+    const items = [{ pg:'home', t:'About WCA' }];
+    MAIN_ORDER.forEach(pg => {
+      if(pg === 'starmap'){ if(have.has('roster')) items.push({ pg:'starmap', t:'Star Map' }); return; }
+      if(have.has(pg)) items.push({ pg, t:label(pg) });
+    });
+    nav.forEach(x => { if(x.pg !== 'home' && !MAIN_ORDER.includes(x.pg) && !MORE_PAGES.includes(x.pg)) items.push(x); });
     items.forEach(x => {
       const isSub = x.pg === 'events' || x.pg === 'promotions';
       const active = sub ? (sub === x.pg || (sub && sub.promo && x.pg === 'events')) : (cur === x.pg || (x.pg === 'events' && (cur === 'archive' || cur === 'showdown')));
       c1.appendChild(mi(x.t, { sel:active, help:HELP[x.pg], go: () => { if(isSub){ sub = x.pg; renderHub(); } else goSimple(x.pg); } }));
     });
+    // Get the App stays on the main menu (hidden only when the site is already open as the app)
+    { const app = $('appBtn'); if(app && !app.hidden && typeof wcaInstall === 'function') c1.appendChild(mi('Get the App', { help:'Install WCA on your phone or computer.', go: () => { fhHubClose(); wcaInstall(); } })); }
     c1.appendChild(mi('More', { sel:sub === 'more', help:HELP.more, go: () => { sub = 'more'; renderHub(); } }));
     $('fh-body').classList.toggle('fh-sub', !!sub);
     c2.innerHTML = '';
@@ -39824,13 +39836,14 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     if(sub === 'more'){
       back('Main Menu', null); head('More');
       const extra = [];
-      if(document.querySelector('header nav [data-page="apply"]')) extra.push(['Apply', () => goSimple('apply')]);
-      if(document.querySelector('header nav [data-page="sponsors"]')) extra.push(['Sponsors', () => goSimple('sponsors')]);
-      if(typeof openDonate === 'function') extra.push(['Donate', () => { fhHubClose(); openDonate(); }]);
-      const app = $('appBtn'); if(app && !app.hidden && typeof wcaInstall === 'function') extra.push(['Get the App', () => { fhHubClose(); wcaInstall(); }]);
-      const fp = $('nav-firepro'); if(fp && fp.style.display && fp.style.display !== 'none' && typeof fpEnter === 'function') extra.push([fp.textContent.replace(/⚡/,'').trim() || 'Enter Fire Pro', () => { fhHubClose(); fpEnter(); }]);
-      extra.forEach(([t, go]) => c2.appendChild(mi(t, { help:t, go })));
-      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">More</div><div class="fh-big" style="font-size:clamp(40px,5vw,70px)">Everything else</div><p class="fh-note">Apply to join the roster, our sponsors, and ways to support the site.</p></section>`;
+      const navHas = pg => !!document.querySelector('header nav [data-page="'+pg+'"]');
+      if(navHas('music')) extra.push(['Music', () => goSimple('music'), HELP.music]);
+      if(navHas('games')) extra.push(['Games', () => goSimple('games'), HELP.games]);
+      const fp = $('nav-firepro'); if(fp && fp.style.display && fp.style.display !== 'none' && typeof fpEnter === 'function') extra.push([fp.textContent.replace(/⚡/,'').trim() || 'Enter Fire Pro', () => { fhHubClose(); fpEnter(); }, 'The Fire Pro Wrestling World league: its own show, a whole other side of WCA.']);
+      if(navHas('sponsors')) extra.push(['Sponsors', () => goSimple('sponsors'), 'The brands of the WCA Universe and our partners.']);
+      if(typeof openDonate === 'function') extra.push(['Donate', () => { fhHubClose(); openDonate(); }, 'Help keep the site running.']);
+      extra.forEach(([t, go, help]) => c2.appendChild(mi(t, { help:help || t, go })));
+      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">More</div><div class="fh-big" style="font-size:clamp(40px,5vw,70px)">Everything else</div><p class="fh-note">Music, Games, Fire Pro, our sponsors, and ways to support the site.</p></section>`;
     }
   }
 
