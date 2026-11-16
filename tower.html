@@ -732,6 +732,13 @@ body.fit #app[data-screen="pick"]{padding-left:max(18px,calc((100% - 1800px) / 2
   .pv-main .portrait{width:min(100%,calc(var(--apph,600px) * .14))}
 }
 #app[data-screen="pvp"] .pv{flex:1;height:auto}
+/* Nov 16: both fighters always get the same width (a long name or "X IN CONTROL" no longer squeezes one side) */
+.arena{grid-template-columns:minmax(0,1fr) minmax(140px,32%) minmax(0,1fr)}
+.arena .fighter{min-width:0}
+.arena .mid{min-width:0}
+.arena .stage{overflow-wrap:anywhere;line-height:1.05}
+.arena .fighter .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:900px){ .arena{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
 
 </style>
 </head>
