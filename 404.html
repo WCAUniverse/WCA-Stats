@@ -7659,6 +7659,23 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
   #page-rankings .division .row:not(.inactive-rank) + .row.inactive-rank{padding-top:14px;}
 }
 .pm-rk-find{display:flex; align-items:center; gap:12px; margin:10px 0 6px;} .pm-rk-find .pm-search{max-width:420px;}
+/* Nov 17: a promotion's Rankings in the WCA layout (Fight Hub). Same look as #page-rankings. */
+.pm-rkwca{max-width:1240px; margin:0 auto; padding-top:4px;}
+.pm-rkwca .rk-searchrow{max-width:560px;}
+.pm-rkwca .rk-searchrow .rk-search{width:100%; padding-left:42px !important;}
+.pm-rkwca .division{max-width:1240px; margin-left:auto; margin-right:auto;}
+.pm-rkwca .division .div-head h3{color:var(--pc,var(--txt));}
+.pm-rkwca .pm-rkw-held{font-family:var(--font-cond); font-weight:700; font-size:15px; letter-spacing:.8px; text-transform:uppercase; color:var(--gold);}
+.pm-rkwca .pm-rkw-pts{font-family:var(--font-cond); font-size:17px; color:var(--txt-2,var(--txt)); white-space:nowrap;} .pm-rkwca .pm-rkw-pts b{color:var(--gold); font-size:19px;}
+.pm-rkwca .rank-belt{width:40px; height:30px;}
+.pm-rkwca .cn-card[role="button"]:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+@media (min-width:760px){
+  .pm-rkwca .division .row{display:grid; align-items:center; column-gap:18px; grid-template-columns:44px 50px minmax(0,1fr) 236px 80px;}
+  .pm-rkwca .division .row .rank{width:auto;}
+  .pm-rkwca .division .row .nm{min-width:0;}
+  .pm-rkwca .division .row .wl2{margin-left:0; min-width:0; justify-content:flex-start;}
+  .pm-rkwca .division .row .dots-end{justify-self:end;}
+}
 /* ===== BETS: hidden picks, and every bet on a past show (Nov 2026) ===== */
 .bb-pick.hid{color:var(--muted); font-style:italic;}
 .bet-hide{display:flex !important; align-items:flex-start; gap:10px; margin:12px 0 4px !important; font-size:15px; line-height:1.4; color:var(--txt-2); text-transform:none !important; letter-spacing:0 !important; cursor:pointer;}
@@ -7699,6 +7716,8 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .bxc-frame canvas:active{cursor:grabbing;}
 .bxc-zoom{display:flex !important; align-items:center; gap:8px; margin:10px 0 !important; max-width:320px; text-transform:none !important;}
 .bxc-zoom input{flex:1;}
+.bxc-w .bxc-frame{width:min(480px,100%); aspect-ratio:2/1;}
+.bxc-w .bxc-zoom{max-width:480px;}
 .br-gm{display:flex; align-items:center; gap:10px; margin:0 14px 10px; padding:8px 12px; border-radius:10px; border:1px solid color-mix(in srgb,var(--bc) 50%,transparent); background:color-mix(in srgb,var(--bc) 10%,transparent);}
 .br-gm small{display:block; font-family:var(--font-cond); font-size:14px; letter-spacing:1.4px; text-transform:uppercase; color:var(--txt-2);}
 .br-gm b{display:block; font-size:16.5px; color:#fff;}
@@ -24477,6 +24496,9 @@ async function pmRanksTab(box){
   if(PM.pub !== P || P.tab !== 'rankings') return;
   const secs = pmRankSections({ cats:P.cats, roster:P.roster, facs:P.facs, titles:P.titles, reigns:P.reigns, recs:P.recs, page:P.page });
   if(!secs.length){ box.innerHTML = `<div class="pm-empty">The rankings fill in once the roster is built.</div>`; return; }
+  // Nov 17: in the Fight Hub design every promotion's Rankings look exactly like WCA's
+  // (filters, search, the Champions block with the belts, then each division)
+  if(document.documentElement.dataset.design === 'fight'){ pmRanksWca(box, P, secs); return; }
   const f = secs.some(s => String(s.cat.id) === String(P.rcat)) ? String(P.rcat) : 'all';
   const click = e => e.kind === 'team' ? `pmPubTab('factions')` : `pmPubOpenPerson(${Number(e.x.id)})`;
   box.innerHTML = `<div class="pm-chips pm-rk-chips">${[{ cat:{ id:'all', name:'Everyone', color:'#e9b949' }, rows:[] }].concat(secs).map(s =>
@@ -24494,6 +24516,60 @@ function pmRanksList(){
   const n = secs.reduce((a, s) => a + s.rows.length, 0), lbl = pmEl('pmrk-n');
   if(lbl) lbl.textContent = q ? (n ? n + (n === 1 ? ' match' : ' matches') : '') : '';
   box.innerHTML = secs.length ? pmRankHTML(secs, P.page, P.rclick) : `<div class="pm-empty pm-small">Nobody by that name.</div>`;
+}
+/* Nov 17: the WCA Rankings layout, for a promotion. Same pieces and class names as
+   WCA's Rankings page: filter buttons, search, a Champions block with the belts big,
+   then one block per division (rank, win rate ring, name, record, points). */
+function pmRkOpen(kind, id){
+  const P = PM.pub; if(!P) return;
+  if(kind === 'team'){ pmPubTab('factions'); return; }
+  if(typeof pmNewViewOn === 'function' && pmNewViewOn('roster')){ pmOpenNewView(P.p.id, 'roster', id, true); return; }
+  pmPubOpenPerson(id);
+}
+function pmRanksWca(box, P, secs){
+  const f = P.rkf || 'all';
+  const name = esc(P.p.name);
+  const chips = [['all', 'All'], ['champions', 'Champions']].concat(secs.map(x => ['d' + x.cat.id, x.cat.name]));
+  if(!chips.some(c => c[0] === f)) P.rkf = 'all';
+  const ring = e => { const n = e.rec.w + e.rec.l, pc = n ? Math.round(e.rec.w / n * 100) : 0, C = 113.1;
+    return `<div class="ring"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="18" fill="none" stroke="var(--loss)" stroke-width="5" opacity="${n ? .55 : .2}"></circle>
+      ${n ? `<circle cx="23" cy="23" r="18" fill="none" stroke="var(--win)" stroke-width="5" stroke-dasharray="${C}" stroke-dashoffset="${(C * (1 - pc / 100)).toFixed(1)}" stroke-linecap="round"></circle>` : ''}</svg><div class="pct">${n ? pc + '%' : '–'}</div></div>`; };
+  const beltOf = e => { const h = e.held.find(x => pmBeltUrl(x.t)); return h ? pmBeltUrl(h.t) : ''; };
+  const row = (e, i) => { const champ = e.held.length, n = Number(e.rank), big = !champ && n >= 1 && n <= 3 ? ' big' + n : '';
+    const rk = champ ? (beltOf(e) ? `<img class="rank-belt" src="${escAttr(beltOf(e))}" alt="${escAttr(e.held[0].t.name)}" loading="lazy" referrerpolicy="no-referrer">` : '<i class="ti ti-trophy rank-belt" aria-hidden="true"></i>') : esc(e.rank);
+    return `<div class="row${champ ? ' champ' : ''}${big}${!champ && i % 2 ? ' alt' : ''}" data-q="${escAttr(String(e.x.name || '').toLowerCase() + ' ' + String(e.x.nickname || '').toLowerCase())}">
+      <div class="rank${champ ? ' rk-champ' : n <= 5 ? ' rk' + n : ''}">${rk}</div>${ring(e)}
+      <div class="nm nm-link" role="link" tabindex="0" title="View ${escAttr(e.x.name)}" onclick="pmRkOpen('${e.kind}',${Number(e.x.id)})" onkeydown="if(event.key==='Enter'){pmRkOpen('${e.kind}',${Number(e.x.id)})}">
+        <div class="nm-top">${esc(e.x.name)}${champ ? '<span class="tag champ">Champion</span>' : ''}</div>
+        ${champ ? `<div class="nm-sub"><span class="pm-rkw-held"><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(e.held.map(h => h.t.name).join(' · '))}</span></div>` : ''}</div>
+      <span class="wl2"><span class="w2"><b>${e.rec.w}</b> W</span><span class="dash2">·</span><span class="l2"><b>${e.rec.l}</b> L</span><span class="dash2">·</span><span class="nw2"><b>${e.rec.nc}</b> NC</span></span>
+      <span class="dots-end">${P.page.cp ? `<span class="pm-rkw-pts"><b>${e.pts}</b> pts</span>` : ''}</span></div>`; };
+  const card = t => { const r = pmChampOf(P.reigns, t.id), img = pmBeltUrl(t), days = r ? pmDays(r.won_on) : null;
+    const who = r ? (r.holder_kind === 'person' && r.holder_id != null ? `<span class="xlink" role="link" tabindex="0" onclick="event.stopPropagation();pmRkOpen('person',${Number(r.holder_id)})">${esc(r.holder_name)}</span>` : esc(r.holder_name)) : 'Vacant';
+    return `<div class="cn-card${r ? '' : ' vacant'}"${P.page.champs_on ? ` role="button" tabindex="0" title="Title history" onclick="pmTitleOpen(${Number(t.id)})" style="cursor:pointer"` : ''}>
+      <div class="cn-stage">${img ? `<img class="cn-belt-big" src="${escAttr(img)}" alt="${escAttr(t.name)} belt" loading="lazy" referrerpolicy="no-referrer">` : '<i class="ti ti-trophy cn-stage-ico" aria-hidden="true"></i>'}</div>
+      <div class="cn-div">${esc(t.name)}</div><div class="cn-name">${who}</div>
+      ${r ? `<div class="cn-since">since ${esc(r.won_at || (r.won_on ? fmtDate(r.won_on) : '') || 'their win')}</div>${days != null ? `<div class="cn-def">${days} ${days === 1 ? 'day' : 'days'}</div>` : ''}` : '<div class="cn-since">No one holds it right now</div>'}</div>`; };
+  const titles = P.titles || [];
+  box.innerHTML = `<div class="pm-rkwca">
+    <div class="roster-filters">${chips.map(c => `<button type="button" class="rfilter${(P.rkf || 'all') === c[0] ? ' active' : ''}" onclick="PM.pub.rkf='${jsAttr(c[0])}';pmRanksTab(pmEl('pmpub-tab'))">${esc(c[1])}</button>`).join('')}</div>
+    <div class="rk-searchrow"><i class="ti ti-search" aria-hidden="true"></i><input type="search" class="search rk-search" id="pmrkw-q" value="${escAttr(P.rq || '')}" placeholder="Find someone in the rankings" aria-label="Find someone in the rankings" autocomplete="off" oninput="PM.pub.rq=this.value;pmRanksWcaFind()"><span class="rk-searchmsg" id="pmrkw-msg" aria-live="polite"></span></div>
+    <details class="mh-legend" style="margin:0 0 12px"><summary>New here? How ${name} records work</summary><div>${pmRankNote(P.page).replace(/^<p class="pm-rk-note">|<\/p>$/g, '')}</div></details>
+    ${titles.length && ['all', 'champions'].includes(P.rkf || 'all') ? `<div class="rank-block" data-block="champions"><div class="section-title">Champions</div><div class="champ-now">${titles.map(card).join('')}</div></div>` : ''}
+    ${secs.filter(x => (P.rkf || 'all') === 'all' || P.rkf === 'd' + x.cat.id).map(x => `<div class="rank-block" data-block="d${escAttr(String(x.cat.id))}"><div class="section-title">${esc(x.cat.name)}</div>
+      <div class="division" style="--pc:${pmColor(x.cat.color, '#c9c6be')}"><div class="div-head"><h3>${esc(x.cat.name)}</h3><span class="count">${x.rows.length} ranked</span></div>${x.rows.map(row).join('')}</div></div>`).join('')}
+  </div>`;
+  pmRanksWcaFind();
+}
+// search: hides everyone who doesn't match, and any block left empty
+function pmRanksWcaFind(){
+  const box = pmEl('pmpub-tab'); if(!box || !box.querySelector('.pm-rkwca')) return;
+  const q = String((pmEl('pmrkw-q') || {}).value || '').trim().toLowerCase();
+  let n = 0;
+  box.querySelectorAll('.pm-rkwca .division .row').forEach(r => { const on = !q || r.dataset.q.includes(q); r.classList.toggle('rk-q-hide', !on); if(on && q) n++; });
+  box.querySelectorAll('.pm-rkwca .rank-block').forEach(b => { if(b.dataset.block === 'champions'){ b.classList.toggle('rk-q-hide', !!q); return; }
+    b.classList.toggle('rk-q-hide', !!q && !b.querySelector('.row:not(.rk-q-hide)')); });
+  const m = pmEl('pmrkw-msg'); if(m) m.textContent = q ? (n ? n + (n === 1 ? ' match' : ' matches') : 'Nobody by that name') : '';
 }
 function pmPubOpenPerson(id){ const P = PM.pub; if(!P) return; P.sel = Number(id); P.openSel = true; P.cat = 'all'; P.g = 'all'; P.q = ''; P.shelf = 0; pmPubTab('roster'); }
 
@@ -24834,8 +24910,9 @@ function mpTitleForm(id){
     <label for="mpt_img">Belt picture <span class="pm-opt">(optional, a PNG cut out with no background looks best)</span></label>
     <div class="pm-logoline">
       <input id="mpt_img" value="${escAttr(t ? t.image_url || '' : '')}" placeholder="Paste a link to the belt picture (https://…)" oninput="mpBeltLook()">
-      <label class="spc-mini pm-upbtn">Upload<input type="file" accept="image/png,image/webp,image/*" onchange="mpUploadBelt(this)" hidden></label>
+      <label class="spc-mini pm-upbtn"><i class="ti ti-crop" aria-hidden="true"></i> Upload and crop<input type="file" accept="image/png,image/webp,image/*" onchange="mpPickBelt(this)" hidden data-nokeep></label>
     </div>
+    <div id="mpt_crop" class="bxc-host" hidden></div>
     <div class="ed-beltlook" id="mpt_beltlook" aria-live="polite"></div>
     <div class="ed-champnow">
       <div class="ed-sub-h"><i class="ti ti-trophy" aria-hidden="true"></i> Champion now</div>
@@ -24874,9 +24951,21 @@ function mpBeltLook(){
        <button type="button" class="spc-mini" onclick="const i=pmEl('mpt_img');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))">Remove belt picture</button>`
     : '';
 }
+// Nov 17: pick a picture, crop it here (wide, see-through background kept), then it uploads
+function mpPickBelt(input){
+  const f = input.files && input.files[0]; input.value = '';
+  if(!f) return;
+  bxCropWide('mpt_crop', f, blob => {
+    const ext = blob.type === 'image/webp' ? 'webp' : 'png';
+    mpUploadBeltFile(new File([blob], 'belt.' + ext, { type:blob.type }));
+  });
+}
 async function mpUploadBelt(input){
   const f = input.files && input.files[0]; input.value = '';
   if(!f) return;
+  return mpUploadBeltFile(f);
+}
+async function mpUploadBeltFile(f){
   mpMsg('mpt_msg', 'Uploading the belt…', true);
   try{
     let up;
@@ -38045,13 +38134,55 @@ function bxDraw(hostId, cv, size){
   const c = cv.getContext('2d'); c.clearRect(0, 0, size, size);
   c.drawImage(S.img, (size - w) / 2 + S.x * k, (size - h) / 2 + S.y * k, w, h);
 }
-function bxZoom(hostId, v){ const S = BXC[hostId]; if(!S) return; S.z = Number(v) || 1; bxDraw(hostId); }
+function bxZoom(hostId, v){ const S = BXC[hostId]; if(!S) return; S.z = Number(v) || 1; if(S.wide) bxDrawWide(hostId); else bxDraw(hostId); }
 function bxDone(hostId){
   const S = BXC[hostId]; if(!S) return;
   const out = document.createElement('canvas'); out.width = out.height = 512;
   bxDraw(hostId, out, 512);
   const data = out.toDataURL('image/webp', 0.9).startsWith('data:image/webp') ? out.toDataURL('image/webp', 0.9) : out.toDataURL('image/png');
   out.toBlob(b => { const host = pmEl(hostId); if(host){ host.hidden = true; host.innerHTML = ''; } URL.revokeObjectURL(S.url); delete BXC[hostId]; S.onDone(b, data); }, data.startsWith('data:image/webp') ? 'image/webp' : 'image/png', 0.9);
+}
+/* Nov 17: the same crop tool, wide (2 to 1) for championship belts. A belt is a cut out
+   picture, so it can zoom out past the edges too, and the see-through background is kept.
+   onDone(blob, dataUrl) gets a 1200 by 600 picture. */
+function bxCropWide(hostId, file, onDone){
+  const host = pmEl(hostId); if(!host || !file) return;
+  if(!/^image\//.test(file.type || '')){ wcaToast('That is not a picture', 'Pick a PNG, JPG or WebP.', true); return; }
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    const S = BXC[hostId] = { img, url, z:1, x:0, y:0, onDone, drag:null, wide:true };
+    host.hidden = false;
+    host.innerHTML = `<div class="bxc bxc-w"><div class="bxc-h">Crop the belt <span class="pm-opt">(drag to move it, slide to zoom. Leave a little space around the belt)</span></div>
+      <div class="bxc-frame"><canvas width="480" height="240" id="${hostId}_cv"></canvas></div>
+      <label class="bxc-zoom" for="${hostId}_z"><i class="ti ti-zoom-out" aria-hidden="true"></i><input type="range" id="${hostId}_z" data-nokeep min="0.5" max="4" step="0.01" value="1" oninput="bxZoom('${hostId}',this.value)"><i class="ti ti-zoom-in" aria-hidden="true"></i></label>
+      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="bxDoneWide('${hostId}')"><i class="ti ti-crop"></i> Use this crop</button><button type="button" class="spc-mini" onclick="BXC['${hostId}'].z=1;BXC['${hostId}'].x=0;BXC['${hostId}'].y=0;pmEl('${hostId}_z').value=1;bxDrawWide('${hostId}')">Fit the whole picture</button><button type="button" class="spc-mini" onclick="bxCancel('${hostId}')">Cancel</button></div></div>`;
+    const cv = pmEl(hostId + '_cv');
+    cv.addEventListener('pointerdown', e => { S.drag = { x:e.clientX, y:e.clientY, ox:S.x, oy:S.y }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => { if(!S.drag) return; const k = 480 / cv.getBoundingClientRect().width; S.x = S.drag.ox + (e.clientX - S.drag.x) * k; S.y = S.drag.oy + (e.clientY - S.drag.y) * k; bxDrawWide(hostId); });
+    cv.addEventListener('pointerup', () => { S.drag = null; });
+    cv.addEventListener('wheel', e => { e.preventDefault(); const z = Math.max(0.5, Math.min(4, S.z * (e.deltaY < 0 ? 1.06 : 0.94))); pmEl(hostId + '_z').value = z; S.z = z; bxDrawWide(hostId); }, { passive:false });
+    bxDrawWide(hostId);
+  };
+  img.onerror = () => wcaToast('Could not open that picture', 'Try a different file.', true);
+  img.src = url;
+}
+function bxDrawWide(hostId, cv, W){
+  const S = BXC[hostId]; if(!S) return;
+  cv = cv || pmEl(hostId + '_cv'); if(!cv) return; W = W || 480; const H = W / 2, k = W / 480;
+  const sc = Math.min(W / S.img.width, H / S.img.height) * S.z, w = S.img.width * sc, h = S.img.height * sc;
+  // never let the belt slide completely out of the frame
+  const mx = (W + w) / 2 / k - 20, my = (H + h) / 2 / k - 20;
+  S.x = Math.max(-mx, Math.min(mx, S.x)); S.y = Math.max(-my, Math.min(my, S.y));
+  const c = cv.getContext('2d'); c.clearRect(0, 0, W, H);
+  c.drawImage(S.img, (W - w) / 2 + S.x * k, (H - h) / 2 + S.y * k, w, h);
+}
+function bxDoneWide(hostId){
+  const S = BXC[hostId]; if(!S) return;
+  const out = document.createElement('canvas'); out.width = 1200; out.height = 600;
+  bxDrawWide(hostId, out, 1200);
+  const webp = out.toDataURL('image/webp', 0.92).startsWith('data:image/webp');
+  const data = webp ? out.toDataURL('image/webp', 0.92) : out.toDataURL('image/png');
+  out.toBlob(b => { const host = pmEl(hostId); if(host){ host.hidden = true; host.innerHTML = ''; } URL.revokeObjectURL(S.url); delete BXC[hostId]; S.onDone(b, data); }, webp ? 'image/webp' : 'image/png', 0.92);
 }
 function bxCancel(hostId){ const S = BXC[hostId], host = pmEl(hostId); if(host){ host.hidden = true; host.innerHTML = ''; } if(S){ URL.revokeObjectURL(S.url); delete BXC[hostId]; } }
 
