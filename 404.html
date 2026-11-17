@@ -41036,6 +41036,24 @@ const FHBG = (function(){
   #slx-bottom a i{display:block; font-size:22px; font-style:normal; margin-bottom:2px;}
   #slx-bottom a.on{color:var(--gold);}
 
+  /* WIDER FEED ON COMPUTERS (Nov 16 2026, look only)
+     The Feed used to stop at 1380px, leaving big empty strips on wide screens.
+     On computers it now spreads across the browser like X / Facebook desktop:
+     the menu hugs the left edge, the side cards hug the right edge and the
+     posts column grows in between (up to 1400px so long posts stay readable).
+     Phones and small laptops keep their own layouts below. */
+  @media (min-width:1241px){
+    html[data-design="fight"] #page-storylines{max-width:none;}
+    html[data-design="fight"] .slx{grid-template-columns:clamp(250px,13vw,330px) minmax(0,1400px) clamp(340px,17vw,440px);
+      justify-content:space-between; column-gap:clamp(24px,2.2vw,56px);}
+    html[data-design="fight"][data-slx-feed] #fh-pagebar{max-width:calc(100vw - 96px);}
+  }
+  @media (min-width:1800px){
+    html[data-design="fight"] #page-storylines .sl-prose,
+    html[data-design="fight"] #page-storylines .sl-para{font-size:19px;}
+    html[data-design="fight"] #page-storylines .sl-social .sl-text{font-size:19px;}
+  }
+
   /* medium screens: filters go above the feed, the left menu hides */
   @media (max-width:1240px){
     html[data-design="fight"] .slx{grid-template-columns:minmax(0,1fr) 310px; grid-template-areas:"l r" "c r"; gap:16px 20px;}
