@@ -35195,6 +35195,57 @@ try{ if(rvOnSite() && wcaRoute().pg === 'rivalries' && document.getElementById('
 .pe-evno{font-family:var(--font-cond); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:14px; color:var(--muted); margin-top:4px;}
 .pe-evh-r{display:flex; justify-content:flex-end;}
 .pe-evh-r .pe-evlinks{margin:0; justify-content:flex-end;}
+
+/* ===== Promotion Events: one show at a time, with every show in a rail (Nov 2026) ===== */
+.pe-x{display:grid; grid-template-columns:270px minmax(0,1fr); gap:24px; align-items:start; margin-top:4px;}
+.pe-xrail{position:sticky; top:146px; max-height:calc(100vh - 166px); overflow:auto; border:1px solid var(--line); border-top:3px solid var(--pc, var(--gold)); border-radius:12px; background:rgba(14,14,16,.94); padding:14px 12px; scrollbar-width:thin;}
+.pe-xk{display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-size:16px; letter-spacing:2.2px; text-transform:uppercase; color:var(--pc, var(--gold)); margin:0 4px 8px;}
+.pe-xk span{font-family:inherit; font-size:14px; letter-spacing:1px; padding:1px 9px; border-radius:10px; background:rgba(255,255,255,.08); color:var(--txt-2);}
+.pe-xpast{margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+.pe-xs{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:10px 12px; margin:0 0 4px; border-radius:9px; border:1px solid transparent; border-left:3px solid var(--bc, rgba(255,255,255,.12)); background:transparent; color:var(--txt); cursor:pointer; font:inherit;}
+.pe-xs:hover{background:rgba(255,255,255,.05);}
+.pe-xs.on{background:color-mix(in srgb, var(--pc, #e9b949) 18%, transparent); border-color:var(--pc, var(--gold)); border-left-color:var(--bc, var(--pc, var(--gold)));}
+.pe-xs[hidden],.pe-xyear[hidden]{display:none;}
+.pe-xs-n{font-weight:700; font-size:16px; line-height:1.2; overflow-wrap:anywhere;}
+.pe-xs.on .pe-xs-n{color:#fff;}
+.pe-xs-m{font-size:14px; color:var(--muted);}
+.pe-xs-m b{color:#ff5a6a;}
+.pe-xyear{font-family:var(--font-display); font-size:14px; letter-spacing:2px; color:var(--muted); margin:12px 6px 6px; padding-bottom:4px; border-bottom:1px solid var(--line);}
+.pe-xsearch{display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:rgba(0,0,0,.25); margin:0 0 8px;}
+.pe-xsearch i{color:var(--muted);}
+.pe-xsearch input{flex:1; min-width:0; background:transparent; border:0; outline:0; color:var(--txt); font:inherit; font-size:15px;}
+.pe-xnone{padding:6px 8px 10px; font-size:15px; color:var(--muted);}
+.pe-xpick{display:none;}
+.pe-xstage{min-width:0;}
+.pe-xstage .pe-ev{margin-bottom:0;}
+.pe-xcd{border-color:color-mix(in srgb, var(--pc, #e9b949) 40%, transparent); background:color-mix(in srgb, var(--pc, #e9b949) 7%, transparent); margin:0 0 16px;}
+.pe-xcd .evx-cd-k{color:var(--pc, var(--gold));}
+/* the show's title block: big, centered, impossible to scroll past */
+.pe-xstage .pe-evhead{grid-template-columns:1fr; justify-items:center; text-align:center; gap:12px; padding:30px 18px 26px; margin:0 0 18px; border:0; border-radius:10px;
+  background:radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--pc, #e9b949) 30%, transparent), transparent 72%), rgba(0,0,0,.35);}
+.pe-xstage .pe-evh-c{order:-1;}
+.pe-xstage .pe-evh-l,.pe-xstage .pe-evh-r,.pe-xstage .pe-evh-r .pe-evlinks{justify-content:center;}
+.pe-xstage .pe-evh-c .pe-evname{font-size:clamp(40px,5.6vw,78px); line-height:.95; letter-spacing:1.5px; text-shadow:0 4px 24px rgba(0,0,0,.6);}
+.pe-xstage .pe-evno{font-size:18px; letter-spacing:3px; color:var(--pc, var(--gold)); margin-top:10px;}
+.pe-xstage .pe-evbrand{margin:0;}
+.pe-xstage .pe-evstat{font-size:15px;}
+.pe-xstage .pe-evdate{flex-basis:100%; text-align:center; font-size:21px; font-weight:700; color:#fff; letter-spacing:.3px; margin-top:4px;}
+.pe-xnav{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;}
+.pe-xnb{display:flex; flex-direction:column; gap:4px; padding:14px 16px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--txt); cursor:pointer; font:inherit; text-align:left;}
+.pe-xnb.next{text-align:right; align-items:flex-end;}
+.pe-xnb:hover{border-color:var(--pc, var(--gold));}
+.pe-xnb small{font-family:var(--font-display); font-size:14px; letter-spacing:2px; text-transform:uppercase; color:var(--pc, var(--gold));}
+.pe-xnb b{font-size:16px; overflow-wrap:anywhere;}
+@media (max-width:900px){
+  .pe-x{grid-template-columns:1fr;}
+  .pe-xrail{display:none;}
+  .pe-xpick{display:flex; align-items:center; gap:10px; margin:0 0 14px;}
+  .pe-xpick-l{font-family:var(--font-display); font-size:15px; letter-spacing:2px; text-transform:uppercase; color:var(--pc, var(--gold));}
+  .pe-xpick select{flex:1; min-width:0; background:#16161a; color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:11px 12px; font:inherit; font-size:16px;}
+  .pe-xnav{grid-template-columns:1fr;}
+  .pe-xnb.next{text-align:left; align-items:flex-start;}
+}
+
 @media(max-width:760px){
   .pe-evhead{grid-template-columns:1fr; text-align:center;}
   .pe-evh-l,.pe-evh-r,.pe-evh-r .pe-evlinks{justify-content:center;}
@@ -35648,21 +35699,96 @@ function peDrawPublic(){
   const up = evs.filter(e => e.status === 'upcoming' || e.status === 'live')
     .sort((a, b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || String(a.event_date || '9').localeCompare(String(b.event_date || '9')));
   const past = evs.filter(e => e.status === 'done');
-  const shown = S.view === 'past' ? past : up;
+  /* Nov 2026: one show at a time, like WCA's Events page. Every show is listed
+     in a rail beside it (Upcoming first, then Past shows by year); picking one
+     swaps the show on screen. Upcoming opens first when there is one. */
+  const all = up.concat(past);
+  let sel = all.find(e => String(e.id) === String(S.sel));
+  if(!sel && S.focusEv != null) sel = all.find(e => String(e.id) === String(S.focusEv));
+  if(!sel) sel = S.view === 'past' ? (past[0] || up[0]) : (up[0] || past[0]);
+  S.sel = sel ? sel.id : null;
+  if(sel) S.view = sel.status === 'done' ? 'past' : 'upcoming';
   // a promotion with brands: pick one, or every show
   const brandRow = (S.brands || []).length ? `<div class="pe-brands" role="group" aria-label="Brands"><span class="pe-sk">Brand</span>
       <button type="button" class="pe-bchip${!S.brandF ? ' on' : ''}" onclick="PE.pub.brandF=null;peDrawPublic()">Every show</button>
       ${S.brands.map(b => `<button type="button" class="pe-bchip${String(S.brandF) === String(b.id) ? ' on' : ''}" style="--bc:${pmColor(b.color, '#c9c6be')}" title="${escAttr(b.name)}" onclick="PE.pub.brandF=${Number(b.id)};peDrawPublic()">${brLogo(b, 'pe-blogo')}${esc(brShort(b))}</button>`).join('')}</div>` : '';
-  const tabs = S.opts.view === 'all' ? `<div class="pe-tabs" role="tablist">
-      <button type="button" role="tab" class="pe-tab${S.view !== 'past' ? ' on' : ''}" aria-selected="${S.view !== 'past'}" onclick="PE.pub.view='upcoming';peDrawPublic()">Upcoming<span>${up.length}</span></button>
-      <button type="button" role="tab" class="pe-tab${S.view === 'past' ? ' on' : ''}" aria-selected="${S.view === 'past'}" onclick="PE.pub.view='past';peDrawPublic()">Past shows<span>${past.length}</span></button></div>` : '';
   const head = S.opts.view !== 'all' ? `<div class="section-title">${esc((typeof peShort === 'function' ? peShort(S.promo) : '') || S.promo.name || 'Promotion')} ${S.view === 'past' ? 'past shows' : 'shows'}</div>` : '';
   S.host.style.setProperty('--pc', S.color);
-  // the money card belongs on the promotion's own page; Events only lists shows
-  S.host.innerHTML = head + brandRow + tabs + (S.view === 'past' || S.opts.view !== 'all' ? '' : peWalletHTML(S)) +
-    (shown.length ? shown.map(e => peEventHTML(S, e)).join('')
-      : `<div class="pe-empty pe-none"><i class="ti ti-calendar-off" aria-hidden="true"></i><b>${S.view === 'past' ? 'No past events yet.' : 'No scheduled events yet.'}</b><span>${S.view === 'past' ? 'Finished shows will show up here.' : 'Their next show will show up here once it is on the calendar.'}</span>${S.opts.view !== 'all' ? `<a href="${escAttr(wcaHref('promotion', 'id=' + S.pid))}" onclick="pmGo(${S.pid});return false;">See the ${esc(S.promo.name || 'promotion')} page</a>` : ''}</div>`) +
+  const oldRail = S.host.querySelector('.pe-xrail'), railTop = oldRail ? oldRail.scrollTop : 0;
+  clearInterval(S.cdT);
+  let body;
+  if(!sel){
+    body = `<div class="pe-empty pe-none"><i class="ti ti-calendar-off" aria-hidden="true"></i><b>${S.view === 'past' ? 'No past events yet.' : 'No scheduled events yet.'}</b><span>${S.view === 'past' ? 'Finished shows will show up here.' : 'Their next show will show up here once it is on the calendar.'}</span>${S.opts.view !== 'all' ? `<a href="${escAttr(wcaHref('promotion', 'id=' + S.pid))}" onclick="pmGo(${S.pid});return false;">See the ${esc(S.promo.name || 'promotion')} page</a>` : ''}</div>`;
+  } else {
+    const yr = e => { const d = e.event_date ? new Date(e.event_date) : null; return d && !isNaN(d) ? String(d.getFullYear()) : 'Earlier'; };
+    const sd = e => { const d = e.event_date ? new Date(e.event_date) : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) : ''; };
+    const brandOf = e => (S.brands || []).find(b => String(b.id) === String(e.brand_id));
+    const q = String(S.q || '').trim().toLowerCase();
+    const hay = e => ((e.name || '') + ' ' + (e.show_number != null ? 'show ' + e.show_number : '') + ' ' + yr(e) + ' ' + sd(e) + ' ' + ((brandOf(e) || {}).name || '')).toLowerCase();
+    const row = (e, isPast) => {
+      const b = brandOf(e), on = String(sel.id) === String(e.id);
+      const meta = [e.show_number != null ? 'Show ' + Number(e.show_number) : '', sd(e)].filter(Boolean).join(' · ');
+      return `<button type="button" class="pe-xs${on ? ' on' : ''}${e.status === 'live' ? ' live' : ''}"${b ? ` style="--bc:${pmColor(b.color, '#c9c6be')}"` : ''}${isPast ? ` data-q="${escAttr(hay(e))}"${q && !hay(e).includes(q) ? ' hidden' : ''}` : ''} onclick="peSelEv(${Number(e.id)})"${on ? ' aria-current="true"' : ''}>
+        <span class="pe-xs-n">${esc(e.name || 'Show')}</span>${meta || e.status === 'live' ? `<span class="pe-xs-m">${e.status === 'live' ? '<b>Live now</b>' + (meta ? ' · ' : '') : ''}${esc(meta)}</span>` : ''}</button>`;
+    };
+    const years = [], byYear = {};
+    past.forEach(e => { const y = yr(e); if(!byYear[y]){ byYear[y] = []; years.push(y); } byYear[y].push(e); });
+    const rail = `<div class="pe-xk">Upcoming${up.length ? `<span>${up.length}</span>` : ''}</div>` +
+      (up.length ? up.map(e => row(e, false)).join('') : '<div class="pe-xnone">Nothing on the calendar yet.</div>') +
+      `<div class="pe-xk pe-xpast">Past shows<span>${past.length}</span></div>` +
+      (past.length > 8 ? `<label class="pe-xsearch"><i class="ti ti-search" aria-hidden="true"></i><input type="search" placeholder="Search shows" aria-label="Search past shows" value="${escAttr(S.q || '')}" oninput="peRailSearch(this)"></label>` : '') +
+      (past.length ? years.map(y => `<div class="pe-xyear" data-y="${escAttr(y)}">${esc(y)}</div>` + byYear[y].map(e => row(e, true)).join('')).join('') : '<div class="pe-xnone">Finished shows will show up here.</div>');
+    const opt = e => `<option value="${Number(e.id)}"${String(sel.id) === String(e.id) ? ' selected' : ''}>${esc(e.name || 'Show')}${e.show_number != null ? ' · Show ' + Number(e.show_number) : ''}${sd(e) ? ' · ' + esc(sd(e)) : ''}</option>`;
+    const pick = `<div class="pe-xpick"><span class="pe-xpick-l">Show</span><select aria-label="Pick a show" onchange="peSelEv(this.value)">` +
+      (up.length ? `<optgroup label="Upcoming">${up.map(opt).join('')}</optgroup>` : '') +
+      years.map(y => `<optgroup label="Past shows ${escAttr(y)}">${byYear[y].map(opt).join('')}</optgroup>`).join('') + `</select></div>`;
+    // step to the show before or after this one, in date order
+    const chron = past.slice().reverse().concat(up), i = chron.indexOf(sel);
+    const prev = i > 0 ? chron[i - 1] : null, next = i >= 0 && i < chron.length - 1 ? chron[i + 1] : null;
+    const navBtn = (e, dir) => e ? `<button type="button" class="pe-xnb ${dir}" onclick="peSelEv(${Number(e.id)})"><small>${dir === 'prev' ? '◀ Show before' : 'Show after ▶'}</small><b>${esc(e.name || 'Show')}${e.show_number != null ? ' · Show ' + Number(e.show_number) : ''}</b></button>` : '<span></span>';
+    const nav = prev || next ? `<nav class="pe-xnav" aria-label="Other shows">${navBtn(prev, 'prev')}${navBtn(next, 'next')}</nav>` : '';
+    const when = sel.event_date ? new Date(sel.event_date) : null;
+    const cd = sel.status === 'upcoming' && when && !isNaN(when) && when.getTime() > Date.now() ? '<div class="evx-cd pe-xcd" aria-label="Time until the show"></div>' : '';
+    // the money card belongs on the promotion's own page; Events only lists shows
+    const wallet = S.opts.view === 'all' && sel.status !== 'done' ? peWalletHTML(S) : '';
+    body = pick + `<div class="pe-x"><aside class="pe-xrail" aria-label="Every ${escAttr(S.promo.name || '')} show">${rail}</aside>
+      <div class="pe-xstage">${wallet}${cd}${peEventHTML(S, sel)}${nav}</div></div>`;
+  }
+  S.host.innerHTML = head + brandRow + body +
     (S.top && S.top.length && S.opts.view === 'all' ? `<section class="pe-top"><div class="pe-h">Top fans</div><ol>${S.top.map(t => `<li><span class="pe-rk">${Number(t.rank)}</span>${t.avatar ? `<img src="${escAttr(t.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<span>${esc(t.name)}</span><span class="pe-tb">${esc(peMoney(S.info, t.balance))}</span></li>`).join('')}</ol></section>` : '');
+  const nr = S.host.querySelector('.pe-xrail'); if(nr && railTop) nr.scrollTop = railTop;
+  const box = S.host.querySelector('.pe-xcd');
+  if(box && sel){
+    const at = new Date(sel.event_date).getTime();
+    const tick = () => {
+      if(!box.isConnected){ clearInterval(S.cdT); return; }
+      const t = Math.floor((at - Date.now()) / 1000);
+      if(t <= 0){ box.innerHTML = '<span class="evx-cd-k">Starting now</span>'; clearInterval(S.cdT); return; }
+      const pad = n => String(n).padStart(2, '0'), u = (n, l) => `<span class="evx-cd-u"><b>${n}</b><small>${l}</small></span>`;
+      box.innerHTML = '<span class="evx-cd-k">Starts in</span>' + u(Math.floor(t / 86400), 'Days') + u(pad(Math.floor(t % 86400 / 3600)), 'Hours') + u(pad(Math.floor(t % 3600 / 60)), 'Mins') + u(pad(t % 60), 'Secs');
+    };
+    tick(); S.cdT = setInterval(tick, 1000);
+  }
+}
+// pick a show from the rail, the phone dropdown, or the before/after buttons
+function peSelEv(id){
+  const S = PE.pub; if(!S) return;
+  S.sel = Number(id); S.focusEv = null;
+  peDrawPublic();
+  const st = S.host.querySelector('.pe-xstage');
+  if(st){ const r = st.getBoundingClientRect(); if(r.top < 70 || r.top > window.innerHeight * .5) window.scrollTo({ top:Math.max(0, window.scrollY + r.top - 160), behavior:'smooth' }); }
+}
+// search the past shows in the rail without redrawing the page
+function peRailSearch(inp){
+  const S = PE.pub; if(!S) return;
+  S.q = inp.value;
+  const q = S.q.trim().toLowerCase(), rail = inp.closest('.pe-xrail'); if(!rail) return;
+  rail.querySelectorAll('.pe-xs[data-q]').forEach(b => { b.hidden = !!q && !b.dataset.q.includes(q); });
+  rail.querySelectorAll('.pe-xyear').forEach(h => {
+    let n = h.nextElementSibling, any = false;
+    while(n && n.classList.contains('pe-xs')){ if(!n.hidden) any = true; n = n.nextElementSibling; }
+    h.hidden = !any;
+  });
 }
 function peEventHTML(S, e){
   const ms = S.matches[e.id] || [];
@@ -39542,14 +39668,21 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   .fh-tags{display:flex; flex-wrap:wrap; gap:8px;}
   .fh-tag{display:inline-block; padding:3px 10px; font-family:var(--fh-fight); font-weight:700; font-size:13px; letter-spacing:2px; text-transform:uppercase; background:rgba(255,255,255,.06); border:1px solid var(--line); transform:skewX(-12deg);}
   .fh-tag.gold{background:var(--gold); color:var(--on-gold); border-color:transparent;}
-  .fh-slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
+  .fh-slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px;}
   .fh-slot{position:relative; aspect-ratio:1/1; display:grid; place-items:center; border:0; cursor:pointer; overflow:hidden; color:#fff;
-    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:clamp(24px,2.6vw,38px); text-transform:uppercase;
+    font-family:var(--fh-fight); font-style:italic; font-weight:900; font-size:clamp(30px,3.2vw,48px); text-transform:uppercase;
     background:linear-gradient(150deg,var(--pc,#666),#000 85%); clip-path:polygon(12% 0,100% 0,88% 100%,0 100%); filter:saturate(.8) brightness(.85); transition:transform .15s, filter .15s;}
   .fh-slot img{position:absolute; inset:14%; width:72%; height:72%; object-fit:contain;}
   .fh-slot span{position:relative; text-shadow:0 2px 10px #000; align-self:end; margin-bottom:10%;}
   .fh-slot:hover,.fh-slot:focus-visible{filter:none; transform:scale(1.04);}
   .fh-note{color:var(--txt-2); line-height:1.5; margin:8px 0 16px; max-width:70ch;}
+  /* a promotion picked under Events: its next show (or latest results) fills the stage */
+  .fh-pv{border-top:0;}
+  .fh-pv::before{background:var(--pc,var(--gold)); box-shadow:0 0 14px var(--pc,var(--gold)); width:100%;}
+  .fh-pv .fh-pv-logo{position:absolute; right:4%; top:50%; transform:translateY(-50%); width:min(38%,340px); aspect-ratio:1/1; object-fit:contain; opacity:.22; pointer-events:none; filter:drop-shadow(0 10px 40px rgba(0,0,0,.6));}
+  .fh-pv .fh-kick{color:var(--pc,var(--gold));}
+  .fh-pv-when{font-family:var(--fh-fight); font-weight:700; font-size:22px; letter-spacing:1px; color:#fff; margin:2px 0 12px;}
+  .fh-pv .fh-cta{background:var(--pc,var(--gold)); color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.5);}
   @media(max-width:900px){
     .fh-body{grid-template-columns:1fr; overflow-y:auto;}
     .fh-col1,.fh-sub .fh-col1{width:auto; padding-right:16px; overflow:visible;}
@@ -39560,6 +39693,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     .fh-stage{padding-left:max(16px,env(safe-area-inset-left,0px)); overflow:visible;}
     .fh-help,.fh-pr.sel{display:none;}
     .fh-splash{min-height:300px;}
+    .fh-slots{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
     .fh-splash .fh-pics img.a{display:none;} .fh-splash .fh-pics img.b{width:70%;}
     #fh-menu span{display:none;}
     #fh-pagebar{padding-top:10px;}
@@ -39804,11 +39938,11 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   const pcol = p => (typeof pmColor === 'function') ? pmColor(p.color) : '#e9b949';
   const pshort = p => (typeof peShort === 'function') ? peShort(p) : p.name;
 
-  function goEvents(pg, v){
+  function goEvents(pg, v, evId){
     fhLoad(pg === 'archive' ? 'Past Events' : pg === 'showdown' ? 'Showdown' : 'Events', () => {
       try{ localStorage.setItem('wca-events-promo', String(v)); }catch(e){}
       if(pg === 'showdown'){ goPage('showdown'); return; }
-      if(typeof wcaSetAddress === 'function') wcaSetAddress(pg, v === 'wca' ? '' : 'promo=' + Number(v), true);
+      if(typeof wcaSetAddress === 'function') wcaSetAddress(pg, v === 'wca' ? '' : 'promo=' + Number(v) + (evId != null ? '&ev=' + Number(evId) : ''), true);
       activatePage(pg); window.scrollTo({ top:0 });
     });
   }
@@ -39816,6 +39950,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
 
   async function renderHub(){
     const c1 = $('fh-col1'), c2 = $('fh-col2'), st = $('fh-stage');
+    const cur0 = sub;
     const cur = curPage();
     c1.innerHTML = '<div class="fh-head">Main Menu</div>';
     /* Main menu order (Nov 2026). Promotions sit right next to Events, as equals to WCA.
@@ -39860,11 +39995,22 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     if(sub && sub.promo){
       const p = sub.promo, isW = p === 'wca', nm = isW ? 'WCA' : pshort(p), v = isW ? 'wca' : p.id;
       back('Events', 'events'); head(nm);
-      c2.appendChild(mi('Upcoming', { help:'The next show, its card and the betting.', go: () => goEvents('events', v) }));
-      c2.appendChild(mi('Past Events', { help:'Every show ' + nm + ' has finished, with results and bets.', go: () => goEvents('archive', v) }));
+      const bUp = mi('Upcoming', { help:'The next show, its card and the betting.', go: () => goEvents('events', v) });
+      const bPast = mi('Past Events', { help:'Every show ' + nm + ' has finished, with results and bets.', go: () => goEvents('archive', v) });
+      c2.appendChild(bUp); c2.appendChild(bPast);
       if(isW) c2.appendChild(mi('Showdown', { help:'The spin off, HEAT vs OVERDRIVE.', go: () => goEvents('showdown', 'wca') }));
-      st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">${escH(isW ? 'World Championship Alliance' : p.name)}</div><div class="fh-big" style="font-size:clamp(44px,6vw,80px)">${escH(nm)}</div>
-        <p class="fh-note">Pick Upcoming for the next show and its betting, or Past Events for everything ${escH(nm)} has done so far.</p></section>`;
+      // Nov 2026: no "pick one" note. The stage shows the next show right away,
+      // or the latest results when nothing is scheduled.
+      const mark = up => { bUp.classList.toggle('sel', !!up); bPast.classList.toggle('sel', !up); };
+      if(isW){
+        await renderSplash(st);
+        if(sub !== cur0) return;
+        const ev = (typeof CURRENT_EVENT !== 'undefined') ? CURRENT_EVENT : null;
+        mark(!ev || !ev.is_complete);
+        return;
+      }
+      mark(true);
+      await promoPreview(st, p, nm, v, () => sub === cur0);
       return;
     }
     if(sub === 'more'){
@@ -39878,6 +40024,49 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
       if(typeof openDonate === 'function') extra.push(['Donate', () => { fhHubClose(); openDonate(); }, 'Help keep the site running.']);
       extra.forEach(([t, go, help]) => c2.appendChild(mi(t, { help:help || t, go })));
       st.innerHTML = `<section class="fh-panel" style="padding:24px"><div class="fh-kick">More</div><div class="fh-big" style="font-size:clamp(40px,5vw,70px)">Everything else</div><p class="fh-note">Music, Games, Fire Pro, our sponsors, and ways to support the site.</p></section>`;
+    }
+  }
+
+  /* a promotion's next show (or its latest results), big on the Events stage */
+  async function promoPreview(st, p, nm, v, still){
+    const logo = /^https?:\/\//i.test(String(p.logo_url||p.logo||'')) ? `<img class="fh-pv-logo" src="${escH(p.logo_url||p.logo)}" alt="">` : '';
+    st.innerHTML = `<section class="fh-panel fh-splash fh-pv" style="--pc:${escH(pcol(p))}">${logo}<div class="fh-kick">${escH(p.name)}</div><div class="fh-big">${escH(nm)}</div><p class="fh-note">Loading their shows…</p></section>`;
+    let evs = [];
+    try{
+      if(typeof sb !== 'undefined' && sb){
+        const r = await sb.from('promotion_events').select('id,name,status,event_date,show_number').eq('promotion_id', Number(p.id)).neq('status', 'draft').order('event_date', { ascending:false, nullsFirst:false }).limit(40);
+        evs = (r && !r.error && r.data) || [];
+      }
+    }catch(e){ evs = []; }
+    if(!still()) return;
+    const up = evs.filter(e => e.status === 'upcoming' || e.status === 'live')
+      .sort((a, b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || String(a.event_date || '9').localeCompare(String(b.event_date || '9')))[0];
+    const last = evs.find(e => e.status === 'done');
+    const ev = up || last;
+    const bUp = $('fh-col2') && [...$('fh-col2').querySelectorAll('.fh-mi')].find(b => /Upcoming/.test(b.textContent));
+    const bPast = $('fh-col2') && [...$('fh-col2').querySelectorAll('.fh-mi')].find(b => /Past Events/.test(b.textContent));
+    if(bUp) bUp.classList.toggle('sel', !!up); if(bPast) bPast.classList.toggle('sel', !up && !!last);
+    if(!ev){
+      st.innerHTML = `<section class="fh-panel fh-splash fh-pv" style="--pc:${escH(pcol(p))}; cursor:default">${logo}<div class="fh-kick">${escH(p.name)}</div><div class="fh-big">${escH(nm)}</div><p class="fh-note">No shows yet. Their first show will show up here once it is on the calendar.</p></section>`;
+      return;
+    }
+    const when = ev.event_date ? new Date(ev.event_date) : null;
+    const whenTxt = when && !isNaN(when) ? (typeof peWhen === 'function' ? peWhen(ev.event_date) : when.toLocaleString()) : '';
+    const kick = ev.status === 'live' ? 'Live now' : up ? 'Next show' : 'Latest results';
+    st.innerHTML = `<section class="fh-panel fh-splash fh-pv" id="fh-splash" style="--pc:${escH(pcol(p))}">${logo}
+      <div class="fh-kick">${escH(kick)} · ${escH(nm)}</div>
+      <div class="fh-big">${escH(ev.name || 'Show')}</div>
+      ${whenTxt ? `<div class="fh-pv-when">${escH(whenTxt)}</div>` : ''}
+      <div class="fh-tags">${ev.show_number != null ? `<span class="fh-tag">Show ${Number(ev.show_number)}</span>` : ''}${ev.status === 'live' ? '<span class="fh-tag gold">Live</span>' : ''}</div>
+      ${up && when && when.getTime() > Date.now() ? '<div class="fh-timer" id="fh-timer"></div>' : ''}
+      <div><button type="button" class="fh-cta">${up ? 'See the card ▶' : 'See the results ▶'}</button></div></section>`;
+    $('fh-splash').onclick = () => goEvents(up ? 'events' : 'archive', v, ev.id);
+    clearInterval(cdTimer);
+    if(up && when && when.getTime() > Date.now()){
+      const tick = () => { const el = $('fh-timer'); if(!el){ clearInterval(cdTimer); return; }
+        const s = Math.max(0, Math.floor((when - Date.now())/1000)), t = [Math.floor(s/86400), Math.floor(s%86400/3600), Math.floor(s%3600/60), s%60];
+        el.innerHTML = ['DAYS','HRS','MIN','SEC'].map((l,i) => `<div><b>${String(t[i]).padStart(2,'0')}</b><small>${l}</small></div>`).join(''); };
+      tick(); cdTimer = setInterval(tick, 1000);
     }
   }
 
@@ -39902,11 +40091,11 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
     }
     const when = ev.event_date ? new Date(ev.event_date) : null;
     st.innerHTML = `<section class="fh-panel fh-splash" id="fh-splash"><div class="fh-pics">${pics}</div>
-      <div class="fh-kick">Next show · ${escH(ev.name)}${when && typeof fmtEventDate === 'function' ? ' · ' + escH(fmtEventDate(ev.event_date)) : ''}</div>
+      <div class="fh-kick">${ev.is_complete ? 'Latest show' : 'Next show'} · ${escH(ev.name)}${when && typeof fmtEventDate === 'function' ? ' · ' + escH(fmtEventDate(ev.event_date)) : ''}</div>
       <div class="fh-big">${head}</div>
       <div class="fh-tags"><span class="fh-tag">Main Event</span>${tags}</div>
       ${when && when.getTime() > Date.now() ? '<div class="fh-timer" id="fh-timer"></div>' : ''}
-      <div><button type="button" class="fh-cta">See the card ▶</button></div></section>`;
+      <div><button type="button" class="fh-cta">${ev.is_complete ? 'See the results ▶' : 'See the card ▶'}</button></div></section>`;
     $('fh-splash').onclick = () => goEvents('events', 'wca');
     clearInterval(cdTimer);
     const tick = () => { const el = $('fh-timer'); if(!el){ clearInterval(cdTimer); return; }
