@@ -40395,6 +40395,30 @@ const FHBG = (function(){
   .ex-faq details{padding:12px 16px; border:1px solid var(--line); background:rgba(10,10,14,.8); margin-bottom:8px;}
   .ex-faq summary{cursor:pointer; font-size:18px; font-weight:700;}
   .ex-faq p{font-size:17px; line-height:1.55; color:var(--txt-2); margin:8px 0 0;}
+  .ex-owners{margin-top:14px; padding-top:12px; border-top:1px solid var(--line);}
+  .ex-owners h4{margin:0 0 8px; font-family:var(--ex-f); font-style:italic; font-weight:900; font-size:20px; text-transform:uppercase;}
+  .ex-admtag{font-style:normal; font-size:13px; letter-spacing:1px; padding:2px 8px; border:1px solid var(--gold); color:var(--gold); vertical-align:3px;}
+  .ex-ownlist{display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto;}
+  .ex-own{display:flex; align-items:center; gap:10px; font-size:16px;}
+  .ex-ownlist .ex-own{padding:6px 8px; background:rgba(0,0,0,.3); border:1px solid var(--line);}
+  .ex-own.me{border-color:rgba(var(--gold-rgb),.5);}
+  .ex-own .av{flex:0 0 32px; width:32px; height:32px; border-radius:50%; overflow:hidden; display:grid; place-items:center; background:var(--panel2,#222); font-weight:900;}
+  .ex-own .av img{width:100%; height:100%; object-fit:cover;}
+  .ex-own b{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ex-own .n{flex:none; font-weight:700; font-variant-numeric:tabular-nums;}
+  .ex-priv{flex:none; font-size:13px; padding:1px 7px; border:1px solid var(--line); color:var(--muted); text-transform:uppercase; letter-spacing:1px;}
+  .ex-priv.pub{border-color:var(--ex-up); color:var(--ex-up);}
+  .ex-pubsw{display:flex; align-items:flex-start; gap:12px; margin:0 0 16px; padding:12px 14px; border:1px solid var(--line); background:rgba(0,0,0,.3); cursor:pointer;}
+  .ex-pubsw input{width:22px; height:22px; margin:2px 0 0; accent-color:var(--gold); flex:none;}
+  .ex-pubsw b{display:block; font-size:17px;} .ex-pubsw small{display:block; font-size:15px; color:var(--txt-2); margin-top:2px;}
+  .ex-ownbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin:0 0 10px;}
+  .ex-ownbar input{flex:1; min-width:200px; font-size:16px; padding:9px 12px; background:rgba(0,0,0,.35); border:1px solid var(--line); color:var(--txt);}
+  .ex-ownbar label{display:flex; gap:8px; align-items:center; font-size:15px;} .ex-ownbar select{font-size:16px; padding:8px; background:rgba(0,0,0,.35); border:1px solid var(--line); color:var(--txt);}
+  .ex-ownp{margin-bottom:12px;}
+  .ex-ownp-h{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
+  .ex-ownp-h .ex-own{flex:1; min-width:180px;} .ex-ownp-h .ex-own b{font-size:18px;}
+  .ex-ownp-t{font-size:16px; color:var(--txt-2);} .ex-ownp-t b{color:var(--gold);}
+  .ex-ownp-l{display:flex; flex-wrap:wrap; gap:6px;} .ex-ownp-l .ex-chip{font-size:15px;}
   .ex-week{display:block; margin-top:-4px; font-size:15px; color:var(--txt-2);}
   /* My Portfolio: trading cards */
   .ex-binder{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:26px 20px; padding:6px 10px 10px 0;}
@@ -40476,6 +40500,7 @@ const FHBG = (function(){
   const money2 = n => '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
   const hasSb = () => { try{ return typeof sb !== 'undefined' && !!sb; }catch(e){ return false; } };
   const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
+  const isAdm = () => { try{ return IS_ADMIN === true; }catch(e){ return false; } };
   const KINDS = { wrestler:'Wrestler', faction:'Faction', promotion:'Promotion', promo_char:'Wrestler', promo_team:'Team' };
   const DEF = { booked_pct:10, win_pct:20, loss_pct:20, title_pct:40, defense_pct:20, motn_pct:15, decay_after:2, decay_pct:5, max_rise:80, max_drop:40,
     pay_win:5, pay_title:15, pay_defense:8, max_shares:500, sell_fee:0, nudge_pct:0.25, nudge_cap:15, sell_needs_ok:false, open:true, fan_posts:true };
@@ -40588,11 +40613,12 @@ const FHBG = (function(){
     if(X.missing){
       host.innerHTML = `<div class="ex">${head()}<div class="ex-empty">The Exchange opens soon. Check back after the next show.</div></div>`; return;
     }
-    const tabs = [['market', 'Market'], ['portfolio', 'My Portfolio'], ['guide', 'How it works']];
+    const tabs = [['market', 'Market'], ['portfolio', 'My Portfolio'], ['guide', 'How it works']].concat(isAdm() ? [['owners', 'Owners (admin)']] : []);
     let body = '';
     if(X.view === 'stock') body = stockView();
     else if(X.view === 'portfolio') body = portfolioView();
     else if(X.view === 'guide') body = guideView();
+    else if(X.view === 'owners' && isAdm()) body = ownersView();
     else body = marketView();
     host.innerHTML = `<div class="ex">${head()}${ticker()}
       <div class="ex-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" data-v="${k}"${(X.view === k || (k === 'market' && X.view === 'stock')) ? ' class="on" aria-selected="true"' : ''}>${t}</button>`).join('')}</div>
@@ -40601,7 +40627,61 @@ const FHBG = (function(){
     host.querySelectorAll('[data-s]').forEach(b => b.onclick = e => { if(e.target.closest('[data-buy]')) return; setView('stock', b.dataset.s); });
     host.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => setView('stock', b.dataset.buy));
     wire();
+    if(X.view === 'stock') loadOwners(X.stock);
+    if(X.view === 'owners' && isAdm()) loadAllOwners();
   }
+  /* who owns a stock: fans who chose to show it (the admin sees everyone) */
+  const avHTML = (o) => /^https:\/\//i.test(o.avatar || '') ? `<img src="${E(o.avatar)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : E(String(o.name || '?').slice(0, 1).toUpperCase());
+  async function loadOwners(id){
+    const box = $('ex-owners'); if(!box || !hasSb()) return;
+    let d = null;
+    try{ const r = await sb.rpc('ex_stock_owners', { p_stock:Number(id) }); if(!r.error) d = r.data; }catch(e){}
+    const b2 = $('ex-owners'); if(!b2 || String(b2.dataset.s) !== String(id)) return;
+    if(!d){ b2.innerHTML = ''; return; }
+    const own = d.owners || [];
+    const head = `<h4>Who owns it${d.admin ? ' <span class="ex-admtag">Admin view: everyone</span>' : ''}</h4>`;
+    if(!d.total){ b2.innerHTML = head + `<div class="ex-note">Nobody owns this yet. Be the first.</div>`; return; }
+    b2.innerHTML = head + (own.length ? `<div class="ex-ownlist">${own.map(o => `<div class="ex-own${o.me ? ' me' : ''}"><span class="av">${avHTML(o)}</span><b>${E(o.name)}${o.me ? ' (you)' : ''}</b>
+      ${d.admin && o.private ? '<span class="ex-priv">Private</span>' : ''}${!d.admin && o.me && o.private ? '<span class="ex-priv">Only you see this</span>' : ''}<span class="n">${Number(o.shares).toLocaleString()} ${Number(o.shares) === 1 ? 'share' : 'shares'}</span></div>`).join('')}</div>` : '')
+      + (d.hidden ? `<div class="ex-note">${own.length ? '+ ' : ''}${d.hidden} ${d.hidden === 1 ? 'fan keeps their' : 'fans keep their'} shares private.</div>` : '')
+      + (d.admin && d.private_count ? `<div class="ex-note">${d.private_count} of them chose private. Fans only see the ones who chose to show it.</div>` : '');
+  }
+  /* admin: everyone's shares, grouped by player, with sorting and search */
+  let OWN_ROWS = null;
+  async function loadAllOwners(){
+    const box = $('ex-allowners'); if(!box) return;
+    try{ const r = await sb.rpc('ex_admin_holders'); if(r.error) throw r.error; OWN_ROWS = Array.isArray(r.data) ? r.data : []; }
+    catch(e){ box.innerHTML = `<div class="ex-empty">Could not load owners. (WCA: run SUPABASE_UPDATE_exchange_rebuild.sql.)</div>`; return; }
+    paintOwners();
+  }
+  function paintOwners(){
+    const box = $('ex-allowners'); if(!box || !OWN_ROWS) return;
+    const rows = OWN_ROWS;
+    if(!rows.length){ box.innerHTML = `<div class="ex-empty">Nobody owns shares yet.</div>`; return; }
+    const by = {};
+    rows.forEach(r => { const k = r.user_id; (by[k] = by[k] || { name:r.name || 'Player', avatar:r.avatar, pub:r.public, list:[] }).list.push(r); });
+    let ppl = Object.values(by).map(p => { p.worth = p.list.reduce((a, r) => { const s = stockById(r.stock_id); return a + (s ? s.price * r.shares : 0); }, 0);
+      p.cost = p.list.reduce((a, r) => a + Number(r.cost || 0), 0); p.shares = p.list.reduce((a, r) => a + Number(r.shares || 0), 0); p.profit = p.worth - p.cost; return p; });
+    const q = (X.ownQ || '').trim().toLowerCase();
+    if(q) ppl = ppl.filter(p => p.name.toLowerCase().includes(q) || p.list.some(r => { const s = stockById(r.stock_id); return s && s.name.toLowerCase().includes(q); }));
+    const srt = X.ownSort || 'worth';
+    const cmp = { worth:(a, b) => b.worth - a.worth, shares:(a, b) => b.shares - a.shares, profit:(a, b) => b.profit - a.profit, loss:(a, b) => a.profit - b.profit,
+      stocks:(a, b) => b.list.length - a.list.length, name:(a, b) => a.name.localeCompare(b.name) }[srt];
+    ppl.sort(cmp);
+    const head = `<div class="ex-ownbar"><input type="search" id="ex-ownq" placeholder="Search a player or a stock" value="${E(X.ownQ || '')}">
+      <label>Sort <select id="ex-ownsort">${[['worth','Worth the most'],['shares','Most shares'],['profit','Most profit'],['loss','Biggest loss'],['stocks','Most different stocks'],['name','Name A–Z']].map(([k, t]) => `<option value="${k}"${k === srt ? ' selected' : ''}>${t}</option>`).join('')}</select></label></div>
+      <div class="ex-note" style="margin:0 0 12px">${ppl.length} ${ppl.length === 1 ? 'player' : 'players'}${q ? ' match' : ' own shares'}. Only you can see this page.</div>`;
+    box.innerHTML = head + ppl.map(p => {
+      return `<div class="ex-panel ex-ownp"><div class="ex-ownp-h"><span class="ex-own"><span class="av">${avHTML(p)}</span><b>${E(p.name)}</b></span>
+        ${p.pub == null ? '' : `<span class="ex-priv${p.pub ? ' pub' : ''}">${p.pub ? 'Shows publicly' : 'Private'}</span>`}
+        <span class="ex-ownp-t">${p.shares.toLocaleString()} shares · Worth <b>${money(p.worth)}</b> · paid ${money(p.cost)} · <span class="${p.profit >= 0 ? 'ex-up' : 'ex-dn'}">${p.profit >= 0 ? '+' : '-'}${money(Math.abs(p.profit))}</span></span></div>
+        <div class="ex-ownp-l">${p.list.sort((a, b) => b.shares - a.shares).map(r => { const s = stockById(r.stock_id); return `<button type="button" class="ex-chip" data-s="${r.stock_id}">${E(s ? s.name : 'Stock #' + r.stock_id)} ×${r.shares}</button>`; }).join('')}</div></div>`;
+    }).join('');
+    box.querySelectorAll('[data-s]').forEach(b => b.onclick = () => setView('stock', b.dataset.s));
+    const qi = $('ex-ownq'); if(qi) qi.oninput = () => { X.ownQ = qi.value; const pos = qi.selectionStart; paintOwners(); const n = $('ex-ownq'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } };
+    const so = $('ex-ownsort'); if(so) so.onchange = () => { X.ownSort = so.value; paintOwners(); };
+  }
+  function ownersView(){ return `<div id="ex-allowners"><div class="loading">Loading everyone's shares…</div></div>`; }
   function head(){
     const w = signedIn() ? `<div class="ex-wallet"><small>Your WCA money</small><b>${money(balance())}</b></div>`
       : `<div class="ex-wallet"><small>Want to invest?</small><button type="button" class="ex-btn sm" data-signin>Sign in</button></div>`;
@@ -40661,6 +40741,7 @@ const FHBG = (function(){
       </div>
       <p class="ex-note">${s.frozen ? 'WCA has frozen this price for now. ' : ''}${Number(s.trend) > 0 ? 'This stock is climbing a little every day right now. ' : Number(s.trend) < 0 ? 'This stock is sliding a little every day right now. ' : ''}
         After each show this price moves: booked on the show +${c.booked_pct}%, a win +${c.win_pct}%, a loss -${c.loss_pct}%, a title win +${c.title_pct}%. Every share you own pays ${c.pay_win}% of the price when ${s.kind === 'promotion' ? 'it' : 'they'} win.</p>
+      <div class="ex-owners" id="ex-owners" data-s="${s.id}"><div class="ex-note">Loading who owns it…</div></div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ex-btn ghost sm" id="ex-share-link">Share this stock</button><button type="button" class="ex-btn ghost sm" data-v="guide">How it works</button></div>
     </div>`;
     return `<button type="button" class="ex-btn ghost sm ex-back" data-v="market">◀ Back to the market</button><div class="ex-detail">${left}${tradeBox(s, h)}</div>`;
@@ -40711,6 +40792,12 @@ const FHBG = (function(){
     const host = $('ex-body'); if(!host) return;
     host.querySelectorAll('[data-signin]').forEach(b => b.onclick = () => { if(typeof frSignIn === 'function') frSignIn(); });
     host.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { X.filter = b.dataset.f; draw(); });
+    const pb = $('ex-pub'); if(pb) pb.onchange = async () => {
+      pb.disabled = true;
+      const r = await sb.rpc('ex_set_public', { p_show:pb.checked });
+      if(r.error){ pb.checked = !pb.checked; if(typeof wcaToast === 'function') wcaToast('Not saved', /ex_set_public|PGRST202|could not find/i.test(r.error.message || '') ? 'This switch turns on once WCA finishes an update.' : r.error.message, true); pb.disabled = false; return; }
+      if(X.me) X.me.public = pb.checked; draw();
+    };
     host.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { X.pview = b.dataset.pv; try{ localStorage.setItem('wca-ex-pview', X.pview); }catch(e){} draw(); });
     const so = $('ex-sort'); if(so) so.onchange = () => { X.sort = so.value; draw(); };
     const q = $('ex-q'); if(q) q.oninput = () => { X.q = q.value; const pos = q.selectionStart; draw(); const n = $('ex-q'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } };
@@ -40770,18 +40857,20 @@ const FHBG = (function(){
       <div class="ex-fact"><small>Win payouts so far</small><b>${money(paid)}</b></div>
       <div class="ex-fact"><small>WCA money</small><b>${money(balance())}</b></div></div>`;
     const view = X.pview || 'cards';
+    const pub = !!(X.me && X.me.public);
+    const pubSw = `<label class="ex-pubsw"><input type="checkbox" id="ex-pub"${pub ? ' checked' : ''}> <span><b>Show my shares on stock pages</b><small>${pub ? 'Fans can see your name and how many shares you own on each stock page.' : 'Off: your shares stay private. WCA can always see them.'}</small></span></label>`;
     const toggle = hs.length ? `<div class="ex-tools" style="margin-top:4px"><span style="font-family:var(--ex-f);font-style:italic;font-weight:900;font-size:24px;text-transform:uppercase;margin-right:auto">Your collection <small style="font-style:normal;font-size:15px;color:var(--muted);letter-spacing:1px">${hs.length} ${hs.length === 1 ? 'card' : 'cards'} · ${hs.reduce((a, x) => a + x.h.shares, 0)} shares</small></span>
       <button type="button" class="ex-chip${view === 'cards' ? ' on' : ''}" data-pv="cards">Cards</button><button type="button" class="ex-chip${view === 'list' ? ' on' : ''}" data-pv="list">List</button></div>` : '';
     if(hs.length && view === 'cards'){
       const order = hs.slice().sort((a, b) => b.h.shares * b.s.price - a.h.shares * a.s.price);
-      return top + toggle + `<div class="ex-binder">${order.map(({ h, s }) => tcard(h, s)).join('')}</div>` + pendHTML(pend);
+      return top + pubSw + toggle + `<div class="ex-binder">${order.map(({ h, s }) => tcard(h, s)).join('')}</div>` + pendHTML(pend);
     }
     const rows = hs.length ? `<div class="ex-tablewrap"><table class="ex-table"><thead><tr><th>Stock</th><th>Shares</th><th>Paid per share</th><th>Price now</th><th>Worth</th><th>Profit</th></tr></thead><tbody>
       ${hs.map(({ h, s }) => { const w = h.shares * s.price, p = w - h.cost; return `<tr data-s="${s.id}"><td><b>${E(s.name)}</b></td><td>${h.shares}</td><td>${money2(h.cost / Math.max(1, h.shares))}</td><td>${money2(s.price)} ${chgHTML(s)}</td><td>${money(w)}</td><td class="${p >= 0 ? 'ex-up' : 'ex-dn'}">${p >= 0 ? '+' : '-'}${money(Math.abs(p))}</td></tr>`; }).join('')}
       </tbody></table></div>` : `<div class="ex-empty">You don't own any shares yet. Pick someone on the Market tab and press Buy shares.</div>`;
     const pe = pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
       ${pend.map(p => { const s = stockById(p.stock_id); return `<div class="ex-msg">${p.shares} ${p.shares === 1 ? 'share' : 'shares'} of ${E(s ? s.name : 'a stock')}. You get paid the price on the day WCA says OK.</div>`; }).join('')}` : '';
-    return top + toggle + rows + pe;
+    return top + pubSw + toggle + rows + pe;
   }
   function pendHTML(pend){
     return pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
