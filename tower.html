@@ -103,6 +103,7 @@ h1.big{font-size:clamp(44px,7vw,90px);line-height:.9;margin:6px 0 10px}
 .pad .arw{width:44px;height:44px;margin:auto}
 .mg-keys i .arw{width:20px;height:20px}
 .target{width:78px;height:78px}
+.mg{-webkit-user-select:none;user-select:none;touch-action:none}
 
 .wallet{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 8px;background:rgba(0,0,0,.6);border:1px solid var(--line);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
 .wallet .coin{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--on-gold);font-weight:800}
@@ -740,6 +741,55 @@ body.fit #app[data-screen="pick"]{padding-left:max(18px,calc((100% - 1800px) / 2
 .arena .fighter .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:900px){ .arena{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
 
+/* =====================================================================
+   Nov 16: phones (and the Galaxy Fold, folded or open). During a match:
+   the opponent strip on top, your strip at the bottom, everything else in the middle.
+   ===================================================================== */
+.pv-chatbtn,.pv-close{display:none}
+@media(max-width:900px){
+  #app[data-screen="battle"] .arena,.pv-main .arena{display:contents}
+  #app[data-screen="battle"] .fighter.r,.pv-main .fighter.r{order:1}
+  #app[data-screen="battle"] .mid,.pv-main .mid{order:2}
+  #app[data-screen="battle"] .call,.pv-main .call{order:3}
+  #app[data-screen="battle"] .log,.pv-main .log{order:4}
+  #app[data-screen="battle"] #ctl,.pv-main #ctl{order:5}
+  #app[data-screen="battle"] > .row,.pv-main > .row{order:6}
+  #app[data-screen="battle"] .fighter.l,.pv-main .fighter.l{order:7;margin-top:auto}
+  body[data-me="R"] .pv-main .fighter.r{order:7;margin-top:auto}
+  body[data-me="R"] .pv-main .fighter.l{order:1;margin-top:0}
+  /* a fighter = one compact strip: picture | name, username, bars */
+  #app[data-screen="battle"] .fighter,.pv-main .fighter{display:grid;grid-template-columns:62px minmax(0,auto) minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:center;text-align:left;
+    padding:6px 8px;background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:6px;flex-shrink:0;position:relative}
+  #app[data-screen="battle"] .fighter > .portrait,.pv-main .fighter > .portrait{grid-column:1;grid-row:1 / span 5;width:62px !important;align-self:start}
+  #app[data-screen="battle"] .fighter > .nm,.pv-main .fighter > .nm,.pv-main .fighter > .pv-user{grid-column:2 / 4;font-size:18px !important;text-align:left}
+  #app[data-screen="battle"] .fighter > .chips,.pv-main .fighter > .chips{display:none}
+  #app[data-screen="battle"] .fighter > .barlbl,.pv-main .fighter > .barlbl{grid-column:2;font-size:12px;white-space:nowrap}
+  #app[data-screen="battle"] .fighter > .bar,.pv-main .fighter > .bar{grid-column:3;width:100%;transform:skewX(-12deg)}
+  #app[data-screen="battle"] .fighter.r .bar.hp span,.pv-main .fighter.r .bar.hp span{right:auto;left:0;background:linear-gradient(90deg,#c2412f,#f5c24a 60%,#3ECF8E)}
+  #app[data-screen="battle"] .fighter.r .bar span,.pv-main .fighter.r .bar span{right:auto;left:0}
+  #app[data-screen="battle"] .fighter .dmg,.pv-main .fighter .dmg{top:0;left:40px;font-size:36px}
+  #app[data-screen="battle"] .mid,.pv-main .mid{padding:4px 0}
+  #app[data-screen="battle"] .stage,.pv-main .stage{font-size:20px}
+  #app[data-screen="battle"] .log,.pv-main .log{flex:0 1 auto;max-height:15vh;min-height:0;margin:4px 0}
+  #app[data-screen="battle"] #ctl,.pv-main #ctl{flex:0 1 auto;min-height:0;overflow-y:auto;margin-bottom:6px}
+  #app[data-screen="battle"] .moves,.pv-main .moves{gap:6px}
+  #app[data-screen="battle"] .mv,.pv-main .mv{min-height:64px}
+  #app[data-screen="battle"] .count,.pv-main .count{font-size:90px}
+  /* online: the line and chat open over the game */
+  .pv{grid-template-columns:minmax(0,1fr) !important;grid-template-rows:minmax(0,1fr) !important;position:relative}
+  .pv-side{display:none;position:absolute;inset:0;z-index:40;max-height:none !important;box-shadow:0 0 0 100vmax rgba(0,0,0,.6)}
+  .pv.open .pv-side{display:flex}
+  .pv-close{display:block;position:absolute;top:8px;right:8px;width:44px;height:44px;border:1px solid var(--line);border-radius:50%;background:rgba(0,0,0,.6);color:var(--txt);font-size:18px;z-index:2}
+  .pv-head{padding-right:50px}
+  .pv-chatbtn{display:flex;align-items:center;gap:6px;position:absolute;right:6px;top:6px;z-index:30;height:40px;padding:0 14px;border:1px solid var(--gold);border-radius:20px;background:rgba(0,0,0,.75);color:var(--gold);font-family:var(--fight);font-weight:800;font-size:15px;text-transform:uppercase}
+  .pv-chatbtn i{font-style:normal;min-width:18px;padding:0 5px;border-radius:9px;background:var(--hot);color:#fff;font-size:12px;text-align:center}.pv-chatbtn i:empty{display:none}
+  .pv-q{max-height:30% !important}
+  /* mini games: bigger targets, swipes and taps */
+  .mg{touch-action:none}
+  .pads{grid-template-columns:repeat(4,1fr)}.pad{height:84px}
+}
+.mg{-webkit-user-select:none;user-select:none}
+
 </style>
 </head>
 <body>
@@ -1017,7 +1067,12 @@ const isOwn = (m, name) => !!(m && Array.isArray(m.only) && m.only.length && m.o
 const canUse = (m, name) => !!m && (!Array.isArray(m.only) || !m.only.length || (name != null && m.only.includes(name)));
 const ownMoves = name => CFG.moves.filter(m => isOwn(m, name));
 const moveIdx = id => { const i = CFG.moves.findIndex(m => m.id === id); return i < 0 ? 9999 : i; };   // the order set in the admin (drag and drop)
-function defaultLoadout(name){ const out = [], per = {}; CFG.moves.forEach(m => { if(!canUse(m, name)) return; per[m.from] = per[m.from] || 0;
+// Nov 16: the admin can tick exactly which moves are in the default set (settings.customDefaults + move.def).
+// Until then (or after "Back to automatic") it's the first few moves of each spot, in the admin's order.
+const ALWAYS_KINDS = ['pin', 'pickup', 'climb', 'whip'];
+function defaultLoadout(name){ const out = [], per = {};
+  if(CFG.settings.customDefaults){ CFG.moves.forEach(m => { if(canUse(m, name) && (m.def || ALWAYS_KINDS.includes(m.kind) || isOwn(m, name))) out.push(m.id); }); return out; }
+  CFG.moves.forEach(m => { if(!canUse(m, name)) return; per[m.from] = per[m.from] || 0;
   const always = m.kind === 'pin' || m.kind === 'pickup' || m.kind === 'climb' || m.kind === 'whip' || isOwn(m, name);
   if(always || per[m.from] < CFG.settings.maxMovesPerPos){ out.push(m.id); if(!always) per[m.from]++; } }); return out; }
 function hasLoadout(name){ const l = loadouts()[name]; return Array.isArray(l) && l.some(moveOf); }
@@ -1632,6 +1687,7 @@ const SYN = {
   hush(){ try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){} }
 };
 
+const TOUCH = () => !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches) || window.innerWidth <= 900;   // phones and tablets (Nov 16)
 /* =====================================================================
    THE MINI GAMES (used by the game AND the admin's Mini games tab, so they're always the same)
    ===================================================================== */
@@ -1670,7 +1726,7 @@ function seqGame(titleText, len, level, hpFrac){   // level: easy / normal / har
       <div class="lane" id="lane"><div class="target"></div></div>
       <div class="mg-score"><span class="ok" id="sOk">0 hit</span><span class="no" id="sNo">0 missed</span></div>
       <div class="pads">${keys.map(k => `<button class="pad" data-k="${k}">${arw(k)}</button>`).join('')}</div>
-      <div class="legend">Arrow keys or tap the buttons. Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
+      <div class="legend">${TOUCH() ? 'Swipe in the arrow\'s direction anywhere, or tap the buttons.' : 'Arrow keys or tap the buttons.'} Need ${Math.floor(len/2)+1} of ${len}.</div></div>`;
     document.body.appendChild(ov);
     const lane = ov.querySelector('#lane'), W = lane.clientWidth, targetX = W * .16, tol = Math.max(40, W * .06);   // how close counts as a hit (made more forgiving Nov 14)
     const ls = CFG.settings.seq.levelSpeed || {}, pace = (CFG.settings.seq.speed / 100) * ((+ls[level || 'easy'] || 100) / 100) * (1 + (+CFG.settings.seq.hurtSpeed || 0) / 100 * (1 - Math.max(0, Math.min(1, hpFrac == null ? 1 : hpFrac))));
@@ -1688,6 +1744,15 @@ function seqGame(titleText, len, level, hpFrac){   // level: easy / normal / har
       if(d <= tol) judge(nt, nt.k === k); else if(d <= tol * 2) judge(nt, false);
       const pad = ov.querySelector(`[data-k="${k}"]`); if(pad){ pad.classList.remove('pressed'); void pad.offsetWidth; pad.classList.add('pressed'); } };
     const kd = e => { if(ARROWS[e.key]){ e.preventDefault(); press(e.key); } };
+    // Nov 16: phones can swipe anywhere on the screen (up, down, left, right)
+    let sw = null;
+    ov.addEventListener('pointerdown', e => { if(e.target.closest('button')) return; sw = { x:e.clientX, y:e.clientY }; });
+    // counts as soon as the finger has moved far enough (doesn't wait for it to lift, so the browser can't cancel it)
+    const swipe = e => { if(!sw) return false; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; if(Math.max(Math.abs(dx), Math.abs(dy)) < 28) return false; sw = null;
+      press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft') : (dy > 0 ? 'ArrowDown' : 'ArrowUp')); return true; };
+    ov.addEventListener('pointermove', e => { if(swipe(e)) e.preventDefault(); });
+    ov.addEventListener('pointerup', e => { swipe(e); sw = null; });
+    ov.addEventListener('pointercancel', () => { sw = null; });
     const loop = () => { const t = (performance.now() - start) / 1000;
       notes.forEach(nt => { if(nt.done && !nt.el.classList.contains('gone')){ if(!nt.fade){ nt.fade = 1; setTimeout(() => nt.el.classList.add('gone'), 250); } return; }
         const x = xOf(nt, t); nt.el.style.transform = `translateX(${x}px)`; if(!nt.done && x < targetX - tol) judge(nt, false); });
@@ -1720,7 +1785,7 @@ function needleGame(zone){
       <div class="needlebar" id="nb"><div class="green" style="left:${left}%;width:${zone}%"></div><div class="needle" id="nd"></div></div>
       <div class="ctimer"><span id="ct"></span></div>
       <div class="row" style="justify-content:center;margin-top:14px"><button class="cta" id="stop">STOP (space or tap)</button></div>
-      <div class="legend">Every miss is a count, and so is waiting too long. Three and it's over. The green gets smaller the more damage you've taken. It's ${Math.round(zone)}% wide right now.</div></div>`;
+      <div class="legend">${TOUCH() ? '<b>Tap anywhere</b> to stop the needle. ' : ''}Every miss is a count, and so is waiting too long. Three and it's over. The green gets smaller the more damage you've taken. It's ${Math.round(zone)}% wide right now.</div></div>`;
     document.body.appendChild(ov);
     const nd = ov.querySelector('#nd'), ct = ov.querySelector('#ct'), win0 = Math.max(.8, +P.countTime || 1.8) * 1000;
     let period = 1500, phase = 0, last = performance.now(), raf, done = false, x = 0, count = 0, ready = false, deadline = performance.now() + win0 + 350;
@@ -1749,7 +1814,9 @@ function needleGame(zone){
         `The green is ${Math.round(zone)}% wide right now. It gets smaller the more you're hurt, and the needle speeds up after each count.`] },
       () => { last = performance.now(); deadline = last + win0 + 350;
         // a short beat before the needle can be stopped, so the key from "ready" doesn't stop it at once
-        setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop; ov.querySelector('#nb').onclick = stop; }, 350);
+        setTimeout(() => { ready = true; document.addEventListener('keydown', kd); ov.querySelector('#stop').onclick = stop;
+          // Nov 16: a tap anywhere stops the needle (like the space bar on a computer)
+          ov.addEventListener('pointerdown', e => { if(e.target.closest('button')) return; e.preventDefault(); stop(); }); }, 350);
         raf = requestAnimationFrame(loop); });
   });
 }
@@ -1946,7 +2013,7 @@ function startBattle(){
   me.side = 'L'; op.side = 'R';
   // in a tower, health and reversals carry over from the last floor
   if(!S.quick && S.carry){ me.hp = Math.max(1, Math.min(me.max, S.carry.hp)); me.revs = S.carry.revs; }
-  S.screen = 'battle'; fitMode(); window.scrollTo(0, 0); battleScreen();
+  S.screen = 'battle'; document.body.dataset.me = 'L'; fitMode(); window.scrollTo(0, 0); battleScreen();
   MT = new Match(me, op, uiHooks());
   drawBars(); SOUNDS_ON.start();
   if(LIVE && !S.quick && S.run) sbc().rpc('tower_fight', { p_run:S.run }).then(r => { if(r.error){ S.runErr = r.error.message; S.run = null; } }, () => {});
@@ -2509,13 +2576,18 @@ function pvResult(winId, how){ const s = PV.st, f = s.fight; if(!f) return; cons
 /* ---------- the room screen ---------- */
 function pvRoom(){ if(!PV.lob){ go('title'); return; }
   app.innerHTML = `<div class="pv"><section class="pv-main" id="pvMain"></section>
-    <aside class="pv-side"><div class="pv-head"><div class="kick">${PV.lob.mode === '1v1' ? 'One on One' : 'Gauntlet · winner stays on'}</div><b class="f pv-title">${esc(PV.lob.name)}</b></div>
+    <button class="pv-chatbtn" id="pvChatBtn" aria-label="Chat and line">Chat <i id="pvUall"></i></button>
+    <aside class="pv-side"><button class="pv-close" id="pvClose" aria-label="Close">✕</button><div class="pv-head"><div class="kick">${PV.lob.mode === '1v1' ? 'One on One' : 'Gauntlet · winner stays on'}</div><b class="f pv-title">${esc(PV.lob.name)}</b></div>
       <div class="pv-q" id="pvQ"></div>
       <div class="pv-btns"><button class="cta" id="pvJoin">Join the line</button><button class="cta ghost" id="pvOut" onclick="go('title')">Leave lobby</button></div>
       <div class="pv-chat"><div class="pv-tabs" role="tablist"><button role="tab" data-tab="p">Players <i id="pvUp"></i></button><button role="tab" data-tab="s">Spectators <i id="pvUs"></i></button></div>
         <div class="pv-msgs" id="pvMsgs" aria-live="polite"></div>
         <form class="pv-say" id="pvSay"><input id="pvText" maxlength="200" autocomplete="off" placeholder="Say something"><button class="cta">Send</button></form></div></aside></div>`;
   document.querySelectorAll('.pv-tabs [data-tab]').forEach(b => b.onclick = () => { PV.tab = b.dataset.tab; PV.unread[PV.tab] = 0; pvChatDraw(); });
+  // phones: the line and chat open over the game and close again (Nov 16)
+  const pvBox = app.querySelector('.pv');
+  document.getElementById('pvChatBtn').onclick = () => { pvBox.classList.add('open'); PV.unread[PV.tab] = 0; pvChatDraw(); };
+  document.getElementById('pvClose').onclick = () => pvBox.classList.remove('open');
   document.getElementById('pvJoin').onclick = () => { if(!pvCanPlay()) return; const inQ = PV.st && PV.st.queue.includes(PV.me.id); pvSend({ t:inQ ? 'quit' : 'join' }); };
   document.getElementById('pvSay').onsubmit = e => { e.preventDefault(); const i = document.getElementById('pvText'), x = (i.value || '').trim(); if(!x || !pvCanPlay()) return;
     const tab = pvFighting() ? 'p' : 's'; pvSend({ t:'chat', tab, x }); i.value = ''; if(PV.tab !== tab){ PV.tab = tab; pvChatDraw(); } };
@@ -2531,6 +2603,7 @@ function pvSide(){ const q = document.getElementById('pvQ'); if(!q) return; cons
 function pvChatDraw(){ const box = document.getElementById('pvMsgs'); if(!box) return;
   document.querySelectorAll('.pv-tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === PV.tab));
   const up = document.getElementById('pvUp'), us = document.getElementById('pvUs'); if(up) up.textContent = PV.unread.p ? PV.unread.p : ''; if(us) us.textContent = PV.unread.s ? PV.unread.s : '';
+  const ua = document.getElementById('pvUall'), open = !!document.querySelector('.pv.open'); if(open) PV.unread[PV.tab] = 0; if(ua) ua.textContent = (PV.unread.p + PV.unread.s) || '';
   const list = PV.chat[PV.tab];
   box.innerHTML = list.length ? list.map(m => `<div class="pv-m${m.f === PV.me.id ? ' me' : ''}"><b>${esc(m.n)}</b> ${esc(m.x)}</div>`).join('') : `<p class="muted">${PV.tab === 'p' ? 'The two fighters talk here. Everyone can read it.' : 'Spectators talk here.'}</p>`;
   box.scrollTop = box.scrollHeight; }
@@ -2586,6 +2659,7 @@ function pvSnap(m){ return { a:pvSnapF(m.a), b:pvSnapF(m.b), pos:m.pos, ctrl:m.c
 const pvClean = d => { if(d == null || typeof d !== 'object') return d; const o = {}; for(const k in d){ const v = d[k]; if(v == null || typeof v !== 'object') o[k] = v; } return o; };
 function pvFightStart(){ const s = PV.st, f = s.fight, main = document.getElementById('pvMain'); if(!f || !main) return;
   const iAmA = PV.me.id === f.a.id, iAmB = PV.me.id === f.b.id;
+  document.body.dataset.me = iAmB ? 'R' : 'L';   // on phones your wrestler sits at the bottom
   battleScreen(main, true); SND.crowdStop(); SOUNDS_ON.start();
   const mk = (who, side, brain, ids) => { const fi = makeFighter(who.name, { brain, loadout:(ids && ids.length ? ids.filter(id => canUse(moveOf(id), who.name)) : defaultLoadout(who.name)).concat(ownMoves(who.name).map(m => m.id)).filter((x, i, a) => a.indexOf(x) === i) });
     fi.side = side; fi.user = who.user; fi.isMe = who.id === PV.me.id; return fi; };
