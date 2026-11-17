@@ -7444,6 +7444,9 @@ button.sl-cover:hover{transform:translateY(-2px); border-color:var(--sc);}
 .sl-reply .sl-ini{font-size:16px;} .sl-qav-init.sl-ini{font-size:13px;} .sl-by-av-init.sl-ini{font-size:14px;}
 /* ===== PROMOTION ROSTER MENU: one division at a time (Nov 2026) ===== */
 #pmpage-body .pm-tabsw{display:flex; align-items:center; gap:8px; margin:22px 0; border-bottom:1px solid var(--line);}
+/* Nov 17: the classic Roster / Rivalries tab, reached from Classic view in the Fight Hub design */
+#pmpage-body .pm-newview{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:-8px 0 16px; padding:10px 14px; border:1px dashed var(--line); border-radius:6px; font-size:16px; color:var(--muted);}
+#pmpage-body .pm-newview-b{padding:9px 16px; border:0; cursor:pointer; background:var(--pc,var(--gold)); color:#0b0b0b; font:italic 900 16px var(--fh-fight,'Barlow Condensed',sans-serif); letter-spacing:1.5px; text-transform:uppercase; clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
 #pmpage-body .pm-tabsw .pm-tabs-u{flex:1 1 auto; min-width:0; margin:0; border-bottom:0; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; justify-content:safe center;}
 #pmpage-body .pm-tabsw .pm-tabs-u::-webkit-scrollbar{display:none;}
 #pmpage-body .pm-tabsw .pm-tab{white-space:nowrap; flex:0 0 auto;}
@@ -23981,6 +23984,13 @@ async function pmPageOpen(){
   const id = Number((qs.match(/(?:^|&)id=(\d+)/) || [])[1]);
   const tabAsked = (qs.match(/(?:^|&)tab=(roster|champions|rankings|posts|events|injuries|factions|rivalries|store|brands|stories|hierarchy)/) || [])[1] || null;
   let tab = tabAsked || 'posts';
+  // Fight Hub: a link to a promotion's Roster or Rivalries tab opens the same full screen page WCA uses,
+  // kept to this promotion (replacing the address, so Back still works). Classic view comes back here.
+  if(id && (tabAsked === 'roster' || tabAsked === 'rivalries') && pmNewViewOn(tabAsked)){
+    const one = (qs.match(tabAsked === 'roster' ? /(?:^|&)p=(\d+)/ : /(?:^|&)rv=(\d+)/) || [])[1] || null;
+    setTimeout(() => pmOpenNewView(id, tabAsked, one, false), 0);
+    return;
+  }
   PM.pubEv = (qs.match(/(?:^|&)ev=(\d+)/) || [])[1] || null;         // one show on the Events tab
   const wantSel = (qs.match(/(?:^|&)p=(\d+)/) || [])[1] || null;      // one person on the Roster tab
   PM.pubRv = (qs.match(/(?:^|&)rv=(\d+)/) || [])[1] || null;   // one rivalry opened on the Rivalries tab
@@ -24047,22 +24057,22 @@ async function pmPageOpen(){
   const TB = PM.pub, hierOn = TB.titles.length && TB.hier && TB.hier.trees && Object.keys(TB.hier.trees).length;
   const tabDefs = {
     posts:`<button type="button" role="tab" class="pm-tab" data-t="posts" onclick="pmPubTab('posts')">Posts <span>${TB.posts.length}</span></button>`,
-    roster:`<button type="button" role="tab" class="pm-tab" data-t="roster" onclick="pmPubTab('roster')">Roster <span>${TB.roster.length}</span></button>`,
+    roster:`<button type="button" role="tab" class="pm-tab" data-t="roster" onclick="pmTabGo('roster')">Roster <span>${TB.roster.length}</span></button>`,
     events:`<button type="button" role="tab" class="pm-tab" data-t="events" onclick="pmPubTab('events')">Events</button>`,
     champions:TB.page.champs_on && TB.titles.length ? `<button type="button" role="tab" class="pm-tab" data-t="champions" onclick="pmPubTab('champions')">Champions</button>` : '',
     hierarchy:hierOn ? `<button type="button" role="tab" class="pm-tab" data-t="hierarchy" onclick="pmPubTab('hierarchy')">Hierarchy</button>` : '',
     rankings:TB.page.ranks_on ? `<button type="button" role="tab" class="pm-tab" data-t="rankings" onclick="pmPubTab('rankings')">Rankings</button>` : '',
     stories:`<button type="button" role="tab" class="pm-tab" data-t="stories" onclick="pmPubTab('stories')">Stories</button>`,
-    rivalries:`<button type="button" role="tab" class="pm-tab" data-t="rivalries" onclick="pmPubTab('rivalries')">Rivalries</button>`,
+    rivalries:`<button type="button" role="tab" class="pm-tab" data-t="rivalries" onclick="pmTabGo('rivalries')">Rivalries</button>`,
     factions:`<button type="button" role="tab" class="pm-tab" data-t="factions" onclick="pmPubTab('factions')">Factions</button>`,
-    relationships:`<button type="button" class="pm-tab" onclick="stxOpenWorld(${Number(p.id)})">Relationships</button>`,
+    relationships:`<button type="button" class="pm-tab" onclick="pmTabGo('relationships')">Relationships</button>`,
     brands:TB.brands.length ? `<button type="button" role="tab" class="pm-tab" data-t="brands" onclick="pmPubTab('brands')">Brands <span>${TB.brands.length}</span></button>` : '',
     store:storeN ? `<button type="button" role="tab" class="pm-tab" data-t="store" onclick="pmPubTab('store')">Store <span>${storeN}</span></button>` : '',
     injuries:injOn ? `<button type="button" role="tab" class="pm-tab" data-t="injuries" onclick="pmPubTab('injuries')">Injuries</button>` : ''
   };
   const tabsHTML = TB.tabOrder.map(k => tabDefs[k] || '').join('');
   // no tab in the link: open on the owner's first tab
-  if(!tabAsked){ const first = TB.tabOrder.find(k => tabDefs[k] && k !== 'relationships'); if(first) tab = TB.tab = first; }
+  if(!tabAsked){ const first = TB.tabOrder.find(k => tabDefs[k] && k !== 'relationships' && !pmNewViewOn(k)); if(first) tab = TB.tab = first; }
   if(tab === 'hierarchy' && !hierOn) tab = TB.tab = 'posts';
   const th = mpThemeOf(theme);
   host.dataset.bg = th.bg; host.classList.add('pm-themed');
@@ -24094,7 +24104,7 @@ async function pmPageOpen(){
     <div class="pm-tabs pm-tabs-u" id="pm-tabrow" role="tablist" aria-label="${escAttr(p.name)}" onscroll="pmTabArrows()">
       ${tabsHTML}
     </div><button type="button" class="pm-tabarr" aria-label="More tabs" onclick="pmTabScroll(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button></div>
-    <div id="pmpub-tab"></div>`;
+    <div id="pm-nvslot"></div><div id="pmpub-tab"></div>`;
   pmPubTab(tab, true);
   setTimeout(() => { pmTabArrows(); const on = document.querySelector('#pm-tabrow .pm-tab.on'); if(on) on.scrollIntoView({ block:'nearest', inline:'center' }); }, 30);
   if(typeof pePaintFollow === 'function') pePaintFollow(p.id);
@@ -24107,6 +24117,30 @@ function pmShare(id){
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
   else done(false);
 }
+/* Nov 17: in the Fight Hub design a promotion's Roster, Relationships and Rivalries open the same
+   full screen pages WCA uses (Roster select, Relationships web, Rivalries), kept to that one
+   promotion: the address carries home=ID. Classic view there comes back to the old tab here,
+   which then shows a New view button. The Classic design is unchanged. */
+var PM_CLASSIC = { roster:false, relationships:false, rivalries:false };
+function pmNewViewOn(t){ return document.documentElement.dataset.design === 'fight' && !!window.WU && (t in PM_CLASSIC) && !PM_CLASSIC[t]; }
+function pmOpenNewView(pid, t, one, push){
+  const pg = t === 'roster' ? 'roster' : t === 'rivalries' ? 'rivalries' : 'relationships';
+  const extra = one ? (t === 'roster' ? '&pc=' + Number(one) : t === 'rivalries' ? '&id=' + Number(one) : '') : '';
+  wcaSetAddress(pg, 'home=' + Number(pid) + extra, push !== false);
+  activatePage(pg);
+  window.scrollTo({ top:0 });
+}
+function pmTabGo(t){
+  const P = PM.pub; if(!P) return;
+  if(pmNewViewOn(t)){ pmOpenNewView(P.p.id, t, null, true); return; }
+  if(t === 'relationships'){ stxOpenWorld(Number(P.p.id)); return; }
+  pmPubTab(t);
+}
+function pmNewViewBar(t){
+  const slot = pmEl('pm-nvslot'); if(!slot) return;
+  const on = document.documentElement.dataset.design === 'fight' && !!window.WU && (t === 'roster' || t === 'rivalries') && PM_CLASSIC[t];
+  slot.innerHTML = on ? `<div class="pm-newview"><button type="button" class="pm-newview-b" onclick="PM_CLASSIC['${t}']=false;pmTabGo('${t}')">◀ New view</button><span>This is the classic ${t === 'roster' ? 'Roster' : 'Rivalries'} page, with every tool it had.</span></div>` : '';
+}
 function pmPubTab(t, quiet){
   const P = PM.pub; if(!P) return;
   P.tab = t;
@@ -24114,6 +24148,7 @@ function pmPubTab(t, quiet){
   if(!quiet) wcaSetAddress('promotion', 'id=' + Number(P.p.id) + (t !== ((P.tabOrder || [])[0] || 'posts') ? '&tab=' + t : ''), false);
   const box = pmEl('pmpub-tab'); if(!box) return;
   pmStageClose();
+  pmNewViewBar(t);
   if(t === 'champions'){ if(!P.page.champs_on || !P.titles.length){ pmPubTab('roster', quiet); return; } pmChampsTab(box); return; }
   if(t === 'rankings'){ if(!P.page.ranks_on){ pmPubTab('roster', quiet); return; } pmRanksTab(box); return; }
   if(t === 'hierarchy'){ if(typeof pmHierTab !== 'function'){ box.innerHTML = '<div class="loading">Loading…</div>'; setTimeout(() => { if(PM.pub === P && P.tab === 'hierarchy') pmPubTab('hierarchy', quiet); }, 150); return; } pmHierTab(box); return; }
@@ -25999,7 +26034,9 @@ function activatePage(pg){
   // Past Events is part of Events now: keep Events lit on both
   if(pg==='archive' || pg==='showdown' || pg==='timeline'){ const evb=document.querySelector('nav [data-page="events"]'); if(evb) evb.classList.add('active'); }   // all part of Events
   // Relationships belongs to the Roster (or to Promotions, for a promotion's roster)
-  if(pg==='relationships'){ const rb=document.querySelector('nav [data-page="'+(/(^|&)promo=\d/.test(wcaRoute().qs)?'promotions':'roster')+'"]'); if(rb) rb.classList.add('active'); }
+  if(pg==='relationships'){ const rb=document.querySelector('nav [data-page="'+(/(^|&)(promo|home)=\d/.test(wcaRoute().qs)?'promotions':'roster')+'"]'); if(rb) rb.classList.add('active'); }
+  // a promotion's own Roster and Rivalries (Fight Hub, home=ID) belong to Promotions
+  if((pg==='roster' || pg==='rivalries') && /(^|&)home=\d/.test(wcaRoute().qs)){ if(btn) btn.classList.remove('active'); const pb=document.querySelector('nav [data-page="promotions"]'); if(pb) pb.classList.add('active'); }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const page=document.getElementById('page-'+pg);
   if(page) page.classList.add('active');
@@ -30892,7 +30929,8 @@ const MUSIC = {
   loop:     true,
   shuffle:  true,
   reactive: true,      // the sky pulses with the track
-  autoplay: true,      // computers only: starts on the visitor's first click or key press anywhere
+  autoplay: false,     // Nov 17: off. The music never starts by itself; a visitor presses play.
+                       // (When it was true: computers only, started on the visitor's first click or key press anywhere
                        // on the site (browsers don't allow sound before that). Phones and tablets
                        // never start on their own. A pause is remembered, so someone who paused
                        // it comes back to it paused, after a refresh or on another visit.
@@ -31229,6 +31267,16 @@ function setPopout(on, opts){
 }
 const MUS_POS = 'wca-music-pos', MUS_MIN = 'wca-music-min';
 let musPos = null, musMin = false;
+/* Nov 17: the widget is off unless the visitor turns it on from the Music page
+   (saved per visitor). While a song is playing it always shows, so nothing ever
+   plays without a way to stop it. It starts minimized on every visit. */
+const MUS_WIDGET = 'wca-music-widget';
+function musWidgetOn(){ try{ return localStorage.getItem(MUS_WIDGET) === '1'; }catch(e){ return false; } }
+function musSetWidget(on){
+  try{ localStorage.setItem(MUS_WIDGET, on ? '1' : '0'); }catch(e){}
+  if(on) musMin = true;
+  musSyncMin(); musEmit('mode');
+}
 function musFab(){
   let f = document.getElementById('mus-fab');
   if(!f){
@@ -31249,8 +31297,9 @@ function musSetMin(on){
 }
 function musSyncMin(){
   const bar = $('sm-player'), f = musFab();
-  const show = popped && MUSIC.enabled && !bar.classList.contains('leaving');
-  bar.classList.toggle('mus-hidden', show && musMin);
+  const avail = popped && MUSIC.enabled && !bar.classList.contains('leaving');
+  const show = avail && (musWidgetOn() || !audio.paused);
+  bar.classList.toggle('mus-hidden', avail && (!show || musMin));
   f.hidden = !(show && musMin);
   // on a phone the open player sits along the bottom, so leave room for it
   document.body.classList.toggle('mus-open', show && !musMin && !musPos);
@@ -31275,7 +31324,7 @@ function musWireWidget(){
   // covers the page on a small screen. Computers start with it open.
   let savedMin = null;
   try{ savedMin = localStorage.getItem(MUS_MIN); }catch(e){}
-  musMin = savedMin === null ? !!(window.matchMedia && matchMedia('(max-width:760px)').matches) : savedMin === '1';
+  musMin = true;   // Nov 17: always starts minimized (was: open on computers, saved choice after that). savedMin kept for reference.
   const head = $('mus-head'), bar = $('sm-player');
   const mn = $('mus-min'); if(mn) mn.addEventListener('click', ()=>musSetMin(true));
   if(head && bar){
@@ -31785,6 +31834,7 @@ window.smMusic       = { get audio(){ return audio; }, get playlist(){ return pl
                          get songs(){ return musOrder.length ? musOrder : playlist; },
                          get shuffle(){ return !!MUSIC.shuffle; }, get repeat(){ return MUSIC.repeat; },
                          get enabled(){ return !!MUSIC.enabled; }, ready:musReadyP,
+                         get widget(){ return musWidgetOn(); }, setWidget:musSetWidget,
                          playFile:musPlayFile, setShuffle, cycleRepeat,
                          toggle:()=>{ if(audio.paused) playAudio(); else pauseAudio(); },
                          seek:(f)=>{ if(audio.duration) audio.currentTime = clamp(f,0,1)*audio.duration; },
@@ -41061,14 +41111,21 @@ const FHBG = (function(){
       <button type="button" class="ex-chip${view === 'cards' ? ' on' : ''}" data-pv="cards">Cards</button><button type="button" class="ex-chip${view === 'list' ? ' on' : ''}" data-pv="list">List</button></div>` : '';
     if(hs.length && view === 'cards'){
       const order = hs.slice().sort((a, b) => b.h.shares * b.s.price - a.h.shares * a.s.price);
-      return top + pubSw + toggle + `<div class="ex-binder">${order.map(({ h, s }) => tcard(h, s)).join('')}</div>` + pendHTML(pend);
+      return top + pubSw + toggle + `<div class="ex-binder">${order.map(({ h, s }) => tcard(h, s)).join('')}</div>` + pendHTML(pend) + pausedHTML();
     }
     const rows = hs.length ? `<div class="ex-tablewrap"><table class="ex-table"><thead><tr><th>Stock</th><th>Shares</th><th>Paid per share</th><th>Price now</th><th>Worth</th><th>Profit</th></tr></thead><tbody>
       ${hs.map(({ h, s }) => { const w = h.shares * s.price, p = w - h.cost; return `<tr data-s="${s.id}"><td><b>${E(s.name)}</b></td><td>${h.shares}</td><td>${money2(h.cost / Math.max(1, h.shares))}</td><td>${money2(s.price)} ${chgHTML(s)}</td><td>${money(w)}</td><td class="${p >= 0 ? 'ex-up' : 'ex-dn'}">${p >= 0 ? '+' : '-'}${money(Math.abs(p))}</td></tr>`; }).join('')}
       </tbody></table></div>` : `<div class="ex-empty">You don't own any shares yet. Pick someone on the Market tab and press Buy shares.</div>`;
     const pe = pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
       ${pend.map(p => { const s = stockById(p.stock_id); return `<div class="ex-msg">${p.shares} ${p.shares === 1 ? 'share' : 'shares'} of ${E(s ? s.name : 'a stock')}. You get paid the price on the day WCA says OK.</div>`; }).join('')}` : '';
-    return top + pubSw + toggle + rows + pe;
+    return top + pubSw + toggle + rows + pe + pausedHTML();
+  }
+  /* Shares in a stock that is paused while that wrestler is away from WCA (Nov 2026) */
+  function pausedHTML(){
+    const pz = (X.me && X.me.paused) || [];
+    if(!pz.length) return '';
+    return `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Paused while they are away</h3>
+      ${pz.map(p => `<div class="ex-msg"><b>${E(p.name)}</b>: ${Number(p.shares)} ${Number(p.shares) === 1 ? 'share' : 'shares'}, worth ${money(Number(p.shares) * Number(p.price))}. This stock is paused while they are away from WCA. Your shares are safe and come back with them.</div>`).join('')}`;
   }
   function pendHTML(pend){
     return pend.length ? `<h3 style="font-family:var(--ex-f);font-style:italic;font-size:22px;text-transform:uppercase;margin:18px 0 8px">Sales waiting for WCA</h3>
@@ -41833,12 +41890,28 @@ const FHBG = (function(){
     #wu-rel .wu-help{display:none;}
     #wu-rel .wu-reltools{left:12px; right:12px; top:auto; bottom:12px;} #wu-rel .wu-relsearch{flex:1 1 100%;} #wu-rel .wu-relsearch input{width:100%;} #wu-rel .wu-relhits{top:auto; bottom:100%;}
   }
+  /* Nov 17: a promotion's own Roster, Relationships and Rivalries. Same screens as WCA, kept to that
+     one promotion (the address carries home=ID). The promotion's button leads back to its page. */
+  #wu .wu-home{display:none; align-items:center; gap:10px; padding:7px 18px 7px 12px; margin-right:6px; font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:18px; letter-spacing:1.5px; text-transform:uppercase;
+    background:color-mix(in srgb,var(--c,#E9B949) 30%,rgba(0,0,0,.65)); border:1px solid var(--c,#E9B949); clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);}
+  #wu .wu-home img{width:26px; height:26px; object-fit:contain;}
+  #wu .wu-home:hover{background:color-mix(in srgb,var(--c,#E9B949) 55%,rgba(0,0,0,.65));}
+  html[data-wu-home] #wu .wu-home{display:inline-flex;}
+  html[data-wu-home] #wu .wu-mode[data-m="map"]{display:none;}
+  html[data-wu-home] #wu .wu-mode.on{background:var(--wu-hc,var(--gold)); color:#0b0b0b;}
+  html[data-wu-home] #wu-rel .wu-worlds{display:none;}
+  html[data-wu-home] #wu-rel .wu-reltools{top:10px;}
+  #wu .wu-rivhead{max-width:1500px; margin:0 auto 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  #wu .wu-rivhead .wu-rivt{font-family:var(--wu-f); font-style:italic; font-weight:900; font-size:38px; letter-spacing:2px; text-transform:uppercase; margin-right:14px; display:flex; align-items:center; gap:12px;}
+  #wu .wu-rivhead .wu-rivt img{width:40px; height:40px; object-fit:contain;}
+  @media (max-width:900px){ #wu .wu-home{font-size:15px; padding:6px 12px 6px 8px; white-space:nowrap;} #wu .wu-home img{width:20px; height:20px;} }
 </style>
 <canvas id="wu-space" aria-hidden="true"></canvas>
 <div id="wu-bg" aria-hidden="true"></div>
 <button type="button" id="wu-newview" onclick="window.WU && WU.newView()">◀ New view</button>
 <div id="wu" aria-live="polite">
   <div class="wu-modes" id="wu-modes">
+    <button type="button" class="wu-home" id="wu-home" title="Back to this promotion's page"></button>
     <button type="button" class="wu-mode" data-m="map"><i class="ti ti-planet"></i>Star Map</button>
     <button type="button" class="wu-mode" data-m="sel"><i class="ti ti-users"></i>Roster</button>
     <button type="button" class="wu-mode" data-m="rel"><i class="ti ti-affiliate"></i>Relationships</button>
@@ -41911,7 +41984,7 @@ window.WU = (function(){
         finishers:w.finishers, theme:w.theme_song, champ:champs[norm(w.name)] || null, recs:ranks[norm(w.name)] || [] }));
       (PR || []).forEach(r => { const p = promoById(r.promotion_id); if(!p) return; const d = r.details || {};
         PEOPLE.push({ key:'p' + r.id, id:r.id, kind:'promo', promo:p, name:r.name, nick:r.nickname, img:d.portrait_url || d.avatar_url || null, avatar:d.avatar_url || d.portrait_url || null,
-          from:d.hometown || d.from || null, height:d.height || null, weight:d.weight || null, bio:r.bio, title:r.title, recs:[] }); });
+          from:d.hometown || d.home || d.from || null, height:d.height || null, weight:d.weight || null, bio:r.bio, title:r.title, recs:[], det:d, align:r.alignment || '' }); });
       const byKey = {}; PEOPLE.forEach(p => byKey[p.key] = p);
       const wcaByName = {}; PEOPLE.filter(p => p.kind === 'wca').forEach(p => wcaByName[norm(p.name)] = p);
       const GROUPS = [];
@@ -41929,9 +42002,40 @@ window.WU = (function(){
 
   /* ═════════════ filters (Star Map + Roster) ═════════════ */
   let FILTER = 'all', SEARCH = '';
+  /* Nov 17: HOME = a promotion's own pages (home=ID in the address). HFILTER = one of its brands, or 'all'. */
+  let HOME = null, HFILTER = 'all'; const HD = {};
   const inF = (p, id) => id === 'all' || (id === 'wca' && p.promo.id === 'wca') || (id === 'other' && p.promo.id !== 'wca') || String(p.promo.id) === id;
-  const shown = p => inF(p, FILTER) && (!SEARCH || norm(p.name).includes(SEARCH) || norm(p.nick).includes(SEARCH));
+  const inHome = (p, b) => String(p.promo.id) === String(HOME) && (b === 'all' || p.brand === b);
+  const shown = p => (HOME != null ? inHome(p, HFILTER) : inF(p, FILTER)) && (!SEARCH || norm(p.name).includes(SEARCH) || norm(p.nick).includes(SEARCH));
+  const hq = extra => HOME != null ? 'home=' + HOME + (extra ? '&' + extra : '') : (extra || '');
+  // a promotion's brands, champions and who is on which brand (read only, loaded once per promotion)
+  async function homeData(id){
+    if(HD[id]) return HD[id];
+    const [B, T, R, RB] = await Promise.all([
+      q('promotion_brands','*', x => x.eq('promotion_id', id).order('sort').order('id')),
+      q('promotion_titles','*', x => x.eq('promotion_id', id).order('sort').order('id')),
+      q('promotion_title_reigns','*', x => x.eq('promotion_id', id)),
+      q('promotion_roster','id,brand_id', x => x.eq('promotion_id', id))]);
+    const pr = D.promoById(id) || { color:'#9aa3c7' };
+    const brands = (B || []).map(b => ({ id:String(b.id), name:b.name, color:hex(b.color, pr.color), logo:b.logo_url || null }));
+    const bOf = {}; (RB || []).forEach(r => { if(r.brand_id != null) bOf[r.id] = String(r.brand_id); });
+    D.PEOPLE.filter(p => p.kind === 'promo' && String(p.promo.id) === String(id)).forEach(p => {
+      p.brand = bOf[p.id] && brands.some(b => b.id === bOf[p.id]) ? bOf[p.id] : null;
+      let held = []; try{ if(typeof pmHeld === 'function') held = pmHeld(T || [], R || [], 'person', p.id, p.name); }catch(e){}
+      if(held.length) p.champ = { title:held.map(h => h.t.name).join(' · ') };
+    });
+    return HD[id] = { brands };
+  }
+  function drawHomeFilters(){
+    const pr = D.promoById(HOME) || { color:GOLD }, hd = HD[HOME] || { brands:[] };
+    const chip = (id, label, c) => `<button type="button" class="wu-chip${HFILTER === id ? ' on' : ''}" style="--c:${c}" data-h="${E(id)}"><span class="wu-sw"></span>${E(label)} <small>${D.PEOPLE.filter(p => inHome(p, id)).length}</small></button>`;
+    $('wu-filters').innerHTML = chip('all', 'Everyone', pr.color) + hd.brands.filter(b => D.PEOPLE.some(p => inHome(p, b.id))).map(b => chip(b.id, b.name, b.color)).join('')
+      + `<input class="wu-search" id="wu-search" placeholder="Find a superstar…" value="${E(SEARCH)}" autocomplete="off">`;
+    $('wu-filters').querySelectorAll('.wu-chip').forEach(b => b.onclick = () => { HFILTER = b.dataset.h; drawFilters(); applyFilter(); });
+    const s = $('wu-search'); s.oninput = () => { SEARCH = norm(s.value); applyFilter(); };
+  }
   function drawFilters(){
+    if(HOME != null) return drawHomeFilters();
     const chip = (id, label, c) => `<button type="button" class="wu-chip${FILTER === id ? ' on' : ''}" style="--c:${c}" data-f="${E(id)}"><span class="wu-sw"></span>${E(label)} <small>${D.PEOPLE.filter(p => inF(p, id)).length}</small></button>`;
     $('wu-filters').innerHTML = chip('all','Everyone','#ffffff') + chip('wca','WCA only',GOLD) + (D.PROMOS.length > 1 ? chip('other','Other promotions','#7ad1e6') : '')
       + D.PROMOS.slice(1).map(p => chip(String(p.id), p.short, p.color)).join('')
@@ -42170,20 +42274,28 @@ window.WU = (function(){
     $('wu-selHero').style.setProperty('--c', p.promo.color); root.style.setProperty('--wu-acc', p.promo.color); $('wu-selWho').style.setProperty('--c', p.promo.color);
     $('wu-selHero').innerHTML = `<div class="wu-ph"></div>${p.img ? `<img src="${E(p.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}`;
     const t = totals(p);
-    $('wu-selWho').innerHTML = `<div class="wu-k">${E(p.promo.short)}${p.group ? ' · ' + E(p.group.name) : ''}</div><div class="wu-n">${E(p.name)}</div>
+    const brand = p.brand && HD[p.promo.id] ? (HD[p.promo.id].brands.find(b => b.id === p.brand) || {}).name : '';
+    $('wu-selWho').innerHTML = `<div class="wu-k">${E(p.promo.short)}${brand ? ' · ' + E(brand) : ''}${p.group ? ' · ' + E(p.group.name) : ''}</div><div class="wu-n">${E(p.name)}</div>
       ${p.nick ? `<div style="font-family:var(--wu-f);font-weight:600;font-size:22px;color:#cfccc2;margin-top:6px">“${E(p.nick)}”</div>` : ''}
       <div class="wu-st">${p.champ ? `<span style="color:${GOLD}"><i class="ti ti-crown"></i> ${E(p.champ.title)}</span>` : ''}${p.recs.length ? `<span><b>${t.w}</b>W</span><span><b>${t.l}</b>L</span>` : ''}</div>`;
     document.querySelectorAll('#wu-selGrid .wu-tile.on').forEach(x => x.classList.remove('on'));
     const el = document.querySelector(`#wu-selGrid .wu-tile[data-k="${p.key}"]`); if(el) el.classList.add('on');
   }
+  // one block of tiles: a promotion (WCA's Roster) or one brand (a promotion's own Roster)
+  function selSection(name, color, logo, list){
+    list = list.slice().sort((a,b) => (b.champ?1:0) - (a.champ?1:0) || a.name.localeCompare(b.name));
+    if(!list.length) return '';
+    return `<div class="wu-gsec" style="--c:${color}"><h3>${logo ? `<img src="${E(logo)}" alt="" onerror="this.remove()">` : ''}${E(name)}<small>${list.length} on the roster</small></h3>
+      <div class="wu-tiles">${list.map(p => { const im = p.avatar || p.img;
+        return `<button type="button" class="wu-tile" style="--c:${color}" data-k="${p.key}">${im ? `<img loading="lazy" src="${E(im)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}${p.champ ? '<span class="wu-champ">C</span>' : ''}<span class="wu-tn">${E(p.name)}</span></button>`; }).join('')}</div></div>`;
+  }
   function drawSelect(){
-    const html = D.PROMOS.map(pr => {
-      const list = D.PEOPLE.filter(p => p.promo === pr && shown(p)).sort((a,b) => (b.champ?1:0) - (a.champ?1:0) || a.name.localeCompare(b.name));
-      if(!list.length) return '';
-      return `<div class="wu-gsec" style="--c:${pr.color}"><h3>${pr.logo ? `<img src="${E(pr.logo)}" alt="" onerror="this.remove()">` : ''}${E(pr.name)}<small>${list.length} on the roster</small></h3>
-        <div class="wu-tiles">${list.map(p => { const im = p.avatar || p.img;
-          return `<button type="button" class="wu-tile" style="--c:${pr.color}" data-k="${p.key}">${im ? `<img loading="lazy" src="${E(im)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(p.name))}</div>`}${p.champ ? '<span class="wu-champ">C</span>' : ''}<span class="wu-tn">${E(p.name)}</span></button>`; }).join('')}</div></div>`;
-    }).join('');
+    let html = '';
+    if(HOME != null){
+      const pr = D.promoById(HOME), hd = HD[HOME] || { brands:[] }, list = D.PEOPLE.filter(shown);
+      html = hd.brands.map(b => selSection(b.name, b.color, b.logo, list.filter(p => p.brand === b.id))).join('')
+        + selSection(hd.brands.length ? 'Not on a brand' : pr.name, pr.color, hd.brands.length ? null : pr.logo, list.filter(p => !p.brand));
+    } else html = D.PROMOS.map(pr => selSection(pr.name, pr.color, pr.logo, D.PEOPLE.filter(p => p.promo === pr && shown(p)))).join('');
     $('wu-selGrid').innerHTML = html || '<div class="wu-empty">Nobody matches that.</div>';
     $('wu-selGrid').querySelectorAll('.wu-tile').forEach(b => { b.onmouseenter = b.onfocus = () => hero(D.byKey[b.dataset.k]); b.onclick = () => openProfile(D.byKey[b.dataset.k], true); });
     hero(HOVER && shown(HOVER) ? HOVER : D.PEOPLE.find(shown));
@@ -42223,19 +42335,24 @@ window.WU = (function(){
   async function openProfile(p, push){
     if(!p) return;
     PROF = p; PROF_PUSHED = !!push; root.style.setProperty('--wu-acc', p.promo.color);
-    setAddr('roster', p.kind === 'wca' ? 'w=' + encodeURIComponent(p.name) : 'pc=' + p.id, push);
+    setAddr('roster', p.kind === 'wca' ? 'w=' + encodeURIComponent(p.name) : hq('pc=' + p.id), push);
     if(curPage() !== 'roster' && typeof activatePage === 'function') activatePage('roster');
     setMode('prof');
     const el = $('wu-prof'), c = p.promo.color;
     const fin = Array.isArray(p.finishers) ? p.finishers.join(', ') : p.finishers;
-    const facts = [['From', p.from], ['Height', p.height], ['Weight', p.weight], ['Theme', p.theme], ['Finisher', fin], ['Stable', p.group && p.group.name], ['Title', p.title]]
+    // a promotion's character: everything their promotion filled in (WWE 2K details), same boxes as WCA
+    const dt = p.det || {}, brandNm = p.brand && HD[p.promo.id] ? (HD[p.promo.id].brands.find(b => b.id === p.brand) || {}).name : '';
+    const facts = (p.kind === 'promo'
+      ? [['Brand', brandNm], ['Alignment', p.align], ['From', p.from], ['Height', p.height], ['Weight', p.weight], ['Overall', dt.ovr], ['Wrestler class', dt.style], ['Weight class', dt.wclass],
+         ['Manager', dt.manager], ['Entrance music', dt.music], ['Finisher', dt.finisher], ['Signatures', dt.sigs], ['Catchphrase', dt.catchphrase], ['Stable', p.group && p.group.name], ['Title', p.title]]
+      : [['From', p.from], ['Height', p.height], ['Weight', p.weight], ['Theme', p.theme], ['Finisher', fin], ['Stable', p.group && p.group.name], ['Title', p.title]])
       .filter(f => f[1] && String(f[1]).trim() && !/^(\?+|n\/a)$/i.test(String(f[1]).trim()));
     el.innerHTML = `<div class="wu-pf" style="--c:${c}"><div class="wu-left">
         <button type="button" class="wu-btn" data-back style="margin-bottom:10px"><i class="ti ti-arrow-left"></i> Back</button>
         <div class="wu-shot">${pic(p)}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
           <button type="button" class="wu-btn" data-rel><i class="ti ti-affiliate"></i> Relationships</button>
-          ${p.kind === 'wca' ? '<button type="button" class="wu-btn" data-old title="The previous profile card, with every tool it had">Classic profile</button>' : '<button type="button" class="wu-btn" data-promo>Promotion page</button>'}
+          ${p.kind === 'wca' ? '<button type="button" class="wu-btn" data-old title="The previous profile card, with every tool it had">Classic profile</button>' : `<button type="button" class="wu-btn" data-pold title="Their card on the promotion's own Roster tab, with attributes and moves">Classic profile</button>${HOME == null ? '<button type="button" class="wu-btn" data-promo>Promotion page</button>' : ''}`}
           ${p.kind === 'wca' && typeof window.muSongFor === 'function' && window.muSongFor(p.name) ? '<button type="button" class="mu-pt" data-theme style="margin:0"><i class="ti ti-player-play-filled"></i> Play Theme</button>' : ''}
         </div></div>
       <div><div style="margin-top:6px">${promoTag(p.promo)}</div>
@@ -42250,7 +42367,8 @@ window.WU = (function(){
     { const tb = el.querySelector('[data-theme]'); if(tb) tb.onclick = () => { try{ window.muPlayFor(p.name); }catch(e){} }; }
     el.querySelector('[data-rel]').onclick = () => { REL_SCOPE = p.promo.id === 'wca' ? null : p.promo.id; REL_FOCUS = p.key; goMode('rel'); };
     const old = el.querySelector('[data-old]'); if(old) old.onclick = () => { const w = typeof wrestlerByName === 'function' ? wrestlerByName(p.name) : null; if(w && typeof window.openProfile === 'function') window.openProfile(w); };
-    const pp = el.querySelector('[data-promo]'); if(pp) pp.onclick = () => { if(typeof pmGo === 'function') pmGo(Number(p.promo.id), 'roster'); };
+    const pp = el.querySelector('[data-promo]'); if(pp) pp.onclick = () => { if(typeof pmGo === 'function') pmGo(Number(p.promo.id)); };
+    const po = el.querySelector('[data-pold]'); if(po) po.onclick = () => toPromoClassic(p.promo.id, 'roster', 'p=' + Number(p.id));
     let rows = [];
     try{ rows = p.kind === 'wca' ? await wcaRows(p.name) : await promoRows(p); }catch(e){ rows = []; }
     if(PROF !== p) return;
@@ -42517,15 +42635,15 @@ window.WU = (function(){
     RIVS = (res.rows || []).map(r => { const s = r.members.map(side).filter(Boolean); return s.length >= 2 ? { r, A:s[0], B:s[1], more:s.length - 2 } : null; }).filter(Boolean)
       .sort((a,b) => (a.r.status === 'active' ? 0 : 1) - (b.r.status === 'active' ? 0 : 1) || (b.r.heat||0) - (a.r.heat||0));
     const sideHTML = (s, cls) => `<div class="${cls}">${s.img ? `<img src="${E(s.img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="wu-ini">${E(ini(s.name))}</div>`}</div>`;
-    el.innerHTML = `<div style="max-width:1500px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-        <div style="font-family:var(--wu-f);font-style:italic;font-weight:900;font-size:38px;letter-spacing:2px;text-transform:uppercase;margin-right:14px">Rivalries</div>
-        ${[{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p => `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="wu-sw"></span>${E(p.short)}</button>`).join('')}
+    el.innerHTML = `<div class="wu-rivhead">
+        <div class="wu-rivt">${HOME != null && promo.logo ? `<img src="${E(promo.logo)}" alt="" onerror="this.remove()">` : ''}${HOME != null ? E(promo.short) + ' ' : ''}Rivalries</div>
+        ${HOME != null ? '' : [{ id:'wca', short:'WCA', color:GOLD }].concat(D.PROMOS.slice(1)).map(p => `<button type="button" class="wu-chip${String(scope == null ? 'wca' : scope) === String(p.id) ? ' on' : ''}" style="--c:${p.color}" data-s="${E(p.id)}"><span class="wu-sw"></span>${E(p.short)}</button>`).join('')}
         <span style="color:var(--muted);font-family:var(--wu-f);font-weight:700;font-size:16px;margin-left:auto">Hottest first · click one for the whole story</span></div>
       <div class="wu-rivgrid">${RIVS.map((x, i) => `<button type="button" class="wu-rcard" data-i="${i}" style="--a:${x.A.color};--b:${x.B.color}">${sideHTML(x.A,'wu-sA')}${sideHTML(x.B,'wu-sB')}
         <span class="wu-stat">${x.r.status === 'active' ? 'Active' : 'Over'}</span>${heatHTML(x.r.heat)}<div class="wu-vsx">VS</div>
         <div class="wu-names"><span>${E(x.A.name)}</span><span>${E(x.B.name)}${x.more ? ' +' + x.more : ''}</span></div></button>`).join('') || `<div class="wu-empty">No rivalries for ${E(promo.short)} yet.</div>`}</div>`;
     el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { RIV_SCOPE = b.dataset.s === 'wca' ? null : Number(b.dataset.s); setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE); rivOpen(); });
-    el.querySelectorAll('.wu-rcard').forEach(b => b.onclick = () => { const x = RIVS[+b.dataset.i]; setAddr('rivalries', 'id=' + x.r.id + (RIV_SCOPE == null ? '' : '&promo=' + RIV_SCOPE), true); vsOpen(x); });
+    el.querySelectorAll('.wu-rcard').forEach(b => b.onclick = () => { const x = RIVS[+b.dataset.i]; setAddr('rivalries', rivQS('id=' + x.r.id), true); vsOpen(x); });
     const want = qp().get('id'); if(want && MODE === 'vs'){ const x = RIVS.find(z => String(z.r.id) === String(want)); if(x) vsOpen(x, true); }
   }
   async function vsOpen(x, already){
@@ -42547,8 +42665,8 @@ window.WU = (function(){
           return `<div class="wu-beat" style="--bc:${c}"><div class="wu-d">${fmt(b.on)}</div><div class="wu-dot"></div><div class="wu-t"><small>${E(b.title || 'Match')}</small>${E(b.text)}</div></div>`; }).join('') || '<div class="wu-empty">Nothing saved yet.</div>'}
         <div style="margin-top:20px"><button type="button" class="wu-btn" data-c>Open in the classic Rivalries page</button></div></div>`;
     el.scrollTop = 0;
-    el.querySelector('[data-b]').onclick = () => { setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); setMode('riv'); };
-    el.querySelector('[data-c]').onclick = () => { CLASSIC.rivalries = true; sync(); };
+    el.querySelector('[data-b]').onclick = () => { setAddr('rivalries', rivQS(), true); setMode('riv'); };
+    el.querySelector('[data-c]').onclick = () => { if(HOME != null){ toPromoClassic(HOME, 'rivalries', 'rv=' + Number(x.r.id)); return; } CLASSIC.rivalries = true; sync(); };
   }
 
   /* ═════════════ which screen, from the page and its address ═════════════ */
@@ -42557,23 +42675,45 @@ window.WU = (function(){
   const PAGE_OF = { map:'starmap', sel:'roster', prof:'roster', rel:'relationships', riv:'rivalries', vs:'rivalries' };
   const curPage = () => { const p = document.querySelector('.page.active'); return p ? p.id.replace(/^page-/, '') : ''; };
   function setTop(){ const pb = $('fh-pagebar'), h = document.querySelector('header'); const b = (pb && pb.offsetParent !== null ? pb : h); if(b) root.style.setProperty('--wu-top', Math.round(b.getBoundingClientRect().bottom + 6) + 'px'); }
+  // addresses for the Rivalries screens: a promotion's own page, WCA's page with a promotion picked, or WCA's
+  const rivQS = extra => HOME != null ? hq(extra) : [extra, RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE].filter(Boolean).join('&');
+  // Classic view from a promotion's own page goes back to that promotion's old tab
+  function toPromoClassic(pid, tab, extra){
+    try{ if(typeof PM_CLASSIC !== 'undefined') PM_CLASSIC[tab] = true; }catch(e){}
+    if(tab === 'relationships'){ if(typeof stxOpenWorld === 'function') stxOpenWorld(Number(pid)); return; }
+    setAddr('promotion', 'id=' + Number(pid) + '&tab=' + tab + (extra ? '&' + extra : ''), true);
+    if(typeof activatePage === 'function') activatePage('promotion');
+  }
+  // the promotion's button and the page bar ("Main Menu ▸ PWF ▸ Roster") while on a promotion's own pages
+  const MODE_NAME = { sel:'Roster', prof:'Roster', rel:'Relationships', riv:'Rivalries', vs:'Rivalries' };
+  function homeBar(){
+    const s = $('fh-ptitle-s'), pr = HOME != null ? D && D.promoById(HOME) : null;
+    if(pr){ root.dataset.wuHome = String(HOME); root.style.setProperty('--wu-hc', pr.color);
+      const b = $('wu-home'); b.style.setProperty('--c', pr.color);
+      b.innerHTML = `<i class="ti ti-arrow-left" aria-hidden="true"></i>${pr.logo ? `<img src="${E(pr.logo)}" alt="" onerror="this.remove()">` : ''}${E(pr.short)}`;
+      if(s) s.textContent = 'Main Menu ▸ ' + pr.short + ' ▸';
+      const t = $('fh-ptitle-b'); if(t && MODE_NAME[MODE]) t.textContent = MODE_NAME[MODE];
+    } else if(root.dataset.wuHome != null){ delete root.dataset.wuHome; root.style.removeProperty('--wu-hc'); if(s && /▸.+▸/.test(s.textContent)) s.textContent = 'Main Menu ▸'; }
+  }
+  $('wu-home').onclick = () => { if(HOME != null && typeof pmGo === 'function') pmGo(HOME); };
   function setMode(m){
     MODE = m;
     if(m){ root.dataset.wu = m; } else delete root.dataset.wu;
+    homeBar();
     document.querySelectorAll('#wu .wu-mode').forEach(b => b.classList.toggle('on', b.dataset.m === (m === 'prof' ? 'sel' : m === 'vs' ? 'riv' : m)));
     if(m === 'map' && G && G.sel) $('wu-card').classList.add('open');
     setTop(); run();
   }
   function goMode(m){
     const pg = PAGE_OF[m]; if(pg in CLASSIC) CLASSIC[pg] = false;
-    if(m === 'rel'){ setAddr('relationships', REL_SCOPE == null ? '' : 'promo=' + REL_SCOPE, true); }
-    else if(m === 'riv'){ setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); }
-    else setAddr(pg, '', true);
+    if(m === 'rel'){ setAddr('relationships', HOME != null ? hq() : REL_SCOPE == null ? '' : 'promo=' + REL_SCOPE, true); }
+    else if(m === 'riv'){ setAddr('rivalries', rivQS(), true); }
+    else setAddr(pg, pg === 'starmap' ? '' : hq(), true);
     if(curPage() !== pg){ if(typeof activatePage === 'function') activatePage(pg); }
     else sync();
   }
   document.querySelectorAll('#wu .wu-mode').forEach(b => b.onclick = () => goMode(b.dataset.m));
-  $('wu-classic').onclick = () => { const pg = curPage(); if(pg === 'starmap'){ CLASSIC.roster = true; setAddr('roster', '', true); if(typeof activatePage === 'function') activatePage('roster'); return; } CLASSIC[pg] = true; sync(); };
+  $('wu-classic').onclick = () => { const pg = curPage(); if(HOME != null && pg in CLASSIC){ toPromoClassic(HOME, pg); return; } if(pg === 'starmap'){ CLASSIC.roster = true; setAddr('roster', '', true); if(typeof activatePage === 'function') activatePage('roster'); return; } CLASSIC[pg] = true; sync(); };
   $('wu-recenter').onclick = () => { FILTER = 'all'; drawFilters(); applyFilter(); recenter(); };
   $('wu-selGo').onclick = () => HOVER && openProfile(HOVER, true);
   function newView(){ const pg = curPage(); if(pg in CLASSIC) CLASSIC[pg] = false; sync(); }
@@ -42589,6 +42729,7 @@ window.WU = (function(){
     if(wants && pg === 'relationships' && (p.get('view') || p.get('who') || p.get('ch'))) classic = true;
     if(classic) root.dataset.wuClassic = pg; else delete root.dataset.wuClassic;
     if(!wants || classic){
+      if(HOME != null){ HOME = null; homeBar(); }
       if(root.dataset.wu){ setMode(''); try{ if(typeof FHBG !== 'undefined' && FHBG.restart) FHBG.restart(); }catch(e){} }
       // the classic Roster page needs its own star map started
       if(classic && pg === 'roster' && ORIG.smEnter) try{ ORIG.smEnter(); }catch(e){}
@@ -42599,6 +42740,11 @@ window.WU = (function(){
     $('wu-loading').hidden = true;
     if(my !== syncing) return;
     if(!G && hasGL()){ try{ await loadThree(); buildScene(); }catch(e){ console.warn('[universe]', e); } }
+    // a promotion's own pages (home=ID): only for an approved promotion, and never on the Star Map
+    { const h = p.get('home'), want = pg !== 'starmap' && h && /^\d+$/.test(h) && D.promoById(Number(h)) ? Number(h) : null;
+      if(want != null) await homeData(want);
+      if(my !== syncing) return;
+      if(want !== HOME){ HOME = want; HFILTER = 'all'; SEARCH = ''; applyFilter(); } }
     drawFilters(); drawLegend();
     if(pg === 'starmap'){ setMode('map'); return; }
     if(pg === 'roster'){
@@ -42608,8 +42754,8 @@ window.WU = (function(){
       else { setMode('sel'); drawSelect(); }
       return;
     }
-    if(pg === 'relationships'){ const s = p.get('promo'); REL_SCOPE = s && /^\d+$/.test(s) ? Number(s) : null; setMode('rel'); relOpen(); return; }
-    if(pg === 'rivalries'){ const s = p.get('promo'); RIV_SCOPE = s && /^\d+$/.test(s) ? Number(s) : null; setMode(p.get('id') ? 'vs' : 'riv'); rivOpen(); return; }
+    if(pg === 'relationships'){ const s = p.get('promo'); REL_SCOPE = HOME != null ? HOME : s && /^\d+$/.test(s) ? Number(s) : null; setMode('rel'); relOpen(); return; }
+    if(pg === 'rivalries'){ const s = p.get('promo'); RIV_SCOPE = HOME != null ? HOME : s && /^\d+$/.test(s) ? Number(s) : null; setMode(p.get('id') ? 'vs' : 'riv'); rivOpen(); return; }
   }
 
   /* ── hooks into the site (nothing removed; Classic design and Classic view use the originals) ── */
@@ -42634,7 +42780,7 @@ window.WU = (function(){
     addEventListener('keydown', e => {
       if(!root.dataset.wu) return;
       if(e.key === 'Escape' && MODE === 'prof'){ e.stopImmediatePropagation(); profBack(); return; }
-      if(e.key === 'Escape' && MODE === 'vs'){ e.stopImmediatePropagation(); setAddr('rivalries', RIV_SCOPE == null ? '' : 'promo=' + RIV_SCOPE, true); setMode('riv'); return; }
+      if(e.key === 'Escape' && MODE === 'vs'){ e.stopImmediatePropagation(); setAddr('rivalries', rivQS(), true); setMode('riv'); return; }
       if(MODE === 'sel' && ['ArrowRight','ArrowLeft','ArrowDown','ArrowUp','Enter'].includes(e.key) && !/input|textarea/i.test((e.target && e.target.tagName) || '')){
         if(e.key === 'Enter'){ if(HOVER) openProfile(HOVER, true); return; }
         const list = [...document.querySelectorAll('#wu-selGrid .wu-tile')], i = list.findIndex(t => t.classList.contains('on'));
@@ -42714,6 +42860,7 @@ window.WU = (function(){
   .mu-chip > span{display:inline-block; transform:skewX(10deg);}
   .mu-chip small{font-style:normal; font-weight:700; font-size:15px; color:var(--muted); margin-left:6px;}
   .mu-chip.on{background:var(--gold); color:var(--mu-on); border-color:transparent;} .mu-chip.on small{color:var(--mu-on); opacity:.7;}
+  .mu-chip.mu-wid i{margin-right:4px;} .mu-chip.mu-wid b{font-weight:900;}
   .mu-cta{display:inline-flex; align-items:center; gap:10px; padding:11px 24px; background:var(--gold); color:var(--mu-on); border:0; cursor:pointer;
     font-family:var(--mu-f); font-style:italic; font-weight:900; font-size:18px; letter-spacing:1.5px; text-transform:uppercase; clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);}
   .mu-cta:hover{filter:brightness(1.08) drop-shadow(0 0 12px rgba(var(--gold-rgb),.8));}
@@ -42937,6 +43084,7 @@ window.WU = (function(){
         <button type="button" class="mu-chip" data-s="wca"><span>WCA Soundtrack<small id="mu-c-wca"></small></span></button>
         <button type="button" class="mu-chip" data-s="fun"><span>Fun Tracks<small id="mu-c-fun"></small></span></button>
         <button type="button" class="mu-cta" id="mu-shufall"><i class="ti ti-arrows-shuffle"></i> Shuffle all</button>
+        <button type="button" class="mu-chip mu-wid" id="mu-wid" aria-pressed="false" title="Show the small music player on every page of the site"><span><i class="ti ti-music"></i> Music widget on every page: <b id="mu-wid-s">Off</b></span></button>
         <label class="mu-search"><i class="ti ti-search"></i><input id="mu-q" type="search" placeholder="Search a wrestler or song" autocomplete="off"></label>
       </div>
       <div id="mu-list"><div class="mu-empty">Loading the songs…</div></div>
@@ -42949,11 +43097,15 @@ window.WU = (function(){
     $m('mu-shuf').onclick = () => { const mm = M(); if(mm) mm.setShuffle(!mm.shuffle); };
     $m('mu-rep').onclick  = () => { const mm = M(); if(mm) mm.cycleRepeat(); };
     $m('mu-shufall').onclick = () => { const mm = M(); if(!mm) return; if(!mm.shuffle) mm.setShuffle(true); mm.next(); };
+    // Nov 17: the visitor turns the widget on or off here (off until they do)
+    const syncWid = () => { const mm = M(), on = !!(mm && mm.widget), b = $m('mu-wid'); if(!b) return; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); $m('mu-wid-s').textContent = on ? 'On' : 'Off'; };
+    $m('mu-wid').onclick = () => { const mm = M(); if(mm && mm.setWidget) mm.setWidget(!mm.widget); syncWid(); };
+    syncWid();
     $m('mu-bar').onclick = e => { const mm = M(); if(!mm) return; const r = e.currentTarget.getBoundingClientRect(); mm.seek((e.clientX - r.left) / r.width); };
     $m('mu-volr').oninput = e => { const mm = M(); if(mm) mm.setVolume(parseFloat(e.target.value) || 0); syncVol(); };
     $m('mu-mute').onclick = () => { const b = document.getElementById('sm-mute'); if(b) b.click(); syncVol(); };   // the widget's own mute button saves the choice
-    host.querySelectorAll('.mu-chip').forEach(c => c.onclick = () => {
-      host.querySelectorAll('.mu-chip').forEach(z => z.classList.toggle('on', z === c));
+    host.querySelectorAll('.mu-chip[data-s]').forEach(c => c.onclick = () => {
+      host.querySelectorAll('.mu-chip[data-s]').forEach(z => z.classList.toggle('on', z === c));
       filter = c.dataset.s; render();
     });
     $m('mu-q').oninput = e => { query = e.target.value; render(); };
