@@ -16269,7 +16269,7 @@ function mpRegister(){
 }
 var MP_SECTIONS = [
   ['edit','Promotion details','ti-id'], ['look','Page colors','ti-palette'], ['layout','Page layout','ti-layout-dashboard'], ['roster','Roster','ti-users'], ['teams','Teams and stables','ti-users-group'], ['cats','Divisions','ti-category'], ['titles','Championships','ti-trophy'], ['hier','Hierarchy','ti-hierarchy'], ['brands','Brands','ti-layout-columns'], ['rels','Relationships','ti-affiliate'], null,
-  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['gfx','Graphics Studio','ti-photo'], ['motn','Awards','ti-award'], ['betting','Betting','ti-cash'], ['store','Redemption Store','ti-shopping-bag'], ['players','Players','ti-user-star'], ['apply','Applications','ti-forms'],
+  ['posts','Posts','ti-news'], ['events','Events','ti-calendar-event'], ['gfx','Graphics Studio','ti-photo'], ['motn','Awards','ti-award'], ['betting','Betting','ti-cash'], ['exchange','WCA Exchange','ti-chart-line'], ['store','Redemption Store','ti-shopping-bag'], ['players','Players','ti-user-star'], ['apply','Applications','ti-forms'],
   ['injuries','Injuries','ti-first-aid-kit'], ['stories','Stories','ti-book-2'], ['rivalries','Rivalries','ti-flame'], null,
   ['room',"Writers' Room",'ti-bulb'], ['co','Co-owners','ti-user-shield'], ['suggest','Suggestions','ti-message-2']
 ];
@@ -16347,6 +16347,7 @@ function mpTab(k, clicked){
   const later = fn => typeof window[fn] === 'function' ? window[fn](box) : (box.innerHTML = '<div class="loading">Loading…</div>', setTimeout(() => { if(PM.tab === k) mpTab(k); }, 200));
   if(k === 'events') return typeof mpEventsTab === 'function' ? mpEventsTab(box) : later('mpEventsTab');
   if(k === 'betting') return typeof mpBettingTab === 'function' ? mpBettingTab(box) : later('mpBettingTab');
+  if(k === 'exchange') return typeof mpExchangeTab === 'function' ? mpExchangeTab(box) : later('mpExchangeTab');
   if(k === 'store') return typeof mpStoreTab === 'function' ? mpStoreTab(box) : later('mpStoreTab');
   if(k === 'apply') return typeof mpApplyTab === 'function' ? mpApplyTab(box) : later('mpApplyTab');
   if(k === 'players') return typeof mpPlayersTab === 'function' ? mpPlayersTab(box) : later('mpPlayersTab');
@@ -22595,6 +22596,125 @@ async function mpeUnsettle(id, btn){
   await mpeLoadCard(); mpeDraw();
   mpMsg('mpe_mmsg_' + id, 'Result taken back, and so were the payouts. Betting is locked. Set the right winner.', true);
 }
+/* ---------------- My Promotion: WCA Exchange (Nov 2026) ----------------
+   The promotion's own stock (always on), and the switch that puts the roster on the Exchange.
+   Everything goes through ex_promo_roster_info / ex_promo_roster_set (SUPABASE_UPDATE_exchange_promotion_rosters.sql),
+   which only lets the owner, a co-owner or the WCA admin change it. */
+const MPX = { pid:null, info:null, shows:[], pv:null, from:'', restart:false, sure:false };
+const mpxMoney = n => '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+function mpxShowLabel(e){ return (e.show_number != null ? 'Show ' + Number(e.show_number) + ': ' : '') + (e.name || 'Show') + (e.event_date ? ', ' + new Date(e.event_date).toLocaleDateString() : ''); }
+function mpxErr(e){ const m = String((e && e.message) || e || ''); return /ex_promo_roster|could not find the function|PGRST202|does not exist/i.test(m) ? 'The WCA Exchange for promotion rosters is not switched on yet. Please check back soon!' : m; }
+async function mpExchangeTab(box){
+  const pid = Number(PM.curId);
+  if(MPX.pid !== pid){ MPX.pid = pid; MPX.pv = null; MPX.from = ''; MPX.restart = false; MPX.sure = false; }
+  box.innerHTML = '<div class="loading">Loading the WCA Exchange…</div>';
+  let info = null, shows = [], err = null;
+  try{
+    const [a, b] = await Promise.all([sb.rpc('ex_promo_roster_info', { p_promo:pid }),
+      sb.from('promotion_events').select('id,name,show_number,event_date,status').eq('promotion_id', pid).eq('status', 'done').order('event_date', { ascending:true, nullsFirst:true }).limit(500)]);
+    if(a.error) throw a.error;
+    info = a.data || {}; shows = b.data || [];
+  }catch(e){ err = e; }
+  if(PM.tab !== 'exchange' || Number(PM.curId) !== pid) return;
+  if(err){ box.innerHTML = `<div class="pm-card pm-empty"><i class="ti ti-chart-line"></i> ${esc(mpxErr(err))}</div>`; return; }
+  MPX.info = info; MPX.shows = shows;
+  mpxDraw();
+}
+// on the main site: open the Exchange page here; in promotion-editor.html (no Exchange inside): go to the site's Exchange page
+function mpxGoStock(id){
+  if(typeof window.exGo === 'function' && document.getElementById('page-exchange')){ goPage('exchange'); setTimeout(() => { if(window.exGo) exGo('stock', id); }, 80); return; }
+  location.href = wcaHref('exchange', 's=' + Number(id));
+}
+function mpxDraw(){
+  const box = pmEl('mp-tab'); if(!box || PM.tab !== 'exchange') return;
+  const I = MPX.info || {}, p = mpCur() || {}, ps = I.promo_stock;
+  const chg = (a, b) => { a = Number(a); b = Number(b); if(!(a > 0)) return ''; const c = (b - a) / a * 100; return `<span style="color:${c > 0.05 ? 'var(--win)' : c < -0.05 ? 'var(--loss)' : 'var(--muted)'}">${c > 0.05 ? '▲' : c < -0.05 ? '▼' : '•'} ${Math.abs(c).toFixed(1)}%</span>`; };
+  const own = `<div class="pm-card"><div class="pm-h3">Your promotion's stock</div>
+    ${ps && ps.listed ? `<p class="pm-p">Fans can buy shares in <b>${esc(p.name || 'your promotion')}</b> on the WCA Exchange. It is <b style="font-size:20px">${mpxMoney(ps.price)}</b> right now${Number(ps.prev_price) > 0 ? ', ' + chg(ps.prev_price, ps.price) + ' since its last move' : ''}.</p>
+      <p class="pm-p">It goes up when you are active: finishing shows, setting every winner, great matches, and fans liking, commenting on and following your posts. It slips when you go quiet for a while.</p>
+      <div class="pm-acts"><button type="button" class="spc-ghost-btn" onclick="mpxGoStock(${Number(ps.id)})"><i class="ti ti-chart-line"></i> See it on the Exchange</button></div>`
+    : `<p class="pm-p">Your promotion is not on the WCA Exchange yet. WCA lists promotions and sets their starting price.</p>`}</div>`;
+  box.innerHTML = own + `<div class="pm-card" style="margin-top:14px">${mpxRosterHTML()}</div>`;
+}
+function mpxFromSelect(){
+  return `<label class="pm-lbl" for="mpx_from">Count from</label>
+    <select id="mpx_from" onchange="MPX.from=this.value;MPX.pv=null;MPX.sure=false;mpxDraw()">
+      <option value=""${MPX.from === '' ? ' selected' : ''}>From our very first show${MPX.shows.length ? ' (' + esc(MPX.shows[0].name || '') + ')' : ''}</option>
+      ${MPX.shows.map(e => `<option value="${Number(e.id)}"${String(MPX.from) === String(e.id) ? ' selected' : ''}>${esc(mpxShowLabel(e))}</option>`).join('')}</select>
+    <div class="pm-small pm-dim" style="margin-top:6px">Every finished show from there to today counts. Shows before it never count.${MPX.shows.length ? '' : ' You have no finished shows yet, so everyone starts at the same price and moves from your next show.'}</div>`;
+}
+function mpxPreviewHTML(){
+  const v = MPX.pv; if(!v) return '';
+  const st = v.stocks || [];
+  return `<div style="margin-top:14px"><div class="pm-h3">Preview: nothing has changed yet</div>
+    <p class="pm-p">${st.length} ${st.length === 1 ? 'stock' : 'stocks'}, ${(v.shows || []).length} ${(v.shows || []).length === 1 ? 'show' : 'shows'} counted${v.from_name ? ' from ' + esc(v.from_name) : ''}.</p>
+    ${st.length ? `<div style="overflow-x:auto"><table class="mpb-table"><thead><tr><th>Wrestler or team</th><th>Starts at</th><th>After your shows</th><th>Shows</th></tr></thead><tbody>
+      ${st.map(x => `<tr><td><b>${esc(x.name)}</b>${x.kind === 'promo_team' ? ' <span class="pm-dim">(team)</span>' : ''}</td><td>${mpxMoney(x.start)}</td><td><b>${mpxMoney(x.price)}</b> ${chg2(x.start, x.price)}</td><td>${Number(x.shows) || 0}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="pm-empty pm-small">Add people to your roster first.</div>'}</div>`;
+  function chg2(a, b){ a = Number(a); b = Number(b); if(!(a > 0)) return ''; const c = (b - a) / a * 100; return `<span style="color:${c > 0.05 ? 'var(--win)' : c < -0.05 ? 'var(--loss)' : 'var(--muted)'}">${c > 0 ? '+' : ''}${c.toFixed(0)}%</span>`; }
+}
+function mpxRosterHTML(){
+  const I = MPX.info || {}, st = I.stocks || [], live = st.filter(x => !x.paused);
+  const can = I.can_edit !== false;
+  const rules = `<p class="pm-p">Every wrestler and team gets a stock. They move after each of your shows the same way WCA superstars do: being booked, wins, losses, title wins, title defenses and Match of the Night, and they slip when they are left off shows. A team only moves from matches saved under its team name. Fans who own shares get paid when they win.</p>`;
+  if(!I.on && !I.started){
+    return `<div class="pm-h3">Put your roster on the WCA Exchange</div>${rules}
+      <p class="pm-p">This is your choice. Your promotion's own stock stays either way, and you can take your roster off later.</p>
+      ${mpxFromSelect()}
+      <div class="pm-acts"><button type="button" class="spc-ghost-btn" onclick="mpxRun(true,false,true)"><i class="ti ti-eye"></i> Preview</button>
+        <button type="button" class="spc-post-btn" onclick="mpxRun(true,false,false,this)"${can ? '' : ' disabled'}><i class="ti ti-chart-line"></i> Put our roster on the Exchange</button></div>
+      <div class="msg" id="mpx_msg"></div>${mpxPreviewHTML()}`;
+  }
+  if(!I.on){
+    return `<div class="pm-h3">Your roster is off the WCA Exchange</div>
+      <p class="pm-p">Fans keep their shares, but nobody can buy or sell them and the prices stand still. Put it back on and the prices carry on from where they stopped. Shows you ran while it was off don't count.</p>
+      <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpxRun(true,false,false,this)"${can ? '' : ' disabled'}><i class="ti ti-chart-line"></i> Put our roster back on</button></div>
+      <div class="msg" id="mpx_msg"></div>`;
+  }
+  const chg = x => { const a = Number(x.prev_price), b = Number(x.price); if(!(a > 0)) return ''; const c = (b - a) / a * 100; return `<span style="color:${c > 0.05 ? 'var(--win)' : c < -0.05 ? 'var(--loss)' : 'var(--muted)'}">${c > 0.05 ? '▲' : c < -0.05 ? '▼' : '•'} ${Math.abs(c).toFixed(1)}%</span>`; };
+  return `<div class="pm-h3">Your roster is on the WCA Exchange <span class="pm-pill ok">On</span></div>
+    <p class="pm-p">Counting from ${I.from_name ? '<b>' + esc(I.from_name) + '</b>' : 'your very first show'}. ${live.length} ${live.length === 1 ? 'stock' : 'stocks'}${Number(I.owned) ? `, fans own <b>${Number(I.owned).toLocaleString()}</b> shares` : ''}. New people and teams you add get a stock by themselves.</p>
+    ${live.length ? `<div style="overflow-x:auto"><table class="mpb-table"><thead><tr><th>Wrestler or team</th><th>Price</th><th>Since the last show</th><th>Fans</th><th></th></tr></thead><tbody>
+      ${live.map(x => `<tr><td><b>${esc(x.name)}</b>${x.kind === 'promo_team' ? ' <span class="pm-dim">(team)</span>' : ''}</td><td><b>${mpxMoney(x.price)}</b></td><td>${chg(x)}</td><td>${Number(x.holders) || 0}</td>
+        <td><button type="button" class="spc-mini" onclick="mpxGoStock(${Number(x.id)})">See it</button></td></tr>`).join('')}
+    </tbody></table></div>` : ''}
+    <div class="pm-acts">
+      <button type="button" class="spc-mini" onclick="MPX.restart=!MPX.restart;MPX.pv=null;mpxDraw()"${I.can_restart ? '' : ' disabled title="Fans own shares of your roster, so only WCA can start the prices over."'}><i class="ti ti-refresh"></i> Start over from a different show</button>
+      <button type="button" class="spc-mini fr-danger" onclick="mpxOff(this)"${can ? '' : ' disabled'}>Take our roster off the Exchange</button></div>
+    ${I.can_restart ? '' : `<div class="pm-small pm-dim" style="margin-top:6px">Fans own shares of your roster, so the prices can't start over${I.is_admin ? '' : '. Ask WCA if it really needs to'}.</div>`}
+    ${MPX.restart && I.can_restart ? `<div style="margin-top:14px">${I.is_admin && Number(I.owned) ? '<div class="pm-note">Admin: fans own ' + Number(I.owned) + ' shares. Starting over changes what their shares are worth.</div>' : ''}${mpxFromSelect()}
+      <div class="pm-acts"><button type="button" class="spc-ghost-btn" onclick="mpxRun(true,true,true)"><i class="ti ti-eye"></i> Preview</button>
+        <button type="button" class="spc-post-btn" onclick="mpxRun(true,true,false,this)">Start the prices over</button></div>${mpxPreviewHTML()}</div>` : ''}
+    <div class="msg" id="mpx_msg"></div>`;
+}
+async function mpxRun(on, restart, preview, btn){
+  const from = MPX.from === '' ? null : Number(MPX.from);
+  if(!preview && btn && !btn.dataset.sure){
+    btn.dataset.sure = '1';
+    btn.textContent = restart ? 'Press again to start the prices over' : on && MPX.info && MPX.info.started ? 'Press again to put it back on' : 'Press again to put your roster on';
+    return;
+  }
+  if(btn) btn.disabled = true;
+  const { data, error } = await sb.rpc('ex_promo_roster_set', { p_promo:Number(MPX.pid), p_on:!!on, p_from:from, p_restart:!!restart, p_preview:!!preview });
+  if(btn) btn.disabled = false;
+  if(error){ mpMsg('mpx_msg', mpxErr(error), false); return; }
+  if(preview){ MPX.pv = data; mpxDraw(); return; }
+  MPX.pv = null; MPX.restart = false;
+  try{ if(window.EX){ EX.loaded = 0; EX.facesDone = false; } }catch(e){}
+  await mpExchangeTab(pmEl('mp-tab'));
+  const n = ((data || {}).stocks || []).length;
+  mpMsg('mpx_msg', restart ? 'Done. The prices started over and every show was counted again.' : (data && data.fresh) ? `Done. ${n} ${n === 1 ? 'stock is' : 'stocks are'} on the WCA Exchange now.` : 'Done. Your roster is back on the WCA Exchange.', true);
+}
+async function mpxOff(btn){
+  if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.textContent = 'Press again to take your roster off'; return; }
+  btn.disabled = true;
+  const { error } = await sb.rpc('ex_promo_roster_set', { p_promo:Number(MPX.pid), p_on:false, p_from:null, p_restart:false, p_preview:false });
+  if(error){ btn.disabled = false; mpMsg('mpx_msg', mpxErr(error), false); return; }
+  try{ if(window.EX){ EX.loaded = 0; } }catch(e){}
+  await mpExchangeTab(pmEl('mp-tab'));
+  mpMsg('mpx_msg', 'Your roster is off the WCA Exchange. Fans keep their shares.', true);
+}
+
 const MPB = { pid:null, econ:null, fans:[], grants:[], give:'all', sel:new Set(), find:'', watch:null, editFan:null };
 async function mpBettingTab(box){
   box.innerHTML = '<div class="loading">Loading…</div>';
