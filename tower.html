@@ -884,7 +884,7 @@ const DEFAULTS = {
     // secret boss (Nov 14): a % chance after beating a tower. name '' = a random wrestler. mult = times the money per floor
     secret:{ easy:{ name:'', chance:10, mult:5 }, normal:{ name:'', chance:10, mult:5 }, hard:{ name:'', chance:10, mult:5 } }, secretHp:20,
     seq:{ base:5, perLevel:1, speed:100, sigExtra:1, finExtra:2, levelSpeed:{ easy:100, normal:140, hard:180 }, hurtSpeed:50 },   // hurtSpeed: % faster arrows at 0 health (Nov 15)   // levelSpeed: % arrow speed for each difficulty
-    pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 }, closeAt:25, closeChance:30 },   // closeAt/closeChance: when a kick out at two is "so close" (Nov 14)
+    pin:{ maxZone:40, minZone:4, finisherShrink:35, speedUp:25, countTime:1.8, ai:{ easy:1.1, normal:1.5, hard:2.1 }, closeAt:25, closeChance:30, zeroZone:3, cpuZero:false },   // zeroZone: green zone at 0 health (people always get a try); cpuZero: the computer gets a try too (Nov 18)   // closeAt/closeChance: when a kick out at two is "so close" (Nov 14)
     sub:{ rounds:3, tapAt:25, seqLen:5 },
     mom:{ sigCost:50, finCost:100 },
     maxMovesPerPos:4,
@@ -1092,7 +1092,7 @@ function sentence(a){ return `${sentenceWhen(a)}: ${+a.chance >= 100 ? 'always' 
 /* ---------- numbers players and the admin can read ---------- */
 function kickZone(f, opp){   // width of the green zone in %, from health
   const s = CFG.settings.pin, pct = Math.max(0, f.hp) / f.max;
-  if(f.hp <= 0) return 0;
+  if(f.hp <= 0) return Math.max(0, +s.zeroZone || 0);   // (Nov 18) 0 health still gets a tiny green zone
   let z = s.minZone + (s.maxZone - s.minZone) * Math.pow(pct, 1.15) + (+f.st.kickout || 0) + (f.zoneBonus || 0);
   if(opp && opp.pinBoost) z *= (1 - opp.pinBoost / 100);
   return Math.max(s.minZone * .75, Math.min(70, z));
@@ -1351,7 +1351,7 @@ class Match {
     // the count: every miss of the needle is one count. Three and it's over.
     // A person plays the needle (it counts as it goes); for the computer the count is shown here.
     let out = !!ctx.kickout, counts = out ? 2 : 3, played = false, close = false;
-    if(!out && def.hp > 0){
+    if(!out && (def.hp > 0 || (kickZone(def, att) > 0 && (!def.brain.cpu || CFG.settings.pin.cpuZero)))){   // (Nov 18) people at 0 health still get the needle
       const r = await def.brain.kickout(this, def, zone);
       if(r && typeof r === 'object'){ out = !!r.out; counts = r.count; played = true; close = counts === 2 && (+r.left || 0) <= (+CFG.settings.pin.closeAt || 0); }
       else { out = !!r; counts = out ? (Math.random() < .4 ? 1 : 2) : 3; }
@@ -1389,7 +1389,7 @@ class Match {
 function aiBrain(level){
   const L = AI_LEVEL[level] || AI_LEVEL.normal, s = () => CFG.settings;
   const revSkill = f => (s().reversal.ai[level] || 45) + (+f.st.reversal || 0);
-  return {
+  return { cpu:true,
     neutral(m, f){ const op = m.other(f), last = op.hist.slice(-4), c = { strike:0, grapple:0, block:0 };
       last.forEach(x => { if(c[x] != null) c[x]++; }); const fav = Object.keys(c).sort((x,y) => c[y]-c[x])[0];
       if(last.length >= 2 && Math.random() < L.read) return { strike:'block', grapple:'strike', block:'grapple' }[fav];
@@ -2019,7 +2019,7 @@ function startBattle(){
   if(LIVE && !S.quick && S.run) sbc().rpc('tower_fight', { p_run:S.run }).then(r => { if(r.error){ S.runErr = r.error.message; S.run = null; } }, () => {});
   MT.run().then(m => finish(m.winner === me, m.how));
 }
-function slowAI(brain){ return { neutral:brain.neutral, chain:brain.chain, reversal:brain.reversal, kickout:brain.kickout, escape:brain.escape,
+function slowAI(brain){ return { cpu:brain.cpu, neutral:brain.neutral, chain:brain.chain, reversal:brain.reversal, kickout:brain.kickout, escape:brain.escape,
   async control(m,f,o){ setStage(`${f.name} is in control`, posLine(m)); await sleep(950); return brain.control(m,f,o); } }; }
 
 function battleScreen(into, pvp){
