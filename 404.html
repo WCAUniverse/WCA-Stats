@@ -8923,6 +8923,26 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
     input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea{font-size:16px;}
   }
   .site-foot .sf-copy{max-width:1180px; margin:0 auto; padding:12px 24px 22px; border-top:1px solid rgba(255,255,255,.06); font-family:var(--font-body); font-size:14px; color:var(--muted2,#5c5c58); text-align:center;}
+  /* personality sliders like WWE 2K (Nov 2026) */
+  .tr-list{display:flex; flex-direction:column; gap:10px; margin:6px 0 14px;}
+  .tr-row, .tr-edit{display:grid; grid-template-columns:minmax(0,1fr) 46px minmax(110px,2.2fr) 46px minmax(0,1fr); align-items:center; gap:10px;}
+  .tr-w{font-family:var(--font-cond, 'Barlow Condensed', sans-serif); font-weight:600; letter-spacing:1px; text-transform:uppercase; font-size:15px; color:var(--muted, #8a8a86); overflow-wrap:anywhere;}
+  .tr-wl{text-align:right;}
+  .tr-w.on{color:var(--txt, #f2f2f0);}
+  .tr-n{text-align:center; font-variant-numeric:tabular-nums; font-size:16px; color:var(--muted, #8a8a86);}
+  .tr-n.on{color:var(--txt, #f2f2f0);}
+  .tr-track{position:relative; height:12px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.28);}
+  .tr-mid{position:absolute; left:50%; top:-4px; bottom:-4px; width:2px; margin-left:-1px; background:rgba(255,255,255,.75);}
+  .tr-fill{position:absolute; top:1px; bottom:1px;}
+  .tr-fill.l{right:50%; background:#d6243e;} .tr-fill.r{left:50%; background:#1ea7e6;}
+  .tr-edits{grid-template-columns:1fr !important;}
+  .tr-range{-webkit-appearance:none; appearance:none; width:100%; height:12px; margin:8px 0; border:1px solid rgba(255,255,255,.28); border-radius:0; outline:none; cursor:pointer;}
+  .tr-range::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:8px; height:22px; background:#fff; border:0; box-shadow:0 0 6px rgba(0,0,0,.6);}
+  .tr-range::-moz-range-thumb{width:8px; height:22px; background:#fff; border:0; border-radius:0;}
+  .tr-range::-moz-range-track{background:transparent;}
+  .tr-num{width:100%; padding:6px 4px !important; margin:0 !important; text-align:center; font-size:16px !important;}
+  .pm-trait.unset .tr-range, .pm-trait.unset .tr-num, .af-trait.unset .tr-range{opacity:.45;}
+  @media (max-width:640px){ .tr-row, .tr-edit{grid-template-columns:minmax(0,1fr) 40px minmax(80px,1.6fr) 40px minmax(0,1fr); gap:6px;} .tr-w{font-size:13px; letter-spacing:.5px;} }
 </style>
 
 <!-- ===== HOME PAGE styles ===== -->
@@ -17410,11 +17430,24 @@ const APPLY_TRAITS = [
   ['aggressive_disciplined',  'Aggressive',   'Disciplined']
 ];
 let APPLY_HOMETOWN = '';        // real / unknown / fictional
-function applyTraitWord(v, left, right){
-  v = Number(v)||0;
-  if(v === 0) return 'Right in the middle';
-  const w = v < 0 ? left : right, a = Math.abs(v);
-  return a === 1 ? 'A little ' + w.toLowerCase() : (a === 2 ? w : 'Very ' + w.toLowerCase());
+function applyTraitWord(v, left, right){ return trWord(Math.max(-100, Math.min(100, Math.round(Number(v) || 0))), left, right); }
+// the application's sliders work like the game: one number, 0 in the middle, up to 100 toward either word
+function applyTraitUpd(k){
+  const el = document.getElementById('af_tr_' + k), t = APPLY_TRAITS.find(x => x[0] === k); if(!el || !t) return;
+  const v = Math.max(-100, Math.min(100, Math.round(Number(el.value) || 0)));
+  el.style.background = trRangeBg(v);
+  const ln = document.getElementById('af_trl_' + k), rn = document.getElementById('af_trr_' + k), lab = document.getElementById('af_trv_' + k);
+  if(ln && document.activeElement !== ln) ln.value = v < 0 ? -v : 0;
+  if(rn && document.activeElement !== rn) rn.value = v > 0 ? v : 0;
+  if(lab) lab.textContent = applyTraitWord(v, t[1], t[2]);
+}
+function applyTraitNum(k, side){
+  const box = document.getElementById('af_tr' + side + '_' + k), el = document.getElementById('af_tr_' + k); if(!box || !el) return;
+  const n = Math.max(0, Math.min(100, Math.round(Number(box.value) || 0)));
+  el.value = side === 'l' ? -n : n;
+  const other = document.getElementById('af_tr' + (side === 'l' ? 'r' : 'l') + '_' + k); if(other) other.value = 0;
+  applyTraitUpd(k);
+  el.dispatchEvent(new Event('input', { bubbles:true }));
 }
 /* Height and weight are picked from lists so they always read the same way:
    5'11" and 230 lbs. Anything typed before (an old application or draft,
@@ -17540,13 +17573,15 @@ function applyFormHTML(){
 
   // 4. personality pairs (match the game's sliders)
   const s4 = `
-    <div class="af-help" style="margin:0 0 14px">These match the personality sliders in WWE 2K. Each one is a pair, so slide toward the side that fits your character, or leave it in the middle.</div>
+    <div class="af-help" style="margin:0 0 14px">These match the personality sliders in WWE 2K. Each one is a pair: slide toward the side that fits your character, or type the numbers from the game. 0 on both sides is the middle.</div>
     <div class="af-traits">${APPLY_TRAITS.map(([k,l,r])=>`
     <div class="af-trait">
-      <div class="af-trait-ends"><span>${l}</span><span>${r}</span></div>
-      <input type="range" id="af_tr_${k}" min="-3" max="3" step="1" value="0"
-        oninput="document.getElementById('af_trv_${k}').textContent=applyTraitWord(this.value,'${l}','${r}')">
-      <div class="af-trait-val" id="af_trv_${k}">Right in the middle</div>
+      <div class="tr-edit"><span class="tr-w tr-wl">${l}</span>
+        <input type="number" class="tr-num" id="af_trl_${k}" min="0" max="100" step="1" value="0" aria-label="${l}" oninput="applyTraitNum('${k}','l')">
+        <input type="range" class="tr-range" id="af_tr_${k}" min="-100" max="100" step="1" value="0" style="background:${trRangeBg(0)}" aria-label="${l} or ${r}" oninput="applyTraitUpd('${k}')">
+        <input type="number" class="tr-num" id="af_trr_${k}" min="0" max="100" step="1" value="0" aria-label="${r}" oninput="applyTraitNum('${k}','r')">
+        <span class="tr-w">${r}</span></div>
+      <div class="af-trait-val" id="af_trv_${k}">Middle (0)</div>
     </div>`).join('')}</div>
     <div class="af-field" style="margin-top:6px"><label>Anything else about their personality?</label>
       <div class="af-help">Catchphrases, mannerisms, how they talk and act.</div>
@@ -17707,10 +17742,7 @@ function applyFillFromDraft(d){
       else el.value = d.fields[id];
     });
     // the personality sliders also show a word under them
-    APPLY_TRAITS.forEach(([k,l,r])=>{
-      const el = document.getElementById('af_tr_'+k), lab = document.getElementById('af_trv_'+k);
-      if(el && lab) lab.textContent = applyTraitWord(el.value, l, r);
-    });
+    APPLY_TRAITS.forEach(([k])=> applyTraitUpd(k));
     if(Array.isArray(d.open)){
       document.querySelectorAll('#applyForm [data-sec]').forEach((sec,i)=>{
         if(typeof d.open[i]==='boolean') sec.classList.toggle('open', d.open[i]);
@@ -17748,7 +17780,7 @@ function applyRowToDraft(a){
     af_facehair:a.facial_hair, af_eyes:a.eye_color, af_attire_ent:a.attire_entrance,
     af_attire_ring:a.attire_ring, af_walkout:a.entrance_walkout
   };
-  if(traits && typeof traits === 'object') APPLY_TRAITS.forEach(([k])=>{ if(traits[k]!=null) fields['af_tr_'+k] = String(traits[k]); });
+  if(traits && typeof traits === 'object') APPLY_TRAITS.forEach(([k])=>{ if(traits[k]!=null) fields['af_tr_'+k] = String(trScale(traits, k)); });
   Object.keys(fields).forEach(k=>{ if(fields[k]==null) fields[k] = ''; });
   return { v:1, caw: (a.has_existing_caw===true||a.has_existing_caw===false) ? a.has_existing_caw : null,
            plat, align:a.alignment||'', home, fields };
@@ -17921,7 +17953,8 @@ async function submitApplication(){
   // creation, so an importable PC CAW never touches the new columns.
   if(!importablePC){
     const traits = {};
-    APPLY_TRAITS.forEach(([k])=>{ const el = document.getElementById('af_tr_'+k); traits[k] = el ? Number(el.value)||0 : 0; });
+    APPLY_TRAITS.forEach(([k])=>{ const el = document.getElementById('af_tr_'+k); traits[k] = el ? Math.max(-100, Math.min(100, Math.round(Number(el.value)||0))) : 0; });
+    traits._s = 100;   // saved on the 0 to 100 scale, like the game
     Object.assign(payload, {
       char_age: afv('af_age'),
       hometown_kind: APPLY_HOMETOWN==='real' ? 'Real place' : (APPLY_HOMETOWN==='unknown' ? 'Parts Unknown' : 'Fictional (game list)'),
@@ -22001,55 +22034,87 @@ const PM_TRAITS = [
   ['cowardly_bold',           'Cowardly',     'Bold'],
   ['aggressive_disciplined',  'Aggressive',   'Disciplined']
 ];
-function pmTraitWord(v, left, right){
-  v = Math.max(-3, Math.min(3, Math.round(Number(v) || 0)));
-  if(v === 0) return 'Right in the middle';
-  const w = v < 0 ? left : right, a = Math.abs(v);
-  return a === 1 ? 'A little ' + w.toLowerCase() : (a === 2 ? w : 'Very ' + w.toLowerCase());
+/* Personality sliders work like WWE 2K (Nov 2026): one number per pair, 0 is the middle,
+   -1 to -100 goes toward the left word (Egotistical 51) and 1 to 100 toward the right word (Prideful 51).
+   Saved with _s:100 so we know the scale. Older saves used -3 to 3 and are shown scaled up (3 = 100). */
+function trScale(traits, k){
+  if(!traits || typeof traits !== 'object') return 0;
+  const raw = Number(traits[k]); if(!isFinite(raw)) return 0;
+  const v = Number(traits._s) === 100 ? raw : raw * 100 / 3;
+  return Math.max(-100, Math.min(100, Math.round(v)));
+}
+function trWord(v, l, r){ v = Math.round(Number(v) || 0); return v === 0 ? 'Middle (0)' : v < 0 ? l + ' ' + (-v) : r + ' ' + v; }
+function pmTraitWord(v, left, right){ return trWord(Math.max(-100, Math.min(100, Number(v) || 0)), left, right); }
+// the slider's own background: a line in the middle, red filling left or blue filling right
+function trRangeBg(v){
+  v = Number(v) || 0;
+  const a = 50 + Math.min(0, v) / 2, b = 50 + Math.max(0, v) / 2, c = v < 0 ? '#d6243e' : '#1ea7e6', off = 'rgba(255,255,255,.07)';
+  return `linear-gradient(to right, transparent calc(50% - 1px), rgba(255,255,255,.75) calc(50% - 1px), rgba(255,255,255,.75) calc(50% + 1px), transparent calc(50% + 1px)),`
+    + `linear-gradient(to right, ${off} ${a}%, ${c} ${a}%, ${c} ${b}%, ${off} ${b}%)`;
+}
+// one game style row for showing (not editing): Egotistical 51 [====|    ] 0 Prideful
+function trBarHTML(v, l, r){
+  const lv = v < 0 ? -v : 0, rv = v > 0 ? v : 0;
+  return `<div class="tr-row" title="${esc(trWord(v, l, r))}"><span class="tr-w tr-wl${lv ? ' on' : ''}">${esc(l)}</span><b class="tr-n${lv ? ' on' : ''}">${lv}</b>
+    <span class="tr-track" aria-hidden="true"><i class="tr-mid"></i>${v ? `<i class="tr-fill ${v < 0 ? 'l' : 'r'}" style="width:${Math.abs(v) / 2}%"></i>` : ''}</span>
+    <b class="tr-n${rv ? ' on' : ''}">${rv}</b><span class="tr-w${rv ? ' on' : ''}">${esc(r)}</span></div>`;
 }
 // the editor: prefix 'mpt' on the site and in Promotion Rosters, 'wgt' for WCA wrestlers
 function pmTraitsHTML(prefix, traits){
   traits = (traits && typeof traits === 'object') ? traits : {};
-  return `<div class="pm-small pm-dim">Slide toward the side that fits, like the sliders in WWE 2K. Leave one alone to skip it.</div>
-    <div class="pm-traits">${PM_TRAITS.map(([k, l, r], i) => { const has = traits[k] !== undefined && traits[k] !== null && traits[k] !== '';
-      const v = has ? Math.max(-3, Math.min(3, Math.round(Number(traits[k]) || 0))) : 0;
+  return `<div class="pm-small pm-dim">Slide toward the side that fits, or type the numbers from WWE 2K. 0 on both sides is the middle. Leave one alone to skip it.</div>
+    <div class="pm-traits tr-edits">${PM_TRAITS.map(([k, l, r], i) => { const has = traits[k] !== undefined && traits[k] !== null && traits[k] !== '';
+      const v = has ? trScale(traits, k) : 0;
       return `<div class="pm-trait${has ? '' : ' unset'}" id="${prefix}_row_${i}">
-        <div class="pm-trait-ends"><span>${esc(l)}</span><span>${esc(r)}</span></div>
-        <input type="range" min="-3" max="3" step="1" value="${v}" id="${prefix}_${i}" aria-label="${escAttr(l + ' or ' + r)}" oninput="pmTrait('${prefix}',${i})">
-        <div class="pm-trait-foot"><span class="pm-trait-val" id="${prefix}_v_${i}">${has ? esc(pmTraitWord(v, l, r)) : 'Not set'}</span>
+        <div class="tr-edit"><span class="tr-w tr-wl">${esc(l)}</span>
+          <input type="number" class="tr-num" id="${prefix}_l_${i}" min="0" max="100" step="1" value="${v < 0 ? -v : 0}" aria-label="${escAttr(l)}" oninput="pmTraitNum('${prefix}',${i},'l')">
+          <input type="range" class="tr-range" min="-100" max="100" step="1" value="${v}" id="${prefix}_${i}" style="background:${trRangeBg(v)}" aria-label="${escAttr(l + ' or ' + r)}" oninput="pmTrait('${prefix}',${i})">
+          <input type="number" class="tr-num" id="${prefix}_r_${i}" min="0" max="100" step="1" value="${v > 0 ? v : 0}" aria-label="${escAttr(r)}" oninput="pmTraitNum('${prefix}',${i},'r')">
+          <span class="tr-w">${esc(r)}</span></div>
+        <div class="pm-trait-foot"><span class="pm-trait-val" id="${prefix}_v_${i}">${has ? esc(trWord(v, l, r)) : 'Not set'}</span>
           <button type="button" class="pm-trait-clear" onclick="pmTraitClear('${prefix}',${i})">Clear</button></div>
       </div>`; }).join('')}</div>`;
 }
+function pmTraitShow(prefix, i, v, skip){
+  const el = pmEl(prefix + '_' + i), out = pmEl(prefix + '_v_' + i), t = PM_TRAITS[i];
+  const ln = pmEl(prefix + '_l_' + i), rn = pmEl(prefix + '_r_' + i);
+  if(el){ el.value = v; el.style.background = trRangeBg(v); }
+  if(ln && skip !== 'l') ln.value = v < 0 ? -v : 0;
+  if(rn && skip !== 'r') rn.value = v > 0 ? v : 0;
+  if(out && t) out.textContent = trWord(v, t[1], t[2]);
+}
 function pmTrait(prefix, i){
-  const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i), out = pmEl(prefix + '_v_' + i);
-  const t = PM_TRAITS[i]; if(!row || !el || !t) return;
+  const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i); if(!row || !el) return;
   row.classList.remove('unset');
-  if(out) out.textContent = pmTraitWord(el.value, t[1], t[2]);
+  pmTraitShow(prefix, i, Math.max(-100, Math.min(100, Math.round(Number(el.value) || 0))));
+}
+// typing a number on one side: the other side goes to 0
+function pmTraitNum(prefix, i, side){
+  const row = pmEl(prefix + '_row_' + i), box = pmEl(prefix + '_' + side + '_' + i); if(!row || !box) return;
+  const n = Math.max(0, Math.min(100, Math.round(Number(box.value) || 0)));
+  row.classList.remove('unset');
+  pmTraitShow(prefix, i, side === 'l' ? -n : n, box.value === '' ? side : null);
+  if(Number(box.value) > 100) box.value = 100;
 }
 function pmTraitClear(prefix, i){
-  const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i), out = pmEl(prefix + '_v_' + i);
-  if(el) el.value = 0;
+  const row = pmEl(prefix + '_row_' + i), out = pmEl(prefix + '_v_' + i);
+  pmTraitShow(prefix, i, 0);
   if(row) row.classList.add('unset');
   if(out) out.textContent = 'Not set';
 }
 function pmReadTraits(prefix){
   const out = {};
   PM_TRAITS.forEach(([k], i) => { const row = pmEl(prefix + '_row_' + i), el = pmEl(prefix + '_' + i);
-    if(row && el && !row.classList.contains('unset')) out[k] = Math.max(-3, Math.min(3, Math.round(Number(el.value) || 0))); });
+    if(row && el && !row.classList.contains('unset')) out[k] = Math.max(-100, Math.min(100, Math.round(Number(el.value) || 0))); });
+  if(Object.keys(out).length) out._s = 100;
   return out;
 }
-// the public view: a marker on a seven step track between the two words
+// the public view: game style bars, filling out from the middle
 function pmTraitBars(traits, col){
   traits = (traits && typeof traits === 'object') ? traits : {};
   const list = PM_TRAITS.filter(([k]) => traits[k] !== undefined && traits[k] !== null && traits[k] !== '');
   if(!list.length) return '';
-  return `<div class="pm-lbl">Personality</div><div class="pm-tbars" style="--pc:${col}">${list.map(([k, l, r]) => {
-    const v = Math.max(-3, Math.min(3, Math.round(Number(traits[k]) || 0)));
-    return `<div class="pm-tbar" title="${escAttr(pmTraitWord(v, l, r))}">
-      <span class="pm-tbar-l${v < 0 ? ' on' : ''}">${esc(l)}</span>
-      <i class="pm-tbar-track" aria-hidden="true">${[-3,-2,-1,0,1,2,3].map(n => `<em class="${n === v ? 'at' : ''}${n === 0 ? ' mid' : ''}"></em>`).join('')}</i>
-      <span class="pm-tbar-r${v > 0 ? ' on' : ''}">${esc(r)}</span>
-      <small>${esc(pmTraitWord(v, l, r))}</small></div>`; }).join('')}</div>`;
+  return `<div class="pm-lbl">Personality</div><div class="pm-tbars tr-list" style="--pc:${col}">${list.map(([k, l, r]) => trBarHTML(trScale(traits, k), l, r)).join('')}</div>`;
 }
 
 const PM_HEX = /^#[0-9a-f]{6}$/i;
@@ -37800,7 +37865,7 @@ function ceFlat(c){
 function ceFieldList(c){ return ceFlat(c).map(([k]) => ceFieldLabel(k)).join(', ') || 'No fields'; }
 function ceShow(k, v){
   if(v == null || v === '' || (typeof v === 'object' && !Object.keys(v).length)) return '<span class="pm-dim">Empty</span>';
-  if(k === 'd.traits') return esc(PM_TRAITS.filter(([t]) => v[t] != null).map(([t, l, r]) => pmTraitWord(v[t], l, r)).join(', '));
+  if(k === 'd.traits') return esc(PM_TRAITS.filter(([t]) => v[t] != null).map(([t, l, r]) => pmTraitWord(trScale(v, t), l, r)).join(', '));
   if(k === 'd.attrs') return esc(Object.keys(v).map(a => a + ' ' + v[a]).join(', '));
   return esc(String(v)).replace(/\n/g, '<br>');
 }
@@ -38142,7 +38207,7 @@ function apfAnswerHTML(a){
   return (a.questions || []).map(s => {
     const rows = (s.qs || []).map(q => { const v = (a.answers || {})[q.id];
       if(v == null || v === '' || (typeof v === 'object' && !Object.keys(v).length)) return '';
-      const shown = q.type === 'traits' ? esc(PM_TRAITS.filter(([t]) => v[t] != null).map(([t, l, r]) => pmTraitWord(v[t], l, r)).join(', '))
+      const shown = q.type === 'traits' ? esc(PM_TRAITS.filter(([t]) => v[t] != null).map(([t, l, r]) => pmTraitWord(trScale(v, t), l, r)).join(', '))
         : q.type === 'link' && /^https?:\/\//i.test(String(v)) ? `<a href="${escAttr(v)}" target="_blank" rel="noopener noreferrer nofollow">${esc(v)}</a>` : esc(String(v)).replace(/\n/g, '<br>');
       return `<div class="apf-ans"><small>${esc(q.label)}</small><div>${shown}</div></div>`; }).join('');
     return rows ? `<div class="apf-ans-sec"><div class="apf-ans-h">${esc(s.title)}</div>${rows}</div>` : '';
