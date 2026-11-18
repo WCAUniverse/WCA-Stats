@@ -3909,6 +3909,36 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
   .ch-feed::-webkit-scrollbar{width:8px;}
   .ch-feed::-webkit-scrollbar-thumb{background:var(--line); border-radius:8px;}
   .ch-msg{display:flex; gap:10px; align-items:flex-start; position:relative;}
+  /* fan style (rewards) */
+  .rw-badge{font-size:15px; margin-left:4px; vertical-align:-2px;}
+  .rw-ring-gold{box-shadow:0 0 0 2px #e8b84a, 0 0 8px rgba(232,184,74,.55);}
+  .rw-ring-silver{box-shadow:0 0 0 2px #c0c7d6, 0 0 8px rgba(192,199,214,.5);}
+  .rw-ring-red{box-shadow:0 0 0 2px #ff5a5a, 0 0 8px rgba(255,90,90,.5);}
+  .rw-ring-blue{box-shadow:0 0 0 2px #5b8def, 0 0 8px rgba(91,141,239,.5);}
+  .rw-ring-purple{box-shadow:0 0 0 2px #b07cff, 0 0 8px rgba(176,124,255,.5);}
+  .rw-ring-green{box-shadow:0 0 0 2px #7fe36a, 0 0 8px rgba(127,227,106,.5);}
+  .rw-ring-fire{animation:rwFire 1.4s ease-in-out infinite alternate;}
+  .rw-ring-rainbow{animation:rwRainbow 4s linear infinite;}
+  @keyframes rwFire{from{box-shadow:0 0 0 2px #ff5a1f, 0 0 6px 1px rgba(255,90,31,.7);} to{box-shadow:0 0 0 2px #ffd84d, 0 0 12px 3px rgba(255,170,40,.8);}}
+  @keyframes rwRainbow{0%{box-shadow:0 0 0 2px #ff5a5a, 0 0 8px #ff5a5a;} 20%{box-shadow:0 0 0 2px #ffd84d, 0 0 8px #ffd84d;} 40%{box-shadow:0 0 0 2px #7fe36a, 0 0 8px #7fe36a;}
+    60%{box-shadow:0 0 0 2px #4fd1ff, 0 0 8px #4fd1ff;} 80%{box-shadow:0 0 0 2px #b07cff, 0 0 8px #b07cff;} 100%{box-shadow:0 0 0 2px #ff5a5a, 0 0 8px #ff5a5a;}}
+  @media (prefers-reduced-motion: reduce){ .rw-ring-fire{animation:none; box-shadow:0 0 0 2px #ff8a3d, 0 0 8px rgba(255,138,61,.6);} .rw-ring-rainbow{animation:none; box-shadow:0 0 0 2px #b07cff, 0 0 8px #4fd1ff;} }
+  .rw-card h4{margin:16px 0 8px; font-size:15px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);}
+  .rw-prev{display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.25); margin-top:10px;}
+  .rw-prev .ch-ava, .rw-prev .ch-ava-init{width:40px; height:40px;}
+  .rw-prev b{font-size:17px;} .rw-prev small{display:block; color:var(--muted); font-size:14px;}
+  .rw-sw{display:flex; flex-wrap:wrap; gap:8px;}
+  .rw-dot{width:34px; height:34px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0;}
+  .rw-dot.on{border-color:#fff; outline:2px solid var(--gold); outline-offset:2px;}
+  .rw-opt{display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border:1px solid var(--line); border-radius:20px; background:rgba(0,0,0,.25); color:var(--txt, #fff); cursor:pointer; font:inherit; font-size:15px;}
+  .rw-opt.on{border-color:var(--gold); color:var(--gold);}
+  .rw-opt[disabled], .rw-dot[disabled]{opacity:.35; cursor:not-allowed;}
+  .rw-opt .rw-ringdot{width:20px; height:20px; border-radius:50%; background:#2a2a33;}
+  .rw-list{display:flex; flex-direction:column; gap:8px;}
+  .rw-row{display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px;}
+  .rw-row i.ti{font-size:22px;} .rw-row .rw-w{flex:1; min-width:0;} .rw-row b{font-size:16px;} .rw-row small{display:block; color:var(--muted); font-size:14px;}
+  .rw-row .rw-got{color:var(--win, #3ecf8e); font-weight:700; font-size:14px;} .rw-row .rw-todo{color:var(--muted); font-size:14px; white-space:nowrap;}
+  .rw-lock{color:var(--muted); font-size:14px; margin:6px 0 0;}
   /* admin: per-message delete (shows on hover) */
   .ch-del{flex-shrink:0; align-self:center; background:transparent; border:1px solid var(--line);
     color:var(--muted); border-radius:6px; width:24px; height:24px; cursor:pointer;
@@ -15990,7 +16020,7 @@ function chatMsgHTML(m){
       ${ava}
       <div class="ch-body">
         <div class="ch-meta">
-          <span class="ch-author">${esc(name)}</span>
+          <span class="ch-author"${m.user_id && name !== 'Admin' ? ` data-rwu="${esc(String(m.user_id))}"` : ''}>${esc(name)}</span>
           <span class="ch-time" title="${esc(chatFullDate(m.created_at))}">${chatTime(m.created_at)}</span>
         </div>
         <div class="ch-text">${esc(m.body)}</div>
@@ -16042,7 +16072,109 @@ function chatAppend(m){
   feed.appendChild(node);
   CHAT_LAST_TS = m.created_at;
   if(near) chatScrollBottom();
+  try{ rwPaint(node); }catch(e){}
 }
+/* ===== FAN STYLE: name color, badge and picture ring (Nov 2026) =====
+   Rewards unlock from shares owned on the WCA Exchange (SUPABASE_SETUP_rewards.sql).
+   Fans pick their style in Dashboard > Settings > Your style; it shows on their name in the Watch Live chat.
+   Everyone's style is read from user_styles; saving goes through rw_save_style, which checks the unlocks. */
+const RW_BADGES = {
+  shareholder:{ t:'Shareholder', i:'ti-chart-line', c:'#5dcaa5', how:'Own any shares on the WCA Exchange' },
+  investor:{ t:'Investor', i:'ti-trending-up', c:'#4fd1ff', how:'Own {investor} shares or more in total' },
+  backer:{ t:'Big Backer', i:'ti-star-filled', c:'#ffd84d', how:'Own {backer} shares or more of one stock' },
+  mogul:{ t:'Mogul', i:'ti-crown', c:'#e8b84a', how:'Your shares are worth ${mogul} or more' },
+  founding:{ t:'Founding Fan', i:'ti-flame', c:'#ff8a3d', how:'Given by WCA' }
+};
+const RW_COLORS = ['#e8b84a','#f2f0ea','#ff5a5a','#ff8a3d','#ffd84d','#7fe36a','#5dcaa5','#4fd1ff','#5b8def','#b07cff','#ff6fb5','#c0c7d6'];
+const RW_RINGS = { gold:'Gold', silver:'Silver', red:'Red', blue:'Blue', purple:'Purple', green:'Green', fire:'Fire', rainbow:'Rainbow' };
+const RW = { cache:{}, me:null };
+function rwBadgeHTML(k){ const b = RW_BADGES[k]; return b ? `<i class="ti ${b.i} rw-badge" style="color:${b.c}" title="${b.t}" aria-label="${b.t}"></i>` : ''; }
+function rwStyleNode(nameEl, st){
+  const msg = nameEl.closest('.ch-msg') || nameEl.parentNode;
+  nameEl.style.color = st && RW_COLORS.includes(String(st.name_color || '').toLowerCase()) ? st.name_color : '';
+  const old = nameEl.parentNode.querySelector('.rw-badge'); if(old) old.remove();
+  if(st && st.badge) nameEl.insertAdjacentHTML('afterend', rwBadgeHTML(st.badge));
+  const av = msg && msg.querySelector('.ch-ava, .ch-ava-init');
+  if(av){ av.className = av.className.replace(/\s*rw-ring-\w+/g, ''); if(st && RW_RINGS[st.ring]) av.classList.add('rw-ring-' + st.ring); }
+}
+// paint every name with a data-rwu (user id) inside root, loading styles we don't know yet
+async function rwPaint(root){
+  root = root || document;
+  const els = root.matches && root.matches('[data-rwu]') ? [root] : [...root.querySelectorAll('[data-rwu]')];
+  if(!els.length) return;
+  const need = [...new Set(els.map(e => e.dataset.rwu))].filter(u => !(u in RW.cache));
+  if(need.length && typeof sb !== 'undefined' && sb){
+    need.forEach(u => { RW.cache[u] = null; });
+    try{ const { data } = await sb.from('user_styles').select('user_id,name_color,badge,ring').in('user_id', need.slice(0, 200));
+      (data || []).forEach(r => { RW.cache[r.user_id] = r; }); }catch(e){}
+  }
+  els.forEach(e => { try{ rwStyleNode(e, RW.cache[e.dataset.rwu]); }catch(x){} });
+}
+// Dashboard > Settings (and the Account page): the "Your style" card under the account settings
+async function rwStyleCard(hostId){
+  const host = document.getElementById(hostId); if(!host || typeof CURRENT_USER === 'undefined' || !CURRENT_USER) return;
+  let card = document.getElementById('rw-card');
+  if(card && card.parentNode !== host){ card.remove(); card = null; }
+  if(!card){ card = document.createElement('div'); card.id = 'rw-card'; card.className = 'acc-card rw-card'; card.style.marginTop = '16px'; host.appendChild(card); }
+  card.innerHTML = '<div class="acc-card-title">Your style</div><div class="acc-loading">Loading your rewards…</div>';
+  try{ const r = await sb.rpc('rw_me'); if(r.error) throw r.error; RW.me = r.data || {}; }
+  catch(e){ card.innerHTML = '<div class="acc-card-title">Your style</div><p class="acc-hint">Rewards are not switched on yet. Please check back soon!</p>'; return; }
+  rwDrawCard();
+}
+function rwDrawCard(){
+  const card = document.getElementById('rw-card'); if(!card) return;
+  const M = RW.me || {}, st = M.style || {}, got = M.rewards || [], need = M.need || {};
+  const name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'You';
+  const avUrl = (MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || '';
+  const ring = RW_RINGS[st.ring] ? ' rw-ring-' + st.ring : '';
+  const av = avUrl ? `<img class="ch-ava${ring}" src="${esc(avUrl)}" alt="">` : `<div class="ch-ava-init${ring}">${esc(name.slice(0, 2).toUpperCase())}</div>`;
+  const okColor = RW_COLORS.includes(String(st.name_color || '').toLowerCase());
+  const how = k => RW_BADGES[k].how.replace('{investor}', Number(need.investor || 100).toLocaleString()).replace('{backer}', Number(need.backer || 250).toLocaleString())
+    .replace('{mogul}', Number(need.mogul || 50000).toLocaleString());
+  const todo = k => k === 'shareholder' ? 'Buy your first share' : k === 'investor' ? `${Number(M.shares || 0).toLocaleString()} of ${Number(need.investor || 100).toLocaleString()} shares`
+    : k === 'backer' ? `Most of one: ${Number(M.top || 0).toLocaleString()} of ${Number(need.backer || 250).toLocaleString()}` : k === 'mogul' ? `$${Math.round(M.worth || 0).toLocaleString()} of $${Number(need.mogul || 50000).toLocaleString()}` : 'From WCA';
+  const unlockTxt = { shareholder:'Name colors', mogul:'Picture rings', founding:'Colors and rings' };
+  card.innerHTML = `<div class="acc-card-title">Your style</div>
+    <p class="acc-hint">Your name color, badge and picture ring show in the Watch Live chat. Unlock more by owning shares on the WCA Exchange. Everything saves as soon as you pick it.</p>
+    <div class="rw-prev">${av}<div><b style="${okColor ? 'color:' + esc(st.name_color) : ''}">${esc(name)}</b>${st.badge && got.includes(st.badge) ? rwBadgeHTML(st.badge) : ''}<small>Hello chat! This is how you look.</small></div></div>
+    <h4>Name color</h4>
+    <div class="rw-sw">${RW_COLORS.map(c => `<button type="button" class="rw-dot${st.name_color === c ? ' on' : ''}" style="background:${c}" title="${c}" aria-label="Name color ${c}" onclick="rwSave({ name_color:'${c}' })"${M.colors_on ? '' : ' disabled'}></button>`).join('')}
+      <button type="button" class="rw-opt${!st.name_color ? ' on' : ''}" onclick="rwSave({ name_color:null })">None</button></div>
+    ${M.colors_on ? '' : '<p class="rw-lock"><i class="ti ti-lock"></i> Unlocks when you own your first share on the WCA Exchange.</p>'}
+    <h4>Badge</h4>
+    <div class="rw-sw">${Object.keys(RW_BADGES).filter(k => got.includes(k)).map(k => `<button type="button" class="rw-opt${st.badge === k ? ' on' : ''}" onclick="rwSave({ badge:'${k}' })">${rwBadgeHTML(k)} ${RW_BADGES[k].t}</button>`).join('')}
+      <button type="button" class="rw-opt${!st.badge ? ' on' : ''}" onclick="rwSave({ badge:null })">None</button></div>
+    ${got.length ? '' : '<p class="rw-lock"><i class="ti ti-lock"></i> Earn a reward below to get its badge.</p>'}
+    <h4>Picture ring</h4>
+    <div class="rw-sw">${Object.keys(RW_RINGS).map(k => `<button type="button" class="rw-opt${st.ring === k ? ' on' : ''}" onclick="rwSave({ ring:'${k}' })"${M.rings_on ? '' : ' disabled'}><span class="rw-ringdot rw-ring-${k}"></span> ${RW_RINGS[k]}</button>`).join('')}
+      <button type="button" class="rw-opt${!st.ring ? ' on' : ''}" onclick="rwSave({ ring:null })">None</button></div>
+    ${M.rings_on ? '' : '<p class="rw-lock"><i class="ti ti-lock"></i> Unlocks at the Mogul reward.</p>'}
+    <h4>Rewards</h4>
+    <div class="rw-list">${Object.keys(RW_BADGES).map(k => `<div class="rw-row"><i class="ti ${RW_BADGES[k].i}" style="color:${got.includes(k) ? RW_BADGES[k].c : 'var(--muted)'}"></i>
+      <div class="rw-w"><b>${RW_BADGES[k].t}</b><small>${esc(how(k))}${unlockTxt[k] ? '. Unlocks ' + unlockTxt[k].toLowerCase() : ''}. Rewards stay once you earn them.</small></div>
+      ${got.includes(k) ? '<span class="rw-got"><i class="ti ti-check"></i> Unlocked</span>' : `<span class="rw-todo">${esc(todo(k))}</span>`}</div>`).join('')}</div>
+    <div class="pm-acts" style="margin-top:12px"><button type="button" class="acc-link-btn" onclick="goPage('exchange')"><i class="ti ti-chart-line"></i> Go to the WCA Exchange</button></div>`;
+}
+async function rwSave(ch){
+  const st = Object.assign({ name_color:null, badge:null, ring:null }, (RW.me && RW.me.style) || {}, ch);
+  const { data, error } = await sb.rpc('rw_save_style', { p_color:st.name_color, p_badge:st.badge, p_ring:st.ring });
+  if(error){ if(typeof wcaToast === 'function') wcaToast('Could not save that', error.message, true); return; }
+  RW.me.style = data;
+  try{ RW.cache[CURRENT_USER.id] = Object.assign({ user_id:CURRENT_USER.id }, data); }catch(e){}
+  rwDrawCard();
+  try{ rwPaint(document); }catch(e){}
+  if(typeof wcaToast === 'function') wcaToast('Saved', 'Your style is updated.');
+}
+// put the card under the account settings, wherever they are drawn
+(function(){
+  if(typeof renderAccountPage !== 'function') return;
+  const _r = renderAccountPage;
+  renderAccountPage = async function(firstTime, hostId){
+    const out = await _r.apply(this, arguments);
+    try{ await rwStyleCard(hostId || 'account-page-body'); }catch(e){}
+    return out;
+  };
+})();
 /* ===== WHO'S WATCHING (Watch Live) =====
    A "Watching" tab beside Live Chat lists everyone on the Watch Live page
    right now, live or reruns. Uses Supabase Realtime Presence on one shared
@@ -16243,7 +16375,7 @@ async function initChatHub(){
   await chatLoadRetention();
   try{
     let q = sb.from('chat_messages')
-      .select('id,author_name,author_avatar,body,created_at');
+      .select('id,user_id,author_name,author_avatar,body,created_at');
     if(CHAT_KEEP_DAYS > 0){
       q = q.gte('created_at', new Date(Date.now() - CHAT_KEEP_DAYS*86400000).toISOString());
     }
@@ -16267,6 +16399,7 @@ async function initChatHub(){
     }).join('');
     CHAT_LAST_TS = rows[rows.length-1].created_at;
     chatScrollBottom();
+    try{ rwPaint(feed); }catch(e){}
   }
   startChatRealtime();
 }
@@ -16290,7 +16423,7 @@ function startChatRealtime(){
     if(!CHAT_LAST_TS) return;
     try{
       const { data } = await sb.from('chat_messages')
-        .select('id,author_name,author_avatar,body,created_at')
+        .select('id,user_id,author_name,author_avatar,body,created_at')
         .gt('created_at', CHAT_LAST_TS).order('created_at',{ascending:true}).limit(CHAT_MAX);
       (data||[]).forEach(chatAppend);
     }catch(e){}
