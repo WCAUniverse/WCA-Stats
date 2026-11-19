@@ -41756,7 +41756,7 @@ const FHBG = (function(){
     pay_win:5, pay_title:15, pay_defense:8, max_shares:500, total_shares:1000, sell_fee:0, nudge_pct:0.25, nudge_cap:15, sell_needs_ok:false, open:true, fan_posts:true,
     pr_show_pct:10, pr_result_pct:2, pr_full_pct:4, pr_star_pct:3, pr_star_min:4, pr_post_pct:1.5, pr_like_pct:0.4, pr_comment_pct:0.8, pr_follow_pct:1, pr_quiet_days:10, pr_quiet_pct:5 };
   let _pv = 'cards'; try{ _pv = localStorage.getItem('wca-ex-pview') || 'cards'; }catch(e){}
-  const X = window.EX = { pview:_pv, board:null, cfg:Object.assign({}, DEF), me:null, hist:{}, faces:{}, view:'market', filter:'all', sort:'price', q:'', stock:null, side:'buy', qty:1, msg:null, loaded:0, missing:false };
+  const X = window.EX = { pview:_pv, board:null, cfg:Object.assign({}, DEF), me:null, hist:{}, faces:{}, view:'market', filter:'all', pf:'all', sort:'price', q:'', stock:null, side:'buy', qty:1, msg:null, loaded:0, missing:false };
 
   /* ── data ── */
   async function loadBoard(force){
@@ -41953,39 +41953,41 @@ const FHBG = (function(){
   }
   function marketView(){
     let list = (X.board || []).slice();
-    if(X.filter !== 'all' && X.filter !== 'bypromo') list = list.filter(s => (X.filter === 'wrestler' ? (s.kind === 'wrestler' || s.kind === 'promo_char') : X.filter === 'faction' ? (s.kind === 'faction' || s.kind === 'promo_team') : s.kind === X.filter));
+    const pids = promoFilterIds();
+    if(/^p:/.test(X.pf) && pids.indexOf(Number(X.pf.slice(2))) < 0) X.pf = 'all';   // that promotion is gone: back to All
+    // step 1: which promotion (or only the promotions' own stocks)
+    if(X.pf === 'stocks') list = list.filter(s => s.kind === 'promotion');
+    else if(X.pf === 'wca') list = list.filter(s => s.kind !== 'promotion' && promoOf(s) == null);
+    else if(/^p:/.test(X.pf)){ const pid = Number(X.pf.slice(2)); list = list.filter(s => s.kind !== 'promotion' && promoOf(s) === pid); }
+    // step 2: wrestlers or factions (not used when looking at the promotion stocks)
+    if(X.pf !== 'stocks' && X.filter === 'wrestler') list = list.filter(s => s.kind === 'wrestler' || s.kind === 'promo_char');
+    else if(X.pf !== 'stocks' && X.filter === 'faction') list = list.filter(s => s.kind === 'faction' || s.kind === 'promo_team');
     if(X.q) list = list.filter(s => (s.name + ' ' + (s.ticker || '')).toLowerCase().indexOf(X.q.toLowerCase()) >= 0);
     const by = { price:(a, b) => b.price - a.price, up:(a, b) => chg(b) - chg(a), down:(a, b) => chg(a) - chg(b), owned:(a, b) => b.owned - a.owned, name:(a, b) => a.name.localeCompare(b.name),
       hot:(a, b) => busy(b) - busy(a) || Math.abs(chgWeek(b)) - Math.abs(chgWeek(a)), wup:(a, b) => chgWeek(b) - chgWeek(a), wdown:(a, b) => chgWeek(a) - chgWeek(b), recent:(a, b) => lastMove(b) - lastMove(a) };
     list.sort(by[X.sort] || by.price);
-    const chips = [['all', 'All'], ['wrestler', 'Wrestlers'], ['faction', 'Factions'], ['promotion', 'Promotions'], ['bypromo', 'By promotion']]
+    const lab = t => `<span style="font-family:var(--ex-f);font-weight:800;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);min-width:92px">${t}</span>`;
+    const promoChips = [['all', 'All'], ['wca', 'WCA']].concat(pids.map(id => ['p:' + id, promoName(id)])).concat([['stocks', 'Promotion stocks']])
+      .map(([k, t]) => `<button type="button" class="ex-chip${X.pf === k ? ' on' : ''}" data-pf="${E(k)}">${E(t)}</button>`).join('');
+    const typeChips = X.pf === 'stocks' ? '' : [['all', 'All'], ['wrestler', 'Wrestlers'], ['faction', 'Factions']]
       .map(([k, t]) => `<button type="button" class="ex-chip${X.filter === k ? ' on' : ''}" data-f="${k}">${t}</button>`).join('');
+    const chips = `${lab('Promotion')}${promoChips}</div>${typeChips ? `<div class="ex-tools">${lab('Show')}${typeChips}</div>` : ''}<div class="ex-tools">`;
     const tools = `<div class="ex-tools">${chips}
       <select class="ex-in" id="ex-sort" aria-label="Sort">${[['hot', 'Hot right now (most activity)'], ['wup', 'Rising this week'], ['wdown', 'Falling this week'], ['recent', 'Moved most recently'], ['up', 'Risers since the last show'], ['down', 'Fallers since the last show'], ['price', 'Highest price'], ['owned', 'Most owned'], ['name', 'A to Z']].map(([k, t]) => `<option value="${k}"${X.sort === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
       <input class="ex-in" type="search" id="ex-q" placeholder="Find a superstar" value="${E(X.q)}"></div>`;
     if(!(X.board || []).length) return tools + `<div class="ex-empty">No stocks are listed yet. They open after WCA sets the starting prices.</div>`;
-    if(!list.length) return tools + `<div class="ex-empty">Nothing matches that.</div>`;
-    if(X.filter === 'bypromo') return tools + byPromoHTML(list);
+    if(!list.length) return tools + `<div class="ex-empty">${/^p:/.test(X.pf) && !X.q ? E(promoName(Number(X.pf.slice(2)))) + ' has no wrestlers or teams on the Exchange yet.' : 'Nothing matches that.'}</div>`;
     return tools + `<div class="ex-grid">${list.map(card).join('')}</div>`;
   }
   // which promotion a stock belongs to (null = WCA)
   const promoOf = s => s.kind === 'promotion' ? Number(s.ref_id || s.promotion_id) || null : (s.promotion_id != null ? Number(s.promotion_id) : null);
   const promoName = id => { if(id == null) return 'WCA'; const p = (X.promos || {})[id]; if(p && p.name) return p.name;
     const st = (X.board || []).find(x => x.kind === 'promotion' && promoOf(x) === id); return st ? st.name : 'Promotion'; };
-  // By promotion: WCA first, then each promotion with its own stock first and its roster after it
-  function byPromoHTML(list){
-    const groups = new Map();
-    list.forEach(s => { const k = promoOf(s); if(!groups.has(k)) groups.set(k, []); groups.get(k).push(s); });
-    const keys = [...groups.keys()].sort((a, b) => a == null ? -1 : b == null ? 1 : promoName(a).localeCompare(promoName(b)));
-    return keys.map(k => {
-      const g = groups.get(k), own = g.filter(s => s.kind === 'promotion'), roster = g.filter(s => s.kind !== 'promotion');
-      const all = (X.board || []).filter(s => promoOf(s) === k && s.kind !== 'promotion').length;
-      const p = k == null ? null : (X.promos || {})[k] || {};
-      const logo = p && /^https:\/\//i.test(p.logo || '') ? `<img src="${E(p.logo)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
-      return `<section class="ex-pgroup"${p && /^#[0-9a-f]{3,8}$/i.test(p.col || '') ? ` style="--pc:${E(p.col)}"` : ''}>
-        <h3 class="ex-pgh">${logo}<span>${E(promoName(k))}</span><small>${k == null ? 'WCA superstars and factions' : all ? all + (all === 1 ? ' on the roster' : ' on the roster') : 'Roster not on the Exchange'}</small></h3>
-        <div class="ex-grid">${own.concat(roster).map(card).join('')}</div></section>`;
-    }).join('');
+  // the promotions that get their own filter button: any promotion with a stock on the Exchange (its own, or its roster), A to Z
+  function promoFilterIds(){
+    const ids = new Set();
+    (X.board || []).forEach(s => { const k = promoOf(s); if(k != null) ids.add(k); });
+    return [...ids].sort((a, b) => promoName(a).localeCompare(promoName(b)));
   }
   /* Shares for sale per stock, shared by every fan (Nov 2026). 'left' comes from ex_board. */
   function supplyOf(s){ return Number(s.supply) || Number(X.cfg.total_shares) || 1000; }
@@ -41994,7 +41996,7 @@ const FHBG = (function(){
     const h = holding(s.id);
     const avail = leftOf(s), sold = avail < 1;
     return `<div class="ex-card" role="button" tabindex="0" data-s="${s.id}">
-      <div class="ex-card-top">${face(s)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${(s.kind === 'promo_char' || s.kind === 'promo_team') && X.filter !== 'bypromo' ? ' · ' + E(promoName(promoOf(s))) : ''}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
+      <div class="ex-card-top">${face(s)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${(s.kind === 'promo_char' || s.kind === 'promo_team') && !/^p:/.test(X.pf) ? ' · ' + E(promoName(promoOf(s))) : ''}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
       <div class="ex-price"><b>${money2(s.price)}</b>${chgHTML(s)}</div>
       ${/^(hot|wup|wdown|recent)$/.test(X.sort) ? (w => `<small class="ex-week">This week <span class="${w > 0.05 ? 'ex-up' : w < -0.05 ? 'ex-dn' : 'ex-flat'}">${w > 0.05 ? '▲' : w < -0.05 ? '▼' : '•'} ${Math.abs(w).toFixed(1)}%</span>${busy(s) ? ` · ${busy(s)} ${busy(s) === 1 ? 'move' : 'moves'}` : ''}</small>`)(chgWeek(s)) : ''}
       ${spark(s.id, 220, 44, 'ex-spark')}
@@ -42082,6 +42084,7 @@ const FHBG = (function(){
     const host = $('ex-body'); if(!host) return;
     host.querySelectorAll('[data-signin]').forEach(b => b.onclick = () => { if(typeof frSignIn === 'function') frSignIn(); });
     host.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { X.filter = b.dataset.f; draw(); });
+    host.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { X.pf = b.dataset.pf; draw(); });
     const pb = $('ex-pub'); if(pb) pb.onchange = async () => {
       pb.disabled = true;
       const r = await sb.rpc('ex_set_public', { p_show:pb.checked });
@@ -42251,7 +42254,7 @@ const FHBG = (function(){
         <details><summary>Who do I buy from and sell to?</summary><p>WCA. WCA is the company behind the Exchange, so you never have to wait for another fan to buy your shares.</p></details>
         <details><summary>What if the price drops?</summary><p>Your shares are worth less until it climbs again. You only lose money if you sell for less than you paid.</p></details>
         <details><summary>Can WCA change prices?</summary><p>Yes. WCA can set a price, start a climb or a slide, or freeze a stock to fit the story.</p></details>
-        <details><summary>Which promotions are on it?</summary><p>WCA superstars, WCA factions and the promotions on WCAUniverse. A promotion's price rises when it runs shows, sets winners and gets fans talking, and slips when it goes quiet. A promotion can also put its own wrestlers and teams on the Exchange: they move after each of that promotion's shows, the same way WCA superstars do. Press <b>By promotion</b> on the Market to see each one with its roster.</p></details>
+        <details><summary>Which promotions are on it?</summary><p>WCA superstars, WCA factions and the promotions on WCAUniverse. A promotion's price rises when it runs shows, sets winners and gets fans talking, and slips when it goes quiet. A promotion can also put its own wrestlers and teams on the Exchange: they move after each of that promotion's shows, the same way WCA superstars do. On the Market, pick a promotion first (<b>WCA</b> or any other promotion), then choose All, Wrestlers or Factions. Press <b>Promotion stocks</b> to see only the promotions' own stocks.</p></details>
       </div>
       <div><button type="button" class="ex-btn" data-v="market">Go to the Market ▶</button></div>
     </div>`;
