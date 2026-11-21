@@ -16850,8 +16850,7 @@ function evcalDraw(){
   }
   const sod = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const upcoming = FI.filter(it => it.d >= sod && !it.done).slice(0, 6);
-  const inMonth = FI.filter(it => it.d.getFullYear() === y && it.d.getMonth() === m);
-  const recent = FI.filter(it => it.done && it.d < sod).slice(-8).reverse();
+  const recent = FI.filter(it => it.done || it.d < sod).sort((a, b) => b.d - a.d).slice(0, 15);   // newest first
   const row = it => `<button type="button" class="evc-row" onclick="evcalOpen(${it.i})">${evcalLogo(it, 'evc-logo')}<span class="evc-rt"><b>${esc(it.name || 'Show')}</b><small>${esc(evcalWho(it))}, ${esc(it.d.toLocaleDateString(undefined, { month:'short', day:'numeric' }))}</small></span></button>`;
   let pick = '';
   if(EVCAL.sel && byDay[EVCAL.sel]){
@@ -16864,7 +16863,6 @@ function evcalDraw(){
     EVCAL.promos.map(p => chip('p' + p.id, typeof peShort === 'function' ? peShort(p) : p.name, evcalLogo({ k:'p' + p.id, p }, 'evc-cl'))).join('');
   box.innerHTML = `<div class="evc-filter" role="group" aria-label="Show which promotions">${chips}</div><aside class="evc-side" aria-label="Shows">
       <div class="evc-h">Coming up</div>${upcoming.length ? upcoming.map(row).join('') : '<div class="evc-none">No upcoming shows scheduled yet.</div>'}
-      <div class="evc-h sp">${esc(monthName)}</div>${inMonth.length ? inMonth.map(row).join('') : '<div class="evc-none">No shows this month.</div>'}
       <div class="evc-h sp">Past shows</div>${recent.length ? recent.map(row).join('') : '<div class="evc-none">Finished shows show up here.</div>'}
     </aside>
     <div class="evc-main">
