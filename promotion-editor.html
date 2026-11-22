@@ -4398,6 +4398,22 @@ label.motn-pick, .pm-card label.motn-pick{display:flex; align-items:center; gap:
 .ed-nav .ed-reg{font-family:var(--font-body); font-weight:600; font-size:14.5px; letter-spacing:0; text-transform:none; color:var(--muted); margin-top:8px;}
 
 .ed-sep{height:1px; background:var(--line); margin:6px 6px;}
+/* the section list stays one column on computers: it scrolls up and down, never sideways (Nov 2026) */
+@media (min-width:901px){
+  .ed-nav{flex-wrap:nowrap; overflow-x:hidden;}
+  .ed-nav > button, .ed-nav > .ed-sep{flex-shrink:0;}
+}
+/* Delete this promotion: only the main owner and the WCA admin see it (Nov 2026) */
+.pm-delcard{margin-top:16px; border-color:rgba(214,36,62,.5) !important;}
+.pm-delcard .pm-h3{color:#ff6b7d;}
+.pm-delbtn{color:#ff6b7d !important; border-color:rgba(214,36,62,.6) !important;}
+.pm-delbtn:hover{background:rgba(214,36,62,.12) !important;}
+.pm-dellist{list-style:none; margin:10px 0 14px; padding:0; display:flex; flex-wrap:wrap; gap:6px;}
+.pm-dellist li{font-size:15px; padding:5px 10px; border-radius:8px; background:rgba(214,36,62,.1); border:1px solid rgba(214,36,62,.3); color:var(--txt-2);}
+.pm-dellist li b{color:var(--txt);}
+.pm-delacts{display:flex; flex-wrap:wrap; gap:10px;}
+.pm-delyes{background:#d6243e !important; border-color:#d6243e !important; color:#fff !important;}
+.pm-delyes:disabled{opacity:.6; cursor:wait;}
 
 .ed-main{min-width:0;}
 
@@ -17642,10 +17658,12 @@ async function mpEditTab(box){
         <p class="pm-p">Download your promotion, roster and posts as a file any time.</p>
         <button type="button" class="spc-ghost-btn" onclick="mpBackup()"><i class="ti ti-download"></i> Download a backup</button>
       </div>
+      ${mpCanDelete(p) ? `<div class="pm-card pm-delcard" id="mp-del"></div>` : ''}
     </aside>
   </div>`;
   mpPromoForm(p ? p.id : null, pmEl('mp-edit-form'));
   mpDrawOutlets();
+  mpDelDraw();
 }
 let MP_CO = [];
 async function mpCoLoad(){
@@ -17926,6 +17944,80 @@ async function mpBackup(){
   a.download = (p.name || 'promotion').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+/* ---------- Delete this promotion (Nov 2026) ----------
+   Only the main owner or the WCA admin (co-owners never see it). Two presses: the first
+   shows exactly what goes, the second deletes. The database saves a full backup for the
+   WCA admin (admin > Backup > Deleted promotions) before anything is wiped.
+   Needs SUPABASE_SETUP_promotion_delete.sql. */
+const MP_DEL = { pid:null, step:0, list:null, busy:false };
+const MP_DEL_NAMES = {
+  storylines:'posts and replies', storyline_comments:'comments', storyline_reactions:'reactions', notifications:'notifications',
+  promotion_roster:'roster characters', promotion_roster_categories:'divisions', promotion_roster_history:'roster history entries',
+  promotion_factions:'teams and stables', promotion_titles:'championships', promotion_title_reigns:'title reigns',
+  promotion_events:'shows', promotion_matches:'matches', promotion_match_ratings:'match ratings', promotion_bets:'bets',
+  promotion_brands:'brands', promotion_coowners:'co-owners', promotion_features:'page settings', promotion_economy:'money settings',
+  promotion_follows:'followers', promotion_grants:'money gifts', promotion_store_items:'store items', promotion_store_orders:'store orders',
+  promotion_injuries:'injuries', promotion_applications:'applications', promotion_suggestions:'suggestions',
+  promotion_room_ideas:"Writers' Room ideas", promotion_room_messages:"Writers' Room messages", promotion_char_edits:'character edit requests',
+  promotion_drafts:'drafts', promotion_post_queue:'scheduled posts', promotion_storylines:'storylines', promotion_storyline_pending:'storylines waiting',
+  press_outlets:'publications', rivalries:'rivalries', story_ties:'relationships', story_chapters:'story chapters', story_facts:'story facts',
+  story_styles:'story styles', motn_polls:'award polls', wrestler_owners:'player assignments', char_replies:'character replies',
+  ex_stocks:'Exchange stocks', ex_holdings:"fans' shares", ex_trades:'Exchange trades', ex_history:'stock price history', ex_payouts:'stock payouts',
+  ex_promo_marks:'stock records', ex_promo_counted:'stock records', theme_songs:'theme songs'
+};
+function mpCanDelete(p){
+  p = p || mpCur(); if(!p) return false;
+  return !p._role || p._role === 'admin' || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true);   // owner, or the WCA admin
+}
+function mpDelLabel(t){ return MP_DEL_NAMES[t] || String(t || '').replace(/^promotion_/, '').replace(/_/g, ' '); }
+function mpDelDraw(){
+  const box = pmEl('mp-del'), p = mpCur(); if(!box || !p) return;
+  if(String(MP_DEL.pid) !== String(p.id)){ MP_DEL.pid = p.id; MP_DEL.step = 0; MP_DEL.list = null; MP_DEL.busy = false; }
+  const nm = esc(p.name || 'this promotion');
+  if(MP_DEL.step === 0){
+    box.innerHTML = `<div class="pm-h3">Delete this promotion</div>
+      <p class="pm-p">Removes ${nm} from WCA Universe for good: its page, roster, shows, posts, bets, stocks and everything else tied to it. WCA keeps a backup copy first, in case you ever want to come back.</p>
+      <button type="button" class="spc-ghost-btn pm-delbtn" onclick="mpDelAsk()"><i class="ti ti-trash" aria-hidden="true"></i> Delete this promotion</button>
+      <div class="msg" id="mp_del_msg"></div>`;
+    return;
+  }
+  if(MP_DEL.step === 1){
+    box.innerHTML = `<div class="pm-h3">Delete this promotion</div><div class="loading">Checking what goes with it…</div>`;
+    return;
+  }
+  const list = (MP_DEL.list || []).slice().sort((a, b) => Number(b.rows) - Number(a.rows));
+  box.innerHTML = `<div class="pm-h3">Are you sure?</div>
+    <p class="pm-p">This deletes <b>${nm}</b> and everything listed here. Only WCA can bring it back from the backup.</p>
+    <ul class="pm-dellist">${list.length ? list.map(x => `<li><b>${Number(x.rows).toLocaleString('en-US')}</b> ${esc(mpDelLabel(x.table))}</li>`).join('') : '<li>Just the promotion itself</li>'}</ul>
+    <div class="pm-delacts">
+      <button type="button" class="spc-post-btn pm-delyes" onclick="mpDelGo()"${MP_DEL.busy ? ' disabled' : ''}><i class="ti ti-trash" aria-hidden="true"></i> ${MP_DEL.busy ? 'Deleting…' : 'Yes, delete it forever'}</button>
+      <button type="button" class="spc-ghost-btn" onclick="mpDelCancel()"${MP_DEL.busy ? ' disabled' : ''}>No, keep it</button>
+    </div>
+    <div class="msg" id="mp_del_msg"></div>`;
+}
+function mpDelErr(error){ return pmMissing(error) ? 'Deleting promotions is not switched on yet. Please check back soon!' : cpErrText(error); }
+async function mpDelAsk(){
+  const p = mpCur(); if(!p || !mpCanDelete(p)) return;
+  MP_DEL.pid = p.id; MP_DEL.step = 1; mpDelDraw();
+  const { data, error } = await sb.rpc('promo_delete_preview', { p_promotion:Number(p.id) });
+  if(String(MP_DEL.pid) !== String(p.id)) return;   // switched promotion while it loaded
+  if(error){ MP_DEL.step = 0; mpDelDraw(); mpMsg('mp_del_msg', mpDelErr(error), false); return; }
+  MP_DEL.list = Array.isArray(data) ? data : []; MP_DEL.step = 2; mpDelDraw();
+  const box = pmEl('mp-del'); if(box && box.scrollIntoView) box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function mpDelCancel(){ MP_DEL.step = 0; MP_DEL.list = null; MP_DEL.busy = false; mpDelDraw(); }
+async function mpDelGo(){
+  const p = mpCur(); if(!p || MP_DEL.busy || !mpCanDelete(p)) return;
+  MP_DEL.busy = true; mpDelDraw();
+  const { error } = await sb.rpc('promo_delete', { p_promotion:Number(p.id), p_name:String(p.name || '') });
+  MP_DEL.busy = false;
+  if(error){ mpDelDraw(); mpMsg('mp_del_msg', mpDelErr(error), false); return; }
+  MP_DEL.pid = null; MP_DEL.step = 0; MP_DEL.list = null;
+  try{ wcaToast('Promotion deleted', (p.name || 'It') + ' is gone. WCA kept a backup copy.'); }catch(e){}
+  PM.curId = null; PM.as = null; PM.rosterFor = null; PM.filter = 'all'; PM.editId = null; PM.rsub = 'list'; PM.find = ''; PM.tab = 'edit';
+  try{ wcaSetAddress('mypromo', '', false); }catch(e){}
+  mpOpen();
 }
 var PM_CLASSIC = { roster:false, relationships:false, rivalries:false };
 function pmNewViewOn(t){ return document.documentElement.dataset.design === 'fight' && !!window.WU && (t in PM_CLASSIC) && !PM_CLASSIC[t]; }

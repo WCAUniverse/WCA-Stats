@@ -5541,6 +5541,18 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     padding:9px 16px; border-radius:8px; white-space:nowrap;}
   .sl-share-pop .ssp-copy:hover{filter:brightness(1.08);}
   .sl-share-pop .ssp-hint{font-family:var(--font-body); font-size:14px; color:var(--muted); margin-top:8px;}
+  .sl-share-pop .ssp-social{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+  .sl-share-pop .ssp-soc{flex:1 1 auto; display:inline-flex; align-items:center; justify-content:center; gap:7px; min-width:96px;
+    padding:9px 12px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--txt);
+    font-family:var(--font-body); font-size:15px; font-weight:600; text-decoration:none;}
+  .sl-share-pop .ssp-soc i{font-size:19px;}
+  .sl-share-pop .ssp-soc:hover{border-color:var(--gold); color:var(--gold);}
+  .ev-sharerow{display:flex; justify-content:center; margin-top:16px;}
+  .ev-sharebtn{display:inline-flex; align-items:center; gap:8px; background:rgba(0,0,0,.35); border:1px solid var(--gold-dim, rgba(233,185,73,.5));
+    color:var(--txt); font-family:var(--font-cond, inherit); font-weight:700; font-size:16px; letter-spacing:1px; text-transform:uppercase;
+    padding:9px 18px; border-radius:10px; cursor:pointer;}
+  .ev-sharebtn i{font-size:18px; color:var(--gold);}
+  .ev-sharebtn:hover{border-color:var(--gold); color:var(--gold);}
   /* brief highlight when arriving via a shared link */
   .sl-shared-flash{animation:slSharedFlash 2.2s ease;}
   @keyframes slSharedFlash{
@@ -6970,6 +6982,22 @@ label.motn-pick, .pm-card label.motn-pick{display:flex; align-items:center; gap:
 .ed-nav button.on{background:var(--panel); border-color:var(--line); color:var(--gold);} .ed-nav button.on i{color:var(--gold);}
 .ed-nav .ed-reg{font-family:var(--font-body); font-weight:600; font-size:14.5px; letter-spacing:0; text-transform:none; color:var(--muted); margin-top:8px;}
 .ed-sep{height:1px; background:var(--line); margin:6px 6px;}
+/* the section list stays one column on computers: it scrolls up and down, never sideways (Nov 2026) */
+@media (min-width:901px){
+  .ed-nav{flex-wrap:nowrap; overflow-x:hidden;}
+  .ed-nav > button, .ed-nav > .ed-sep{flex-shrink:0;}
+}
+/* Delete this promotion: only the main owner and the WCA admin see it (Nov 2026) */
+.pm-delcard{margin-top:16px; border-color:rgba(214,36,62,.5) !important;}
+.pm-delcard .pm-h3{color:#ff6b7d;}
+.pm-delbtn{color:#ff6b7d !important; border-color:rgba(214,36,62,.6) !important;}
+.pm-delbtn:hover{background:rgba(214,36,62,.12) !important;}
+.pm-dellist{list-style:none; margin:10px 0 14px; padding:0; display:flex; flex-wrap:wrap; gap:6px;}
+.pm-dellist li{font-size:15px; padding:5px 10px; border-radius:8px; background:rgba(214,36,62,.1); border:1px solid rgba(214,36,62,.3); color:var(--txt-2);}
+.pm-dellist li b{color:var(--txt);}
+.pm-delacts{display:flex; flex-wrap:wrap; gap:10px;}
+.pm-delyes{background:#d6243e !important; border-color:#d6243e !important; color:#fff !important;}
+.pm-delyes:disabled{opacity:.6; cursor:wait;}
 .ed-main{min-width:0;}
 .ed-two{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start;}
 .ed-narrow{max-width:720px;}
@@ -14676,6 +14704,7 @@ async function loadEvents(){
       ${ev.tagline?`<div class="ev-tag">${esc(ev.tagline)}</div>`:''}
       ${meta.length?`<div class="event-meta">${meta.join('')}</div>`:''}
       ${ev.is_complete && ev.champion_name?`<div class="ev-champ"><i class="ti ti-trophy"></i> Event Champion · <b>${esc(ev.champion_name)}</b>${ev.champion_balance!=null?` <span class="ev-champ-bal">${fmtMoney(ev.champion_balance)}</span>`:''}</div>`:''}
+      <div class="ev-sharerow"><button type="button" class="ev-sharebtn" data-n="${escAttr(ev.name||'')}" onclick="evShare('wca','${escAttr(String(ev.id))}',null,this.dataset.n)"><i class="ti ti-share-3" aria-hidden="true"></i> Share this event</button></div>
     </div>
   </div>`;
 
@@ -16719,7 +16748,7 @@ async function evRailOpen(id){
 const EVCAL = { mode:'cal', nav:true, y:null, m:null, items:[], promos:[], sdLogo:'', filter:'all', pending:null, loaded:false, at:0, loading:null, sel:null };
 document.addEventListener('click', function(e){
   const a = e.target && e.target.closest ? e.target.closest('header nav [data-page="events"]') : null;
-  if(a) EVCAL.nav = true;   // the Events tab in the menu opens the calendar
+  if(a){ EVCAL.nav = true; EVCAL.navClick = true; }   // the Events tab in the menu opens the calendar
 }, true);
 function evcalDate(ts){
   if(!ts) return null;
@@ -16743,6 +16772,10 @@ function evcalLogo(it, cls){
   return typeof pmLogo === 'function' ? pmLogo(it.p, cls) : `<span class="${cls} pm-logo-init" style="--pc:#e9b949">P</span>`;
 }
 function evcalEnter(){
+  // a link to one show (/events?event=ID or ?promo=PID&ev=ID) opens that show, not the calendar
+  const r = wcaRoute(), deep = !EVCAL.navClick && r.pg === 'events' && /(?:^|&)(?:ev|event)=\d/.test(r.qs);
+  EVCAL.navClick = false;
+  if(deep){ EVCAL.nav = false; EVCAL.pending = null; }
   if(EVCAL.nav){
     EVCAL.mode = 'cal'; EVCAL.nav = false; EVCAL.sel = null; EVCAL.at = 0;
     EVCAL.filter = EVCAL.pending || 'all'; EVCAL.pending = null;   // opens on All, unless a promotion button sent you here
@@ -16768,12 +16801,12 @@ function evcalMatch(it){
 }
 function evcalSetFilter(v){ EVCAL.filter = String(v); EVCAL.sel = null; evcalDraw(); }
 function evcalGo(v){   // a promotion button anywhere on Events: back to the calendar, showing that promotion
-  EVCAL.pending = String(v === 'wca' ? 'wca' : (String(v).charAt(0) === 'p' ? v : 'p' + v)); EVCAL.nav = true;
+  EVCAL.pending = String(v === 'wca' ? 'wca' : (String(v).charAt(0) === 'p' ? v : 'p' + v)); EVCAL.nav = true; EVCAL.navClick = true;
   try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){}
   goPage('events');
 }
 function evcalHome(){
-  EVCAL.nav = true;
+  EVCAL.nav = true; EVCAL.navClick = true;
   try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){}
   goPage('events');
 }
@@ -16889,7 +16922,7 @@ function evcalOpen(i){
   if(it.k === 'wca'){
     const cur = (typeof CURRENT_EVENT !== 'undefined' && CURRENT_EVENT) ? CURRENT_EVENT : null;
     EVCAL.mode = 'show';
-    if(!it.done || (cur && String(cur.id) === String(it.id))){ evcalSync(); return; }
+    if(!it.done || (cur && String(cur.id) === String(it.id))){ wcaSetAddress('events', 'event=' + encodeURIComponent(it.id), true); evcalSync(); return; }
     evcalSync(); evRailOpen(String(it.id)); return;
   }
   if(it.k.indexOf('sd') === 0){ try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){} EVCAL.mode = 'show'; goPage('showdown'); return; }
@@ -17123,7 +17156,7 @@ async function openArchiveEvent(id, opts){
   const shareBtn = document.getElementById('arch-share-btn');
   if(shareBtn){
     shareBtn.addEventListener('click', ()=>
-      wcaShare('event', shareBtn.dataset.eid, 'Share this event', shareBtn.dataset.ename));
+      wcaShare('event', shareBtn.dataset.eid, 'Share this event', esc(shareBtn.dataset.ename), shareBtn.dataset.ename));
   }
   bindNameLinks(detEl);
 }
@@ -20451,10 +20484,10 @@ function wcaLinkFor(kind, id){
 /* The in-app address for the same thing — what the share page forwards to. */
 /* Copy a link and show the confirmation popup. On phones this hands off to the
    native share sheet instead, which is what people expect there. */
-async function wcaShare(kind, id, heading, subtitle){
+async function wcaShare(kind, id, heading, subtitle, social){
   const url = wcaLinkFor(kind, id);
   if(navigator.share && matchMedia('(max-width:820px)').matches){
-    try{ await navigator.share({ title: heading || 'WCA', url }); return; }
+    try{ await navigator.share(social ? { title: social, text: wcaShareText(social), url } : { title: heading || 'WCA', url }); return; }
     catch(e){ if(e && e.name === 'AbortError') return; }   // user dismissed the sheet
   }
   let copied = false;
@@ -20465,7 +20498,7 @@ async function wcaShare(kind, id, heading, subtitle){
     }
   }catch(e){ copied = false; }
   try{
-    wcaShowSharePopup(url, copied, heading || 'Share this', subtitle || '');
+    wcaShowSharePopup(url, copied, heading || 'Share this', subtitle || '', social ? wcaSocialRow(url, social) : '');
   }catch(e){
     // last resort — never leave the click looking like nothing happened
     window.prompt('Copy this link:', url);
@@ -20475,7 +20508,56 @@ async function wcaShare(kind, id, heading, subtitle){
 async function slShare(id){
   return wcaShare('post', id, 'Share this post', 'Post ID <b>#'+esc(String(id))+'</b>');
 }
-function wcaShowSharePopup(url, copied, heading, subtitle){
+/* ── links to one show (Nov 2026) ──────────────────────────────────────
+   Every event page has a Share button. The link opens that exact show,
+   not the calendar:
+     WCA show on Events now   /events?event=ID
+     WCA past show            /archive?event=ID   (via the /s/event/ID/ share page)
+     a promotion's show       /events?promo=PID&ev=ID   (upcoming, live or finished)
+   Phones get the phone's own share sheet (texts, DMs, any app). Computers
+   get the link copied, plus one tap buttons for X, Facebook, Reddit,
+   Bluesky and email. */
+function wcaShareText(name){ return (name || 'This show') + ' on WCA Universe. See the card and place your bets!'; }
+function wcaSocialRow(url, name){
+  const u = encodeURIComponent(url), txt = wcaShareText(name), t = encodeURIComponent(txt);
+  const L = [
+    ['X', 'ti-brand-x', 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u],
+    ['Facebook', 'ti-brand-facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + u],
+    ['Reddit', 'ti-brand-reddit', 'https://www.reddit.com/submit?url=' + u + '&title=' + t],
+    ['Bluesky', 'ti-brand-bluesky', 'https://bsky.app/intent/compose?text=' + encodeURIComponent(txt + ' ' + url)],
+    ['Email', 'ti-mail', 'mailto:?subject=' + encodeURIComponent(name || 'WCA Universe') + '&body=' + encodeURIComponent(txt + '\n\n' + url)]
+  ];
+  return `<div class="ssp-social" aria-label="Share on">${L.map(x => `<a class="ssp-soc" href="${esc(x[2])}" target="_blank" rel="noopener noreferrer"><i class="ti ${x[1]}" aria-hidden="true"></i><span>${x[0]}</span></a>`).join('')}</div>
+    <div class="ssp-hint">For a private message or Discord, copy the link and paste it in.</div>`;
+}
+function evShareUrl(kind, id, pid){
+  const qs = kind === 'promo' ? 'promo=' + Number(pid) + '&ev=' + Number(id) : 'event=' + encodeURIComponent(id);
+  return (WCA_PATHS ? location.origin : wcaShareBase()) + wcaHref('events', qs);
+}
+async function evShare(kind, id, pid, name){
+  name = String(name || 'This show');
+  const url = evShareUrl(kind, id, pid);
+  if(navigator.share && matchMedia('(max-width:820px)').matches){
+    try{ await navigator.share({ title:name, text:wcaShareText(name), url }); return; }
+    catch(e){ if(e && e.name === 'AbortError') return; }
+  }
+  let copied = false;
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(url); copied = true; } }catch(e){ copied = false; }
+  try{ wcaShowSharePopup(url, copied, 'Share this event', '<b>' + esc(name) + '</b>', wcaSocialRow(url, name)); }
+  catch(e){ window.prompt('Copy this link:', url); }
+}
+// A shared WCA link (/events?event=ID): the show on Events now stays put; a show that has
+// already happened opens in Past shows instead.
+async function evShareOpenWca(eid){
+  try{ if(typeof CURRENT_EVENT === 'undefined' || !CURRENT_EVENT) await loadFeaturedData(); }catch(e){}
+  const cur = (typeof CURRENT_EVENT !== 'undefined' && CURRENT_EVENT) ? CURRENT_EVENT : null;
+  if(cur && String(cur.id) === String(eid)) return;
+  if(wcaRoute().pg !== 'events') return;   // they already went somewhere else
+  wcaSetAddress('archive', 'event=' + encodeURIComponent(eid), false);
+  activatePage('archive');
+  if(typeof openArchiveEvent === 'function') openArchiveEvent(eid, { silent:true, fromLink:true });
+}
+function wcaShowSharePopup(url, copied, heading, subtitle, extra){
   // reuse one popup element
   let pop = document.getElementById('sl-share-pop');
   if(!pop){
@@ -20495,6 +20577,7 @@ function wcaShowSharePopup(url, copied, heading, subtitle){
         <button class="ssp-copy" onclick="slCopyShare()">${copied?'Copied':'Copy'}</button>
       </div>
       <div class="ssp-hint">${copied?'Link copied to your clipboard.':'Tap the link, then copy it.'}</div>
+      ${extra||''}
     </div>`;
   pop.classList.add('show');
 }
@@ -23893,10 +23976,12 @@ async function mpEditTab(box){
         <p class="pm-p">Download your promotion, roster and posts as a file any time.</p>
         <button type="button" class="spc-ghost-btn" onclick="mpBackup()"><i class="ti ti-download"></i> Download a backup</button>
       </div>
+      ${mpCanDelete(p) ? `<div class="pm-card pm-delcard" id="mp-del"></div>` : ''}
     </aside>
   </div>`;
   mpPromoForm(p ? p.id : null, pmEl('mp-edit-form'));
   mpDrawOutlets();
+  mpDelDraw();
 }
 
 /* ------------------------- Co-owners (Oct 2026) -------------------------
@@ -24185,6 +24270,80 @@ async function mpBackup(){
   a.download = (p.name || 'promotion').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+/* ---------- Delete this promotion (Nov 2026) ----------
+   Only the main owner or the WCA admin (co-owners never see it). Two presses: the first
+   shows exactly what goes, the second deletes. The database saves a full backup for the
+   WCA admin (admin > Backup > Deleted promotions) before anything is wiped.
+   Needs SUPABASE_SETUP_promotion_delete.sql. */
+const MP_DEL = { pid:null, step:0, list:null, busy:false };
+const MP_DEL_NAMES = {
+  storylines:'posts and replies', storyline_comments:'comments', storyline_reactions:'reactions', notifications:'notifications',
+  promotion_roster:'roster characters', promotion_roster_categories:'divisions', promotion_roster_history:'roster history entries',
+  promotion_factions:'teams and stables', promotion_titles:'championships', promotion_title_reigns:'title reigns',
+  promotion_events:'shows', promotion_matches:'matches', promotion_match_ratings:'match ratings', promotion_bets:'bets',
+  promotion_brands:'brands', promotion_coowners:'co-owners', promotion_features:'page settings', promotion_economy:'money settings',
+  promotion_follows:'followers', promotion_grants:'money gifts', promotion_store_items:'store items', promotion_store_orders:'store orders',
+  promotion_injuries:'injuries', promotion_applications:'applications', promotion_suggestions:'suggestions',
+  promotion_room_ideas:"Writers' Room ideas", promotion_room_messages:"Writers' Room messages", promotion_char_edits:'character edit requests',
+  promotion_drafts:'drafts', promotion_post_queue:'scheduled posts', promotion_storylines:'storylines', promotion_storyline_pending:'storylines waiting',
+  press_outlets:'publications', rivalries:'rivalries', story_ties:'relationships', story_chapters:'story chapters', story_facts:'story facts',
+  story_styles:'story styles', motn_polls:'award polls', wrestler_owners:'player assignments', char_replies:'character replies',
+  ex_stocks:'Exchange stocks', ex_holdings:"fans' shares", ex_trades:'Exchange trades', ex_history:'stock price history', ex_payouts:'stock payouts',
+  ex_promo_marks:'stock records', ex_promo_counted:'stock records', theme_songs:'theme songs'
+};
+function mpCanDelete(p){
+  p = p || mpCur(); if(!p) return false;
+  return !p._role || p._role === 'admin' || (typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true);   // owner, or the WCA admin
+}
+function mpDelLabel(t){ return MP_DEL_NAMES[t] || String(t || '').replace(/^promotion_/, '').replace(/_/g, ' '); }
+function mpDelDraw(){
+  const box = pmEl('mp-del'), p = mpCur(); if(!box || !p) return;
+  if(String(MP_DEL.pid) !== String(p.id)){ MP_DEL.pid = p.id; MP_DEL.step = 0; MP_DEL.list = null; MP_DEL.busy = false; }
+  const nm = esc(p.name || 'this promotion');
+  if(MP_DEL.step === 0){
+    box.innerHTML = `<div class="pm-h3">Delete this promotion</div>
+      <p class="pm-p">Removes ${nm} from WCA Universe for good: its page, roster, shows, posts, bets, stocks and everything else tied to it. WCA keeps a backup copy first, in case you ever want to come back.</p>
+      <button type="button" class="spc-ghost-btn pm-delbtn" onclick="mpDelAsk()"><i class="ti ti-trash" aria-hidden="true"></i> Delete this promotion</button>
+      <div class="msg" id="mp_del_msg"></div>`;
+    return;
+  }
+  if(MP_DEL.step === 1){
+    box.innerHTML = `<div class="pm-h3">Delete this promotion</div><div class="loading">Checking what goes with it…</div>`;
+    return;
+  }
+  const list = (MP_DEL.list || []).slice().sort((a, b) => Number(b.rows) - Number(a.rows));
+  box.innerHTML = `<div class="pm-h3">Are you sure?</div>
+    <p class="pm-p">This deletes <b>${nm}</b> and everything listed here. Only WCA can bring it back from the backup.</p>
+    <ul class="pm-dellist">${list.length ? list.map(x => `<li><b>${Number(x.rows).toLocaleString('en-US')}</b> ${esc(mpDelLabel(x.table))}</li>`).join('') : '<li>Just the promotion itself</li>'}</ul>
+    <div class="pm-delacts">
+      <button type="button" class="spc-post-btn pm-delyes" onclick="mpDelGo()"${MP_DEL.busy ? ' disabled' : ''}><i class="ti ti-trash" aria-hidden="true"></i> ${MP_DEL.busy ? 'Deleting…' : 'Yes, delete it forever'}</button>
+      <button type="button" class="spc-ghost-btn" onclick="mpDelCancel()"${MP_DEL.busy ? ' disabled' : ''}>No, keep it</button>
+    </div>
+    <div class="msg" id="mp_del_msg"></div>`;
+}
+function mpDelErr(error){ return pmMissing(error) ? 'Deleting promotions is not switched on yet. Please check back soon!' : cpErrText(error); }
+async function mpDelAsk(){
+  const p = mpCur(); if(!p || !mpCanDelete(p)) return;
+  MP_DEL.pid = p.id; MP_DEL.step = 1; mpDelDraw();
+  const { data, error } = await sb.rpc('promo_delete_preview', { p_promotion:Number(p.id) });
+  if(String(MP_DEL.pid) !== String(p.id)) return;   // switched promotion while it loaded
+  if(error){ MP_DEL.step = 0; mpDelDraw(); mpMsg('mp_del_msg', mpDelErr(error), false); return; }
+  MP_DEL.list = Array.isArray(data) ? data : []; MP_DEL.step = 2; mpDelDraw();
+  const box = pmEl('mp-del'); if(box && box.scrollIntoView) box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function mpDelCancel(){ MP_DEL.step = 0; MP_DEL.list = null; MP_DEL.busy = false; mpDelDraw(); }
+async function mpDelGo(){
+  const p = mpCur(); if(!p || MP_DEL.busy || !mpCanDelete(p)) return;
+  MP_DEL.busy = true; mpDelDraw();
+  const { error } = await sb.rpc('promo_delete', { p_promotion:Number(p.id), p_name:String(p.name || '') });
+  MP_DEL.busy = false;
+  if(error){ mpDelDraw(); mpMsg('mp_del_msg', mpDelErr(error), false); return; }
+  MP_DEL.pid = null; MP_DEL.step = 0; MP_DEL.list = null;
+  try{ wcaToast('Promotion deleted', (p.name || 'It') + ' is gone. WCA kept a backup copy.'); }catch(e){}
+  PM.curId = null; PM.as = null; PM.rosterFor = null; PM.filter = 'all'; PM.editId = null; PM.rsub = 'list'; PM.find = ''; PM.tab = 'edit';
+  try{ wcaSetAddress('mypromo', '', false); }catch(e){}
+  mpOpen();
 }
 
 /* ======================= PROMOTIONS DIRECTORY ======================= */
@@ -26345,7 +26504,8 @@ function restorePageFromHash(){
     const me = qs.match(/(?:^|&)event=([^&]*)/);
     if(me){
       const eid = decodeURIComponent(me[1]);
-      if(typeof openArchiveEvent==='function') openArchiveEvent(eid, {silent:true, fromLink:true});
+      if(pg==='events' && typeof evShareOpenWca==='function') evShareOpenWca(eid);   // WCA's show on Events (or Past shows if it already happened)
+      else if(typeof openArchiveEvent==='function') openArchiveEvent(eid, {silent:true, fromLink:true});
     }
     // If the hash names a storyline post (?post=ID), scroll to & flash it once loaded.
     const mp=qs.match(/(?:^|&)post=([^&]*)/);
@@ -35969,6 +36129,7 @@ function peEventHTML(S, e){
   const links = [];
   if(e.watch_url && e.status !== 'done') links.push(`<a class="spc-post-btn" href="${escAttr(e.watch_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> ${e.status === 'live' ? 'Watch live' : 'Where to watch'}</a>`);
   if(e.replay_url && e.status === 'done') links.push(`<a class="spc-ghost-btn" href="${escAttr(e.replay_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> Watch the replay</a>`);
+  links.push(`<button type="button" class="spc-ghost-btn" data-n="${escAttr(e.name || '')}" onclick="evShare('promo',${Number(e.id)},${Number(S.pid)},this.dataset.n)"><i class="ti ti-share-3" aria-hidden="true"></i> Share</button>`);
   return `<article class="pe-ev${String(S.focusEv) === String(e.id) ? ' focus' : ''}" id="pe-ev-${Number(e.id)}">
 ${peHeroHTML(S, e, st, links)}
     ${e.about ? `<div class="pe-evabout">${esc(e.about)}</div>` : ''}
