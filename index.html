@@ -7282,6 +7282,18 @@ details.ed-pane[hidden]{display:none !important;}
 .pw-bar b{color:var(--gold);}
 .pw-bar.done{border-color:rgba(93,202,165,.6);} .pw-bar.done > .ti{color:#5dcaa5;}
 .pw-sign{margin-left:6px; background:var(--gold); color:#111; border:0; border-radius:20px; padding:4px 12px; font-weight:700; cursor:pointer;}
+.srw-row{margin:0 0 12px; padding:12px 16px; border-radius:12px; border:1px solid rgba(233,185,73,.35); background:rgba(10,10,14,.85); font-family:var(--font-body); color:var(--txt);}
+.srw-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; font-size:15px; margin-bottom:10px;}
+.srw-head > .ti{font-size:20px; color:var(--gold);} .srw-head > b{color:var(--gold); text-transform:uppercase; letter-spacing:1px;}
+.srw-head > span{opacity:.8;} .srw-bal{margin-left:auto; opacity:1 !important;} .srw-bal b{color:var(--gold);}
+.srw-btns{display:flex; flex-wrap:wrap; gap:8px;}
+.srw-btn{display:flex; align-items:center; gap:10px; padding:8px 14px; border-radius:10px; border:1px solid rgba(233,185,73,.5); background:rgba(233,185,73,.08); color:var(--txt); font:600 15px var(--font-body); cursor:pointer;}
+.srw-btn b{color:var(--gold);} .srw-btn:hover:not(:disabled), .srw-btn.on{background:rgba(233,185,73,.22);}
+.srw-btn:disabled{opacity:.45; cursor:not-allowed;}
+.srw-form{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+.srw-form input{flex:1 1 220px; min-width:0; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.4); color:var(--txt); font:15px var(--font-body);}
+.srw-go{background:var(--gold); color:#111; border:0; border-radius:10px; padding:8px 14px; font-weight:700; cursor:pointer;}
+.srw-x{background:transparent; color:var(--txt); border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:8px 14px; cursor:pointer;}
 /* ===== STORYLINES, READ LIKE A BOOK (Oct 2026) ===== */
 .mp-st-tabs{margin:0 0 12px;}
 .msl-row{display:flex; align-items:center; gap:12px; padding:10px 12px; margin-top:8px; border:1px solid var(--line); border-left:5px solid var(--sc); border-radius:12px; background:rgba(0,0,0,.18);}
@@ -15379,8 +15391,15 @@ function tvIsTwitch(c){ return !!(c && c.kind === 'twitch' && c.twitch_login); }
 function tvTwitchInfo(c){ return tvIsTwitch(c) ? (TV.twitch[String(c.twitch_login).toLowerCase()] || null) : null; }
 /* YouTube live channels work the same way: kind 'youtube' with their channel
    ID, shown only while the youtube-live Edge Function says they're live. */
-function tvIsYt(c){ return !!(c && c.kind === 'youtube' && c.youtube_channel); }
-function tvYtInfo(c){ return tvIsYt(c) ? (TV.yt[c.youtube_channel] || null) : null; }
+function tvIsYt(c){ return !!(c && c.kind === 'youtube' && (c.youtube_channel || c.live_video)); }
+// live_video: an unlisted (or any) YouTube live pasted on the stream control page. It plays as this
+// channel's live stream until the stream is ended there, even when YouTube's live search can't see it.
+function tvYtInfo(c){
+  if(!tvIsYt(c)) return null;
+  const found = c.youtube_channel ? (TV.yt[c.youtube_channel] || null) : null;
+  if(c.live_video) return Object.assign({ title:c.name }, found || {}, { video_id:c.live_video });
+  return found;
+}
 function tvIsStream(c){ return tvIsTwitch(c) || tvIsYt(c); }
 function tvStreamInfo(c){ return tvIsTwitch(c) ? tvTwitchInfo(c) : tvYtInfo(c); }
 // the logo on the dial: their profile picture when the admin chose that, else the uploaded logo
@@ -15390,7 +15409,7 @@ function tvUsable(all){
   return (all||[]).filter(c=> tvIsStream(c) ? !!tvStreamInfo(c) : tvItems(c).length > 0);
 }
 async function tvYtCheck(){
-  const ids = [...new Set((TV.all||[]).filter(tvIsYt).map(c=>String(c.youtube_channel)))];
+  const ids = [...new Set((TV.all||[]).filter(c=>tvIsYt(c) && c.youtube_channel).map(c=>String(c.youtube_channel)))];
   if(!ids.length){ TV.yt = {}; return; }
   try{
     const call = sb.functions.invoke('youtube-live', { body:{ channels:ids } });
@@ -15402,11 +15421,21 @@ async function tvYtCheck(){
     console.warn('[channels] YouTube live check failed:', e.message || e);   // keep the last answer
   }
 }
+// pick up a live link pasted (or cleared) on the stream control page since the channels loaded
+async function tvLiveVideoSync(){
+  if(!TV.all || !TV.all.length) return;
+  try{
+    const { data, error } = await sb.from('tv_channels').select('id,live_video').eq('is_enabled', true);
+    if(error || !data) return;
+    const m = {}; data.forEach(r => { m[String(r.id)] = r.live_video || null; });
+    TV.all.forEach(c => { if(String(c.id) in m) c.live_video = m[String(c.id)]; });
+  }catch(e){}
+}
 // Twitch and YouTube checked together
 async function tvStreamCheck(){
   if(TV.streamBusy) return;
   TV.streamBusy = true;
-  try{ await Promise.all([tvTwitchCheck(), tvYtCheck()]); }
+  try{ await Promise.all([tvTwitchCheck(), tvYtCheck(), tvLiveVideoSync()]); }
   finally{ TV.twitchAt = Date.now(); TV.streamBusy = false; }
 }
 async function tvTwitchCheck(){
@@ -38846,7 +38875,9 @@ function pwChannel(){
   if(!pg || !pg.classList.contains('active') || !host || !host.querySelector('.live-layout.is-tv')) return null;
   if(typeof TV === 'undefined' || !TV.list) return null;
   const c = TV.list[TV.idx];
-  if(!c || !c.promotion_id || typeof tvIsStream !== 'function' || !tvIsStream(c) || !tvStreamInfo(c)) return null;
+  if(!c || typeof tvIsStream !== 'function' || !tvIsStream(c) || !tvStreamInfo(c)) return null;
+  // promotion channels pay their own watch rewards; a WCA channel pays WCA money when the stream control page set a rate, or has pop-ups open
+  if(!c.promotion_id && !(Number(c.wca_watch_amount) > 0) && !c.stream_rewards_on) return null;
   return c;
 }
 function pwMoney(I, n){ return typeof peMoney === 'function' ? peMoney(I, n) : String(n); }
@@ -38861,10 +38892,12 @@ async function pwLoop(){
   if(PW.busy) return; PW.busy = true;
   try{
     const c = pwChannel();
-    if(!c){ PW.ch = null; pwBar(''); return; }
+    if(!c){ PW.ch = null; pwBar(''); srwRow(null); return; }
+    srwRow(c);
+    const wca = !c.promotion_id;
     if(!PW.info || PW.ch !== c.id || Date.now() - PW.infoAt > 300000){
       PW.ch = c.id; PW.infoAt = Date.now();
-      const r = await sb.rpc('promo_watch_info', { p_channel:Number(c.id) });
+      const r = await sb.rpc(wca ? 'wca_watch_info' : 'promo_watch_info', { p_channel:Number(c.id) });
       PW.info = r && !r.error ? r.data : null;
     }
     const I = PW.info;
@@ -38875,10 +38908,11 @@ async function pwLoop(){
     if(I.cap && Number(I.earned) >= Number(I.cap)){ pwBar(`<i class="ti ti-circle-check" aria-hidden="true"></i><span>You earned the most for today from ${esc(I.promotion)}: <b>${esc(pwMoney(I, I.earned))}</b>. Thanks for watching!</span>`, 'done'); return; }
     if(document.visibilityState === 'visible' && Date.now() - PW.lastTick >= 60000){
       PW.lastTick = Date.now();
-      const r = await sb.rpc('promo_watch_tick', { p_channel:Number(c.id) });
+      const r = await sb.rpc(wca ? 'wca_watch_tick' : 'promo_watch_tick', { p_channel:Number(c.id) });
       const d = r && !r.error ? r.data : null;
       if(d && d.ok){
         I.minutes = d.minutes; I.earned = d.earned; I.next = d.next_in;
+        if(wca && Number(d.paid) > 0 && typeof MY_PROFILE !== 'undefined' && MY_PROFILE){ MY_PROFILE.balance = Number(d.balance); try{ if(typeof renderUserChip === 'function') renderUserChip(); }catch(e){} SRW.bal = Number(d.balance); srwPaint(); }
         if(Number(d.paid) > 0 && typeof wcaToast === 'function') wcaToast('+' + pwMoney(I, d.paid), 'For watching ' + I.promotion + ' live. ' + pwMoney(I, d.balance) + ' in all.');
       }
     }
@@ -38890,6 +38924,66 @@ async function pwLoop(){
 setInterval(pwLoop, 15000);
 document.addEventListener('visibilitychange', () => setTimeout(pwLoop, 300));
 setTimeout(pwLoop, 3000);
+/* ===================== STREAM POP-UPS ON WATCH LIVE (Nov 2026) =====================
+   On a channel where the stream control page has pop-ups open
+   (tv_channels.stream_rewards_on), signed in fans see a row of pop-ups
+   under the "you earn" bar. Buying one takes their WCA money and posts it
+   to stream_events, which the StreamElements alerts widget shows on stream.
+   SQL: WCA Stream Pop-ups (stream_rewards, stream_redeem) */
+const SRW = { ch:null, list:null, at:0, bal:null, open:null, busy:false };
+async function srwRow(c){
+  const host = document.getElementById('live-content');
+  let row = document.getElementById('srw-row');
+  if(!c || !c.stream_rewards_on || !host){ if(row) row.remove(); SRW.ch = null; return; }
+  if(SRW.ch !== c.id || !SRW.list || Date.now() - SRW.at > 60000){
+    SRW.ch = c.id; SRW.at = Date.now();
+    try{ const r = await sb.from('stream_rewards').select('id,name,cost,allow_message,enabled,sort').eq('enabled', true).order('sort').order('cost'); SRW.list = (r && r.data) || []; }catch(e){ SRW.list = []; }
+  }
+  if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE) SRW.bal = Number(MY_PROFILE.balance || 0);
+  if(!row || row.parentNode !== host){
+    if(row) row.remove();
+    row = document.createElement('div'); row.id = 'srw-row'; row.className = 'srw-row';
+    const bar = document.getElementById('pw-bar');
+    host.insertBefore(row, bar ? bar.nextSibling : host.firstChild);
+  }
+  if(!row.contains(document.activeElement)) srwPaint();
+}
+function srwPaint(){
+  const row = document.getElementById('srw-row'); if(!row) return;
+  const L = SRW.list || [];
+  if(!L.length){ row.innerHTML = ''; row.style.display = 'none'; return; }
+  row.style.display = '';
+  const signed = typeof CURRENT_USER !== 'undefined' && !!CURRENT_USER;
+  const money = n => '$' + (Number(n) || 0).toLocaleString('en-US');
+  const head = `<div class="srw-head"><i class="ti ti-sparkles" aria-hidden="true"></i><b>Stream pop-ups</b><span>Spend WCA money to put something on screen.</span>`
+    + (signed ? `<span class="srw-bal">You have <b>${esc(money(SRW.bal))}</b></span>` : `<button type="button" class="pw-sign" onclick="toggleLoginMenu(event)">Sign in to use them</button>`) + `</div>`;
+  const btns = L.map(r => `<button type="button" class="srw-btn${SRW.open === r.id ? ' on' : ''}" data-srw="${Number(r.id)}" ${!signed || SRW.bal < Number(r.cost) ? 'disabled' : ''}><span>${esc(r.name)}</span><b>${esc(money(r.cost))}</b></button>`).join('');
+  const pick = L.find(r => r.id === SRW.open);
+  const form = pick ? `<div class="srw-form"><input id="srw-msg" maxlength="120" placeholder="Add a message (optional)"><button type="button" class="srw-go" data-srw-go="${Number(pick.id)}">Send ${esc(pick.name)} for ${esc(money(pick.cost))}</button><button type="button" class="srw-x" data-srw-x="1">Cancel</button></div>` : '';
+  row.innerHTML = head + `<div class="srw-btns">${btns}</div>` + form;
+}
+async function srwBuy(id, msg){
+  if(SRW.busy) return; SRW.busy = true;
+  const r = (SRW.list || []).find(x => x.id === id);
+  try{
+    const res = await sb.rpc('stream_redeem', { p_channel:Number(SRW.ch), p_reward:Number(id), p_message:msg || null });
+    const d = res && !res.error ? res.data : null;
+    if(d && d.ok){
+      SRW.bal = Number(d.balance); SRW.open = null;
+      if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE){ MY_PROFILE.balance = SRW.bal; try{ if(typeof renderUserChip === 'function') renderUserChip(); }catch(e){} }
+      if(typeof wcaToast === 'function') wcaToast((r ? r.name : 'Pop-up') + ' is on its way!', 'Watch the stream. You have $' + SRW.bal.toLocaleString('en-US') + ' left.');
+    } else if(typeof wcaToast === 'function') wcaToast("Couldn't send that", (d && d.why) || (res && res.error && res.error.message) || 'Try again in a moment.', true);
+  }catch(e){ if(typeof wcaToast === 'function') wcaToast("Couldn't send that", 'Try again in a moment.', true); }
+  finally{ SRW.busy = false; srwPaint(); }
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('[data-srw],[data-srw-go],[data-srw-x]'); if(!t || !t.closest('#srw-row')) return;
+  if(t.dataset.srwX){ SRW.open = null; srwPaint(); return; }
+  if(t.dataset.srwGo){ const m = document.getElementById('srw-msg'); srwBuy(Number(t.dataset.srwGo), m ? m.value.trim() : ''); return; }
+  const r = (SRW.list || []).find(x => x.id === Number(t.dataset.srw)); if(!r) return;
+  if(r.allow_message){ SRW.open = SRW.open === r.id ? null : r.id; srwPaint(); const m = document.getElementById('srw-msg'); if(m) m.focus(); }
+  else srwBuy(r.id, '');
+});
 /* ===================== STORYLINES, READ LIKE A BOOK (Oct 2026) =====================
    A promotion's main storylines, and every character's and faction's story,
    on the Stories tab of its page. Pick a storyline or a character and read it
