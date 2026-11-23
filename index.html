@@ -3951,6 +3951,32 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
     padding:0 18px; height:42px; cursor:pointer; flex-shrink:0; transition:.15s;}
   .ch-send:hover{background:var(--gold2);}
   .ch-send:disabled{opacity:.5; cursor:not-allowed;}
+  /* rewards in Live Chat (Twitch-style, paid in WCA money) */
+  #ch-composer-slot{position:relative;}
+  .ch-pts{display:flex; align-items:center; gap:5px; height:42px; padding:0 12px; border-radius:10px; border:1px solid rgba(233,185,73,.55); background:rgba(233,185,73,.1); color:var(--gold); font-family:var(--font-display); font-weight:700; font-size:14px; cursor:pointer; flex-shrink:0;}
+  .ch-pts .ti{font-size:18px;} .ch-pts:hover, .ch-pts.on{background:rgba(233,185,73,.24);}
+  .ch-pts-menu{position:absolute; left:0; right:0; bottom:calc(100% + 8px); z-index:30; background:#121216; border:1px solid rgba(233,185,73,.5); border-radius:12px; padding:12px; box-shadow:0 12px 40px rgba(0,0,0,.6); font-family:var(--font-body);}
+  .pm-head{display:flex; align-items:flex-start; gap:8px; margin-bottom:10px;} .pm-head > div{flex:1;}
+  .pm-head b{color:var(--gold); font-family:var(--font-display); letter-spacing:.5px;} .pm-head small{display:block; color:var(--muted); font-size:13px; margin-top:2px;} .pm-head small b{font-family:inherit;}
+  .pm-x{background:none; border:0; color:var(--muted); font-size:22px; line-height:1; cursor:pointer;}
+  .pm-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:8px; max-height:260px; overflow-y:auto;}
+  .pm-card{display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 8px; border-radius:10px; border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--txt); cursor:pointer; text-align:center; font-family:var(--font-body);}
+  .pm-card .ti{font-size:24px; color:var(--gold);} .pm-n{font-weight:600; font-size:14px; line-height:1.2;} .pm-c{font-size:13px; color:var(--gold); font-weight:700;}
+  .pm-card:hover:not(:disabled){border-color:var(--gold); background:rgba(233,185,73,.1);}
+  .pm-card.poor{opacity:.5; cursor:not-allowed;} .pm-card.poor .pm-c{color:var(--muted); font-weight:500;}
+  .pm-conf span{display:block; color:#ccc; font-size:14px;} .pm-btns{display:flex; gap:8px; margin-top:10px;}
+  .pm-go{background:var(--gold); color:#111; border:0; border-radius:10px; padding:9px 14px; font-weight:700; cursor:pointer;}
+  .pm-back{background:none; border:1px solid var(--line); color:var(--txt); border-radius:10px; padding:9px 14px; cursor:pointer;}
+  .ch-pts-chip{display:flex; align-items:center; gap:8px; margin:0 0 6px; padding:6px 10px; border-radius:8px; background:rgba(233,185,73,.14); border:1px solid rgba(233,185,73,.45); font-family:var(--font-body); font-size:13px; color:var(--txt);}
+  .ch-pts-chip .ti{color:var(--gold);} .ch-pts-chip b{color:var(--gold);} .ch-pts-chip span{flex:1;}
+  .ch-pts-chip button{background:none; border:0; color:var(--muted); font-size:18px; cursor:pointer; line-height:1;}
+  .ch-sys{flex:1; display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border-radius:10px; background:linear-gradient(90deg,rgba(233,185,73,.16),rgba(233,185,73,.03)); border-left:3px solid var(--gold); font-family:var(--font-body); font-size:14px; color:#ddd; line-height:1.4;}
+  .ch-sys .ti{color:var(--gold); font-size:18px; margin-top:1px;} .ch-sys b{color:#fff;} .ch-sys b.g{color:var(--gold);} .ch-sys .c{color:var(--gold); font-weight:700; margin-left:4px;}
+  .ch-sys .q{display:block; color:#eee; font-style:italic; margin-top:2px;}
+  .ch-sys-signup{background:linear-gradient(90deg,rgba(93,202,165,.16),rgba(93,202,165,.03)); border-left-color:#5dcaa5;} .ch-sys-signup .ti{color:#5dcaa5;}
+  .ch-hl{background:rgba(233,185,73,.13); border:1px solid rgba(233,185,73,.55); border-radius:10px; padding:6px 10px; box-shadow:0 0 18px rgba(233,185,73,.15);}
+  .ch-hl .ch-text{color:#fff; font-weight:600;}
+  .ch-hl-tag{display:inline-flex; align-items:center; gap:3px; margin-left:6px; font-family:var(--font-cond); font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--gold);}
   .ch-locked{background:var(--bg); border:1px solid var(--line); border-radius:10px;
     padding:12px 14px; text-align:center; font-family:var(--font-body); font-size:14px; color:var(--muted);}
   .ch-locked button{background:transparent; border:none; color:var(--gold); cursor:pointer;
@@ -16052,6 +16078,7 @@ function chatTidyDividers(feed){
   });
 }
 function chatMsgHTML(m){
+  if(m.__ev) return chatEvHTML(m);
   const name = m.author_name || 'Member';
   const init = name.slice(0,2).toUpperCase();
   const ava = m.author_avatar
@@ -16062,9 +16089,9 @@ function chatMsgHTML(m){
     : '';
   return `<div class="ch-msg">
       ${ava}
-      <div class="ch-body">
+      <div class="ch-body${m.highlight ? ' ch-hl' : ''}">
         <div class="ch-meta">
-          <span class="ch-author">${esc(name)}</span>
+          <span class="ch-author">${esc(name)}</span>${m.highlight ? '<span class="ch-hl-tag"><i class="ti ti-highlight"></i> Highlighted</span>' : ''}
           <span class="ch-time" title="${esc(chatFullDate(m.created_at))}">${chatTime(m.created_at)}</span>
         </div>
         <div class="ch-text">${esc(m.body)}</div>
@@ -16085,6 +16112,7 @@ function renderChatComposer(){
         oninput="chatAutoGrow(this)" onkeydown="chatKeydown(event)"></textarea>
       <button class="ch-send" id="ch-send" onclick="sendChat()">Send</button>
     </div>`;
+  try{ chatPtsPaint(); }catch(e){}
 }
 function chatAutoGrow(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,120)+'px'; }
 function chatKeydown(e){
@@ -16114,7 +16142,7 @@ function chatAppend(m){
   if(m.id) node.setAttribute('data-mid', m.id);
   node.setAttribute('data-day', day);
   feed.appendChild(node);
-  CHAT_LAST_TS = m.created_at;
+  if(!m.__ev) CHAT_LAST_TS = m.created_at;
   if(near) chatScrollBottom();
 }
 /* ===== WHO'S WATCHING (Watch Live) =====
@@ -16307,6 +16335,8 @@ function chatHubTab(t){
   if(PRES.tab === 'chat') chatScrollBottom();
 }
 
+const CHAT_COLS_BASE = 'id,author_name,author_avatar,body,created_at';
+let CHAT_COLS = CHAT_COLS_BASE + ',highlight';
 async function initChatHub(){
   chatHubTabs();
   presStart();
@@ -16316,14 +16346,22 @@ async function initChatHub(){
   let rows;
   await chatLoadRetention();
   try{
-    let q = sb.from('chat_messages')
-      .select('id,author_name,author_avatar,body,created_at');
-    if(CHAT_KEEP_DAYS > 0){
-      q = q.gte('created_at', new Date(Date.now() - CHAT_KEEP_DAYS*86400000).toISOString());
+    let res;
+    for(let tries = 0; tries < 2; tries++){
+      let q = sb.from('chat_messages').select(CHAT_COLS);
+      if(CHAT_KEEP_DAYS > 0){
+        q = q.gte('created_at', new Date(Date.now() - CHAT_KEEP_DAYS*86400000).toISOString());
+      }
+      res = await q.order('created_at',{ascending:false}).limit(CHAT_MAX);
+      // the highlight column comes with the Chat Rewards SQL; without it, load chat the old way
+      if(res.error && CHAT_COLS !== CHAT_COLS_BASE){ CHAT_COLS = CHAT_COLS_BASE; continue; }
+      break;
     }
-    const { data, error } = await q.order('created_at',{ascending:false}).limit(CHAT_MAX);
-    if(error) throw error;
-    rows = (data||[]).reverse();
+    if(res.error) throw res.error;
+    rows = (res.data||[]).reverse();
+    // stream redemptions and sign-ups since the oldest message shown
+    const evs = await chatEvLoad(rows.length ? rows[0].created_at : new Date(Date.now() - 86400000).toISOString());
+    if(evs.length) rows = rows.concat(evs).sort((x, y) => x.created_at < y.created_at ? -1 : x.created_at > y.created_at ? 1 : 0);
   }catch(e){
     feed.innerHTML = `<div class="ch-empty">Chat is unavailable right now.</div>`;
     return;
@@ -16339,10 +16377,12 @@ async function initChatHub(){
       const html = chatMsgHTML(m).trim();
       return label + html.replace('<div class="ch-msg">', `<div class="ch-msg" data-mid="${m.id}" data-day="${day}">`);
     }).join('');
-    CHAT_LAST_TS = rows[rows.length-1].created_at;
+    const lastChat = rows.filter(r => !r.__ev).pop();
+    CHAT_LAST_TS = lastChat ? lastChat.created_at : new Date().toISOString();
     chatScrollBottom();
   }
   startChatRealtime();
+  chatEvListen();
 }
 function startChatRealtime(){
   stopChatRealtime();
@@ -16364,18 +16404,20 @@ function startChatRealtime(){
     if(!CHAT_LAST_TS) return;
     try{
       const { data } = await sb.from('chat_messages')
-        .select('id,author_name,author_avatar,body,created_at')
+        .select(CHAT_COLS)
         .gt('created_at', CHAT_LAST_TS).order('created_at',{ascending:true}).limit(CHAT_MAX);
       (data||[]).forEach(chatAppend);
     }catch(e){}
   }, 20000);
 }
 function stopChatRealtime(){
+  try{ chatEvStop(); }catch(e){}
   if(CHAT_CHANNEL){ try{ sb.removeChannel(CHAT_CHANNEL); }catch(e){} CHAT_CHANNEL=null; }
   if(CHAT_POLL_TIMER){ clearInterval(CHAT_POLL_TIMER); CHAT_POLL_TIMER=null; }
 }
 async function sendChat(){
   if(!CURRENT_USER){ signInDiscord(); return; }
+  if(typeof SRW !== 'undefined' && SRW.pick && await srwSendPicked()) return;
   const input = document.getElementById('ch-input');
   const btn = document.getElementById('ch-send');
   if(!input) return;
@@ -38924,66 +38966,173 @@ async function pwLoop(){
 setInterval(pwLoop, 15000);
 document.addEventListener('visibilitychange', () => setTimeout(pwLoop, 300));
 setTimeout(pwLoop, 3000);
-/* ===================== STREAM POP-UPS ON WATCH LIVE (Nov 2026) =====================
-   On a channel where the stream control page has pop-ups open
-   (tv_channels.stream_rewards_on), signed in fans see a row of pop-ups
-   under the "you earn" bar. Buying one takes their WCA money and posts it
-   to stream_events, which the StreamElements alerts widget shows on stream.
-   SQL: WCA Stream Pop-ups (stream_rewards, stream_redeem) */
-const SRW = { ch:null, list:null, at:0, bal:null, open:null, busy:false };
+/* ===================== STREAM REWARDS IN LIVE CHAT (Nov 2026) =====================
+   Works like Twitch channel points, paid in WCA money. While the stream
+   control page has pop-ups open on the channel a fan is watching, a money
+   button shows next to Send in Live Chat. It opens a rewards menu:
+     - pop-ups (Confetti Drop, Hype Horn...) go on stream through the
+       StreamElements alerts widget
+     - "Highlight My Message" posts their chat message highlighted
+   Redemptions and new sign-ups also show as lines in the chat for everyone.
+   SQL: WCA Stream Pop-ups + Chat Rewards (stream_rewards, stream_redeem) */
+const SRW = { ch:null, list:null, at:0, bal:null, menu:false, pick:null, busy:false };
+const srwMoney = n => '$' + (Number(n) || 0).toLocaleString('en-US');
+// called by the watch-rewards loop every 15s with the channel being watched (or null)
 async function srwRow(c){
-  const host = document.getElementById('live-content');
-  let row = document.getElementById('srw-row');
-  if(!c || !c.stream_rewards_on || !host){ if(row) row.remove(); SRW.ch = null; return; }
+  const open = !!(c && c.stream_rewards_on);
+  if(!open){ if(SRW.ch !== null){ SRW.ch = null; SRW.menu = false; SRW.pick = null; chatPtsPaint(); } return; }
   if(SRW.ch !== c.id || !SRW.list || Date.now() - SRW.at > 60000){
     SRW.ch = c.id; SRW.at = Date.now();
-    try{ const r = await sb.from('stream_rewards').select('id,name,cost,allow_message,enabled,sort').eq('enabled', true).order('sort').order('cost'); SRW.list = (r && r.data) || []; }catch(e){ SRW.list = []; }
+    try{
+      const r = await sb.from('stream_rewards').select('*').eq('enabled', true).order('sort').order('cost');
+      SRW.list = ((r && r.data) || []).map(x => Object.assign({ kind:'popup' }, x));
+    }catch(e){ SRW.list = []; }
   }
   if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE) SRW.bal = Number(MY_PROFILE.balance || 0);
-  if(!row || row.parentNode !== host){
-    if(row) row.remove();
-    row = document.createElement('div'); row.id = 'srw-row'; row.className = 'srw-row';
-    const bar = document.getElementById('pw-bar');
-    host.insertBefore(row, bar ? bar.nextSibling : host.firstChild);
-  }
-  if(!row.contains(document.activeElement)) srwPaint();
+  chatPtsPaint();
 }
-function srwPaint(){
-  const row = document.getElementById('srw-row'); if(!row) return;
-  const L = SRW.list || [];
-  if(!L.length){ row.innerHTML = ''; row.style.display = 'none'; return; }
-  row.style.display = '';
-  const signed = typeof CURRENT_USER !== 'undefined' && !!CURRENT_USER;
-  const money = n => '$' + (Number(n) || 0).toLocaleString('en-US');
-  const head = `<div class="srw-head"><i class="ti ti-sparkles" aria-hidden="true"></i><b>Stream pop-ups</b><span>Spend WCA money to put something on screen.</span>`
-    + (signed ? `<span class="srw-bal">You have <b>${esc(money(SRW.bal))}</b></span>` : `<button type="button" class="pw-sign" onclick="toggleLoginMenu(event)">Sign in to use them</button>`) + `</div>`;
-  const btns = L.map(r => `<button type="button" class="srw-btn${SRW.open === r.id ? ' on' : ''}" data-srw="${Number(r.id)}" ${!signed || SRW.bal < Number(r.cost) ? 'disabled' : ''}><span>${esc(r.name)}</span><b>${esc(money(r.cost))}</b></button>`).join('');
-  const pick = L.find(r => r.id === SRW.open);
-  const form = pick ? `<div class="srw-form"><input id="srw-msg" maxlength="120" placeholder="Add a message (optional)"><button type="button" class="srw-go" data-srw-go="${Number(pick.id)}">Send ${esc(pick.name)} for ${esc(money(pick.cost))}</button><button type="button" class="srw-x" data-srw-x="1">Cancel</button></div>` : '';
-  row.innerHTML = head + `<div class="srw-btns">${btns}</div>` + form;
+function srwPaint(){ chatPtsPaint(); }
+function srwSignedIn(){ return typeof CURRENT_USER !== 'undefined' && !!CURRENT_USER; }
+function srwFind(id){ return (SRW.list || []).find(x => Number(x.id) === Number(id)); }
+
+/* the money button in the chat composer, the rewards menu above it, and the "redeeming" chip */
+function chatPtsPaint(){
+  const comp = document.querySelector('#ch-composer-slot .ch-composer');
+  if(!comp) return;
+  const slot = comp.parentNode;
+  const show = SRW.ch !== null && (SRW.list || []).length && srwSignedIn();
+  let btn = document.getElementById('ch-pts');
+  if(!show){
+    if(btn) btn.remove();
+    const m = document.getElementById('ch-pts-menu'); if(m) m.remove();
+    srwClearPick();
+    return;
+  }
+  if(!btn){
+    btn = document.createElement('button');
+    btn.id = 'ch-pts'; btn.type = 'button'; btn.className = 'ch-pts';
+    btn.title = 'Rewards: spend WCA money'; btn.setAttribute('aria-haspopup', 'true');
+    btn.onclick = e => { e.stopPropagation(); SRW.menu = !SRW.menu; chatPtsPaint(); };
+    comp.insertBefore(btn, comp.querySelector('.ch-send'));
+  }
+  btn.innerHTML = `<i class="ti ti-coin" aria-hidden="true"></i><span>${esc(srwMoney(SRW.bal))}</span>`;
+  btn.classList.toggle('on', SRW.menu);
+  btn.setAttribute('aria-expanded', SRW.menu ? 'true' : 'false');
+
+  let menu = document.getElementById('ch-pts-menu');
+  if(!SRW.menu){ if(menu) menu.remove(); }
+  else{
+    if(!menu){ menu = document.createElement('div'); menu.id = 'ch-pts-menu'; menu.className = 'ch-pts-menu'; slot.insertBefore(menu, slot.firstChild); }
+    const I = (typeof PW !== 'undefined' && PW.info && PW.info.on) ? PW.info : null;
+    const earn = I ? `Earn ${esc(srwMoney(I.amount))} every ${Number(I.every)} min by watching.` : '';
+    const conf = SRW.confirm ? srwFind(SRW.confirm) : null;
+    if(conf){
+      menu.innerHTML = `<div class="pm-head"><b>Redeem ${esc(conf.name)}?</b><button type="button" class="pm-x" data-pm="close" aria-label="Close">×</button></div>
+        <div class="pm-conf"><span>${conf.kind === 'highlight' ? 'Your next message is highlighted in chat.' : 'It pops up on the stream for everyone.'}</span>
+        <div class="pm-btns"><button type="button" class="pm-go" data-pm="go" data-id="${Number(conf.id)}">Redeem for ${esc(srwMoney(conf.cost))}</button><button type="button" class="pm-back" data-pm="back">Back</button></div></div>`;
+    }else{
+      menu.innerHTML = `<div class="pm-head"><div><b>Rewards</b><small>You have <b>${esc(srwMoney(SRW.bal))}</b> WCA money. ${earn}</small></div><button type="button" class="pm-x" data-pm="close" aria-label="Close">×</button></div>
+        <div class="pm-grid">${(SRW.list || []).map(r => {
+          const short = Math.max(0, Number(r.cost) - Number(SRW.bal || 0));
+          const ic = r.kind === 'highlight' ? 'ti-highlight' : ({ confetti:'ti-confetti', shake:'ti-wave-sine', flash:'ti-bolt' }[r.effect] || 'ti-sparkles');
+          return `<button type="button" class="pm-card${short ? ' poor' : ''}" data-pm="pick" data-id="${Number(r.id)}" ${short ? 'disabled' : ''}>
+            <i class="ti ${ic}" aria-hidden="true"></i><span class="pm-n">${esc(r.name)}</span>
+            <span class="pm-c">${short ? 'Need ' + esc(srwMoney(short)) + ' more' : esc(srwMoney(r.cost))}</span></button>`;
+        }).join('')}</div>`;
+    }
+  }
+  // the chip above the box while a reward that takes a message is picked
+  const p = SRW.pick ? srwFind(SRW.pick) : null;
+  let chip = document.getElementById('ch-pts-chip');
+  const input = document.getElementById('ch-input'), send = document.getElementById('ch-send');
+  if(p){
+    if(!chip){ chip = document.createElement('div'); chip.id = 'ch-pts-chip'; chip.className = 'ch-pts-chip'; slot.insertBefore(chip, comp); }
+    chip.innerHTML = `<i class="ti ${p.kind === 'highlight' ? 'ti-highlight' : 'ti-sparkles'}" aria-hidden="true"></i><span>${p.kind === 'highlight' ? 'Highlighting your message' : 'Redeeming <b>' + esc(p.name) + '</b>'} · ${esc(srwMoney(p.cost))}</span><button type="button" data-pm="unpick" aria-label="Cancel">×</button>`;
+    if(input) input.placeholder = p.kind === 'highlight' ? 'Type the message to highlight…' : 'Add a message for the stream (optional)…';
+    if(send) send.textContent = 'Redeem ' + srwMoney(p.cost);
+  }else srwClearPick();
+}
+function srwClearPick(){
+  const chip = document.getElementById('ch-pts-chip'); if(chip) chip.remove();
+  const input = document.getElementById('ch-input'), send = document.getElementById('ch-send');
+  if(input && input.placeholder !== 'Say something…') input.placeholder = 'Say something…';
+  if(send && send.textContent !== 'Send') send.textContent = 'Send';
 }
 async function srwBuy(id, msg){
-  if(SRW.busy) return; SRW.busy = true;
-  const r = (SRW.list || []).find(x => x.id === id);
+  if(SRW.busy) return false; SRW.busy = true;
+  const r = srwFind(id);
+  const name = (IS_ADMIN && typeof POST_AS_ADMIN !== 'undefined' && POST_AS_ADMIN) ? 'Admin' : ((MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member');
+  const avatar = (IS_ADMIN && typeof POST_AS_ADMIN !== 'undefined' && POST_AS_ADMIN) ? null : ((MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || null);
+  let ok = false;
   try{
-    const res = await sb.rpc('stream_redeem', { p_channel:Number(SRW.ch), p_reward:Number(id), p_message:msg || null });
+    const res = await sb.rpc('stream_redeem', { p_channel:Number(SRW.ch), p_reward:Number(id), p_message:msg || null, p_name:name, p_avatar:avatar });
     const d = res && !res.error ? res.data : null;
     if(d && d.ok){
-      SRW.bal = Number(d.balance); SRW.open = null;
+      ok = true; SRW.bal = Number(d.balance); SRW.pick = null; SRW.confirm = null; SRW.menu = false;
       if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE){ MY_PROFILE.balance = SRW.bal; try{ if(typeof renderUserChip === 'function') renderUserChip(); }catch(e){} }
-      if(typeof wcaToast === 'function') wcaToast((r ? r.name : 'Pop-up') + ' is on its way!', 'Watch the stream. You have $' + SRW.bal.toLocaleString('en-US') + ' left.');
-    } else if(typeof wcaToast === 'function') wcaToast("Couldn't send that", (d && d.why) || (res && res.error && res.error.message) || 'Try again in a moment.', true);
-  }catch(e){ if(typeof wcaToast === 'function') wcaToast("Couldn't send that", 'Try again in a moment.', true); }
-  finally{ SRW.busy = false; srwPaint(); }
+      if(typeof wcaToast === 'function') wcaToast(r && r.kind === 'highlight' ? 'Message highlighted!' : ((r ? r.name : 'Reward') + ' is on its way!'), 'You have ' + srwMoney(SRW.bal) + ' left.');
+    } else if(typeof wcaToast === 'function') wcaToast("Couldn't redeem that", (d && d.why) || (res && res.error && res.error.message) || 'Try again in a moment.', true);
+  }catch(e){ if(typeof wcaToast === 'function') wcaToast("Couldn't redeem that", 'Try again in a moment.', true); }
+  finally{ SRW.busy = false; chatPtsPaint(); }
+  return ok;
 }
 document.addEventListener('click', e => {
-  const t = e.target.closest && e.target.closest('[data-srw],[data-srw-go],[data-srw-x]'); if(!t || !t.closest('#srw-row')) return;
-  if(t.dataset.srwX){ SRW.open = null; srwPaint(); return; }
-  if(t.dataset.srwGo){ const m = document.getElementById('srw-msg'); srwBuy(Number(t.dataset.srwGo), m ? m.value.trim() : ''); return; }
-  const r = (SRW.list || []).find(x => x.id === Number(t.dataset.srw)); if(!r) return;
-  if(r.allow_message){ SRW.open = SRW.open === r.id ? null : r.id; srwPaint(); const m = document.getElementById('srw-msg'); if(m) m.focus(); }
-  else srwBuy(r.id, '');
+  const t = e.target.closest && e.target.closest('[data-pm]');
+  if(!t){
+    // click outside the menu closes it
+    if(SRW.menu && !(e.target.closest && e.target.closest('#ch-pts-menu,#ch-pts'))){ SRW.menu = false; SRW.confirm = null; chatPtsPaint(); }
+    return;
+  }
+  const a = t.dataset.pm;
+  if(a === 'close'){ SRW.menu = false; SRW.confirm = null; }
+  else if(a === 'back'){ SRW.confirm = null; }
+  else if(a === 'unpick'){ SRW.pick = null; }
+  else if(a === 'pick'){
+    const r = srwFind(t.dataset.id); if(!r) return;
+    if(r.kind === 'highlight' || r.allow_message){ SRW.pick = r.id; SRW.menu = false; SRW.confirm = null; chatPtsPaint(); const i = document.getElementById('ch-input'); if(i) i.focus(); return; }
+    SRW.confirm = r.id;
+  }
+  else if(a === 'go'){ srwBuy(Number(t.dataset.id), ''); return; }
+  chatPtsPaint();
 });
+// Send while a reward is picked = redeem it (with the typed message)
+async function srwSendPicked(){
+  const r = SRW.pick ? srwFind(SRW.pick) : null; if(!r) return false;
+  const input = document.getElementById('ch-input');
+  const msg = input ? input.value.trim() : '';
+  if(r.kind === 'highlight' && !msg){ wcaToast('Type a message first', 'That is the message that gets highlighted.', true); return true; }
+  if(await srwBuy(r.id, msg) && input){ input.value = ''; chatAutoGrow(input); }
+  return true;
+}
+
+/* redemptions and sign-ups as lines in Live Chat */
+let CHAT_EV_CH = null;
+function chatEvItem(r){ return Object.assign({}, r, { __ev:true, id:'ev' + r.id }); }
+function chatEvHTML(m){
+  let ic = 'ti-sparkles', txt = '';
+  if(m.kind === 'signup'){ ic = 'ti-user-plus'; txt = `<b>${esc(m.user_name || 'Someone')}</b> just joined the site. Welcome!`; }
+  else if(m.kind === 'redeem'){ txt = `<b>${esc(m.user_name || 'A fan')}</b> redeemed <b class="g">${esc(m.reward_name || 'a reward')}</b> <span class="c">${esc(srwMoney(m.cost))}</span>${m.message ? `<span class="q">“${esc(m.message)}”</span>` : ''}`; }
+  else { ic = 'ti-speakerphone'; txt = `${m.title ? `<b class="g">${esc(m.title)}</b> ` : ''}${esc(m.message || '')}`; }
+  return `<div class="ch-msg"><div class="ch-sys ch-sys-${esc(m.kind)}"><i class="ti ${ic}" aria-hidden="true"></i><span>${txt}</span></div></div>`;
+}
+function chatEvShow(r){ return r && r.kind !== 'custom' && r.reward_kind !== 'highlight'; }
+async function chatEvLoad(since){
+  try{
+    const { data, error } = await sb.from('stream_events').select('*').gte('created_at', since).order('created_at', { ascending:true }).limit(60);
+    if(error) return [];
+    return (data || []).filter(chatEvShow).map(chatEvItem);
+  }catch(e){ return []; }
+}
+function chatEvListen(){
+  chatEvStop();
+  try{
+    CHAT_EV_CH = sb.channel('chat_stream_events')
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'stream_events' }, p => { if(p && chatEvShow(p.new)) chatAppend(chatEvItem(p.new)); })
+      .subscribe();
+  }catch(e){}
+}
+function chatEvStop(){ if(CHAT_EV_CH){ try{ sb.removeChannel(CHAT_EV_CH); }catch(e){} CHAT_EV_CH = null; } }
+
 /* ===================== STORYLINES, READ LIKE A BOOK (Oct 2026) =====================
    A promotion's main storylines, and every character's and faction's story,
    on the Stories tab of its page. Pick a storyline or a character and read it
