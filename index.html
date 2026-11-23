@@ -9639,7 +9639,14 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
   .mus-grip{color:var(--sm-dim); font-size:16px;}
   .mus-title{flex:1; font-family:var(--font-cond); font-weight:700; font-size:13.5px; letter-spacing:2.2px; text-transform:uppercase; color:var(--gold);}
   .mus-title i{font-size:14px; vertical-align:-1px;}
-  .sm-tbtn.mus-min{width:26px; height:26px;}
+  .sm-tbtn.mus-min, .sm-tbtn.mus-x{width:26px; height:26px;}
+  /* Nov 2026: the little X beside the minimized music tab removes the widget completely */
+  .mus-fab-x{position:fixed; right:6px; bottom:182px; z-index:2147483000; width:34px; height:34px; display:grid; place-items:center; padding:0;
+    border:1px solid rgba(233,185,73,.55); border-radius:50%; background:rgba(9,10,16,.94); color:#e9b949; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.5);}
+  .mus-fab-x.left{right:auto; left:6px;}
+  .mus-fab-x[hidden]{display:none;}
+  .mus-fab-x:hover{background:#e9b949; color:#1a1407;}
+  .mus-fab-x i{font-size:17px;}
   .mus-fab{position:fixed; right:0; bottom:120px; z-index:2147483000; width:48px; height:54px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
     border:1px solid rgba(233,185,73,.55); border-right:0; border-radius:12px 0 0 12px; background:rgba(9,10,16,.94); color:#e9b949; cursor:pointer;
     box-shadow:0 10px 30px rgba(0,0,0,.55); backdrop-filter:blur(10px);}
@@ -10473,6 +10480,7 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
             <span class="mus-title"><i class="ti ti-music" aria-hidden="true"></i> WCA Music</span>
             <button class="sm-tbtn mus-list" id="sm-list" type="button" aria-label="Open the Music page" title="All songs"><i class="ti ti-playlist"></i></button>
             <button class="sm-tbtn mus-min" id="mus-min" type="button" aria-label="Minimize the music player" title="Minimize"><i class="ti ti-minus"></i></button>
+            <button class="sm-tbtn mus-x" id="mus-x" type="button" aria-label="Remove the music player" title="Remove (bring it back on the Music page)"><i class="ti ti-x"></i></button>
           </div>
           <!-- Nov 2026: the song's picture and name on top, then the seek bar, then the buttons.
                Every id is the same as before; sm-art, sm-tcur, sm-tdur and sm-list are new. -->
@@ -31690,7 +31698,7 @@ function pauseAudio(){
 let gestureSeen = false, autoPausedBy = null;
 function maybeAutoplay(){
   gestureSeen = true;
-  if(autoTried || !MUSIC.autoplay || userPaused || musIsPhone()) return;
+  if(autoTried || !MUSIC.autoplay || userPaused || musIsPhone() || musOff) return;
   if(!playlist.length || !audio.src) return;
   autoTried = true;
   if(musOnLive()){ autoPausedBy = 'live'; return; }   // Watch Live has its own sound
@@ -31748,8 +31756,20 @@ function setPopout(on, opts){
   }
   musSyncMin();
 }
-const MUS_POS = 'wca-music-pos', MUS_MIN = 'wca-music-min';
+const MUS_POS = 'wca-music-pos', MUS_MIN = 'wca-music-min', MUS_OFF = 'wca-music-off';
 let musPos = null, musMin = false;
+// Nov 2026: removed = the widget and its tab are gone and the music stops, until the visitor
+// turns it back on from the Music page. (Minimize keeps the song playing; remove does not.)
+let musOff = false; try{ musOff = localStorage.getItem(MUS_OFF) === '1'; }catch(e){}
+function musSetOff(on){
+  musOff = !!on;
+  try{ localStorage.setItem(MUS_OFF, musOff ? '1' : '0'); }catch(e){}
+  if(musOff){ if(!audio.paused) pauseAudio(); }
+  else { musMin = false; try{ localStorage.setItem(MUS_MIN, '0'); }catch(e){} }
+  musSyncMin();
+  if(!musOff) musPlace();
+  musEmit('widget');
+}
 function musFab(){
   let f = document.getElementById('mus-fab');
   if(!f){
@@ -31759,6 +31779,14 @@ function musFab(){
     f.innerHTML = '<i class="ti ti-music" aria-hidden="true"></i><span class="mus-eq" aria-hidden="true"><i></i><i></i><i></i></span>';
     f.addEventListener('click', ()=>musSetMin(false));
     document.body.appendChild(f);
+  }
+  if(!document.getElementById('mus-fab-x')){
+    const x = document.createElement('button');
+    x.id = 'mus-fab-x'; x.type = 'button'; x.className = 'mus-fab-x'; x.hidden = true;
+    x.setAttribute('aria-label', 'Remove the music player'); x.title = 'Remove (bring it back on the Music page)';
+    x.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+    x.addEventListener('click', ()=>musSetOff(true));
+    document.body.appendChild(x);
   }
   return f;
 }
@@ -31770,14 +31798,16 @@ function musSetMin(on){
 }
 function musSyncMin(){
   const bar = $('sm-player'), f = musFab();
-  const show = popped && MUSIC.enabled && !bar.classList.contains('leaving');
-  bar.classList.toggle('mus-hidden', show && musMin);
+  const show = popped && MUSIC.enabled && !bar.classList.contains('leaving') && !musOff;
+  bar.classList.toggle('mus-hidden', (show && musMin) || (popped && musOff));
   f.hidden = !(show && musMin);
+  const fx = document.getElementById('mus-fab-x'); if(fx) fx.hidden = f.hidden;
   // on a phone the open player sits along the bottom, so leave room for it
   document.body.classList.toggle('mus-open', show && !musMin && !musPos);
   // the tab sits on whichever side the player was on
   const left = musPos && (musPos.x + 180) < window.innerWidth / 2;
   f.classList.toggle('left', !!left);
+  if(fx) fx.classList.toggle('left', !!left);
   f.classList.toggle('playing', !audio.paused);
 }
 // keep the widget on screen, wherever it was dragged to
@@ -31799,6 +31829,7 @@ function musWireWidget(){
   musMin = savedMin === null ? !!(window.matchMedia && matchMedia('(max-width:760px)').matches) : savedMin === '1';
   const head = $('mus-head'), bar = $('sm-player');
   const mn = $('mus-min'); if(mn) mn.addEventListener('click', ()=>musSetMin(true));
+  const mx = $('mus-x'); if(mx) mx.addEventListener('click', ()=>musSetOff(true));
   if(head && bar){
     let drag = null;
     head.addEventListener('pointerdown', e=>{
@@ -32299,6 +32330,7 @@ window.smStopMusicForExit = stopMusicForExit;
 window.smMusic       = { get audio(){ return audio; }, get playlist(){ return playlist; },
                          get popped(){ return popped; }, popout:setPopout,
                          autoPause, autoResume, minimize:()=>musSetMin(true), restore:()=>musSetMin(false),
+                         get removed(){ return musOff; }, removeWidget:()=>musSetOff(true), showWidget:()=>musSetOff(false),
                          play:playAudio, pause:pauseAudio, next:()=>loadTrack(trackIndex+1,true),
                          prev:()=>{ if(audio.currentTime > 3){ audio.currentTime = 0; return; } loadTrack(trackIndex-1,true); },
                          // Nov 2026, for the Music page
@@ -40931,6 +40963,7 @@ const FHBG = (function(){
   .ex-chip.on{background:var(--gold); color:var(--on-gold); border-color:var(--gold);}
   .ex-in{padding:9px 12px; background:rgba(0,0,0,.45); border:1px solid var(--line); color:var(--txt); font:16px var(--font-body);}
   .ex-tools .ex-in[type=search]{flex:1; min-width:180px;}
+  .ex-promorow{padding:0 0 14px; border-bottom:1px solid var(--line);}
   .ex-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px;}
   .ex-card{position:relative; display:flex; flex-direction:column; gap:8px; padding:14px; border:1px solid var(--line); background:linear-gradient(160deg,rgba(26,26,32,.92),rgba(10,10,14,.92)); cursor:pointer; text-align:left; color:var(--txt); font:inherit;}
   .ex-card:hover{border-color:var(--gold);}
@@ -41159,6 +41192,29 @@ const FHBG = (function(){
       (p.data || []).forEach(r => { X.faces['promotion:' + r.id] = { img:r.logo_url || '', col:r.color || '' }; });
     }catch(e){}
   }
+  /* which promotion each stock belongs to, for the promotion row on the Market (WCA = WCA's own wrestlers and factions) */
+  X.promo = 'all'; X.promos = []; X.pmap = {};
+  async function loadPromos(){
+    if(!hasSb() || X.promosDone) return;
+    X.promosDone = true;
+    try{
+      const [p, r, f] = await Promise.all([
+        sb.from('promotions').select('id,name,short_name,color,status').eq('status', 'approved').order('name'),
+        sb.from('promotion_roster').select('id,promotion_id').limit(5000),
+        sb.from('promotion_factions').select('id,promotion_id').limit(5000)]);
+      X.promos = (p.data || []).map(x => ({ id:x.id, name:x.name, short:(x.short_name || '').trim() || x.name, col:x.color || '' }));
+      (r.data || []).forEach(x => { X.pmap['promo_char:' + x.id] = x.promotion_id; });
+      (f.data || []).forEach(x => { X.pmap['promo_team:' + x.id] = x.promotion_id; });
+    }catch(e){ X.promosDone = false; }
+  }
+  // 'wca' for WCA's own stocks, a promotion id for theirs
+  function promoOf(s){
+    if(s.kind === 'wrestler' || s.kind === 'faction') return 'wca';
+    if(s.kind === 'promotion') return String(s.ref_id);
+    if(s.promotion_id != null) return String(s.promotion_id);
+    const v = X.pmap[s.kind + ':' + s.ref_id];
+    return v == null ? '' : String(v);
+  }
   const stockById = id => (X.board || []).find(s => String(s.id) === String(id));
   const WEEK = 7 * 864e5;
   // % change over the last 7 days (from the last price before the week started)
@@ -41201,7 +41257,7 @@ const FHBG = (function(){
     if(!X.board) host.innerHTML = '<div class="loading">Loading the Exchange…</div>';
     let qs = ''; try{ qs = wcaRoute().qs || ''; }catch(e){}
     const m = qs.match(/(?:^|&)s=(\d+)/); const g = /(?:^|&)guide=1/.test(qs);
-    await Promise.all([loadBoard(true), loadMe(), loadHist(), loadFaces()]);
+    await Promise.all([loadBoard(true), loadMe(), loadHist(), loadFaces(), loadPromos()]);
     let seen = null; try{ seen = localStorage.getItem('wca-ex-guide'); }catch(e){}
     if(m && stockById(m[1])){ X.stock = Number(m[1]); X.view = 'stock'; }
     else if(g || !seen){ X.view = 'guide'; try{ localStorage.setItem('wca-ex-guide', '1'); }catch(e){} }
@@ -41307,13 +41363,19 @@ const FHBG = (function(){
   function marketView(){
     let list = (X.board || []).slice();
     if(X.filter !== 'all') list = list.filter(s => (X.filter === 'wrestler' ? (s.kind === 'wrestler' || s.kind === 'promo_char') : X.filter === 'faction' ? (s.kind === 'faction' || s.kind === 'promo_team') : s.kind === X.filter));
+    // promotion row: a promotion (or WCA) shows only its own wrestlers and teams; its own company stock only under the Promotions button
+    if(X.promo !== 'all') list = list.filter(s => promoOf(s) === X.promo && (s.kind !== 'promotion' || X.filter === 'promotion'));
     if(X.q) list = list.filter(s => (s.name + ' ' + (s.ticker || '')).toLowerCase().indexOf(X.q.toLowerCase()) >= 0);
     const by = { price:(a, b) => b.price - a.price, up:(a, b) => chg(b) - chg(a), down:(a, b) => chg(a) - chg(b), owned:(a, b) => b.owned - a.owned, name:(a, b) => a.name.localeCompare(b.name),
       hot:(a, b) => busy(b) - busy(a) || Math.abs(chgWeek(b)) - Math.abs(chgWeek(a)), wup:(a, b) => chgWeek(b) - chgWeek(a), wdown:(a, b) => chgWeek(a) - chgWeek(b), recent:(a, b) => lastMove(b) - lastMove(a) };
     list.sort(by[X.sort] || by.price);
     const chips = [['all', 'All'], ['wrestler', 'Wrestlers'], ['faction', 'Factions'], ['promotion', 'Promotions']]
       .map(([k, t]) => `<button type="button" class="ex-chip${X.filter === k ? ' on' : ''}" data-f="${k}">${t}</button>`).join('');
-    const tools = `<div class="ex-tools">${chips}
+    const have = new Set((X.board || []).map(promoOf));
+    const prow = [['all', 'All promotions', ''], ['wca', 'WCA', '']].concat(X.promos.filter(p => have.has(String(p.id))).map(p => [String(p.id), p.short, p.name]))
+      .map(([k, t, full]) => `<button type="button" class="ex-chip${X.promo === k ? ' on' : ''}" data-pr="${E(k)}"${full && full !== t ? ` title="${E(full)}"` : ''}>${E(t)}</button>`).join('');
+    const tools = `<div class="ex-tools ex-promorow" role="group" aria-label="Pick a promotion">${prow}</div>
+      <div class="ex-tools">${chips}
       <select class="ex-in" id="ex-sort" aria-label="Sort">${[['hot', 'Hot right now (most activity)'], ['wup', 'Rising this week'], ['wdown', 'Falling this week'], ['recent', 'Moved most recently'], ['up', 'Risers since the last show'], ['down', 'Fallers since the last show'], ['price', 'Highest price'], ['owned', 'Most owned'], ['name', 'A to Z']].map(([k, t]) => `<option value="${k}"${X.sort === k ? ' selected' : ''}>${t}</option>`).join('')}</select>
       <input class="ex-in" type="search" id="ex-q" placeholder="Find a superstar" value="${E(X.q)}"></div>`;
     if(!(X.board || []).length) return tools + `<div class="ex-empty">No stocks are listed yet. They open after WCA sets the starting prices.</div>`;
@@ -41402,6 +41464,7 @@ const FHBG = (function(){
     const host = $('ex-body'); if(!host) return;
     host.querySelectorAll('[data-signin]').forEach(b => b.onclick = () => { if(typeof frSignIn === 'function') frSignIn(); });
     host.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { X.filter = b.dataset.f; draw(); });
+    host.querySelectorAll('[data-pr]').forEach(b => b.onclick = () => { X.promo = b.dataset.pr; draw(); });
     const pb = $('ex-pub'); if(pb) pb.onchange = async () => {
       pb.disabled = true;
       const r = await sb.rpc('ex_set_public', { p_show:pb.checked });
@@ -43173,7 +43236,7 @@ window.WU = (function(){
   }
   @media (prefers-reduced-motion:reduce){ .mu-eq{display:none;} }
   /* the widget steps aside while the big player is on screen */
-  body.mu-stage-on #sm-player.popped, body.mu-stage-on #mus-fab{display:none !important;}
+  body.mu-stage-on #sm-player.popped, body.mu-stage-on #mus-fab, body.mu-stage-on #mus-fab-x{display:none !important;}
 
   /* ── the music widget, Nov 2026: picture and name on top, seek bar, then the buttons ── */
   .mus-now{display:flex; align-items:center; gap:10px; min-width:0;}
@@ -43212,9 +43275,9 @@ window.WU = (function(){
   html[data-design="fight"] #sm-player .sm-tbtn.sm-play{width:66px; height:46px; color:var(--on-gold, #141008); background:var(--gold); border:0; filter:drop-shadow(0 0 10px rgba(var(--gold-rgb),.55));
     clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);}
   html[data-design="fight"] #sm-player .sm-tbtn.sm-play i{font-size:24px;}
-  html[data-design="fight"] #sm-player .sm-tbtn.mus-min,
+  html[data-design="fight"] #sm-player .sm-tbtn.mus-min, html[data-design="fight"] #sm-player .sm-tbtn.mus-x,
   html[data-design="fight"] #sm-player .sm-tbtn.mus-list{width:38px; height:32px;}
-  html[data-design="fight"] #sm-player .sm-tbtn.mus-min i, html[data-design="fight"] #sm-player .sm-tbtn.mus-list i{font-size:17px;}
+  html[data-design="fight"] #sm-player .sm-tbtn.mus-min i, html[data-design="fight"] #sm-player .sm-tbtn.mus-x i, html[data-design="fight"] #sm-player .sm-tbtn.mus-list i{font-size:17px;}
   html[data-design="fight"] #sm-player .sm-vol{width:56px; height:6px; border-radius:0; transform:skewX(-20deg);}
   html[data-design="fight"] #sm-player .sm-vol::-webkit-slider-thumb{width:10px; height:18px; border-radius:0;}
   html[data-design="fight"] #sm-player .sm-vol::-moz-range-thumb{width:10px; height:18px; border-radius:0;}
@@ -43348,6 +43411,7 @@ window.WU = (function(){
         <button type="button" class="mu-chip" data-s="wca"><span>WCA Soundtrack<small id="mu-c-wca"></small></span></button>
         <button type="button" class="mu-chip" data-s="fun"><span>Fun Tracks<small id="mu-c-fun"></small></span></button>
         <button type="button" class="mu-cta" id="mu-shufall"><i class="ti ti-arrows-shuffle"></i> Shuffle all</button>
+        <button type="button" class="mu-cta" id="mu-widget" hidden><i class="ti ti-music"></i> Show the music widget again</button>
         <label class="mu-search"><i class="ti ti-search"></i><input id="mu-q" type="search" placeholder="Search a wrestler or song" autocomplete="off"></label>
       </div>
       <div id="mu-list"><div class="mu-empty">Loading the songs…</div></div>
@@ -43359,6 +43423,11 @@ window.WU = (function(){
     $m('mu-prev').onclick = () => { const mm = M(); if(mm) mm.prev(); };
     $m('mu-shuf').onclick = () => { const mm = M(); if(mm) mm.setShuffle(!mm.shuffle); };
     $m('mu-rep').onclick  = () => { const mm = M(); if(mm) mm.cycleRepeat(); };
+    const wb = $m('mu-widget');
+    const syncW = () => { const mm = M(); if(wb) wb.hidden = !(mm && mm.removed); };
+    if(wb) wb.onclick = () => { const mm = M(); if(mm) mm.showWidget(); syncW(); if(typeof wcaToast === 'function') wcaToast('Music widget is back', 'It will show on every page again.'); };
+    document.addEventListener('wca-music', e => { if(e.detail && e.detail.type === 'widget') syncW(); });
+    syncW();
     $m('mu-shufall').onclick = () => { const mm = M(); if(!mm) return; if(!mm.shuffle) mm.setShuffle(true); mm.next(); };
     $m('mu-bar').onclick = e => { const mm = M(); if(!mm) return; const r = e.currentTarget.getBoundingClientRect(); mm.seek((e.clientX - r.left) / r.width); };
     $m('mu-volr').oninput = e => { const mm = M(); if(mm) mm.setVolume(parseFloat(e.target.value) || 0); syncVol(); };
