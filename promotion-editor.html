@@ -8908,6 +8908,109 @@ let sb = supabase.createClient('https://dmfbhszvrbaknaevdhxh.supabase.co', 'sb_p
   auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false, flowType:'pkce' }
 });
 </script>
+<style id="tbx-css">
+/* ===================== TOURNAMENTS (bracket) ===================== */
+.tbx{--tbx-bg:var(--panel,#15151a);--tbx-bg2:var(--bg2,#100f12);--tbx-line:var(--line,#2c2c36);--tbx-txt:var(--txt,var(--text,#f2f2f0));--tbx-muted:var(--muted,#8d8a82);--tbx-acc:var(--gold,#E9B949);
+  color:var(--tbx-txt);font-family:var(--font-body,'Barlow',system-ui,sans-serif);margin:18px 0 22px;display:flex;flex-direction:column;gap:14px}
+.tbx-head{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:flex-end}
+.tbx-kicker{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--tbx-acc)}
+.tbx-name{font-family:var(--font-display,'Anton',sans-serif);font-size:34px;line-height:1.05;text-transform:uppercase}
+.tbx-sub{font-size:16px;color:var(--tbx-muted);margin-top:4px}
+.tbx-next{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.tbx-next span{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:600;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tbx-muted)}
+.tbx-next b{font-family:var(--font-display,'Anton',sans-serif);font-weight:400;font-size:26px;line-height:1.05;text-transform:uppercase;color:var(--tbx-acc);text-align:right}
+.tbx-tabs{display:flex;gap:24px;border-bottom:1px solid var(--tbx-line)}
+.tbx-tabs button{background:none;border:0;border-bottom:3px solid transparent;color:var(--tbx-muted);padding:8px 2px;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:19px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;min-height:44px}
+.tbx-tabs button.on{color:var(--tbx-txt);border-bottom-color:var(--tbx-acc)}
+.tbx-box{position:relative;background:var(--tbx-bg2);border:1px solid var(--tbx-line);border-radius:10px}
+.tbx-scroll{overflow:auto;max-height:1100px;border-radius:10px 10px 0 0}
+.tbx-stage{position:relative;margin:0 auto}
+.tbx-seg{position:absolute;border-radius:2px}
+.tbx-sock{position:absolute;box-sizing:border-box;border:2px dashed #5b4b7c;border-radius:4px;background:rgba(18,11,29,.6)}
+.tbx-tag{position:absolute;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:#E9B949;white-space:nowrap}
+.tbx-home{position:absolute;display:flex;align-items:center;gap:8px}
+.tbx-home .slot{box-sizing:border-box;flex:none;border:2px dashed #4a3d63;border-radius:4px}
+.tbx-home .nm{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbx-home.side .nm{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:19px;text-transform:uppercase;width:160px}
+.tbx-home.out .nm{color:var(--tbx-muted)}
+.tbx-sq{position:absolute;box-sizing:border-box;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:5;transition-property:left,top,opacity,filter,border-color,box-shadow;transition-timing-function:linear}
+.tbx-sq img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tbx-sq .ini{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-style:italic;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.55);position:relative}
+.tbx-sq .halves{position:absolute;inset:0;display:flex}
+.tbx-sq .halves span{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-style:italic;font-weight:800;color:#fff;font-size:20px}
+.tbx-sq.out{opacity:.4;filter:grayscale(1)}
+.tbx-champ{position:absolute;display:flex;align-items:center;gap:12px;z-index:5;transition-property:left,top;transition-timing-function:linear}
+.tbx-champ.col{flex-direction:column-reverse;gap:4px}
+.tbx-champ .cbox{position:relative;box-sizing:border-box;border:4px solid #E9B949;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;flex:none;transition:opacity .4s,filter .4s,box-shadow .4s}
+.tbx-champ .cbox img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tbx-champ .clab{display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+.tbx-champ.col .clab{align-items:center;text-align:center}
+.tbx-champ .clab small{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:#E9B949}
+.tbx-champ .clab b{font-size:16px}
+.tbx-champ.out .cbox{opacity:.4;filter:grayscale(1)}
+.tbx-wtag{position:absolute;width:200px;text-align:center;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:17px;letter-spacing:1.5px;text-transform:uppercase;color:#E9B949}
+.tbx-arrow{position:absolute;top:220px;width:52px;height:52px;border-radius:50%;border:2px solid #e8e2f5;background:rgba(18,11,29,.85);color:#f4f0fa;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:6;font-size:24px}
+.tbx-arrow.l{left:10px}.tbx-arrow.r{right:10px}
+.tbx-replay{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding:12px;border-top:1px solid var(--tbx-line);background:var(--tbx-bg);border-radius:0 0 10px 10px}
+.tbx-replay button{min-height:44px;padding:0 14px;border-radius:6px;background:transparent;border:1px solid var(--tbx-line);color:var(--tbx-txt);font-weight:700;font-size:16px;cursor:pointer;font-family:inherit}
+.tbx-replay button:disabled{opacity:.4;cursor:default}
+.tbx-replay span{min-width:190px;text-align:center;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:700;font-size:17px;letter-spacing:1px;text-transform:uppercase;color:var(--tbx-muted)}
+.tbx-demo{border:1px dashed #5b4b7c;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--tbx-bg)}
+.tbx-demo h4{margin:0;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-size:19px;letter-spacing:1px;text-transform:uppercase}
+.tbx-demo p{margin:0;color:var(--tbx-muted);font-size:15px}
+.tbx-demo .rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px}
+.tbx-demo .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--tbx-line);border-radius:6px}
+.tbx-demo .row b{font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--tbx-muted);min-width:140px}
+.tbx-demo button{min-height:40px;padding:0 12px;border-radius:6px;border:1px solid var(--tbx-line);background:transparent;color:var(--tbx-txt);font-weight:600;font-size:15px;cursor:pointer;font-family:inherit}
+.tbx-demo button.go{background:var(--tbx-acc);color:#15120a;border:0}
+/* editor */
+.tbe{--tbx-line:var(--line,#2c2c36);--tbx-muted:var(--muted,#8d8a82);--tbx-acc:var(--gold,#E9B949);display:flex;flex-direction:column;gap:16px;color:var(--txt,var(--text,#f2f2f0));font-size:16px}
+.tbe-card{border:1px solid var(--tbx-line);border-radius:10px;padding:16px;background:var(--panel,#15151a);display:flex;flex-direction:column;gap:12px}
+.tbe h3{margin:0;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-size:22px;letter-spacing:1px;text-transform:uppercase}
+.tbe p.note{margin:0;color:var(--tbx-muted);font-size:15px}
+.tbe-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.tbe label.f{display:flex;flex-direction:column;gap:5px;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:600;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--tbx-muted);flex:1 1 200px}
+.tbe input[type=text],.tbe select{height:44px;padding:0 10px;background:var(--bg,#0b0b0d);border:1px solid var(--tbx-line);border-radius:6px;color:inherit;font-size:16px;font-family:inherit;text-transform:none;letter-spacing:0}
+.tbe input[type=color]{width:40px;height:40px;padding:2px;border:1px solid var(--tbx-line);border-radius:6px;background:var(--bg,#0b0b0d);cursor:pointer;flex:none}
+.tbe label.chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.tbe label.chk input{width:20px;height:20px;margin-top:2px;flex:none}
+.tbe label.chk small{display:block;color:var(--tbx-muted);font-size:15px}
+.tbe button{min-height:42px;padding:0 14px;border-radius:6px;border:1px solid var(--tbx-line);background:transparent;color:inherit;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit}
+.tbe button.go{background:var(--tbx-acc);color:#15120a;border:0}
+.tbe button.bad{border-color:#E24B4A;color:#E24B4A}
+.tbe button:disabled{opacity:.45;cursor:default}
+.tbe-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.tbe-item{text-align:left;padding:14px;border:1px solid var(--tbx-line);border-radius:8px;background:var(--panel,#15151a);display:flex;flex-direction:column;gap:4px;min-height:auto}
+.tbe-item b{font-size:18px}
+.tbe-item small{color:var(--tbx-muted);font-size:15px;font-weight:500}
+.tbe-ents{display:flex;flex-direction:column;gap:6px}
+.tbe-ent{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--tbx-line);border-radius:6px}
+.tbe-ent .seed{width:28px;font-weight:700;color:var(--tbx-muted)}
+.tbe-ent .nm{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbe-ent button{min-height:36px;padding:0 10px}
+.tbe-round h4{margin:6px 0;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-size:17px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tbx-muted)}
+.tbe-match{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid var(--tbx-line);border-radius:8px;margin-bottom:8px}
+.tbe-match .who{flex:1 1 260px;display:flex;flex-direction:column;gap:2px}
+.tbe-match .who span{font-weight:600}
+.tbe-match .who span.won{color:#3ECF8E}
+.tbe-match .who span.lost{color:var(--tbx-muted);text-decoration:line-through}
+.tbe-match .st{color:var(--tbx-muted);font-size:15px}
+.tbe-msg{font-size:15px;color:var(--tbx-muted)}
+.tbe-msg.err{color:#E24B4A}.tbe-msg.ok{color:#3ECF8E}
+.tbx-wb{border:1px solid var(--tbx-line);border-radius:10px;padding:16px;background:var(--tbx-bg);display:flex;flex-direction:column;gap:10px}
+.tbx-wb h4{margin:0;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-size:22px;letter-spacing:1px;text-transform:uppercase}
+.tbx-wb p{margin:0;font-size:16px;color:var(--tbx-muted)}
+.tbx-wb p b{color:var(--tbx-txt)}
+.tbx-wb-picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.tbx-wb-pick{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border:2px solid var(--tbx-line);border-radius:8px;background:transparent;color:var(--tbx-txt);cursor:pointer;text-align:left;font-family:inherit;min-height:44px}
+.tbx-wb-pick b{font-size:17px}.tbx-wb-pick small{font-size:15px;color:var(--tbx-muted)}
+.tbx-wb-pick.on{border-color:var(--tbx-acc);background:rgba(233,185,73,.08)}
+.tbx-wb-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.tbx-wb-row label{display:flex;flex-direction:column;gap:5px;font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-weight:600;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--tbx-muted)}
+.tbx-wb-row input{height:46px;width:180px;padding:0 12px;background:var(--bg,#0b0b0d);border:1px solid var(--tbx-line);border-radius:6px;color:var(--tbx-txt);font-size:17px;font-family:inherit}
+.tbx-wb-row button{height:46px;padding:0 20px;border-radius:6px;border:0;background:var(--tbx-acc);color:#15120a;font-weight:700;font-size:17px;cursor:pointer;font-family:inherit}
+.tbx-wb-msg{min-height:1px}.tbx-wb-msg.err{color:#E24B4A}.tbx-wb-msg.ok{color:#3ECF8E}
+</style>
 </head>
 <body class="pe">
 <header class="pe-top">
@@ -22826,6 +22929,7 @@ function peEventHTML(S, e){
       <div class="pe-evh-r">${links.length ? `<div class="pe-evlinks">${links.join('')}</div>` : ''}</div>
     </header>
     ${e.about ? `<div class="pe-evabout">${esc(e.about)}</div>` : ''}
+    <div class="tbx-host" data-kind="promo" data-ev="${Number(e.id)}" data-card="#pe-ev-${Number(e.id)} .pe-card"></div>
     ${ms.length ? `<ol class="pe-card">${ms.map((m, i) => peMatchHTML(S, e, m, i, ms.length)).join('')}</ol>` : '<div class="pe-empty" style="margin-top:10px">The card is coming soon.</div>'}
   </article>`;
 }
@@ -23083,7 +23187,7 @@ function mpeDraw(){
   box.innerHTML = `<div class="pm-card mpe pe">
     <div class="mpe-head"><div><div class="pm-h3">Events</div>
       <p class="pm-p">Your shows and their cards. Save a show as a Draft while you build the card, then set it to Upcoming and it shows on your page and in Events, and your followers get a notification. Open betting on each match, lock it when the match starts, then set the winner and everyone is paid at once.</p></div>
-      <button type="button" class="spc-post-btn" onclick="mpeNew()"><i class="ti ti-plus"></i> New show</button></div>
+      <span style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="spc-ghost-btn" onclick="mpeTournaments()"><i class="ti ti-tournament" aria-hidden="true"></i> Tournaments</button><button type="button" class="spc-post-btn" onclick="mpeNew()"><i class="ti ti-plus"></i> New show</button></span></div>
     <div class="mpe-grid">
       <aside class="mpe-list">${list.length ? list.map(e => `<button type="button" class="mpe-show${e.id === MPE.cur ? ' on' : ''}" onclick="mpePick(${Number(e.id)})"><b>${(() => { const b = (MPE.brands || []).find(x => String(x.id) === String(e.brand_id)); return b ? brChip(b) + ' ' : ''; })()}${esc(e.name)}</b><small>${esc(peStatusLabel(e.status))}${e.event_date ? ', ' + esc(peWhen(e.event_date)) : ''}</small></button>`).join('')
         : '<div class="pe-empty">No shows yet. Press New show to make your first one.</div>'}
@@ -23091,6 +23195,7 @@ function mpeDraw(){
       <div class="mpe-main">${MPE.cur ? mpeShowForm(ev) + (ev ? mpeCardHTML(ev) : '') : '<div class="pe-empty">Pick a show on the left, or press New show.</div>'}</div>
     </div></div>`;
 }
+function mpeTournaments(){ if(!MPE.box) return; tbxEditorOpen(MPE.box, { kind:'promo', pid:MPE.pid, back:() => mpeDraw() }); }
 function mpeNew(){ MPE.cur = 'new'; MPE.matches = []; MPE.edit = null; mpeDraw(); const n = pmEl('mpe_name'); if(n) n.focus(); }
 async function mpePick(id){ MPE.cur = id; MPE.edit = null; await mpeLoadCard(); mpeDraw(); }
 function mpeShowForm(ev){
@@ -26243,6 +26348,931 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
   }
   sb.auth.onAuthStateChange(function(ev){ if(ev === 'SIGNED_OUT') location.reload(); });
 })();
+</script>
+<script id="tbx-js">
+/* ===================== TOURNAMENTS (bracket) =====================
+   SQL: WCA Tournaments (SUPABASE_SETUP_tournaments.sql).
+   A tournament is a list of entrants in seed order plus a few settings; the
+   bracket's shape is worked out here, the same way on the site, in admin and in
+   the promotion editor. Each bracket match can be linked to a real match on a
+   show card, so its winner comes from the normal results (match_betting for WCA,
+   promotion_matches for promotions). A winner can also be set by hand.
+   Fans see each person's own square: it only moves when they win (it climbs its
+   line) or lose (it drops back to where it started and dims). */
+const TBX = { cache:{}, palette:['#ff6fb5','#4fd1ff','#ffd23f','#7cf29a','#c792ff','#ff9e57','#5ce1e6','#ff6b6b','#a3e635','#f472b6','#60a5fa','#fbbf24','#34d399','#e879f9','#f87171','#38bdf8'] };
+function tbxEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function tbxIni(name){ const w = String(name || '?').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).filter(Boolean); if(!w.length) return '?'; return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase(); }
+function tbxColor(t, i){ const e = (t.entrants || [])[i]; return e && /^#[0-9a-f]{6}$/i.test(e.color || '') ? e.color : TBX.palette[i % TBX.palette.length]; }
+function tbxFill(hex){ const h = String(hex || '#888888').replace('#', ''); const n = parseInt(h, 16); const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return 'rgb(' + Math.round(r * .38) + ',' + Math.round(g * .38) + ',' + Math.round(b * .38) + ')'; }
+function tbxSb(){ return (typeof sb !== 'undefined' && sb) ? sb : null; }
+
+/* ---------- the bracket's shape ---------- */
+function tbxPlan(n, mode){
+  if(!(n >= 2)) return null;
+  const leaves = [], leafSide = [], levels = [null];
+  if(mode !== 'triples'){
+    let M = 2;
+    while(M < n) M *= 2;
+    let order = [1, 2];
+    while(order.length < M){ const len = order.length, nx = []; order.forEach(s => { nx.push(s); nx.push(2 * len + 1 - s); }); order = nx; }
+    const slots = order.map(s => (s <= n ? s - 1 : null)), at = {};
+    slots.forEach((e, s) => { if(e != null){ at[s] = leaves.length; leaves.push(e); leafSide.push(s < M / 2 ? 0 : 1); } });
+    const l1 = [];
+    for(let j = 0; j < M / 2; j++) l1.push({ kids:[2 * j, 2 * j + 1].filter(s => slots[s] != null).map(s => at[s]) });
+    levels.push(l1);
+    let prev = l1;
+    while(prev.length > 1){ const nx = []; for(let j = 0; j < prev.length / 2; j++) nx.push({ kids:[2 * j, 2 * j + 1] }); levels.push(nx); prev = nx; }
+  } else {
+    const half = Math.ceil(n / 2);
+    const build = c => { const lv = []; while(c > 1){ const g = []; for(let p = 0; p < Math.floor(c / 2); p++) g.push({ kids:[2 * p, 2 * p + 1] }); if(c % 2) g[g.length - 1].kids.push(c - 1); lv.push(g); c = g.length; } return lv; };
+    const A = build(half), B = build(n - half);
+    while(A.length < B.length) A.push([{ kids:[0] }]);
+    while(B.length < A.length) B.push([{ kids:[0] }]);
+    for(let i = 0; i < n; i++){ leaves.push(i); leafSide.push(i < half ? 0 : 1); }
+    for(let d = 0; d < A.length; d++){
+      const off = d === 0 ? half : A[d - 1].length;
+      levels.push(A[d].map(g => ({ kids:g.kids.slice() })).concat(B[d].map(g => ({ kids:g.kids.map(x => x + off) }))));
+    }
+    levels.push([{ kids:[0, 1] }]);
+  }
+  const parent = levels.map(() => ({}));
+  for(let k = 1; k < levels.length; k++) levels[k].forEach((g, j) => g.kids.forEach(ci => { parent[k - 1][ci] = j; }));
+  return { n, leaves, leafSide, levels, parent, L:levels.length - 1 };
+}
+function tbxIsBye(P, k, j){ return k > 0 && P.levels[k][j].kids.length === 1; }
+function tbxEnt(P, res, k, j){
+  if(k === 0) return P.leaves[j];
+  const g = P.levels[k][j];
+  if(g.kids.length === 1) return tbxEnt(P, res, k - 1, g.kids[0]);
+  const r = res[k + '-' + j];
+  return r == null ? null : tbxEnt(P, res, k - 1, g.kids[r]);
+}
+function tbxNextMatch(P, k, j){ while(k < P.L){ j = P.parent[k][j]; k++; if(!tbxIsBye(P, k, j)) return { k, j }; } return null; }
+function tbxRoundName(P, k, j, tags){
+  let idx = 0, total = 0;
+  P.levels[k].forEach((g, i) => { if(g.kids.length > 1){ total++; if(i < j) idx++; } });
+  const num = total > 1 ? ' ' + (idx + 1) : '';
+  const tt = P.levels[k][j].kids.length === 3 ? (tags ? ', tornado tag' : ', triple threat') : '';
+  if(k === P.L) return 'Final' + tt;
+  if(k === P.L - 1) return 'Semifinal' + num + tt;
+  if(k === P.L - 2) return 'Quarterfinal' + num + tt;
+  return 'Round ' + k + num + tt;
+}
+/* every real match in play order, then the title match */
+function tbxKeys(P, champ){ const out = []; for(let k = 1; k <= P.L; k++) P.levels[k].forEach((g, j) => { if(g.kids.length > 1) out.push(k + '-' + j); }); if(champ) out.push('title'); return out; }
+
+/* ---------- winners: from the linked card match, or set by hand ---------- */
+function tbxSideLabel(s){
+  if(!s) return '';
+  const mem = (s.members || []).map(x => (x && typeof x === 'object') ? x.name : x).filter(Boolean);
+  return String(s.team_name || s.name || mem.join(' & ') || '').trim();
+}
+function tbxSideNames(s){
+  const mem = (s && s.members || []).map(x => (x && typeof x === 'object') ? x.name : x).filter(Boolean);
+  return [s && s.team_name, s && s.name].concat(mem).filter(Boolean).map(x => String(x).trim().toLowerCase());
+}
+/* which kid won, given the card match and its winning side number */
+function tbxKidFromSide(t, kidsEnts, sides, wi){
+  const s = sides && sides[wi];
+  if(s){
+    const names = tbxSideNames(s);
+    for(let i = 0; i < kidsEnts.length; i++){
+      const nm = kidsEnts[i] === 'champ' ? (t.champion && t.champion.name) : ((t.entrants[kidsEnts[i]] || {}).name);
+      if(nm && names.includes(String(nm).trim().toLowerCase())) return i;
+    }
+  }
+  return wi < kidsEnts.length ? wi : null;
+}
+/* results: key -> kid number, worked out round by round */
+function tbxResults(t, P, info){
+  const res = {};
+  info = info || {};
+  const keys = tbxKeys(P, !!t.champion);
+  keys.forEach(key => {
+    let kidsEnts;
+    if(key === 'title'){ const f = tbxEnt(P, res, P.L, 0); if(f == null) return; kidsEnts = [f, 'champ']; }
+    else {
+      const [k, j] = key.split('-').map(Number);
+      kidsEnts = P.levels[k][j].kids.map(ci => tbxEnt(P, res, k - 1, ci));
+      if(kidsEnts.some(e => e == null)) return;
+    }
+    const link = (t.links || {})[key];
+    const m = link && info[String(link.match_id)];
+    if(m && m.winner != null){ const w = tbxKidFromSide(t, kidsEnts, m.sides, m.winner); if(w != null){ res[key] = w; return; } }
+    const man = (t.manual || {})[key];
+    if(man != null && man < kidsEnts.length) res[key] = Number(man);
+  });
+  return res;
+}
+/* the card matches a tournament points at, with their winners */
+async function tbxLoadInfo(t){
+  const S = tbxSb(), info = {};
+  if(!S) return info;
+  const links = Object.values(t.links || {}).filter(l => l && l.match_id != null);
+  if(!links.length) return info;
+  const ids = links.map(l => Number(l.match_id));
+  try{
+    if(t.promotion_id){
+      const r = await S.from('promotion_matches').select('id,event_id,slot,sides,winner_idx,bet_status').in('id', ids);
+      (r.data || []).forEach(m => { let sd = m.sides; if(typeof sd === 'string'){ try{ sd = JSON.parse(sd); }catch(e){ sd = []; } } info[String(m.id)] = { event_id:m.event_id, slot:m.slot, sides:sd || [], winner:m.winner_idx != null ? Number(m.winner_idx) : null, status:m.bet_status }; });
+    } else {
+      const r = await S.from('event_matches').select('id,event_id,slot,sides').in('id', ids);
+      const rows = r.data || [], evs = [...new Set(rows.map(m => m.event_id))];
+      const b = evs.length ? await S.from('match_betting').select('event_id,slot,status,winner_idx').in('event_id', evs) : { data:[] };
+      const bet = {};
+      (b.data || []).forEach(x => { bet[x.event_id + ':' + x.slot] = x; });
+      rows.forEach(m => { let sd = m.sides; if(typeof sd === 'string'){ try{ sd = JSON.parse(sd); }catch(e){ sd = []; } } const x = bet[m.event_id + ':' + m.slot] || {}; info[String(m.id)] = { event_id:m.event_id, slot:m.slot, sides:sd || [], winner:x.winner_idx != null ? Number(x.winner_idx) : null, status:x.status || null }; });
+    }
+  }catch(e){}
+  return info;
+}
+
+/* ---------- where everything sits ---------- */
+function tbxLayout(P, view, champOn){
+  const pos = P.levels.map(() => []);
+  let W, H, champ, Q, apex = null;
+  if(view === 'climb'){
+    Q = 88;
+    const PX = 134, G = 24, yAt = k => 170 + (P.L - k) * 150 + (champOn ? 150 : 0), Y0 = yAt(1) + 150;
+    let x = 60;
+    P.levels[1].forEach(g => { g.kids.forEach(i => { pos[0][i] = { x:x + PX / 2, y:Y0, h:Q / 2, side:P.leafSide[i] }; x += PX; }); x += G; });
+    W = x + 40; H = Y0 + Q / 2 + 60;
+    for(let k = 1; k <= P.L; k++) P.levels[k].forEach((g, j) => {
+      if(g.kids.length === 1){ pos[k][j] = Object.assign({}, pos[k - 1][g.kids[0]], { bye:true }); return; }
+      const xs = g.kids.map(i => pos[k - 1][i].x);
+      pos[k][j] = { x:xs.reduce((a, b) => a + b, 0) / xs.length, y:yAt(k), h:Q / 2, side:k === P.L ? 2 : pos[k - 1][g.kids[0]].side };
+    });
+    if(champOn){
+      const need = 800 - W;
+      if(need > 0){ pos.forEach(lv => lv.forEach(p => { if(p) p.x += need / 2; })); W += need; }
+      const fz = pos[P.L][0], mid = W / 2;
+      fz.x = mid - 85;
+      champ = { x:mid + 85, y:fz.y, h:Q / 2 };
+      apex = { x:mid, y:fz.y - 150, h:Q / 2 };
+    } else champ = { x:0, y:0, h:Q / 2 };
+  } else {
+    Q = 56;
+    const PV = 74, G = 16, COL = 130, LX = 40 + 170 + Q / 2;
+    W = 2 * (LX + Math.max(1, P.L - 1) * COL + 160);
+    const cur = champOn ? [270, 270] : [60, 60];
+    P.levels[1].forEach(g => {
+      const side = P.leafSide[g.kids[0]];
+      g.kids.forEach(i => { pos[0][i] = { x:side ? W - LX : LX, y:cur[side] + PV / 2, h:Q / 2, side }; cur[side] += PV; });
+      cur[side] += G;
+    });
+    H = Math.max(cur[0], cur[1]) + 40;
+    for(let k = 1; k <= P.L; k++) P.levels[k].forEach((g, j) => {
+      if(g.kids.length === 1){ pos[k][j] = Object.assign({}, pos[k - 1][g.kids[0]], { bye:true }); return; }
+      const ys = g.kids.map(i => pos[k - 1][i].y), y = ys.reduce((a, b) => a + b, 0) / ys.length;
+      if(k === P.L){ pos[k][j] = { x:W / 2, y, h:Q / 2, side:2 }; return; }
+      const side = pos[k - 1][g.kids[0]].side;
+      pos[k][j] = { x:side ? W - LX - k * COL : LX + k * COL, y, h:Q / 2, side };
+    });
+    champ = { x:W / 2, y:pos[P.L][0].y - 190, h:45 };
+  }
+  return { pos, W, H, champ, apex, Q, view };
+}
+function tbxRoute(Lay, c, p){
+  const Q = Lay.Q;
+  if(Lay.view === 'climb'){ const bar = p.y + Q + 4; return [{ x:c.x, y:c.y - c.h }, { x:c.x, y:bar }, { x:p.x, y:bar }, { x:p.x, y:p.y + p.h }]; }
+  const dir = p.x > c.x ? 1 : -1, cE = c.x + dir * c.h, pE = p.x - dir * p.h, bx = pE - dir * (Q / 2 + 4);
+  return [{ x:cE, y:c.y }, { x:bx, y:c.y }, { x:bx, y:p.y }, { x:pE, y:p.y }];
+}
+function tbxApproach(Lay, P, k, c, p){
+  const r = tbxRoute(Lay, c, p);
+  if(Lay.view === 'climb') return [r[0], r[1], { x:p.x, y:r[1].y }];
+  return k === P.L ? [r[0], r[1], r[2], r[3]] : [r[0], r[1], r[2]];
+}
+function tbxTitleRoutes(P, Lay){
+  const f = Lay.pos[P.L][0], ch = Lay.champ;
+  if(Lay.view === 'climb'){
+    const a = Lay.apex, bar = a.y + a.h + 30;
+    const chalFull = [{ x:f.x, y:f.y - f.h }, { x:f.x, y:bar }, { x:a.x, y:bar }, { x:a.x, y:a.y + a.h }];
+    const champFull = [{ x:ch.x, y:ch.y - ch.h }, { x:ch.x, y:bar }, { x:a.x, y:bar }, { x:a.x, y:a.y + a.h }];
+    return { chalFull, champFull, chalApproach:chalFull.slice(0, 3), champApproach:champFull.slice(0, 3), chalMove:[{ x:f.x, y:f.y }, chalFull[1], chalFull[2], { x:a.x, y:a.y }], champMove:[{ x:ch.x, y:ch.y }, champFull[1], champFull[2], { x:a.x, y:a.y }] };
+  }
+  const top = { x:f.x, y:f.y - f.h }, bot = { x:ch.x, y:ch.y + ch.h }, mid = (top.y + bot.y) / 2;
+  return { chalFull:[top, bot], champFull:[], chalApproach:[top, { x:f.x, y:mid }], champApproach:[{ x:ch.x, y:mid }, bot], chalMove:[{ x:f.x, y:f.y }, { x:ch.x, y:ch.y }], champMove:null };
+}
+
+/* ---------- the fan bracket ----------
+   tbxMount(host, t, { info, cardEl, preview, onPick })
+   host:    where it goes        t:       the tournament row
+   cardEl:  the show's normal match card (gets a Bracket / Match card switch)
+   preview: admin or owner test mode: pick test winners, nothing is saved */
+function tbxMount(host, t, opts){
+  opts = opts || {};
+  if(host._tbx && host._tbx.destroy) host._tbx.destroy();   /* redrawn in the same spot: stop the old one first */
+  const P = tbxPlan((t.entrants || []).length, t.uneven);
+  if(!P){ host.innerHTML = ''; host._tbx = null; return null; }
+  const X = { t, P, opts, tok:{}, out:{}, res:{}, shown:{}, log:[], cursor:0, moving:0, timers:[], els:{} };
+  host._tbx = X;
+  const ents = (t.entrants || []).map((e, i) => ({ name:e.name || ('Entrant ' + (i + 1)), image:e.image || '', color:tbxColor(t, i), members:Array.isArray(e.members) ? e.members : [] }));
+  const champ = t.champion && t.champion.name ? { name:t.champion.name, image:t.champion.image || '', color:'#E9B949' } : null;
+  const tags = t.entrant_kind === 'tags';
+  X.ents = ents; X.champ = champ;
+  const full = tbxResults(t, P, opts.info);
+  X.full = full;
+  X.log = tbxKeys(P, !!champ).filter(k => full[k] != null).map(k => ({ key:k, w:full[k] }));
+  const viewOf = () => { const v = t.view_mode || 'auto'; if(v !== 'auto') return v; const wide = (host.clientWidth || window.innerWidth || 1200) >= 900; return P.n > 16 && wide ? 'side' : 'climb'; };
+  X.view = viewOf();
+  X.Lay = tbxLayout(P, X.view, !!champ);
+  const later = (fn, ms) => { if(X.dead) return; const id = setTimeout(() => { if(!X.dead) fn(); }, ms); X.timers.push(id); };
+  const live = () => X.cursor === X.log.length;
+
+  host.innerHTML = `<section class="tbx" aria-label="Tournament bracket">
+    <div class="tbx-head"><div><div class="tbx-kicker">Tournament</div><div class="tbx-name">${tbxEsc(t.name)}</div><div class="tbx-sub" data-r="sub"></div></div>
+      <div class="tbx-next"><span>Up next</span><b data-r="next"></b></div></div>
+    ${opts.cardEl ? `<div class="tbx-tabs" role="tablist"><button type="button" class="on" data-tab="bracket" role="tab" aria-selected="true">Bracket</button><button type="button" data-tab="card" role="tab" aria-selected="false">Match card</button></div>` : ''}
+    <div class="tbx-box" data-r="box"><div class="tbx-scroll" data-r="scroll"><div class="tbx-stage" data-r="stage"><div data-r="layer"></div></div></div>
+      <button type="button" class="tbx-arrow l" aria-label="Scroll the bracket left" data-r="left">&#8249;</button>
+      <button type="button" class="tbx-arrow r" aria-label="Scroll the bracket right" data-r="right">&#8250;</button>
+      <div class="tbx-replay"><button type="button" data-r="prev">&#8249; Previous match</button><span data-r="step"></span><button type="button" data-r="nextb">Next match &#8250;</button><button type="button" data-r="live">Jump to live</button></div></div>
+    ${!opts.preview && ['open', 'closed', 'settled'].includes(t.winner_bets) ? '<div class="tbx-wb" data-r="wb"></div>' : ''}
+    ${opts.preview ? `<div class="tbx-demo"><h4>Preview only: pick test winners</h4><p>Nothing here is saved. Use it to check the bracket and the animation before fans see it.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="go" data-r="auto">Play out the next round</button><button type="button" data-r="reset">Back to the real results</button></div><div class="rows" data-r="ready"></div></div>` : ''}
+  </section>`;
+  const $ = r => host.querySelector('[data-r="' + r + '"]');
+  const stage = $('stage'), layer = $('layer'), scroll = $('scroll');
+  stage.style.width = X.Lay.W + 'px'; stage.style.height = X.Lay.H + 'px';
+
+  /* each person's own square, made once so it can glide */
+  const Q = X.Lay.Q;
+  const homeIdx = {}; P.leaves.forEach((e, i) => { homeIdx[e] = i; });
+  ents.forEach((en, e) => {
+    const d = document.createElement('div');
+    d.className = 'tbx-sq';
+    d.style.width = d.style.height = Q + 'px';
+    d.style.background = tbxFill(en.color);
+    d.style.border = (Q > 70 ? 4 : 3) + 'px solid ' + en.color;
+    d.title = en.name;
+    if(en.image) d.innerHTML = `<img src="${tbxEsc(en.image)}" alt="" loading="lazy">`;
+    else if(tags && en.members.length >= 2) d.innerHTML = `<div class="halves"><span>${tbxEsc(tbxIni(en.members[0]))}</span><span style="border-left:2px solid ${en.color}">${tbxEsc(tbxIni(en.members[1]))}</span></div>`;
+    else d.innerHTML = `<span class="ini" style="font-size:${Math.round(Q * .36)}px">${tbxEsc(tbxIni(en.name))}</span>`;
+    const img = d.querySelector('img');
+    if(img) img.onerror = () => { img.remove(); d.insertAdjacentHTML('beforeend', `<span class="ini" style="font-size:${Math.round(Q * .36)}px">${tbxEsc(tbxIni(en.name))}</span>`); };
+    stage.appendChild(d);
+    X.els[e] = d;
+  });
+  if(champ){
+    const c = document.createElement('div');
+    const cs = X.Lay.champ.h * 2;
+    c.className = 'tbx-champ' + (X.view === 'climb' ? '' : ' col');
+    c.innerHTML = `<div class="cbox" style="width:${cs}px;height:${cs}px;background:${tbxFill('#E9B949')}">${champ.image ? `<img src="${tbxEsc(champ.image)}" alt="">` : `<span class="ini tbx-cini" style="font-family:var(--font-cond,'Barlow Condensed',sans-serif);font-style:italic;font-weight:800;color:#fff;font-size:${Math.round(cs * .36)}px">${tbxEsc(tbxIni(champ.name))}</span>`}</div><div class="clab"><small data-r="clabel">Defending champion</small><b>${tbxEsc(champ.name)}</b></div>`;
+    stage.appendChild(c);
+    X.els.champ = c;
+  }
+  const wtag = document.createElement('span'); wtag.className = 'tbx-wtag'; wtag.style.display = 'none'; stage.appendChild(wtag);
+
+  const placeSq = e => {
+    const el = X.els[e]; if(!el) return;
+    const t0 = X.tok[e] || (e === 'champ' ? { x:X.Lay.champ.x, y:X.Lay.champ.y, ms:0 } : (() => { const h = X.Lay.pos[0][homeIdx[e]]; return { x:h.x, y:h.y, ms:0 }; })());
+    if(e === 'champ'){
+      const h = X.Lay.champ.h;
+      if(X.view === 'climb'){ el.style.left = (t0.x - h) + 'px'; el.style.top = (t0.y - h) + 'px'; }
+      else { el.style.left = (t0.x - 110) + 'px'; el.style.top = (t0.y - h - 52) + 'px'; el.style.width = '220px'; }
+    } else { el.style.left = (t0.x - Q / 2) + 'px'; el.style.top = (t0.y - Q / 2) + 'px'; }
+    el.style.transitionDuration = t0.ms + 'ms, ' + t0.ms + 'ms, .4s, .4s, .4s, .4s';
+  };
+  const move = (e, pts, mul, done) => {
+    if(!pts || pts.length < 2){ if(done) done(); return; }
+    const sp = (opts.speed || 280) * (mul || 1);
+    X.moving++;
+    X.tok[e] = { x:pts[0].x, y:pts[0].y, ms:0 }; placeSq(e);
+    let i = 1;
+    const step = () => {
+      if(i >= pts.length){ X.moving--; paint(); if(done) done(); return; }
+      const a = pts[i - 1], b = pts[i], d = Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+      i++;
+      if(d < 1){ step(); return; }
+      const ms = Math.max(110, d / sp * 1000);
+      X.tok[e] = { x:b.x, y:b.y, ms }; placeSq(e);
+      if(scroll && e !== 'champ') { const L = Math.max(0, b.x - scroll.clientWidth / 2); if(Math.abs(scroll.scrollLeft - L) > 120) scroll.scrollTo({ left:L, behavior:'smooth' }); }
+      later(step, ms + 30);
+    };
+    later(step, 60);
+  };
+  const upPath = (k, j) => {
+    const pp = X.Lay.pos[k][j];
+    if(k === 0) return [{ x:pp.x, y:pp.y }];
+    if(tbxIsBye(P, k, j)) return upPath(k - 1, P.levels[k][j].kids[0]);
+    const ci = P.levels[k][j].kids[X.res[k + '-' + j]];
+    const r = tbxRoute(X.Lay, X.Lay.pos[k - 1][ci], pp);
+    return upPath(k - 1, ci).concat([r[1], r[2], { x:pp.x, y:pp.y }]);
+  };
+  const climbPath = (c, p) => { const r = tbxRoute(X.Lay, c, p); return [{ x:c.x, y:c.y }, r[1], r[2], { x:p.x, y:p.y }]; };
+  const shownEnt = (k, j) => (k === 0 || tbxIsBye(P, k, j)) ? tbxEnt(P, X.res, k, j) : (X.shown[k + '-' + j] ? tbxEnt(P, X.res, k, j) : null);
+
+  const applyResult = (key, w, mul, done) => {
+    if(key === 'title'){
+      const e = tbxEnt(P, X.res, P.L, 0), T = tbxTitleRoutes(P, X.Lay);
+      X.res.title = w;
+      if(w === 0) move(e, T.chalMove, mul, () => { X.shown.title = true; X.out.champ = true; paint(); if(done) done(); });
+      else {
+        let left = T.champMove ? 2 : 1;
+        const fin = () => { if(--left === 0){ X.shown.title = true; paint(); if(done) done(); } };
+        if(T.champMove) move('champ', T.champMove, mul, fin);
+        move(e, upPath(P.L, 0).reverse(), (mul || 1) * 2.2, () => { X.out[e] = true; fin(); });
+      }
+      paint(); return;
+    }
+    const [k, j] = key.split('-').map(Number), g = P.levels[k][j], p = X.Lay.pos[k][j];
+    const kidsE = g.kids.map(ci => tbxEnt(P, X.res, k - 1, ci));
+    X.res[key] = w; paint();
+    let left = g.kids.length;
+    const fin = () => { if(--left === 0 && done) done(); };
+    g.kids.forEach((ci, i) => {
+      const e = kidsE[i], c = X.Lay.pos[k - 1][ci];
+      if(i === w) move(e, climbPath(c, p), mul, () => { X.shown[key] = true; paint(); fin(); });
+      else move(e, upPath(k - 1, ci).reverse(), (mul || 1) * 2.2, () => { X.out[e] = true; paint(); fin(); });
+    });
+  };
+  const undoResult = (key, mul, done) => {
+    if(key === 'title'){
+      const e = tbxEnt(P, X.res, P.L, 0), T = tbxTitleRoutes(P, X.Lay), w = X.res.title;
+      X.shown.title = false; X.out[e] = false; X.out.champ = false; paint();
+      const fin2 = () => { delete X.res.title; paint(); if(done) done(); };
+      if(w === 0) move(e, T.chalMove.slice().reverse(), mul, fin2);
+      else { let left = T.champMove ? 2 : 1; const fin = () => { if(--left === 0) fin2(); }; if(T.champMove) move('champ', T.champMove.slice().reverse(), mul, fin); move(e, upPath(P.L, 0), (mul || 1) * 2.2, fin); }
+      return;
+    }
+    const [k, j] = key.split('-').map(Number), g = P.levels[k][j], p = X.Lay.pos[k][j], w = X.res[key];
+    const kidsE = g.kids.map(ci => tbxEnt(P, X.res, k - 1, ci));
+    X.shown[key] = false; kidsE.forEach(e => { X.out[e] = false; }); paint();
+    let left = g.kids.length;
+    const fin = () => { if(--left === 0){ delete X.res[key]; paint(); if(done) done(); } };
+    g.kids.forEach((ci, i) => {
+      const e = kidsE[i], c = X.Lay.pos[k - 1][ci];
+      if(i === w) move(e, climbPath(c, p).reverse(), mul, fin);
+      else move(e, upPath(k - 1, ci), (mul || 1) * 2.2, fin);
+    });
+  };
+  const isReady = (k, j) => P.levels[k][j].kids.length > 1 && X.res[k + '-' + j] == null && P.levels[k][j].kids.every(ci => shownEnt(k - 1, ci) != null);
+  const titleReady = () => !!champ && !!X.shown[P.L + '-0'] && X.res.title == null;
+  const stepBack = () => { if(X.moving || X.cursor === 0) return; const s = X.log[X.cursor - 1]; undoResult(s.key, 1, () => { X.cursor--; paint(); }); };
+  const stepFwd = (mul, done) => { if(X.moving || X.cursor >= X.log.length) return; const s = X.log[X.cursor]; applyResult(s.key, s.w, mul, () => { X.cursor++; remember(); paint(); if(done) later(done, 60); }); };
+  const toLive = () => { const go = () => { if(X.cursor < X.log.length) stepFwd(2.5, go); }; if(!X.moving) go(); };
+  const seenKey = 'tbxSeen:' + t.id;
+  const remember = () => { if(opts.preview) return; try{ localStorage.setItem(seenKey, String(Math.max(X.cursor, Number(localStorage.getItem(seenKey) || 0)))); }catch(e){} };
+
+  /* the still parts: lines, empty slots, names */
+  const paint = () => {
+    const L = X.Lay, base = '#5b4b7c', gold = '#E9B949', parts = [];
+    const seg = (pts, c, op, glow) => {
+      for(let i = 1; i < pts.length; i++){
+        const a = pts[i - 1], b = pts[i];
+        const fx = 'background:' + c + ';opacity:' + (op == null ? 1 : op) + (glow ? ';box-shadow:0 0 10px ' + c + ',0 0 4px ' + c : '');
+        if(Math.abs(a.x - b.x) < .5) parts.push(`<div class="tbx-seg" style="left:${a.x - 2}px;top:${Math.min(a.y, b.y)}px;width:4px;height:${Math.abs(b.y - a.y) + 2}px;${fx}"></div>`);
+        else parts.push(`<div class="tbx-seg" style="left:${Math.min(a.x, b.x)}px;top:${a.y - 2}px;width:${Math.abs(b.x - a.x) + 2}px;height:4px;${fx}"></div>`);
+      }
+    };
+    const lit = [], socks = [];
+    for(let k = 1; k <= P.L; k++) P.levels[k].forEach((g, j) => {
+      if(g.kids.length === 1) return;
+      const p = L.pos[k][j], key = k + '-' + j, r = X.res[key], done = !!X.shown[key];
+      const waiting = isReady(k, j) || (r != null && !done);
+      g.kids.forEach((ci, i) => {
+        const c = L.pos[k - 1][ci];
+        seg(tbxRoute(L, c, p), base);
+        const e = shownEnt(k - 1, ci);
+        if(e == null) return;
+        if(done && r === i) lit.push({ pts:tbxRoute(L, c, p), e });
+        else if(waiting || done) lit.push({ pts:tbxApproach(L, P, k, c, p), e, glow:waiting, faded:done });
+      });
+      const e = done ? tbxEnt(P, X.res, k, j) : null, nm = tbxNextMatch(P, k, j);
+      const passed = e != null && (nm ? (X.shown[nm.k + '-' + nm.j] && tbxEnt(P, X.res, nm.k, nm.j) === e) : (X.shown.title && X.res.title === 0));
+      if(passed) lit.push({ pts:L.view === 'climb' || k === P.L ? [{ x:p.x, y:p.y + p.h }, { x:p.x, y:p.y - p.h }] : [{ x:p.x - p.h, y:p.y }, { x:p.x + p.h, y:p.y }], e });
+      else if(e == null || X.out[e]) socks.push(`<div class="tbx-sock" style="left:${p.x - p.h}px;top:${p.y - p.h}px;width:${p.h * 2}px;height:${p.h * 2}px;${k === P.L ? 'border-color:' + gold : ''}"></div>`);
+      if(g.kids.length === 3) socks.push(L.view === 'climb' ? `<span class="tbx-tag" style="left:${p.x + p.h + 10}px;top:${p.y - 10}px">${tags ? 'Tornado tag' : 'Triple threat'}</span>` : `<span class="tbx-tag" style="left:${p.x - 60}px;top:${p.y - p.h - 24}px;width:120px;text-align:center">${tags ? 'Tornado tag' : 'Triple threat'}</span>`);
+    });
+    if(champ){
+      const T = tbxTitleRoutes(P, L);
+      seg(T.chalFull, base); if(T.champFull.length) seg(T.champFull, base);
+      const fw = X.shown[P.L + '-0'] ? tbxEnt(P, X.res, P.L, 0) : null;
+      if(fw != null){
+        const dec = !!X.shown.title, tw = X.res.title;
+        if(dec && tw === 0){ lit.push({ pts:T.chalFull, e:fw }); lit.push({ pts:T.champApproach, champ:true, faded:true }); }
+        else if(dec && tw === 1){ lit.push({ pts:T.champFull.length ? T.champFull : T.champApproach, champ:true }); lit.push({ pts:T.chalApproach, e:fw, faded:true }); }
+        else { lit.push({ pts:T.chalApproach, e:fw, glow:true }); lit.push({ pts:T.champApproach, champ:true, glow:true }); }
+      }
+      if(L.view === 'climb' && !X.shown.title){ const a = L.apex; socks.push(`<div class="tbx-sock" style="left:${a.x - a.h}px;top:${a.y - a.h}px;width:${a.h * 2}px;height:${a.h * 2}px;border-color:${gold}"></div>`); }
+    }
+    lit.forEach(o => seg(o.pts, o.champ ? gold : ents[o.e].color, o.faded || (!o.champ && X.out[o.e]) ? .35 : 1, o.glow));
+    const homes = P.leaves.map((e, i) => {
+      const p = L.pos[0][i], out = X.out[e] ? ' out' : '';
+      if(L.view === 'climb') return `<div class="tbx-home${out}" style="left:${p.x - Q / 2 - 18}px;top:${p.y - Q / 2}px;width:${Q + 36}px;flex-direction:column"><div class="slot" style="width:${Q}px;height:${Q}px"></div><span class="nm" style="width:${Q + 36}px;text-align:center">${tbxEsc(ents[e].name)}</span></div>`;
+      const left = p.side === 0;
+      return `<div class="tbx-home side${out}" style="top:${p.y - Q / 2}px;height:${Q}px;${left ? 'right:' + (L.W - p.x - Q / 2) + 'px;flex-direction:row-reverse' : 'left:' + (p.x - Q / 2) + 'px'};gap:12px"><div class="slot" style="width:${Q}px;height:${Q}px"></div><span class="nm" style="text-align:${left ? 'right' : 'left'}">${tbxEsc(ents[e].name)}</span></div>`;
+    });
+    layer.innerHTML = parts.join('') + socks.join('') + homes.join('');
+
+    const finalWinner = X.shown[P.L + '-0'] ? tbxEnt(P, X.res, P.L, 0) : null;
+    ents.forEach((en, e) => {
+      const el = X.els[e]; if(!el) return;
+      placeSq(e);
+      const out = !!X.out[e], acc = finalWinner === e && !out ? gold : en.color;
+      el.classList.toggle('out', out);
+      el.style.borderColor = out ? '#4a3d63' : acc;
+      el.style.boxShadow = out ? 'none' : '0 0 14px ' + acc;
+    });
+    if(champ){
+      const el = X.els.champ, newChamp = !!X.shown.title && X.res.title === 0;
+      placeSq('champ');
+      const champOut = !!X.out.champ && L.view === 'climb';
+      el.classList.toggle('out', champOut);
+      el.querySelector('.cbox').style.boxShadow = champOut ? 'none' : (X.shown.title ? '0 0 26px rgba(233,185,73,.8)' : '0 0 12px rgba(233,185,73,.35)');
+      el.querySelector('[data-r="clabel"]').textContent = L.view === 'climb' ? (champOut ? 'Former champion' : X.shown.title ? 'Retains the title' : 'Defending champion') : (newChamp ? 'New champion' : X.shown.title ? 'Retains the title' : 'Defending champion');
+    }
+    const tagOn = (!champ && finalWinner != null) || (champ && L.view === 'climb' && !!X.shown.title);
+    const at = champ && L.view === 'climb' ? L.apex : L.pos[P.L][0];
+    wtag.style.display = tagOn ? '' : 'none';
+    wtag.textContent = champ ? (X.res.title === 0 ? 'New champion' : 'Still champion') : 'Tournament winner';
+    wtag.style.left = (at.x - 100) + 'px'; wtag.style.top = (at.y - at.h - 34) + 'px';
+
+    /* labels and buttons */
+    let byes = 0, triples = 0;
+    P.levels.forEach((lv, k) => { if(k) lv.forEach(g => { if(g.kids.length === 1 && k === 1) byes++; if(g.kids.length === 3) triples++; }); });
+    $('sub').textContent = P.n + (tags ? ' teams' : ' people') + (byes ? ', ' + byes + ' byes' : '') + (triples ? ', ' + triples + (tags ? ' tornado tag' : ' triple threat') + (triples > 1 ? 's' : '') : '') + (t.title_name ? ', ' + t.title_name + ' on the line' : '');
+    const ready = [];
+    for(let k = 1; k <= P.L; k++) P.levels[k].forEach((g, j) => { if(isReady(k, j)) ready.push({ k, j, key:k + '-' + j, label:tbxRoundName(P, k, j, tags), kids:g.kids.map(ci => shownEnt(k - 1, ci)) }); });
+    if(titleReady()) ready.push({ k:99, key:'title', label:'Title match', kids:[tbxEnt(P, X.res, P.L, 0), 'champ'] });
+    X.ready = ready;
+    const over = champ ? !!X.shown.title : finalWinner != null;
+    $('next').textContent = ready.length ? ready[0].label : over ? 'Tournament over' : 'Coming up';
+    $('step').textContent = X.log.length ? (live() ? 'Live, ' : 'Replay, ') + 'match ' + X.cursor + ' of ' + X.log.length : 'No results yet';
+    $('prev').disabled = X.cursor === 0; $('nextb').disabled = live(); $('live').disabled = live();
+    if(opts.preview){
+      const box = $('ready');
+      box.innerHTML = live() ? ready.map((r, i) => `<div class="row"><b>${tbxEsc(r.label)}</b>${r.kids.map((e, s) => `<button type="button" data-pick="${i}:${s}">${tbxEsc(e === 'champ' ? champ.name : ents[e].name)} wins</button>`).join('')}</div>`).join('') || '<p>No matches waiting.</p>' : '<p>You are watching a replay. Press Jump to live to pick more test winners.</p>';
+    }
+  };
+  const pick = (key, w) => {
+    if(X.moving || !live() || X.res[key] != null) return;
+    X.log.push({ key, w }); X.cursor++;
+    applyResult(key, w, 1);
+  };
+
+  /* buttons */
+  $('prev').onclick = stepBack;
+  $('nextb').onclick = () => stepFwd(1);
+  $('live').onclick = toLive;
+  $('left').onclick = () => scroll.scrollBy({ left:-640, behavior:'smooth' });
+  $('right').onclick = () => scroll.scrollBy({ left:640, behavior:'smooth' });
+  host.querySelectorAll('.tbx-tabs button').forEach(b => b.onclick = () => {
+    const card = b.dataset.tab === 'card';
+    host.querySelectorAll('.tbx-tabs button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+    $('box').style.display = card ? 'none' : '';
+    if(opts.cardEl) opts.cardEl.style.display = card ? '' : 'none';
+  });
+  if(opts.cardEl) opts.cardEl.style.display = 'none';
+  if(opts.preview){
+    $('ready').onclick = ev => { const b = ev.target.closest('[data-pick]'); if(!b) return; const [i, s] = b.dataset.pick.split(':').map(Number); const r = X.ready[i]; if(r) pick(r.key, s); };
+    $('auto').onclick = () => {
+      if(!live()) return;
+      const list = (X.ready || []).slice(); if(!list.length) return;
+      const low = Math.min(...list.map(r => r.k));
+      const q = list.filter(r => r.k === low);
+      const run = () => { const r = q.shift(); if(!r) return; if(X.moving){ q.unshift(r); later(run, 120); return; } pick(r.key, Math.floor(Math.random() * r.kids.length)); later(run, 200); };
+      run();
+    };
+    $('reset').onclick = () => tbxMount(host, t, opts);
+  }
+
+  /* start: everything up to what this fan last saw, then play the new results */
+  let seen = X.log.length;
+  if(!opts.preview){ try{ const s = localStorage.getItem(seenKey); seen = s == null ? X.log.length : Math.min(X.log.length, Number(s) || 0); }catch(e){} }
+  for(let i = 0; i < seen; i++){
+    const s = X.log[i];
+    X.res[s.key] = s.w; X.shown[s.key] = true;
+  }
+  X.cursor = seen;
+  if(seen === X.log.length) remember();
+  /* put everyone where those results leave them */
+  const settle = () => {
+    X.tok = {}; X.out = {};
+    X.log.slice(0, X.cursor).forEach(s => {
+      if(s.key === 'title'){
+        const e = tbxEnt(P, X.res, P.L, 0), T = tbxTitleRoutes(P, X.Lay);
+        if(s.w === 0){ const d = T.chalMove[T.chalMove.length - 1]; X.tok[e] = { x:d.x, y:d.y, ms:0 }; X.out.champ = true; }
+        else { if(T.champMove){ const d = T.champMove[3]; X.tok.champ = { x:d.x, y:d.y, ms:0 }; } X.out[e] = true; delete X.tok[e]; }
+        return;
+      }
+      const [k, j] = s.key.split('-').map(Number), g = P.levels[k][j], p = X.Lay.pos[k][j];
+      g.kids.forEach((ci, i) => { const e = tbxEnt(P, X.res, k - 1, ci); if(i === s.w) X.tok[e] = { x:p.x, y:p.y, ms:0 }; else { X.out[e] = true; delete X.tok[e]; } });
+    });
+  };
+  settle();
+  paint();
+  if(X.cursor < X.log.length) later(toLive, 700);
+  X.destroy = () => { X.dead = true; X.timers.forEach(clearTimeout); X.timers = []; };
+  if($('wb')) tbxWinnerBet($('wb'), X);
+  return X;
+}
+
+/* ---------- betting on who wins the whole tournament ----------
+   Open until the admin or owner closes it, or the deciding match gets a result.
+   Pays in the money of whoever runs the tournament. */
+function tbxAlive(X){
+  const P = X.P, full = X.full, out = {};
+  tbxKeys(P, !!X.champ).forEach(key => {
+    const w = full[key]; if(w == null) return;
+    if(key === 'title'){ if(w === 0) out.champ = true; else { const f = tbxEnt(P, full, P.L, 0); if(f != null) out[f] = true; } return; }
+    const [k, j] = key.split('-').map(Number);
+    P.levels[k][j].kids.forEach((ci, i) => { if(i !== w){ const e = tbxEnt(P, full, k - 1, ci); if(e != null) out[e] = true; } });
+  });
+  const picks = X.ents.map((e, i) => i).filter(i => !out[i]);
+  if(X.champ && !out.champ) picks.push(-1);
+  return picks;
+}
+async function tbxWinnerBet(box, X){
+  const S = tbxSb(), t = X.t; if(!S || !box) return;
+  let info = null;
+  if(t.promotion_id){ try{ const r = await S.rpc('promo_public', { p_promotion:Number(t.promotion_id) }); info = r && r.data; }catch(e){} }
+  const money = n => info ? (typeof peMoney === 'function' ? peMoney(info, n) : Number(n).toLocaleString('en-US') + ' ' + (info.currency_name || '')) : '$' + Number(n || 0).toLocaleString('en-US');
+  const user = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) ? CURRENT_USER : null;
+  const nameOf = p => p === -1 ? X.champ.name : (X.ents[p] || {}).name || '?';
+  const draw = async (note, ok) => {
+    let board = [], mine = null;
+    try{ const r = await S.rpc('wca_tourn_board', { p_tourn:t.id }); board = (r && r.data) || []; }catch(e){}
+    if(user){ try{ const r = await S.from('wca_tourn_bets').select('pick,amount,status,payout').eq('tournament_id', t.id).eq('user_id', user.id).maybeSingle(); mine = r && r.data; }catch(e){} }
+    const pot = board.reduce((a, b) => a + Number(b.total || 0), 0);
+    const share = p => { const b = board.find(x => Number(x.pick) === p); return pot && b ? Math.round(Number(b.total) * 100 / pot) + '% of the money' : 'No bets yet'; };
+    const st = t.winner_bets;
+    let body = '';
+    if(st === 'open'){
+      const picks = tbxAlive(X);
+      body = `<p>Pick who wins it all. You can change your pick while betting is open.${pot ? ' Total bet so far: ' + tbxEsc(money(pot)) + '.' : ''}</p>
+        <div class="tbx-wb-picks">${picks.map(p => `<button type="button" class="tbx-wb-pick${mine && Number(mine.pick) === p ? ' on' : ''}" data-wp="${p}"><b>${tbxEsc(nameOf(p))}</b><small>${share(p)}</small></button>`).join('')}</div>
+        ${user ? `<div class="tbx-wb-row"><label>Bet amount<input type="number" min="1" step="1" data-r="wbamt" value="${mine ? Number(mine.amount) : ''}" placeholder="Amount"></label><button type="button" class="go" data-r="wbgo">Place bet</button></div>` : '<p><b>Sign in to bet.</b></p>'}`;
+    } else if(st === 'closed') body = `<p>Betting on the winner is closed.${pot ? ' Total bet: ' + tbxEsc(money(pot)) + '.' : ''}</p>`;
+    else if(st === 'settled') body = `<p><b>${tbxEsc(t.winner_pick != null ? nameOf(Number(t.winner_pick)) : 'The winner')}</b> won the tournament. Bets have been paid.</p>`;
+    const mineTxt = mine ? `<p class="tbx-wb-mine">Your bet: <b>${tbxEsc(money(mine.amount))}</b> on <b>${tbxEsc(nameOf(Number(mine.pick)))}</b>${mine.status === 'won' ? `, you won ${tbxEsc(money(mine.payout))}` : mine.status === 'lost' ? ', not this time' : mine.status === 'refunded' ? ', refunded' : ''}.</p>` : '';
+    box.innerHTML = `<h4>Who wins the whole tournament?</h4>${body}${mineTxt}<p class="tbx-wb-msg${ok === false ? ' err' : ok ? ' ok' : ''}" data-r="wbmsg">${tbxEsc(note || '')}</p>`;
+    let picked = mine ? Number(mine.pick) : null;
+    box.querySelectorAll('[data-wp]').forEach(b => b.onclick = () => { picked = Number(b.dataset.wp); box.querySelectorAll('[data-wp]').forEach(x => x.classList.toggle('on', x === b)); });
+    const go = box.querySelector('[data-r="wbgo"]');
+    if(go) go.onclick = async () => {
+      const amt = Math.floor(Number((box.querySelector('[data-r="wbamt"]') || {}).value || 0));
+      if(picked == null){ box.querySelector('[data-r="wbmsg"]').textContent = 'Pick who wins first.'; return; }
+      if(!(amt >= 1)){ box.querySelector('[data-r="wbmsg"]').textContent = 'Type how much to bet.'; return; }
+      go.disabled = true;
+      const r = await S.rpc('wca_tourn_bet', { p_tourn:t.id, p_pick:picked, p_amount:amt });
+      if(r.error){ draw(String(r.error.message || 'That did not work.').replace(/^.*?: /, ''), false); return; }
+      try{ if(typeof refreshUser === 'function') refreshUser(); }catch(e){}
+      draw('Bet placed: ' + money(amt) + ' on ' + nameOf(picked) + '. You have ' + money((r.data || {}).balance) + ' left.', true);
+    };
+  };
+  draw();
+}
+
+/* ---------- show pages: find the tournament for a show and put the bracket in ---------- */
+async function tbxTournamentsFor(kind, eventId){
+  const S = tbxSb(); if(!S) return [];
+  const k = kind + ':' + eventId;
+  if(TBX.cache[k] && Date.now() - TBX.cache[k].at < 60000) return TBX.cache[k].list;
+  let list = [];
+  try{
+    const q = S.from('wca_tournaments').select('*');
+    const r = await (kind === 'promo' ? q.not('promotion_id', 'is', null) : q.is('promotion_id', null));
+    if(!r.error) list = (r.data || []).filter(t => Object.values(t.links || {}).some(l => l && String(l.event_id) === String(eventId)) || (Array.isArray(t.show_ids) && t.show_ids.map(String).includes(String(eventId))));
+  }catch(e){}
+  TBX.cache[k] = { at:Date.now(), list };
+  return list;
+}
+/* any <div class="tbx-host" data-kind="wca|promo" data-ev="id" data-card="selector"> inside root */
+async function tbxScan(root){
+  if(!root) return;
+  const hosts = root.querySelectorAll('.tbx-host:not([data-done])');
+  for(const h of hosts){
+    h.dataset.done = '1';
+    const list = await tbxTournamentsFor(h.dataset.kind || 'wca', h.dataset.ev);
+    const t = list.find(x => x.published) || list[0];
+    if(!t){ h.remove(); continue; }
+    const info = await tbxLoadInfo(t);
+    const cardEl = h.dataset.card ? root.querySelector(h.dataset.card) : null;
+    tbxMount(h, t, { info, cardEl });
+  }
+}
+
+/* ---------- tournament editor (WCA admin and promotion owners) ----------
+   tbxEditorOpen(box, { kind:'wca'|'promo', pid, back })
+   Keeps it simple: names, colors, settings, and a plain list of the bracket's
+   matches. Each match can be put on a show's card (then its winner comes from
+   the normal results) or have its winner set by hand. Saves as you type. */
+const TBE = { box:null, kind:'wca', pid:null, back:null, list:[], cur:null, roster:[], teams:[], shows:[], info:{}, saveT:null, msg:'', msgKind:'', preview:false };
+function tbeEsc(s){ return tbxEsc(s); }
+function tbeErr(e){ const t = String((e && e.message) || e || ''); return /wca_tournaments/.test(t) && /does not exist|schema cache|could not find/i.test(t) ? 'Tournaments are not switched on yet. Run SUPABASE_SETUP_tournaments.sql in Supabase.' : (t || 'Something went wrong.'); }
+async function tbxEditorOpen(box, o){
+  o = o || {};
+  TBE.box = box; TBE.kind = o.kind === 'promo' ? 'promo' : 'wca'; TBE.pid = o.pid != null ? Number(o.pid) : null; TBE.back = o.back || null; TBE.cur = null; TBE.preview = false;
+  box.innerHTML = '<div class="tbe"><p class="note">Loading tournaments…</p></div>';
+  const S = tbxSb();
+  if(!S){ box.innerHTML = '<div class="tbe"><p class="note">Sign in first.</p></div>'; return; }
+  try{
+    const q = S.from('wca_tournaments').select('*').order('created_at', { ascending:false });
+    const [lr, rr, tr, sr] = await Promise.all([
+      TBE.kind === 'promo' ? q.eq('promotion_id', TBE.pid) : q.is('promotion_id', null),
+      TBE.kind === 'promo' ? S.from('promotion_roster').select('id,name,details').eq('promotion_id', TBE.pid).order('name') : S.from('wrestlers').select('id,name,avatar_url,image_url,is_active').order('name'),
+      TBE.kind === 'promo' ? S.from('promotion_factions').select('id,name,members,color').eq('promotion_id', TBE.pid).order('name') : S.from('factions').select('id,name,color').order('name'),
+      TBE.kind === 'promo' ? S.from('promotion_events').select('id,name,event_date,status').eq('promotion_id', TBE.pid).order('event_date', { ascending:false, nullsFirst:true }).limit(80) : S.from('events').select('id,name,event_date,is_complete').order('event_date', { ascending:false, nullsFirst:true }).limit(80)
+    ]);
+    if(lr.error) throw lr.error;
+    TBE.list = lr.data || [];
+    TBE.roster = ((rr && rr.data) || []).filter(p => p.is_active !== false).map(p => ({ id:p.id, name:p.name, image:TBE.kind === 'promo' ? String(((p.details || {}).avatar_url) || ((p.details || {}).portrait_url) || '') : (p.avatar_url || p.image_url || '') }));
+    TBE.teams = ((tr && tr.data) || []).map(f => ({ id:f.id, name:f.name, color:f.color || '', members:Array.isArray(f.members) ? f.members.map(m => (m && typeof m === 'object') ? m.name : m).filter(Boolean) : [] }));
+    TBE.shows = ((sr && sr.data) || []).map(e => ({ id:e.id, name:e.name || ('Show ' + e.id), date:e.event_date, done:TBE.kind === 'promo' ? e.status === 'done' : !!e.is_complete }));
+  }catch(e){ box.innerHTML = `<div class="tbe"><div class="tbe-card"><p class="tbe-msg err">${tbeEsc(tbeErr(e))}</p>${TBE.back ? '<div><button type="button" data-a="back">Back</button></div>' : ''}</div></div>`; tbeWire(); return; }
+  tbeDraw();
+}
+function tbeNew(){
+  return { id:null, promotion_id:TBE.kind === 'promo' ? TBE.pid : null, name:'', format:'single', entrant_kind:'singles', uneven:'byes', view_mode:'auto', champion:null, title_name:'', entrants:[], show_ids:[], links:{}, manual:{}, counts_records:true, contender_points:false, published:false };
+}
+function tbeSay(text, kind){ TBE.msg = text || ''; TBE.msgKind = kind || ''; const m = TBE.box && TBE.box.querySelector('[data-r="msg"]'); if(m){ m.textContent = TBE.msg; m.className = 'tbe-msg ' + TBE.msgKind; } }
+function tbeShowName(id){ const s = TBE.shows.find(x => String(x.id) === String(id)); return s ? s.name : 'Show ' + id; }
+function tbeLocked(t){ return Object.keys(t.links || {}).length > 0 || Object.keys(t.manual || {}).length > 0; }
+
+function tbeDraw(){
+  const box = TBE.box; if(!box) return;
+  const t = TBE.cur;
+  if(!t){
+    box.innerHTML = `<div class="tbe">
+      <div class="tbe-row" style="justify-content:space-between;align-items:center">
+        <div><h3>Tournaments</h3><p class="note">Single elimination brackets, with an optional champion waiting at the top. Each match goes on a show's card like any other match.</p></div>
+        <div style="display:flex;gap:8px">${TBE.back ? '<button type="button" data-a="back">Back</button>' : ''}<button type="button" class="go" data-a="new">New tournament</button></div>
+      </div>
+      ${TBE.list.length ? `<div class="tbe-list">${TBE.list.map(x => `<button type="button" class="tbe-item" data-open="${x.id}"><b>${tbeEsc(x.name)}</b><small>${(x.entrants || []).length} ${x.entrant_kind === 'tags' ? 'teams' : 'people'}, ${x.published ? 'on the site' : 'hidden'}</small></button>`).join('')}</div>` : '<p class="note">No tournaments yet.</p>'}
+    </div>`;
+    tbeWire(); return;
+  }
+  const P = tbxPlan((t.entrants || []).length, t.uneven);
+  const locked = tbeLocked(t);
+  const tags = t.entrant_kind === 'tags';
+  const pool = tags ? TBE.teams : TBE.roster;
+  const opt = (v, cur, label) => `<option value="${tbeEsc(v)}"${String(v) === String(cur) ? ' selected' : ''}>${tbeEsc(label)}</option>`;
+  const upcoming = TBE.shows.filter(s => !s.done || (t.show_ids || []).map(String).includes(String(s.id)));
+  box.innerHTML = `<div class="tbe">
+    <div class="tbe-row" style="justify-content:space-between;align-items:center">
+      <div><h3>${tbeEsc(t.name || 'New tournament')}</h3><span class="tbe-msg ${TBE.msgKind}" data-r="msg">${tbeEsc(TBE.msg || (t.id ? 'Saved as you type' : 'Give it a name to save it'))}</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-a="list">All tournaments</button><button type="button" data-a="preview">${TBE.preview ? 'Hide the fan view' : 'Preview the fan view'}</button></div>
+    </div>
+    <div data-r="pv"></div>
+
+    <div class="tbe-card"><h3>Basics</h3>
+      <div class="tbe-row">
+        <label class="f">Tournament name<input type="text" data-k="name" maxlength="120" value="${tbeEsc(t.name)}"></label>
+        <label class="f">Format<select data-k="format">${opt('single', t.format, 'Single elimination')}<option value="double" disabled>Double elimination (coming next)</option></select></label>
+        <label class="f">Who enters<select data-k="entrant_kind"${locked ? ' disabled' : ''}>${opt('singles', t.entrant_kind, 'Singles')}${opt('tags', t.entrant_kind, 'Tag teams')}</select></label>
+      </div>
+      <div class="tbe-row">
+        <label class="f">Uneven numbers<select data-k="uneven"${locked ? ' disabled' : ''}>${opt('byes', t.uneven, 'Byes, top seeds skip a round')}${opt('triples', t.uneven, tags ? 'Tornado tags (3 teams)' : 'Triple threats')}</select></label>
+        <label class="f">Fan view<select data-k="view_mode">${opt('auto', t.view_mode, 'Auto, by size')}${opt('climb', t.view_mode, 'Climb')}${opt('side', t.view_mode, 'Two sided')}</select></label>
+      </div>
+      <label class="chk"><input type="checkbox" data-k="published"${t.published ? ' checked' : ''}><span>Show on the site<small>Fans see the bracket on the shows below once this is on.</small></span></label>
+      <div><div class="tbe-msg" style="margin-bottom:6px">Shows it runs on (the bracket shows on each of them)</div>
+        <div class="tbe-row" style="gap:6px 16px">${upcoming.slice(0, 30).map(s => `<label class="chk"><input type="checkbox" data-show="${s.id}"${(t.show_ids || []).map(String).includes(String(s.id)) ? ' checked' : ''}><span>${tbeEsc(s.name)}${s.date ? `<small>${tbeEsc(new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }))}</small>` : ''}</span></label>`).join('') || '<span class="note">No upcoming shows yet.</span>'}</div></div>
+    </div>
+
+    <div class="tbe-card"><h3>Champion at the top</h3>
+      <p class="note">Optional. With nobody here it is a normal bracket. With a champion, the tournament winner faces them in a title match, and whoever wins goes to the top.</p>
+      <div class="tbe-row">
+        <label class="f">Waiting at the top<select data-k="champion">${opt('', t.champion ? '_' : '', 'Nobody, a normal bracket')}${(tags ? TBE.teams : TBE.roster).map(p => opt(p.name, t.champion ? t.champion.name : '', p.name)).join('')}</select></label>
+        <label class="f">Title on the line<input type="text" data-k="title_name" maxlength="80" placeholder="Optional, like Undisputed Championship" value="${tbeEsc(t.title_name || '')}"></label>
+      </div>
+    </div>
+
+    <div class="tbe-card"><h3>Records and points</h3>
+      <label class="chk"><input type="checkbox" data-k="counts_records"${t.counts_records ? ' checked' : ''}><span>Tournament matches count toward win and loss records<small>Turn off for a one time, just for fun tournament.${TBE.kind === 'wca' ? ' When off, Show Results will not record these matches.' : ''}</small></span></label>
+      <label class="chk"><input type="checkbox" data-k="contender_points"${t.contender_points ? ' checked' : ''}><span>Tournament wins earn contender points<small>${TBE.kind === 'promo' ? 'Only matters if your promotion uses contender points.' : 'When off, Show Results still records wins and losses for these matches, but no contender points change.'}</small></span></label>
+    </div>
+
+    <div class="tbe-card"><h3>${tags ? 'Teams' : 'Entrants'} and seeds</h3>
+      <p class="note">${locked ? 'Matches are already on a card or have winners set, so the lineup is locked. Press Reset the bracket below to change it.' : 'Seed 1 is at the top. Byes go to the top seeds. The color square sets each one’s frame and line color on the site.'}</p>
+      ${locked ? '' : `<div class="tbe-row"><label class="f">Add from the roster<select data-r="addSel"><option value="">Pick ${tags ? 'a team' : 'a wrestler'}</option>${pool.filter(p => !(t.entrants || []).some(e => e.name.toLowerCase() === p.name.toLowerCase())).map(p => `<option value="${tbeEsc(p.id)}">${tbeEsc(p.name)}</option>`).join('')}</select></label>
+        <label class="f">Or type a name<input type="text" data-r="addTyped" maxlength="80" placeholder="Name"></label><button type="button" class="go" data-a="add">Add</button></div>`}
+      <div class="tbe-ents">${(t.entrants || []).map((e, i) => `<div class="tbe-ent"><span class="seed">${i + 1}</span><input type="color" data-color="${i}" value="${tbeEsc(tbxColor(t, i))}" aria-label="Color for ${tbeEsc(e.name)}"><span class="nm">${tbeEsc(e.name)}${e.members && e.members.length ? `<small style="color:var(--tbx-muted);font-weight:500"> ${tbeEsc(e.members.join(' & '))}</small>` : ''}</span>${locked ? '' : `<button type="button" data-up="${i}" aria-label="Move up"${i ? '' : ' disabled'}>&#8593;</button><button type="button" data-down="${i}" aria-label="Move down"${i < t.entrants.length - 1 ? '' : ' disabled'}>&#8595;</button><button type="button" class="bad" data-del="${i}">Remove</button>`}</div>`).join('') || '<p class="note">Nobody added yet.</p>'}</div>
+    </div>
+
+    ${t.id ? tbeBetCardHTML(t) : ''}
+
+    <div class="tbe-card"><h3>The bracket</h3>
+      ${P ? tbeBracketHTML(t, P, upcoming) : '<p class="note">Add at least two to see the bracket.</p>'}
+      ${locked ? '<div><button type="button" class="bad" data-a="resetb">Reset the bracket</button> <span class="note">Clears the card links and hand-set winners here. The matches already on show cards stay on them.</span></div>' : ''}
+    </div>
+
+    ${t.id ? '<div><button type="button" class="bad" data-a="delete">Delete this tournament</button></div>' : ''}
+  </div>`;
+  tbeWire();
+  if(TBE.preview) tbePreview();
+  tbeBoard();
+}
+function tbeBracketHTML(t, P, shows){
+  const res = tbxResults(t, P, TBE.info), tags = t.entrant_kind === 'tags';
+  const nameOf = e => e === 'champ' ? (t.champion && t.champion.name) : ((t.entrants[e] || {}).name || '?');
+  const keys = tbxKeys(P, !!(t.champion && t.champion.name));
+  let html = '', lastRound = null;
+  const showOpts = shows.map(s => `<option value="${s.id}"${(t.show_ids || []).map(String)[0] === String(s.id) ? ' selected' : ''}>${tbeEsc(s.name)}</option>`).join('');
+  keys.forEach(key => {
+    let label, kids;
+    if(key === 'title'){ label = 'Title match'; const f = tbxEnt(P, res, P.L, 0); kids = [f, 'champ']; }
+    else { const [k, j] = key.split('-').map(Number); label = tbxRoundName(P, k, j, tags); kids = P.levels[k][j].kids.map(ci => tbxEnt(P, res, k - 1, ci)); }
+    const round = label.replace(/ \d+.*$/, '').replace(/,.*$/, '');
+    if(round !== lastRound){ html += `<div class="tbe-round"><h4>${tbeEsc(round)}</h4></div>`; lastRound = round; }
+    const known = kids.every(e => e != null);
+    const w = res[key], link = (t.links || {})[key], inf = link && TBE.info[String(link.match_id)];
+    const who = kids.map((e, i) => `<span class="${w == null ? '' : w === i ? 'won' : 'lost'}">${e == null ? 'Waiting for a winner' : tbeEsc(nameOf(e))}</span>`).join('');
+    let st = '', acts = '';
+    if(link){
+      st = `On the card of ${tbeEsc(tbeShowName(link.event_id))}. ` + (inf ? (inf.winner != null ? 'Winner set in results.' : 'Set the winner in ' + (TBE.kind === 'promo' ? 'Events' : 'Show Results') + '.') : 'That card match was removed.');
+      acts = `<button type="button" data-unlink="${key}">Unlink</button>`;
+    } else if(known){
+      st = w != null ? 'Winner set here by hand.' : 'Ready.';
+      acts = (shows.length ? `<select data-cardsel="${key}" aria-label="Show for ${tbeEsc(label)}">${showOpts}</select><button type="button" data-card="${key}">Put on the card</button>` : '')
+        + kids.map((e, i) => `<button type="button" data-man="${key}:${i}"${w === i ? ' class="go"' : ''}>${tbeEsc(nameOf(e))} won</button>`).join('')
+        + (w != null ? `<button type="button" data-clear="${key}">Clear</button>` : '');
+    } else st = 'Waiting for earlier results.';
+    html += `<div class="tbe-match"><div class="who"><b style="font-size:15px;color:var(--tbx-muted)">${tbeEsc(label)}</b>${who}<span class="st">${st}</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${acts}</div></div>`;
+  });
+  return html;
+}
+function tbeWinnerPick(t){
+  const P = tbxPlan((t.entrants || []).length, t.uneven); if(!P) return null;
+  const res = tbxResults(t, P, TBE.info);
+  if(t.champion && t.champion.name){ if(res.title == null) return null; return res.title === 0 ? tbxEnt(P, res, P.L, 0) : -1; }
+  const f = res[P.L + '-0']; return f == null ? null : tbxEnt(P, res, P.L, 0);
+}
+function tbeBetCardHTML(t){
+  const st = t.winner_bets || 'off', win = tbeWinnerPick(t);
+  const nameOf = p => p === -1 ? (t.champion && t.champion.name) : ((t.entrants[p] || {}).name || '?');
+  const label = { off:'Not opened yet', open:'Open, fans can bet', closed:'Closed', settled:'Paid out' + (t.winner_pick != null ? ' (' + nameOf(Number(t.winner_pick)) + ' won)' : ''), void:'Refunded' }[st] || st;
+  const money = TBE.kind === 'promo' ? 'your promotion\u2019s money' : 'WCA money';
+  return `<div class="tbe-card"><h3>Tournament winner bet</h3>
+    <p class="note">Fans pick who wins the whole thing and bet ${money} on it. It stays open through every round until you close it, or until the ${t.champion && t.champion.name ? 'title match' : 'Final'} gets a result. Each match's own bets work like any other match.</p>
+    <div class="tbe-row" style="align-items:center"><b>Status: ${tbeEsc(label)}</b><span class="tbe-msg" data-r="board"></span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" data-bet="open"${st === 'open' || st === 'settled' || st === 'void' || !t.published ? ' disabled' : ''}>Open bets</button>
+      <button type="button" data-bet="closed"${st !== 'open' ? ' disabled' : ''}>Close bets</button>
+      <button type="button" class="go" data-bet="settle"${(st === 'open' || st === 'closed') && win != null ? '' : ' disabled'}>Pay out${win != null ? ': ' + tbeEsc(nameOf(win)) + ' won' : ''}</button>
+      <button type="button" class="bad" data-bet="void"${st === 'open' || st === 'closed' ? '' : ' disabled'}>Refund everyone</button>
+    </div>
+    ${!t.published ? '<p class="note">Turn on Show on the site before opening bets.</p>' : ''}
+    ${(st === 'open' || st === 'closed') && win == null ? '<p class="note">Pay out unlocks once the bracket has a winner.</p>' : ''}
+  </div>`;
+}
+async function tbeBetAction(what){
+  const t = TBE.cur, S = tbxSb(); if(!t || !t.id || !S) return;
+  let r;
+  if(what === 'open' || what === 'closed') r = await S.rpc('wca_tourn_bets_status', { p_tourn:t.id, p_status:what });
+  else if(what === 'settle'){
+    const win = tbeWinnerPick(t); if(win == null) return;
+    const nm = win === -1 ? t.champion.name : t.entrants[win].name;
+    if(!confirm('Pay out the tournament winner bets with ' + nm + ' as the winner? This can\u2019t be undone.')) return;
+    r = await S.rpc('wca_tourn_settle', { p_tourn:t.id, p_pick:win });
+  } else if(what === 'void'){
+    if(!confirm('Refund every tournament winner bet? This can\u2019t be undone.')) return;
+    r = await S.rpc('wca_tourn_void', { p_tourn:t.id });
+  }
+  if(r && r.error){ tbeSay(/wca_tourn_/.test(r.error.message || '') && /does not exist|could not find/i.test(r.error.message || '') ? 'Run SUPABASE_UPDATE_tournaments_part2.sql in Supabase first.' : r.error.message, 'err'); return; }
+  const fresh = await S.from('wca_tournaments').select('winner_bets,winner_pick').eq('id', t.id).maybeSingle();
+  if(fresh && fresh.data){ t.winner_bets = fresh.data.winner_bets; t.winner_pick = fresh.data.winner_pick; TBE.list = TBE.list.map(x => x.id === t.id ? Object.assign(x, fresh.data) : x); }
+  TBX.cache = {};
+  tbeDraw();
+  tbeSay(what === 'open' ? 'Tournament winner bets are open.' : what === 'closed' ? 'Tournament winner bets are closed.' : what === 'settle' ? 'Paid out.' : 'Everyone was refunded.', 'ok');
+}
+async function tbeBoard(){
+  const t = TBE.cur, S = tbxSb(), el = TBE.box && TBE.box.querySelector('[data-r="board"]'); if(!t || !t.id || !S || !el) return;
+  try{ const r = await S.rpc('wca_tourn_board', { p_tourn:t.id }); const rows = (r && r.data) || []; if(rows.length){ const pot = rows.reduce((a, b) => a + Number(b.total), 0), n = rows.reduce((a, b) => a + Number(b.bettors), 0); el.textContent = n + (n === 1 ? ' bet, ' : ' bets, ') + pot.toLocaleString('en-US') + ' in total'; } }catch(e){}
+}
+function tbePreview(){
+  const host = TBE.box && TBE.box.querySelector('[data-r="pv"]'); if(!host) return;
+  const t = TBE.cur;
+  if(!t || (t.entrants || []).length < 2){ host.innerHTML = '<p class="note">Add at least two to preview.</p>'; return; }
+  tbxMount(host, Object.assign({}, t, { id:t.id || 'draft' }), { info:TBE.info, preview:true });
+}
+function tbeWire(){
+  const box = TBE.box; if(!box) return;
+  box.onclick = async ev => {
+    const b = ev.target.closest('button'); if(!b || b.disabled) return;
+    const t = TBE.cur, d = b.dataset;
+    if(d.a === 'back'){ if(TBE.back) TBE.back(); return; }
+    if(d.a === 'new'){ TBE.cur = tbeNew(); TBE.info = {}; TBE.msg = ''; tbeDraw(); const n = box.querySelector('[data-k="name"]'); if(n) n.focus(); return; }
+    if(d.open){ TBE.cur = JSON.parse(JSON.stringify(TBE.list.find(x => String(x.id) === d.open))); TBE.msg = ''; TBE.info = await tbxLoadInfo(TBE.cur); tbeDraw(); return; }
+    if(d.a === 'list'){ TBE.cur = null; TBE.preview = false; tbeDraw(); return; }
+    if(d.a === 'preview'){ TBE.preview = !TBE.preview; tbeDraw(); return; }
+    if(!t) return;
+    if(d.a === 'add'){
+      const sel = box.querySelector('[data-r="addSel"]'), typed = box.querySelector('[data-r="addTyped"]');
+      const pool = t.entrant_kind === 'tags' ? TBE.teams : TBE.roster;
+      let e = null;
+      const p = sel && sel.value ? pool.find(x => String(x.id) === sel.value) : null;
+      if(p) e = { name:p.name, image:p.image || '', ref:p.id, members:p.members || [], color:p.color && /^#[0-9a-f]{6}$/i.test(p.color) ? p.color : '' };
+      else if(typed && typed.value.trim()) e = { name:typed.value.trim().slice(0, 80), image:'', ref:null, members:[], color:'' };
+      if(!e) return;
+      if(t.entrants.some(x => x.name.toLowerCase() === e.name.toLowerCase())){ tbeSay(e.name + ' is already in.', 'err'); return; }
+      if(!e.color) e.color = TBX.palette[t.entrants.length % TBX.palette.length];
+      t.entrants.push(e); tbeChanged(true); return;
+    }
+    if(d.up != null){ const i = +d.up; [t.entrants[i - 1], t.entrants[i]] = [t.entrants[i], t.entrants[i - 1]]; tbeChanged(true); return; }
+    if(d.down != null){ const i = +d.down; [t.entrants[i + 1], t.entrants[i]] = [t.entrants[i], t.entrants[i + 1]]; tbeChanged(true); return; }
+    if(d.del != null){ t.entrants.splice(+d.del, 1); tbeChanged(true); return; }
+    if(d.man){ const [key, i] = d.man.split(':'); t.manual = Object.assign({}, t.manual, { [key]:Number(i) }); tbeChanged(true); return; }
+    if(d.clear){ const m = Object.assign({}, t.manual); delete m[d.clear]; t.manual = m; tbeChanged(true); return; }
+    if(d.unlink){ const l = Object.assign({}, t.links); delete l[d.unlink]; t.links = l; tbeChanged(true); return; }
+    if(d.card){ const sel = box.querySelector(`[data-cardsel="${d.card}"]`); if(sel && sel.value) await tbeAddToCard(d.card, Number(sel.value)); return; }
+    if(d.bet){ await tbeBetAction(d.bet); return; }
+    if(d.a === 'resetb'){ t.links = {}; t.manual = {}; tbeChanged(true); return; }
+    if(d.a === 'delete'){
+      if(!confirm('Delete "' + t.name + '"? Its matches stay on the show cards.')) return;
+      const S = tbxSb(), r = await S.from('wca_tournaments').delete().eq('id', t.id);
+      if(r.error){ tbeSay(tbeErr(r.error), 'err'); return; }
+      TBE.list = TBE.list.filter(x => x.id !== t.id); TBE.cur = null; tbeDraw(); return;
+    }
+  };
+  box.oninput = ev => {
+    const t = TBE.cur, el = ev.target; if(!t) return;
+    if(el.dataset.k === 'name' || el.dataset.k === 'title_name'){ t[el.dataset.k] = el.value; tbeChanged(false); }
+    if(el.dataset.color != null){ const i = +el.dataset.color; if(t.entrants[i]){ t.entrants[i].color = el.value; tbeChanged(false); } }
+  };
+  box.onchange = ev => {
+    const t = TBE.cur, el = ev.target; if(!t) return;
+    const k = el.dataset.k;
+    if(k === 'published' || k === 'counts_records' || k === 'contender_points'){ t[k] = el.checked; tbeChanged(false); return; }
+    if(k === 'format' || k === 'entrant_kind' || k === 'uneven' || k === 'view_mode'){ t[k] = el.value; tbeChanged(true); return; }
+    if(k === 'champion'){
+      const pool = t.entrant_kind === 'tags' ? TBE.teams : TBE.roster, p = pool.find(x => x.name === el.value);
+      t.champion = el.value ? { name:el.value, image:(p && p.image) || '' } : null;
+      tbeChanged(true); return;
+    }
+    if(el.dataset.show != null){
+      const id = Number(el.dataset.show), ids = (t.show_ids || []).map(Number).filter(x => x !== id);
+      if(el.checked) ids.push(id);
+      t.show_ids = ids; tbeChanged(false); return;
+    }
+    if(el.dataset.color != null) tbeChanged(true);
+  };
+}
+/* redraw = the bracket's shape or lineup changed */
+function tbeChanged(redraw){
+  if(redraw) tbeDraw();
+  else if(TBE.preview && TBE.cur) { clearTimeout(TBE.pvT); TBE.pvT = setTimeout(tbePreview, 600); }
+  clearTimeout(TBE.saveT);
+  TBE.saveT = setTimeout(tbeSave, 700);
+  tbeSay('Saving…', '');
+}
+async function tbeSave(){
+  const t = TBE.cur, S = tbxSb(); if(!t || !S) return;
+  if(!String(t.name || '').trim()){ tbeSay('Give it a name to save it.', 'err'); return; }
+  const P0 = tbxPlan((t.entrants || []).length, t.uneven);
+  const row = { final_key:P0 ? ((t.champion && t.champion.name) ? 'title' : P0.L + '-0') : null, promotion_id:t.promotion_id, name:t.name.trim().slice(0, 120), format:t.format, entrant_kind:t.entrant_kind, uneven:t.uneven, view_mode:t.view_mode, champion:t.champion, title_name:(t.title_name || '').trim() || null, entrants:t.entrants, show_ids:t.show_ids || [], links:t.links || {}, manual:t.manual || {}, counts_records:!!t.counts_records, contender_points:!!t.contender_points, published:!!t.published };
+  const send = rw => t.id ? S.from('wca_tournaments').update(rw).eq('id', t.id).select('*') : S.from('wca_tournaments').insert(rw).select('*');
+  let r = await send(row);
+  if(r.error && /final_key/.test(r.error.message || '')){ delete row.final_key; r = await send(row); }   /* part 2 SQL not run yet */
+  if(r.error){ tbeSay(tbeErr(r.error), 'err'); return; }
+  const saved = (r.data || [])[0];
+  if(saved){
+    if(!t.id){ t.id = saved.id; TBE.list.unshift(saved); } else TBE.list = TBE.list.map(x => x.id === saved.id ? saved : x);
+    TBX.cache = {};
+  }
+  tbeSay('Saved', 'ok');
+}
+/* put a ready bracket match on a show's card, at the end of the card */
+async function tbeAddToCard(key, eventId){
+  const t = TBE.cur, S = tbxSb(); if(!t || !S) return;
+  if(!t.id){ await tbeSave(); if(!t.id) return; }
+  const P = tbxPlan(t.entrants.length, t.uneven), res = tbxResults(t, P, TBE.info), tags = t.entrant_kind === 'tags';
+  let kids, label;
+  if(key === 'title'){ kids = [tbxEnt(P, res, P.L, 0), 'champ']; label = 'Title match'; }
+  else { const [k, j] = key.split('-').map(Number); kids = P.levels[k][j].kids.map(ci => tbxEnt(P, res, k - 1, ci)); label = tbxRoundName(P, k, j, tags); }
+  if(kids.some(e => e == null)){ tbeSay('That match is still waiting for an earlier winner.', 'err'); return; }
+  const who = e => e === 'champ' ? Object.assign({ members:[] }, t.champion) : t.entrants[e];
+  const type = kids.length === 3 ? (tags ? 'Tornado Tag' : 'Triple Threat') : (tags ? 'Tag Team' : 'Singles');
+  const title = (t.name + ': ' + label).slice(0, 120);
+  tbeSay('Adding to the card…', '');
+  let id = null, err = null;
+  try{
+    if(TBE.kind === 'promo'){
+      const last = await S.from('promotion_matches').select('slot').eq('event_id', eventId).order('slot', { ascending:false }).limit(1);
+      const slot = (((last.data || [])[0] || {}).slot || 0) + 1;
+      const sides = kids.map(e => { const x = who(e); return tags ? { name:x.name, members:(x.members || []).map(n => ({ id:null, name:n })) } : { name:'', members:[{ id:x.ref != null ? Number(x.ref) : null, name:x.name }] }; });
+      const r = await S.from('promotion_matches').insert({ event_id:eventId, promotion_id:TBE.pid, slot, match_type:type, title, sides, odds:[] }).select('id');
+      if(r.error) err = r.error; else id = (r.data || [])[0] && r.data[0].id;
+    } else {
+      const last = await S.from('event_matches').select('slot').eq('event_id', eventId).order('slot', { ascending:false }).limit(1);
+      const slot = (((last.data || [])[0] || {}).slot || 0) + 1;
+      const sides = kids.map(e => { const x = who(e); return tags ? { team_name:x.name, members:(x.members || []).slice() } : { team_name:'', members:[x.name] }; });
+      const r = await S.from('event_matches').insert({ event_id:eventId, slot, match_type:type, match_title:title, championship:key === 'title' ? (t.title_name || null) : null, sides }).select('id');
+      if(r.error) err = r.error; else id = (r.data || [])[0] && r.data[0].id;
+    }
+  }catch(e){ err = e; }
+  if(err || id == null){ tbeSay('Could not add it: ' + ((err && err.message) || 'no answer'), 'err'); return; }
+  t.links = Object.assign({}, t.links, { [key]:{ event_id:eventId, match_id:id } });
+  if(!(t.show_ids || []).map(String).includes(String(eventId))) t.show_ids = (t.show_ids || []).concat([eventId]);
+  const m = Object.assign({}, t.manual); delete m[key]; t.manual = m;
+  TBE.info = await tbxLoadInfo(t);
+  tbeDraw();
+  await tbeSave();
+  tbeSay('Added to the end of ' + tbeShowName(eventId) + '’s card. Move it in the card editor if you want it somewhere else.', 'ok');
+}
+
 </script>
 </body>
 </html>
