@@ -68,7 +68,9 @@
     if(d.type !== 'wca-ytlen' || busy) return;          // ignore repeats once a job has started
     var ids = (Array.isArray(d.ids) ? d.ids : []).map(String).filter(function(x){ return /^[\w-]{6,20}$/.test(x); }).slice(0, 300);
     var lists = (Array.isArray(d.playlists) ? d.playlists : []).map(String).filter(function(x){ return /^[\w-]{10,64}$/.test(x); }).slice(0, 10);
-    var job = { ids:ids, lists:lists };
+    // videos inside the playlists that don't need measuring (the channel already has them)
+    var skip = (Array.isArray(d.skip) ? d.skip : []).map(String).slice(0, 5000);
+    var job = { ids:ids, lists:lists, skip:skip };
     if(ready) run(job); else queue = job;
   });
 
@@ -121,7 +123,8 @@
       playlists[job.lists[q]] = vids;
     }
     var ids = job.ids.slice();
-    Object.keys(playlists).forEach(function(k){ playlists[k].forEach(function(v){ if(ids.indexOf(v) < 0) ids.push(v); }); });
+    var skip = job.skip || [];
+    Object.keys(playlists).forEach(function(k){ playlists[k].forEach(function(v){ if(ids.indexOf(v) < 0 && skip.indexOf(v) < 0) ids.push(v); }); });
     var results = {}, failed = [];
     for(var k=0;k<ids.length;k++){
       say('Reading ' + (k+1) + ' of ' + ids.length + '…');
