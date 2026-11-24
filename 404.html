@@ -8618,6 +8618,8 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
 .evc-logo{width:34px; height:34px; flex:none; border-radius:8px; object-fit:cover; background:rgba(255,255,255,.06);}
 .evc-logo.pm-logo-init{display:inline-flex; align-items:center; justify-content:center; background:var(--pc); color:#0b0f17; font-family:var(--font-display); font-size:15px;}
 .evc-logo.past{opacity:.55;}
+/* named-event logos (Invincible, Fwakata Madness...) are wide: show the whole logo, not a cropped square */
+.evc-logo.evc-evlogo{width:auto; max-width:100%; object-fit:contain; background:none; border-radius:0; filter:drop-shadow(0 1px 3px rgba(0,0,0,.6));}
 .evc-more{font-size:14px; font-weight:700; color:var(--gold);}
 .evc-pick{margin:14px 0 0; padding:14px; border:1px solid var(--gold); border-radius:12px; background:rgba(233,185,73,.06);}
 .evc-pick-h{font-family:var(--font-display); font-size:15px; letter-spacing:1.6px; text-transform:uppercase; color:var(--gold); margin:0 0 6px;}
@@ -8632,6 +8634,7 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
   .evc-day{min-height:62px; padding:4px;}
   .evc-logo{width:24px; height:24px; border-radius:6px;}
   .evc-logo.pm-logo-init{font-size:14px;}
+  .evc-logo.evc-evlogo{width:auto; max-width:100%;}
 }
 
   .sl-linkbox{align-items:flex-start}
@@ -16880,6 +16883,11 @@ function evcalWho(it){
   return (it.p && it.p.name) || 'Promotion';
 }
 function evcalLogo(it, cls){
+  // a named WCA show (Invincible, Fwakata Madness...) wears its event logo, same as on the show page
+  if(it.k === 'wca' && it.ev && typeof wcaEventLogoFor === 'function'){
+    const u = wcaEventLogoFor(it.ev);
+    if(u) return `<img class="${cls} evc-evlogo" src="${escAttr(u)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('img'),{className:'${cls}',src:'/brand/wca-logo-sm.png',alt:''}))">`;
+  }
   if(it.k === 'wca') return `<img class="${cls}" src="/brand/wca-logo-sm.png" alt="" style="--pc:#e9b949" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} pm-logo-init',textContent:'W'}))">`;
   if(it.k.indexOf('sd') === 0){
     const ini = String(it.sdName || 'SD').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -16935,9 +16943,10 @@ async function evcalLoad(){
     let promos = []; try{ promos = await peLoadPromoList(); }catch(e){}
     const pmap = {}; promos.forEach(p => { pmap[String(p.id)] = p; });
     EVCAL.promos = promos;
+    try{ if(typeof wcaEventLogosReady === 'function') await wcaEventLogosReady(); }catch(e){}
     try{ if(!ARCHIVE_EVENTS || !ARCHIVE_EVENTS.length) await loadArchive(); }catch(e){}
     const seen = new Set();
-    (ARCHIVE_EVENTS || []).forEach(ev => { if(ev.event_date){ seen.add(String(ev.id)); items.push({ k:'wca', id:ev.id, name:ev.name, ts:ev.event_date, done:true }); } });
+    (ARCHIVE_EVENTS || []).forEach(ev => { if(ev.event_date){ seen.add(String(ev.id)); items.push({ k:'wca', id:ev.id, name:ev.name, ts:ev.event_date, done:true, ev }); } });
     // Showdown episodes: HEAT and OVERDRIVE nights wear their own brand logo, finales and title shows wear the Showdown logo
     try{
       let cfg = {};
@@ -16956,8 +16965,8 @@ async function evcalLoad(){
       });
     }catch(e){}
     try{
-      const r = await sb.from('v_featured_event').select('id,name,event_date,is_complete'), f = r && r.data && r.data[0];
-      if(f && f.event_date && !seen.has(String(f.id))){ seen.add(String(f.id)); items.push({ k:'wca', id:f.id, name:f.name, ts:f.event_date, done:!!f.is_complete }); }
+      const r = await sb.from('v_featured_event').select('*'), f = r && r.data && r.data[0];
+      if(f && f.event_date && !seen.has(String(f.id))){ seen.add(String(f.id)); items.push({ k:'wca', id:f.id, name:f.name, ts:f.event_date, done:!!f.is_complete, ev:f }); }
     }catch(e){}
     try{
       const r = await sb.from('promotion_events').select('id,promotion_id,name,event_date,status').neq('status', 'draft').not('event_date', 'is', null).limit(2000);
