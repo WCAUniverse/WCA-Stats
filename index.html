@@ -44888,7 +44888,17 @@ function wcaBadgesHTML(name){
     #mnav-bar .mnav-plus{width:48px; height:38px; border-radius:12px; display:grid; place-items:center; color:#16130a;
       background:linear-gradient(135deg,#f6dc8c,var(--gold)); box-shadow:0 0 0 2px #000, 0 0 0 3.5px rgba(var(--gold-rgb),.55), 0 6px 18px rgba(var(--gold-rgb),.25);}
     #mnav-bar .mnav-plus i{font-size:28px; color:#16130a;}
-    #mnav-bar button[data-k="post"].on::after{display:none;}
+    #mnav-bar button[data-k="post"].on::after, #mnav-bar button.mnav-mid.on::after{display:none;}
+    #mnav-bar button.mnav-mid.on .mnav-plus{box-shadow:0 0 0 2px #000, 0 0 0 3.5px #fff, 0 6px 18px rgba(var(--gold-rgb),.35);}
+    /* during a live show the Promotions button turns into a pulsing LIVE button */
+    #mnav-bar .mnav-live{display:inline-flex; align-items:center; gap:4px; padding:6px 9px; border-radius:8px; background:#e5303f; color:#fff;
+      font:900 13px/1 var(--mnav-f); letter-spacing:1px; box-shadow:0 0 0 2px #000; animation:mnavLive 1.6s ease-in-out infinite;}
+    #mnav-bar .mnav-live i{font-size:17px; color:#fff;}
+    @keyframes mnavLive{0%,100%{box-shadow:0 0 0 2px #000, 0 0 0 0 rgba(229,48,63,.7)} 50%{box-shadow:0 0 0 2px #000, 0 0 0 8px rgba(229,48,63,0)}}
+    @media (prefers-reduced-motion:reduce){ #mnav-bar .mnav-live{animation:none;} }
+    #mnav-bar button.is-live .mnav-plus{background:linear-gradient(135deg,#ff5a66,#e5303f); animation:mnavLive 1.6s ease-in-out infinite;}
+    #mnav-bar button.is-live .mnav-plus i{color:#fff;}
+    @media (prefers-reduced-motion:reduce){ #mnav-bar button.is-live .mnav-plus{animation:none;} }
 
     /* ── the Feed on phones ──
        Feed and Following on top (post types in a menu), the post box moves to the + button,
@@ -45150,10 +45160,13 @@ function wcaBadgesHTML(name){
   }
 
   /* ── the bottom bar ── */
+  // open a page the way its menu link does (address and all); fall back to goPage
+  const goNav = pg => { const a = document.querySelector('header nav [data-page="' + pg + '"]'); if(a) a.click(); else go(pg); };
+  // a show is on right now: the site marks its Watch Live link (setNavLive)
+  const liveNow = () => { const a = $('nav-live-btn'); return !!(a && (a.classList.contains('live-now') || a.classList.contains('nav-islive'))); };
   function paintBar(){
     const bar = $('mnav-bar'); if(!bar) return;
     const cur = curPage(), me = who();
-    const mapOn = isFight() ? cur === 'starmap' : false;
     const notif = $('notifDot'), dot = notif && !notif.hidden;
     const nc = $('notifCount'), ncount = nc && !nc.hidden ? txt(nc) : '';
     if(onFeed()) drawFTabs();
@@ -45164,16 +45177,17 @@ function wcaBadgesHTML(name){
       { k:'alerts', ic:'ti-bell', t:'Alerts', on:false, badge: ncount || (dot ? ' ' : ''), run: () => { if(!signedIn()) return signInNow(); if(typeof wcaNotifToggle === 'function') wcaNotifToggle(); } },
       { k:'me', t: me ? 'Me' : 'Sign in', on: root.dataset.mnavOpen === 'me', run: () => open('me'), ic: me ? '' : 'ti-user-circle', ava: me }
     ] : [
-      { k:'home', ic:'ti-home', t:'Home', on: cur === 'home', run: () => { const br = document.querySelector('header .brand'); if(br) br.click(); else go('home'); } },
-      { k:'feed', ic:'ti-news', t:'Feed', on: cur === 'storylines', run: () => { if(cur === 'storylines') window.scrollTo({ top:0, behavior:'smooth' }); else go('storylines'); } },
-      { k:'map', ic:'ti-planet', t:'Star Map', on: mapOn, run: () => go(isFight() ? 'starmap' : 'roster') },
-      { k:'wallet', ic:'ti-wallet', t: me && me.money ? me.money : 'Wallet', money: !!(me && me.money), on: cur === 'dash', run: () => me ? go('dash') : open('me') },
+      { k:'feed', ic:'ti-news', t:'Feed', on: cur === 'storylines', run: () => go('storylines') },
+      { k:'rankings', ic:'ti-trophy', t:'Rankings', on: cur === 'rankings', run: () => goNav('rankings') },
+      { k:'live', t: liveNow() ? 'Live now' : 'Watch Live', hero:'ti-broadcast', liveOn: liveNow(), on: cur === 'live', run: () => goNav('live') },
+      { k:'promotions', ic:'ti-flag-3', t:'Promotions', on: cur === 'promotions' || cur === 'promotion', run: () => goNav('promotions') },
       { k:'me', t: me ? 'Me' : 'Sign in', on: ('mnavOpen' in root.dataset && root.dataset.mnavOpen === 'me') || cur === 'account' || cur === 'mypromo', run: () => open('me'),
         ic: me ? '' : 'ti-user-circle', ava: me }
     ];
     bar.innerHTML = items.map(it => {
-      const pic = it.plus ? '<span class="mnav-plus"><i class="ti ti-plus" aria-hidden="true"></i></span>' : it.ava ? (it.ava.img ? `<img class="mnav-ava" src="${E(it.ava.img)}" alt="" referrerpolicy="no-referrer">` : `<span class="mnav-ini">${E(it.ava.ini)}</span>`) : `<i class="ti ${it.ic}" aria-hidden="true"></i>`;
-      const cls = [it.on ? 'on' : '', it.money ? 'has-money' : ''].filter(Boolean).join(' ');
+      const pic = it.plus ? '<span class="mnav-plus"><i class="ti ti-plus" aria-hidden="true"></i></span>' : it.hero ? `<span class="mnav-plus"><i class="ti ${it.hero}" aria-hidden="true"></i></span>`
+        : it.live ? '<span class="mnav-live"><i class="ti ti-broadcast" aria-hidden="true"></i>LIVE</span>' : it.ava ? (it.ava.img ? `<img class="mnav-ava" src="${E(it.ava.img)}" alt="" referrerpolicy="no-referrer">` : `<span class="mnav-ini">${E(it.ava.ini)}</span>`) : `<i class="ti ${it.ic}" aria-hidden="true"></i>`;
+      const cls = [it.on ? 'on' : '', it.money ? 'has-money' : '', it.hero ? 'mnav-mid' : '', it.liveOn ? 'is-live' : ''].filter(Boolean).join(' ');
       return `<button type="button" data-k="${it.k}"${cls ? ` class="${cls}"` : ''}${it.on ? ' aria-current="page"' : ''} aria-label="${E(it.k === 'wallet' ? 'Wallet ' + (me && me.money || '') : it.t)}" title="${E(it.k === 'wallet' ? 'Wallet' : it.t)}">${pic}${it.money ? `<span class="mnav-money">${E(short(it.t))}</span>` : ''}${it.badge ? `<em class="mnav-dot${it.badge.trim() ? ' n' : ''}">${E(it.badge.trim())}</em>` : (it.k === 'me' && dot && !onFeed() ? '<em class="mnav-dot"></em>' : '')}</button>`;
     }).join('');
     bar.querySelectorAll('button').forEach((b, i) => { b.onclick = items[i].run; const im = b.querySelector('img'); if(im) im.onerror = () => { im.outerHTML = `<span class="mnav-ini">${E(items[i].ava.ini)}</span>`; }; });
@@ -45325,6 +45339,7 @@ function wcaBadgesHTML(name){
     document.querySelectorAll('.page').forEach(p => mo.observe(p, { attributes:true, attributeFilter:['class'] }));
     const ub = $('userbox'); if(ub) new MutationObserver(paintSoon).observe(ub, { childList:true, subtree:true, characterData:true });
     const st = $('slx-tabs'); if(st) new MutationObserver(paintSoon).observe(st, { childList:true });   // the Feed redraws its tabs whenever its view changes
+    const lv = $('nav-live-btn'); if(lv) new MutationObserver(paintSoon).observe(lv, { attributes:true, attributeFilter:['class'] });
     const nd = $('notifDot'); if(nd) new MutationObserver(paintSoon).observe(nd, { attributes:true, attributeFilter:['hidden'] });
     new MutationObserver(paintSoon).observe(root, { attributes:true, attributeFilter:['data-design','data-mnav-open'] });
     // the full screen main menu (ESC menu) is not used on phones: if anything opens it, close it
