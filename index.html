@@ -40871,44 +40871,53 @@ const FHBG = (function(){
   function msg(t, ok){ const m = $('slx-cmsg'); if(!m) return; m.className = 'slx-cmsg show ' + (ok ? 'ok' : 'bad'); m.textContent = t; }
   const errText = e => String((e && e.message) || e || 'That did not post. Try again.').replace(/^.*?ERROR:\s*/, '');
 
-  async function post(){
-    const cur = current(), ta = $('slx-text'); if(!cur || !ta) return;
-    const text = ta.value.trim(); if(!text || S.busy) return;
-    S.busy = true; const btn = $('slx-post'); btn.disabled = true; btn.textContent = 'Posting…';
-    let res, live = true, done = '';
+  /* post one text as someone; extra = { likes, replies, reposts } for characters, promotions and publications
+     (a fan's own post keeps real counts only, so extra is ignored for 'me') */
+  async function send(cur, text, extra){
+    let res, live = true;
+    const stats = {};
+    if(extra && cur.k !== 'me') ['likes','replies','reposts'].forEach(k => { const v = String(extra[k] == null ? '' : extra[k]).trim(); if(v) stats[k] = v.slice(0, 12); });
     try{
       if(cur.k === 'me'){
         res = await sb.rpc('feed_fan_post', { p_text:text });
         if(res.error && /could not find the function|does not exist|PGRST202/i.test(res.error.message || '')) res.error = { message:'Fan posts are not switched on yet. (WCA: run SUPABASE_SETUP_fan_posts.sql.)' };
       } else if(cur.k === 'char'){
         const w = cur.w, asUser = (isAdmin() && typeof VIEW_AS_ID !== 'undefined' && VIEW_AS_ID) ? VIEW_AS_ID : null;
-        const payload = { author:w.name };
+        const payload = Object.assign({ author:w.name }, stats);
         res = w.promo
           ? await sb.rpc('submit_char_post', { p_roster_id:Number(w.roster_id), p_kind:'social', p_title:null, p_body:text, p_payload:payload, p_story_date:today(), p_as_user:asUser })
           : await sb.rpc('submit_storyline', { p_wrestler_id:parseInt(w.id, 10), p_kind:'social', p_title:null, p_body:text, p_payload:payload, p_story_date:today(), p_as_user:asUser });
         try{ if(typeof spLoadMySubmissions === 'function') spLoadMySubmissions(); }catch(e){}
       } else {
-        res = await sb.rpc('submit_creator_post', { p_id:null, p_source:cur.k, p_source_id:Number(cur.id), p_kind:'social', p_title:null, p_body:text, p_payload:{ author:cur.name }, p_story_date:today() });
+        res = await sb.rpc('submit_creator_post', { p_id:null, p_source:cur.k, p_source_id:Number(cur.id), p_kind:'social', p_title:null, p_body:text, p_payload:Object.assign({ author:cur.name }, stats), p_story_date:today() });
         if(!res.error){
           try{ const { data:row } = await sb.from('storylines').select('is_published').eq('id', Number(res.data)).maybeSingle(); if(row) live = row.is_published === true; }catch(e){}
           try{ if(typeof cpLoadMine === 'function') cpLoadMine(); }catch(e){}
         }
       }
     }catch(e){ res = { error:e }; }
+    if(res.error) return { error:errText(res.error) };
+    if(live) try{ if(typeof loadStorylines === 'function') loadStorylines(); }catch(e){}
+    return { live };
+  }
+
+  async function post(){
+    const cur = current(), ta = $('slx-text'); if(!cur || !ta) return;
+    const text = ta.value.trim(); if(!text || S.busy) return;
+    S.busy = true; const btn = $('slx-post'); btn.disabled = true; btn.textContent = 'Posting…';
+    const r = await send(cur, text);
     S.busy = false;
-    if(res.error){ draw(true); msg(errText(res.error), false); return; }
+    if(r.error){ draw(true); msg(r.error, false); return; }
     S.draft = ''; ta.value = '';
     draw(true);
-    done = live ? `Posted as ${cur.name}.` : `Sent to WCA. It shows on the Feed once it is approved.`;
-    msg(done, true);
-    try{ wcaToast(live ? 'Posted!' : 'Sent to WCA', live ? `Live on the Feed as ${cur.name}.` : 'Your post shows up once it is approved.'); }catch(e){}
-    if(live) try{ if(typeof loadStorylines === 'function') loadStorylines(); }catch(e){}
+    msg(r.live ? `Posted as ${cur.name}.` : `Sent to WCA. It shows on the Feed once it is approved.`, true);
+    try{ wcaToast(r.live ? 'Posted!' : 'Sent to WCA', r.live ? `Live on the Feed as ${cur.name}.` : 'Your post shows up once it is approved.'); }catch(e){}
   }
 
   // the full editor that was already there, with what you typed carried over
-  async function more(){
+  async function more(given){
     const cur = current(); if(!cur) return;
-    const text = ($('slx-text') || {}).value || '';
+    const text = given != null ? given : (($('slx-text') || {}).value || '');
     if(cur.k === 'me'){ if(typeof frOpen === 'function') frOpen(); return; }
     if(cur.k === 'char'){
       try{ SP_ACTIVE_WID = cur.w.id; SP_KIND = 'social'; SP_EDITING = null; }catch(e){}
@@ -40924,6 +40933,10 @@ const FHBG = (function(){
 
   // keep in step: after the character list loads, after sign in, when the design changes
   window.slxComposeDraw = draw;
+  // for the phone "New post" sheet (PHONE NAVIGATION block)
+  S.api = { list:identities, current, avatar, asLine, send, more, moreLabel,
+    setAs(k, id){ S.as = { k, id:String(id) }; try{ localStorage.setItem('wca-post-as', JSON.stringify(S.as)); }catch(e){} draw(true); },
+    loadOrgs(){ if(signedIn() && !S.orgsAsked && typeof cpLoadMyOrgs === 'function'){ S.orgsAsked = true; return cpLoadMyOrgs().then(() => draw(true)).catch(() => {}); } return Promise.resolve(); } };
   window.slxFanDelete = async function(id, btn){
     if(!btn.dataset.sure){ btn.dataset.sure = '1'; btn.innerHTML = '<i class="ti ti-trash"></i> Press again to delete'; return; }
     const { error } = await sb.rpc('feed_fan_delete', { p_id:Number(id) });
@@ -42098,7 +42111,7 @@ const FHBG = (function(){
      untouched and one click away ("Classic view"). Classic design never sees any of this. -->
 <style id="wu-style">
   html:not([data-design="fight"]) #wu, html:not([data-design="fight"]) #wu-space, html:not([data-design="fight"]) #wu-newview{display:none !important;}
-  #wu-space{position:fixed; inset:0; width:100%; height:100%; z-index:0; display:none; pointer-events:none;}
+  #wu-space{position:fixed; inset:0; width:100%; height:100%; z-index:0; display:none; pointer-events:none; touch-action:none; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;}
   html[data-design="fight"][data-wu="map"] #wu-space{display:block;}
   /* every page but the Star Map gets its own still background: nothing moving behind it */
   #wu-bg{position:fixed; inset:0; z-index:1; display:none; pointer-events:none;
@@ -42582,13 +42595,25 @@ window.WU = (function(){
   }
   function wireMap(){
     const cv = $('wu-space');
-    cv.addEventListener('pointerdown', e => { G.drag = { x:e.clientX, y:e.clientY }; G.moved = 0; });
-    addEventListener('pointerup', e => { if(G.drag && G.moved < 6 && MODE === 'map' && e.target === cv){ const h = hitAt(e.clientX, e.clientY);
+    /* Nov 25 2026, phones: one finger turns the globe, two fingers pinch to zoom.
+       The canvas has touch-action:none (wu-style), so the phone no longer takes the
+       swipe for a page scroll and cancels the drag. */
+    const pts = new Map(); let pinch = 0;
+    const gap = () => { const a = [...pts.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); };
+    const lift = e => { pts.delete(e.pointerId); if(pts.size < 2) pinch = 0; };
+    cv.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if(e.pointerType === 'touch'){ try{ cv.setPointerCapture(e.pointerId); }catch(_){} }
+      if(pts.size >= 2){ pinch = gap(); G.drag = null; return; }
+      G.drag = { x:e.clientX, y:e.clientY }; G.moved = 0; });
+    addEventListener('pointercancel', e => { lift(e); G.drag = null; });
+    addEventListener('pointerup', e => { lift(e); if(G.drag && G.moved < (e.pointerType === 'touch' ? 12 : 6) && MODE === 'map' && e.target === cv){ const h = hitAt(e.clientX, e.clientY);
         if(h && h.person) focusPerson(h.person);
         else if(h && h.pin){ FILTER = String(h.pin.id); drawFilters(); applyFilter(); flyTo(h.pin.center, h.pin.size*3.4); }
         else if(h && h.world){ FILTER = 'all'; drawFilters(); applyFilter(); recenter(); } }
       G.drag = null; });
-    addEventListener('pointermove', e => { G.mouse.x = e.clientX; G.mouse.y = e.clientY;
+    addEventListener('pointermove', e => { if(pts.has(e.pointerId)) pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if(pinch && pts.size >= 2){ if(MODE === 'map'){ const d = gap(); if(d > 0){ G.view.tr = clamp(G.view.tr * pinch / d, 140, 3200); pinch = d; G.view.idle = 0; } } return; }
+      G.mouse.x = e.clientX; G.mouse.y = e.clientY;
       if(G.drag && MODE === 'map'){ const dx = e.clientX - G.drag.x, dy = e.clientY - G.drag.y; G.moved += Math.abs(dx) + Math.abs(dy);
         G.view.tth += dx*.005; /* Nov 16: drag left/right the natural way */ G.view.tph = clamp(G.view.tph - dy*.004, .25, 2.9); G.drag.x = e.clientX; G.drag.y = e.clientY; G.view.idle = 0; } });
     cv.addEventListener('wheel', e => { if(MODE !== 'map') return; e.preventDefault(); G.view.tr = clamp(G.view.tr * (1 + Math.sign(e.deltaY)*.12), 140, 3200); G.view.idle = 0; }, { passive:false });
@@ -44797,6 +44822,520 @@ function wcaBadgesHTML(name){
     wcaBadgesLoad().then(queue);
   }
   if(document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
+
+<!-- ═══════════════ PHONE NAVIGATION (Nov 25 2026) ═══════════════
+     Phones only (760px and narrower). Computers keep the header exactly as it was.
+       • top: a menu button pinned top left, the logo in the middle, the bell on the right.
+         The ESC "Main Menu" bar and the full screen main menu are not used on phones.
+       • the menu button slides a column in from the left with every page.
+       • a bottom bar on every page: Home, Feed, Star Map, your wallet and your account.
+         It replaces the Feed's own bottom bar on phones. The account and the money
+         left the top bar, so nothing crowds the logo anymore.
+     Nothing is removed: the menu, the account box and the links are the site's own,
+     this block only taps them (a click on the real link), so every page opens the way it always did. -->
+<style id="mnav-style">
+  #mnav-burger, #mnav-bar, #mnav-drawer, #mnav-sheet, #mnav-scrim, #mnav-post, #mnav-ftabs{display:none;}
+  @media (max-width:760px){
+    :root{--mnav-h:62px; --mnav-f:var(--fh-fight, var(--font-cond, 'Barlow Condensed', sans-serif));}
+
+    /* ── top bar: pinned, menu left, logo centre, bell right ── */
+    html[data-mnav] body header{position:sticky !important; top:0; z-index:70;}
+    html[data-mnav] body header .head-inner{position:relative; display:flex !important; flex-wrap:nowrap !important; align-items:center; justify-content:flex-start;
+      min-height:62px; gap:8px; padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px)) !important; margin:0 !important;}
+    html[data-mnav] body header .brand{position:absolute !important; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; flex:none !important; margin:0;}
+    html[data-mnav] body header .brand .logo-img{height:42px !important;}
+    html[data-mnav] body header #fh-menu,
+    html[data-mnav] body header .nav-toggle,
+    html[data-mnav] body header .head-right,
+    html[data-mnav] body header .head-actions{display:none !important;}
+    html[data-mnav] body header .notif-btn{margin:0 0 0 auto !important; order:9;}
+    #mnav-burger{display:flex; align-items:center; justify-content:center; width:46px; height:44px; flex:0 0 auto; padding:0; cursor:pointer;
+      background:rgba(0,0,0,.55); color:var(--txt); border:1px solid rgba(var(--gold-rgb),.45); border-radius:8px; -webkit-tap-highlight-color:transparent;}
+    html[data-design="fight"] #mnav-burger{border-radius:0; clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%); width:52px;}
+    #mnav-burger i{font-size:25px; line-height:1;}
+    #mnav-burger:active{background:var(--gold); color:var(--on-gold,#111);}
+
+    /* the ESC button and the full screen main menu are replaced on phones */
+    html[data-mnav] #fh-back{display:none !important;}
+    html[data-mnav] #fh-hub{display:none !important;}
+    html[data-mnav] #fh-pagebar{padding-top:12px; gap:0;}
+    html[data-mnav] .fh-ptitle small{display:none;}
+
+    /* ── bottom bar ── */
+    #mnav-bar{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:75; align-items:stretch;
+      padding-bottom:env(safe-area-inset-bottom,0px); transform:translate3d(0,var(--slx-lift,0px),0); will-change:transform; backface-visibility:hidden;
+      background:rgba(4,4,6,.95); border-top:1px solid rgba(var(--gold-rgb),.35); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); touch-action:manipulation;}
+    html[data-slx-typing] #mnav-bar{display:none;}
+    #mnav-bar{flex-direction:row;}
+    #mnav-bar button{position:relative; flex:1 1 0; min-width:0; height:var(--mnav-h); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+      background:none; border:0; padding:0 2px; color:#e9e7e0; cursor:pointer; -webkit-tap-highlight-color:transparent;
+      font-family:var(--mnav-f); font-weight:800; font-size:12px; letter-spacing:0; white-space:nowrap;}
+    #mnav-bar button > span{max-width:100%; overflow:hidden; text-overflow:ellipsis;}
+    #mnav-bar button i{font-size:28px; line-height:1; font-style:normal;}
+    #mnav-bar button.on{color:var(--gold);}
+    #mnav-bar button.on::after{content:''; position:absolute; bottom:7px; left:50%; width:5px; height:5px; margin-left:-2.5px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold);}
+    #mnav-bar button:active{transform:scale(.92);}
+    #mnav-bar .mnav-money{color:var(--fh-bet, var(--gold)); font-size:12px; line-height:1; margin-top:1px;}
+    #mnav-bar button.has-money i{font-size:24px;}
+    #mnav-bar .mnav-ava{width:30px; height:30px; border-radius:50%; object-fit:cover; display:block; box-shadow:0 0 0 2px #000, 0 0 0 3.5px rgba(255,255,255,.55);}
+    #mnav-bar .mnav-ini{width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-size:12px; color:#16130a; background:linear-gradient(135deg,#f3d27a,var(--gold)); box-shadow:0 0 0 2px #000, 0 0 0 3.5px rgba(255,255,255,.55);}
+    #mnav-bar button.on .mnav-ava, #mnav-bar button.on .mnav-ini{box-shadow:0 0 0 2px #000, 0 0 0 3.5px var(--gold);}
+    #mnav-bar .mnav-dot{position:absolute; top:12px; left:calc(50% + 9px); width:10px; height:10px; border-radius:50%; background:var(--loss,#e8556a); box-shadow:0 0 0 2px #000;}
+    #mnav-bar .mnav-dot.n{width:auto; min-width:18px; height:18px; top:8px; padding:0 5px; border-radius:9px; font:800 11px/18px var(--font-body,sans-serif); color:#fff; font-style:normal; text-align:center;}
+    /* the Feed's big + button */
+    #mnav-bar .mnav-plus{width:48px; height:38px; border-radius:12px; display:grid; place-items:center; color:#16130a;
+      background:linear-gradient(135deg,#f6dc8c,var(--gold)); box-shadow:0 0 0 2px #000, 0 0 0 3.5px rgba(var(--gold-rgb),.55), 0 6px 18px rgba(var(--gold-rgb),.25);}
+    #mnav-bar .mnav-plus i{font-size:28px; color:#16130a;}
+    #mnav-bar button[data-k="post"].on::after{display:none;}
+
+    /* ── the Feed on phones ──
+       Feed and Following on top (post types in a menu), the post box moves to the + button,
+       the Feed's old bottom bar steps aside for the Feed version of the main bar,
+       and the music widget is tucked away so a thumb can't hit it while scrolling (music keeps playing). */
+    html[data-mnav] #slx-bottom{display:none !important;}
+    html[data-mnav][data-design="fight"] #slx-tabs, html[data-mnav][data-design="fight"] #slx-compose{display:none !important;}
+    html[data-mnav][data-design="fight"] #page-storylines .slx-l .sl-frow:has(#sl-f-type){display:none !important;}
+    html[data-mnav][data-slx-feed] .mus-fab, html[data-mnav][data-slx-feed] .mus-fab-x,
+    html[data-mnav][data-slx-feed] .sm-player, html[data-mnav][data-slx-feed] #sm-player{visibility:hidden !important; pointer-events:none !important;}
+    html[data-mnav][data-design="fight"] #mnav-ftabs{display:flex; align-items:stretch; gap:0; margin:0 0 12px; border:1px solid var(--line); background:rgba(10,10,14,.85);
+      position:sticky; top:62px; z-index:20;}
+    #mnav-ftabs > button.t{flex:1 1 0; padding:13px 6px 11px; background:none; border:0; border-bottom:3px solid transparent; color:var(--muted); cursor:pointer;
+      font-family:var(--mnav-f); font-style:italic; font-weight:900; font-size:18px; letter-spacing:1.5px; text-transform:uppercase;}
+    #mnav-ftabs > button.t.on{color:var(--txt); border-bottom-color:var(--gold);}
+    #mnav-ftabs .ty{position:relative; flex:0 0 auto; display:flex;}
+    #mnav-ftabs .ty > button{display:flex; align-items:center; gap:6px; padding:0 14px; background:none; border:0; border-left:1px solid var(--line); color:var(--txt-2,#cfccc2); cursor:pointer;
+      font-family:var(--mnav-f); font-weight:800; font-size:15px; letter-spacing:1px; text-transform:uppercase; white-space:nowrap;}
+    #mnav-ftabs .ty > button i{font-size:19px;}
+    #mnav-ftabs .ty > button.set{color:var(--gold);}
+    #mnav-ftabs .ty-menu{position:absolute; right:-1px; top:calc(100% + 6px); width:230px; max-height:60vh; overflow-y:auto; z-index:30; padding:6px 0;
+      background:#121215; border:1px solid var(--line); box-shadow:0 20px 50px rgba(0,0,0,.7);}
+    #mnav-ftabs .ty-menu[hidden]{display:none;}
+    #mnav-ftabs .ty-menu .g{padding:8px 14px 4px; font-family:var(--mnav-f); font-weight:800; font-size:12px; letter-spacing:2px; color:var(--muted); text-transform:uppercase;}
+    #mnav-ftabs .ty-menu button{display:flex; align-items:center; justify-content:space-between; width:100%; padding:11px 14px; background:none; border:0; color:var(--txt); text-align:left; cursor:pointer;
+      font-family:var(--mnav-f); font-weight:700; font-size:17px; letter-spacing:.5px; text-transform:uppercase;}
+    #mnav-ftabs .ty-menu button.on{color:var(--gold);} #mnav-ftabs .ty-menu button.on::after{content:'✓'; font-weight:900;}
+
+    /* ── New post sheet (the + button) ── */
+    #mnav-post{display:flex; flex-direction:column; position:fixed; inset:0; z-index:1200; background:linear-gradient(180deg,#0f1016,#07080c); color:var(--txt);
+      transform:translate3d(0,104%,0); transition:transform .28s cubic-bezier(.2,.8,.2,1); visibility:hidden;
+      padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);}
+    html[data-mnav-open="post"] #mnav-post{transform:none; visibility:visible;}
+    .mp-head{display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid rgba(var(--gold-rgb),.25);}
+    .mp-head h2{flex:1; margin:0; font-family:var(--mnav-f); font-style:italic; font-weight:900; font-size:24px; letter-spacing:1.5px; text-transform:uppercase; text-align:center;}
+    .mp-head .mnav-x{flex:0 0 auto;} .mp-head .sp{width:42px;}
+    .mp-body{flex:1; overflow-y:auto; overscroll-behavior:contain; padding:14px 16px 20px;}
+    .mp-lab{font-family:var(--mnav-f); font-weight:800; font-size:13px; letter-spacing:2.5px; color:var(--muted); text-transform:uppercase; margin:0 0 8px;}
+    .mp-who{display:flex; gap:10px; overflow-x:auto; padding:2px 2px 10px; margin:0 -2px 6px; scrollbar-width:none;}
+    .mp-who::-webkit-scrollbar{display:none;}
+    .mp-who button{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:6px; width:78px; padding:8px 4px; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:12px; color:var(--txt-2,#cfccc2); cursor:pointer;}
+    .mp-who button .slx-av{width:46px; height:46px; flex-basis:46px; font-size:16px;}
+    .mp-who button b{display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:700 13px var(--font-body); color:var(--txt);}
+    .mp-who button small{font-family:var(--mnav-f); font-weight:800; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--c,var(--muted));}
+    .mp-who button.on{border-color:var(--c,var(--gold)); background:color-mix(in srgb,var(--c,var(--gold)) 16%,transparent); box-shadow:0 0 0 1px var(--c,var(--gold)) inset;}
+    .mp-as{font-size:15px; line-height:1.45; color:var(--muted); margin:0 0 12px;} .mp-as b{color:var(--c,var(--gold));}
+    .mp-text{display:block; width:100%; min-height:150px; padding:12px 14px; background:rgba(0,0,0,.35); border:1px solid var(--line); border-radius:10px; outline:0; resize:vertical;
+      color:var(--txt); font:18px/1.5 var(--font-body); box-sizing:border-box;}
+    .mp-text:focus{border-color:rgba(var(--gold-rgb),.6);}
+    .mp-count{text-align:right; font-size:13px; color:var(--muted); margin:4px 2px 12px; font-variant-numeric:tabular-nums;}
+    .mp-stats{border:1px solid var(--line); border-radius:10px; padding:12px; margin:0 0 12px; background:rgba(255,255,255,.02);}
+    .mp-stats .row{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:8px;}
+    .mp-stats label{display:flex; flex-direction:column; gap:4px; font-family:var(--mnav-f); font-weight:800; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);}
+    .mp-stats input{width:100%; min-width:0; padding:10px 10px; background:rgba(0,0,0,.4); border:1px solid var(--line); border-radius:8px; color:var(--txt); font:700 16px var(--font-body); box-sizing:border-box;}
+    .mp-stats .top{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+    .mp-dice{display:inline-flex; align-items:center; gap:8px; padding:9px 14px; border:1px solid var(--gold); border-radius:22px; background:rgba(var(--gold-rgb),.12); color:var(--gold); cursor:pointer;
+      font-family:var(--mnav-f); font-weight:900; font-size:15px; letter-spacing:1px; text-transform:uppercase; white-space:nowrap;}
+    .mp-dice i{font-size:19px;}
+    .mp-note{font-size:14px; line-height:1.45; color:var(--muted); margin:0 0 12px;}
+    .mp-more{display:inline-flex; align-items:center; gap:8px; padding:9px 0; background:none; border:0; color:var(--txt-2,#cfccc2); cursor:pointer; font:600 15px var(--font-body); text-decoration:underline; text-underline-offset:3px;}
+    .mp-err{margin:0 0 12px; padding:10px 12px; border:1px solid var(--loss,#e8556a); border-radius:8px; font-size:15px;}
+    .mp-foot{display:flex; gap:10px; padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--line); background:rgba(0,0,0,.4);}
+    .mp-foot button{flex:1; min-height:50px; border-radius:10px; cursor:pointer; font-family:var(--mnav-f); font-style:italic; font-weight:900; font-size:18px; letter-spacing:1.5px; text-transform:uppercase;}
+    .mp-foot .ghost{flex:0 0 auto; padding:0 18px; background:none; border:1px solid var(--line); color:var(--txt);}
+    .mp-foot .go{border:0; color:#16130a; background:linear-gradient(135deg,#f6dc8c,var(--gold)); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 12px;}
+    .mp-foot .go[disabled]{opacity:.45; cursor:default;}
+    .mp-pv-note{display:flex; gap:8px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--muted); margin:0 0 12px;}
+    .mp-pv{pointer-events:none;}
+    .mp-pv .slpost{margin:0 !important;}
+    .mp-pv .sl-engage, .mp-pv .sl-sharebtn, .mp-pv .sl-charbox{display:none !important;}
+    .mp-card{border:1px solid var(--line); border-radius:12px; padding:14px; background:rgba(16,16,22,.9);}
+    .mp-card .h{display:flex; align-items:center; gap:10px; margin-bottom:10px;} .mp-card .h b{font-weight:800;} .mp-card .h small{display:block; color:var(--muted); font-size:13px;}
+    .mp-card .tx{font-size:17px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere;}
+    .mp-card .ft{display:flex; gap:18px; margin-top:12px; color:var(--muted); font-weight:700;} .mp-card .ft i{margin-right:4px;}
+    .mp-signin{text-align:center; padding:30px 10px;} .mp-signin p{color:var(--muted); font-size:16px; line-height:1.5; margin:8px 0 18px;}
+
+    /* room for the bar under every page, and the Feed's own bar steps aside */
+    html[data-mnav] body{padding-bottom:calc(var(--mnav-h) + env(safe-area-inset-bottom,0px)) !important;}
+    html[data-mnav] .sm-player:not([style*="top:"]){bottom:calc(var(--mnav-h) + 10px + env(safe-area-inset-bottom,0px)) !important;}
+    html[data-mnav] .mus-fab-x{bottom:calc(182px + var(--mnav-h)) !important;}
+    /* star map, roster, relationships, rivalries: their bottom buttons sit above the bar */
+    html[data-mnav] #wu .wu-tools{bottom:calc(var(--mnav-h) + 12px + env(safe-area-inset-bottom,0px)) !important;}
+    html[data-mnav] #wu .wu-card{bottom:calc(var(--mnav-h) + 70px + env(safe-area-inset-bottom,0px)) !important; max-height:calc(100dvh - var(--wu-top,120px) - var(--mnav-h) - 170px) !important;}
+    html[data-mnav] #wu .wu-screen{bottom:calc(var(--mnav-h) + env(safe-area-inset-bottom,0px)) !important;}
+
+    /* ── the slide-in menu and the account sheet ── */
+    #mnav-scrim{display:block; position:fixed; inset:0; z-index:1190; background:rgba(0,0,0,.6); opacity:0; pointer-events:none; transition:opacity .2s;}
+    html[data-mnav-open] #mnav-scrim{opacity:1; pointer-events:auto;}
+    html[data-mnav-open] body{overflow:hidden;}
+    html[data-mnav-open] .mus-fab, html[data-mnav-open] .mus-fab-x, html[data-mnav-open] .sm-player{visibility:hidden !important;}
+    #mnav-drawer{display:flex; flex-direction:column; position:fixed; top:0; bottom:0; left:0; width:min(84vw,340px); z-index:1200;
+      transform:translate3d(-104%,0,0); transition:transform .26s cubic-bezier(.2,.8,.2,1); visibility:hidden;
+      background:linear-gradient(180deg,#0e0f15 0%,#07080c 100%); border-right:1px solid rgba(var(--gold-rgb),.35); box-shadow:12px 0 40px rgba(0,0,0,.6);
+      padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); color:var(--txt);}
+    html[data-mnav-open="menu"] #mnav-drawer{transform:none; visibility:visible;}
+    .mnav-dhead{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 12px 12px 18px; border-bottom:1px solid rgba(var(--gold-rgb),.22);}
+    .mnav-dhead img{height:40px; width:auto; display:block;}
+    .mnav-x{width:42px; height:42px; display:grid; place-items:center; background:none; border:1px solid var(--line); border-radius:8px; color:var(--txt); cursor:pointer; font-size:22px;}
+    .mnav-dlist{flex:1; overflow-y:auto; overscroll-behavior:contain; padding:6px 0 18px; -webkit-overflow-scrolling:touch;}
+    .mnav-sec{padding:18px 20px 6px; font-family:var(--mnav-f); font-weight:700; font-size:13px; letter-spacing:3px; color:var(--muted); text-transform:uppercase;}
+    .mnav-item{display:flex; align-items:center; gap:14px; width:100%; min-height:50px; padding:10px 18px 10px 17px; background:none; border:0; border-left:3px solid transparent;
+      color:var(--txt); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent;
+      font-family:var(--mnav-f); font-style:italic; font-weight:800; font-size:19px; letter-spacing:1px; text-transform:uppercase;}
+    html:not([data-design="fight"]) .mnav-item{font-style:normal;}
+    .mnav-item i{width:24px; font-size:22px; font-style:normal; color:var(--muted); flex:0 0 auto; text-align:center;}
+    .mnav-item small{margin-left:auto; font-style:normal; font-size:12px; letter-spacing:1.5px; color:var(--loss,#e8556a); border:1px solid currentColor; padding:1px 6px; border-radius:3px;}
+    .mnav-item:active{background:rgba(255,255,255,.06);}
+    .mnav-item.on{border-left-color:var(--gold); color:var(--gold); background:linear-gradient(90deg,rgba(var(--gold-rgb),.16),transparent 80%);}
+    .mnav-item.on i{color:var(--gold);}
+    .mnav-item.fp{color:var(--gold);}
+    .mnav-soc{display:flex; flex-wrap:wrap; gap:10px; padding:14px 18px 6px;}
+    .mnav-soc a{width:44px; height:44px; display:grid; place-items:center; border:1px solid var(--line); border-radius:10px; color:var(--txt-2,#cfccc2); font-size:22px; text-decoration:none;}
+
+    #mnav-sheet{display:block; position:fixed; left:0; right:0; bottom:0; z-index:1200; max-height:86dvh; overflow-y:auto; overscroll-behavior:contain;
+      transform:translate3d(0,104%,0); transition:transform .26s cubic-bezier(.2,.8,.2,1); visibility:hidden;
+      background:linear-gradient(180deg,#111219,#08090d); border-top:1px solid rgba(var(--gold-rgb),.45); border-radius:16px 16px 0 0;
+      padding:8px 0 calc(14px + env(safe-area-inset-bottom,0px)); color:var(--txt); box-shadow:0 -14px 40px rgba(0,0,0,.6);}
+    html[data-mnav-open="me"] #mnav-sheet{transform:none; visibility:visible;}
+    .mnav-grab{width:44px; height:5px; border-radius:3px; background:rgba(255,255,255,.22); margin:2px auto 10px;}
+    .mnav-me{display:flex; align-items:center; gap:14px; padding:6px 20px 16px; border-bottom:1px solid var(--line);}
+    .mnav-me .mnav-bigava{width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--gold); flex:0 0 auto;}
+    .mnav-me .mnav-bigini{width:56px; height:56px; border-radius:50%; border:2px solid var(--gold); display:grid; place-items:center; font-family:var(--mnav-f); font-weight:800; font-size:20px; flex:0 0 auto;}
+    .mnav-me b{display:block; font-family:var(--mnav-f); font-weight:800; font-size:22px; text-transform:uppercase; letter-spacing:.5px; line-height:1.1;}
+    .mnav-me small{display:block; color:var(--muted); font-size:14px; margin-top:2px;}
+    .mnav-me .mnav-bal{margin-left:auto; text-align:right;}
+    .mnav-me .mnav-bal b{color:var(--fh-bet, var(--gold)); font-family:var(--font-display,'Anton',sans-serif); font-weight:400; font-size:26px; letter-spacing:.5px;}
+    .mnav-me .mnav-bal small{text-transform:uppercase; letter-spacing:2px; font-size:11px;}
+    .mnav-signin{padding:6px 20px 14px; border-bottom:1px solid var(--line);}
+    .mnav-signin b{display:block; font-family:var(--mnav-f); font-weight:900; font-style:italic; font-size:26px; text-transform:uppercase;}
+    .mnav-signin small{display:block; color:var(--muted); font-size:15px; margin-top:4px; line-height:1.4;}
+    #mnav-sheet .mnav-item.out{color:var(--loss,#e8556a);} #mnav-sheet .mnav-item.out i{color:var(--loss,#e8556a);}
+  }
+  @media (max-width:760px) and (prefers-reduced-motion:reduce){ #mnav-drawer, #mnav-sheet, #mnav-scrim{transition:none;} }
+</style>
+<script>
+(function(){
+  const root = document.documentElement, $ = id => document.getElementById(id);
+  const mq = matchMedia('(max-width:760px)');
+  const isFight = () => root.dataset.design === 'fight';
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const txt = el => (el ? el.textContent : '').replace(/\s+/g, ' ').trim();
+  const curPage = () => { const p = document.querySelector('.page.active'); return p ? p.id.replace(/^page-/, '') : ''; };
+  const go = pg => { try{ if(typeof goPage === 'function') goPage(pg); }catch(e){ console.warn('[mnav]', e); } };
+  const ICON = { home:'ti-home', storylines:'ti-news', exchange:'ti-chart-candle', events:'ti-calendar-event', promotions:'ti-flag-3', archive:'ti-history',
+    live:'ti-broadcast', roster:'ti-users', starmap:'ti-planet', relationships:'ti-affiliate', rivalries:'ti-flame', rankings:'ti-trophy', leaderboard:'ti-coin',
+    apply:'ti-writing', music:'ti-music', games:'ti-device-gamepad-2', timeline:'ti-timeline', showdown:'ti-swords', sponsors:'ti-heart-handshake', dash:'ti-layout-dashboard' };
+  const iconOf = el => { const i = el && el.querySelector('i.ti'); return i ? [...i.classList].find(c => c !== 'ti' && c.startsWith('ti-')) : ''; };
+  root.dataset.mnav = '';
+
+  /* ── open / close ── */
+  let lastFocus = null;
+  function open(which){
+    lastFocus = document.activeElement;
+    if(which === 'menu') drawMenu(); else if(which === 'post') drawPost(); else drawMe();
+    root.dataset.mnavOpen = which;
+    const box = which === 'menu' ? $('mnav-drawer') : which === 'post' ? $('mnav-post') : $('mnav-sheet');
+    if(box){ box.setAttribute('aria-hidden', 'false'); const f = which === 'post' ? $('mp-text') : box.querySelector('.mnav-x, .mnav-item'); if(f) setTimeout(() => f.focus({ preventScroll:true }), 300); }
+    const b = $('mnav-burger'); if(b) b.setAttribute('aria-expanded', which === 'menu' ? 'true' : 'false');
+  }
+  function close(){
+    if(!('mnavOpen' in root.dataset)) return;
+    delete root.dataset.mnavOpen;
+    ['mnav-drawer','mnav-sheet','mnav-post'].forEach(id => { const el = $(id); if(el) el.setAttribute('aria-hidden', 'true'); });
+    const b = $('mnav-burger'); if(b) b.setAttribute('aria-expanded', 'false');
+    if(lastFocus && lastFocus.focus) try{ lastFocus.focus({ preventScroll:true }); }catch(e){}
+  }
+  window.mnavClose = close;
+
+  /* a list row that taps the site's own link or button */
+  function row(label, icon, run, opts){
+    opts = opts || {};
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = 'mnav-item' + (opts.on ? ' on' : '') + (opts.cls ? ' ' + opts.cls : '');
+    b.innerHTML = `<i class="ti ${E(icon || 'ti-point')}" aria-hidden="true"></i><span>${E(label)}</span>${opts.badge ? `<small>${E(opts.badge)}</small>` : ''}`;
+    if(opts.on) b.setAttribute('aria-current', 'page');
+    b.onclick = () => { close(); setTimeout(run, 30); };
+    return b;
+  }
+  const sec = t => { const d = document.createElement('div'); d.className = 'mnav-sec'; d.textContent = t; return d; };
+  const tap = el => () => { if(el) el.click(); };
+
+  /* ── the slide-in menu: every page in the header's own menu, groups and all ── */
+  function drawMenu(){
+    const list = $('mnav-dlist'); if(!list) return;
+    list.innerHTML = '';
+    const cur = curPage(), nav = document.querySelector('header nav');
+    const pageRow = el => { const pg = el.dataset.page, live = el.classList.contains('live-now') || el.classList.contains('nav-islive');
+      return row(txt(el) || pg, ICON[pg] || iconOf(el), tap(el), { on: pg === cur, badge: live ? 'LIVE' : '' }); };
+    list.appendChild(sec('Pages'));
+    list.appendChild(row('Home', 'ti-home', () => { const br = document.querySelector('header .brand'); if(br) br.click(); else go('home'); }, { on: cur === 'home' }));
+    const more = [];
+    let addedMap = false;
+    const addMap = () => { if(addedMap || !isFight()) return; addedMap = true;
+      list.appendChild(row('Star Map', 'ti-planet', () => go('starmap'), { on: cur === 'starmap' })); };
+    if(nav){
+      [...nav.children].forEach(el => {
+        if(el.matches('a[data-page], button[data-page]')){
+          if(el.classList.contains('nav-off')){ more.push(el); return; }
+          list.appendChild(pageRow(el));
+          if(el.dataset.page === 'roster') addMap();
+        } else if(el.classList.contains('navdrop')){
+          const trig = el.querySelector('.navdrop-trigger');
+          const items = [...el.querySelectorAll('a[data-page], button[data-page]')];
+          if(!items.length) return;
+          list.appendChild(sec((trig && trig.getAttribute('data-group')) || txt(trig) || 'More'));
+          items.forEach(a => { if(a.classList.contains('nav-off')){ more.push(a); return; } list.appendChild(pageRow(a)); if(a.dataset.page === 'roster') addMap(); });
+        }
+      });
+    }
+    addMap();
+    list.appendChild(sec('More'));
+    more.forEach(a => list.appendChild(pageRow(a)));
+    const fp = $('nav-firepro'); if(fp) list.appendChild(row('Enter Fire Pro', 'ti-bolt', tap(fp), { cls:'fp' }));
+    const don = $('donateBtn'); if(don) list.appendChild(row('Donate', 'ti-heart', tap(don)));
+    const app = $('appBtn'); if(app && !app.hidden) list.appendChild(row('Get the App', 'ti-download', tap(app)));
+    const soc = document.querySelector('header .socials, .site-foot .sf-socials');
+    if(soc){ const s = document.createElement('div'); s.className = 'mnav-soc';
+      soc.querySelectorAll('a[href]').forEach(a => { const c = document.createElement('a'); c.href = a.href; c.target = '_blank'; c.rel = 'noopener';
+        c.setAttribute('aria-label', a.getAttribute('aria-label') || txt(a)); c.innerHTML = a.innerHTML; s.appendChild(c); });
+      if(s.children.length) list.appendChild(s); }
+  }
+
+  /* ── the account sheet: what the account box in the top bar used to hold ── */
+  function who(){
+    const box = $('userbox'), chip = box && box.querySelector('.user-chip');
+    if(!chip) return null;
+    const img = chip.querySelector('img.uava'), ini = chip.querySelector('.uava-init');
+    return { name: txt(chip.querySelector('.uname')) || 'Player', prov: txt(chip.querySelector('.uprov')), money: txt(chip.querySelector('.ubal')),
+      img: img && img.getAttribute('src'), ini: txt(ini) || (txt(chip.querySelector('.uname')) || 'P').slice(0,2).toUpperCase(), chip };
+  }
+  function drawMe(){
+    const box = $('mnav-sheetlist'); if(!box) return;
+    box.innerHTML = '';
+    const me = who(), cur = curPage();
+    if(me){
+      const h = document.createElement('div'); h.className = 'mnav-me';
+      h.innerHTML = `${me.img ? `<img class="mnav-bigava" src="${E(me.img)}" alt="" referrerpolicy="no-referrer">` : `<div class="mnav-bigini">${E(me.ini)}</div>`}
+        <div style="min-width:0"><b>${E(me.name)}</b>${me.prov ? `<small>${E(me.prov)}</small>` : ''}</div>
+        ${me.money ? `<div class="mnav-bal"><b>${E(me.money)}</b><small>Wallet</small></div>` : ''}`;
+      const im = h.querySelector('img'); if(im) im.onerror = () => { im.outerHTML = `<div class="mnav-bigini">${E(me.ini)}</div>`; };
+      box.appendChild(h);
+      // the account box's own menu (Dashboard, My Promotion, Account, switch account…)
+      me.chip.querySelectorAll('.umenu a, .umenu button').forEach(a => {
+        const pg = a.dataset.page || (/\/dash$/.test(a.getAttribute('href') || '') ? 'dash' : /my-promotion/.test(a.getAttribute('href') || '') ? 'mypromo' : /\/account$/.test(a.getAttribute('href') || '') ? 'account' : '');
+        box.appendChild(row(txt(a), iconOf(a), tap(a), { on: pg && pg === cur }));
+      });
+      const nb = $('notifBtn'); if(nb && !nb.hidden) box.appendChild(row('Notifications', 'ti-bell', tap(nb)));
+    } else {
+      const h = document.createElement('div'); h.className = 'mnav-signin';
+      h.innerHTML = `<b>Sign in</b><small>Get your wallet, bet on shows, post in the Feed and build your own character.</small>`;
+      box.appendChild(h);
+      const opts = document.querySelectorAll('#loginMenu > button, #loginMenu > a, #loginMenu .wca-saved button');
+      if(opts.length) opts.forEach(b => box.appendChild(row(txt(b), iconOf(b) || 'ti-login-2', tap(b))));
+      else { const lb = $('loginBtn'); if(lb) box.appendChild(row('Sign in', 'ti-login-2', tap(lb))); }
+    }
+    const don = $('donateBtn'); if(don) box.appendChild(row('Donate', 'ti-heart', tap(don)));
+    const app = $('appBtn'); if(app && !app.hidden) box.appendChild(row('Get the App', 'ti-download', tap(app)));
+    if(me){ const out = me.chip.querySelector('.logout-x'); if(out) box.appendChild(row('Sign out', 'ti-logout', tap(out), { cls:'out' })); }
+  }
+
+  /* ── the bottom bar ── */
+  function paintBar(){
+    const bar = $('mnav-bar'); if(!bar) return;
+    const cur = curPage(), me = who();
+    const mapOn = isFight() ? cur === 'starmap' : false;
+    const notif = $('notifDot'), dot = notif && !notif.hidden;
+    const nc = $('notifCount'), ncount = nc && !nc.hidden ? txt(nc) : '';
+    if(onFeed()) drawFTabs();
+    const items = onFeed() ? [
+      { k:'feed', ic:'ti-home', t:'Feed', on: SLv('p') !== 'following', run: feedAll },
+      { k:'following', ic:'ti-users', t:'Following', on: SLv('p') === 'following', run: feedFollowing },
+      { k:'post', t:'New post', plus:true, on: root.dataset.mnavOpen === 'post', run: openPost },
+      { k:'alerts', ic:'ti-bell', t:'Alerts', on:false, badge: ncount || (dot ? ' ' : ''), run: () => { if(!signedIn()) return signInNow(); if(typeof wcaNotifToggle === 'function') wcaNotifToggle(); } },
+      { k:'me', t: me ? 'Me' : 'Sign in', on: root.dataset.mnavOpen === 'me', run: () => open('me'), ic: me ? '' : 'ti-user-circle', ava: me }
+    ] : [
+      { k:'home', ic:'ti-home', t:'Home', on: cur === 'home', run: () => { const br = document.querySelector('header .brand'); if(br) br.click(); else go('home'); } },
+      { k:'feed', ic:'ti-news', t:'Feed', on: cur === 'storylines', run: () => { if(cur === 'storylines') window.scrollTo({ top:0, behavior:'smooth' }); else go('storylines'); } },
+      { k:'map', ic:'ti-planet', t:'Star Map', on: mapOn, run: () => go(isFight() ? 'starmap' : 'roster') },
+      { k:'wallet', ic:'ti-wallet', t: me && me.money ? me.money : 'Wallet', money: !!(me && me.money), on: cur === 'dash', run: () => me ? go('dash') : open('me') },
+      { k:'me', t: me ? 'Me' : 'Sign in', on: ('mnavOpen' in root.dataset && root.dataset.mnavOpen === 'me') || cur === 'account' || cur === 'mypromo', run: () => open('me'),
+        ic: me ? '' : 'ti-user-circle', ava: me }
+    ];
+    bar.innerHTML = items.map(it => {
+      const pic = it.plus ? '<span class="mnav-plus"><i class="ti ti-plus" aria-hidden="true"></i></span>' : it.ava ? (it.ava.img ? `<img class="mnav-ava" src="${E(it.ava.img)}" alt="" referrerpolicy="no-referrer">` : `<span class="mnav-ini">${E(it.ava.ini)}</span>`) : `<i class="ti ${it.ic}" aria-hidden="true"></i>`;
+      const cls = [it.on ? 'on' : '', it.money ? 'has-money' : ''].filter(Boolean).join(' ');
+      return `<button type="button" data-k="${it.k}"${cls ? ` class="${cls}"` : ''}${it.on ? ' aria-current="page"' : ''} aria-label="${E(it.k === 'wallet' ? 'Wallet ' + (me && me.money || '') : it.t)}" title="${E(it.k === 'wallet' ? 'Wallet' : it.t)}">${pic}${it.money ? `<span class="mnav-money">${E(short(it.t))}</span>` : ''}${it.badge ? `<em class="mnav-dot${it.badge.trim() ? ' n' : ''}">${E(it.badge.trim())}</em>` : (it.k === 'me' && dot && !onFeed() ? '<em class="mnav-dot"></em>' : '')}</button>`;
+    }).join('');
+    bar.querySelectorAll('button').forEach((b, i) => { b.onclick = items[i].run; const im = b.querySelector('img'); if(im) im.onerror = () => { im.outerHTML = `<span class="mnav-ini">${E(items[i].ava.ini)}</span>`; }; });
+  }
+  // $119,800 -> $119.8K so it fits under the icon
+  function short(m){ const n = parseFloat(String(m).replace(/[^0-9.\-]/g, '')); if(!isFinite(n) || Math.abs(n) < 10000) return m;
+    const pre = (String(m).match(/^[^0-9\-]*/) || [''])[0], a = Math.abs(n), sg = n < 0 ? '-' : '';
+    const v = a >= 1e9 ? (a/1e9).toFixed(a >= 1e10 ? 0 : 1) + 'B' : a >= 1e6 ? (a/1e6).toFixed(a >= 1e7 ? 0 : 1) + 'M' : (a/1e3).toFixed(a >= 1e5 ? 1 : 1) + 'K';
+    return sg + pre + v.replace('.0', ''); }
+  /* ── the Feed on phones: Feed / Following tabs with a post type menu ── */
+  const SLv = n => { try{ return n === 'p' ? SL_PROMO : SL_FILTER; }catch(e){ return 'all'; } };
+  const onFeed = () => isFight() && curPage() === 'storylines';
+  const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
+  const signInNow = () => { try{ if(typeof frSignIn === 'function') return frSignIn(); }catch(e){} open('me'); };
+  function feedAll(){ if(SLv('p') === 'following'){ try{ slSetPromo('all'); }catch(e){} } else window.scrollTo({ top:0, behavior:'smooth' }); }
+  function feedFollowing(){ const b = document.querySelector('#slx-tabs [data-k="following"]'); if(b) b.click(); else { try{ slSetPromo('following'); }catch(e){} } }
+  let tyOpen = false;
+  function drawFTabs(){
+    const tabs = $('slx-tabs'); if(!tabs) return;
+    let box = $('mnav-ftabs');
+    if(!box){ box = document.createElement('div'); box.id = 'mnav-ftabs'; box.setAttribute('role', 'tablist'); box.setAttribute('aria-label', 'Feed views'); tabs.parentNode.insertBefore(box, tabs); }
+    const fol = SLv('p') === 'following', f = SLv('f');
+    const types = [...document.querySelectorAll('#sl-f-type button[data-slfilter]')];
+    const curT = types.find(b => b.dataset.slfilter === f);
+    const tname = f === 'all' || !curT ? 'Type' : txt(curT);
+    box.innerHTML = `<button type="button" class="t${fol ? '' : ' on'}" role="tab" aria-selected="${!fol}" data-ft="all">Feed</button>
+      <button type="button" class="t${fol ? ' on' : ''}" role="tab" aria-selected="${fol}" data-ft="following">Following</button>
+      <div class="ty"><button type="button" class="${f === 'all' ? '' : 'set'}" aria-haspopup="menu" aria-expanded="${tyOpen}"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>${E(tname)}</button>
+        <div class="ty-menu" role="menu"${tyOpen ? '' : ' hidden'}><div class="g">Show post type</div>${types.map((b, i) => `<button type="button" role="menuitemradio" aria-checked="${b.dataset.slfilter === f}" data-i="${i}"${b.dataset.slfilter === f ? ' class="on"' : ''}>${E(b.dataset.slfilter === 'all' ? 'All posts' : txt(b))}</button>`).join('')}</div></div>`;
+    box.querySelector('[data-ft="all"]').onclick = feedAll;
+    box.querySelector('[data-ft="following"]').onclick = feedFollowing;
+    box.querySelector('.ty > button').onclick = e => { e.stopPropagation(); tyOpen = !tyOpen; drawFTabs(); };
+    box.querySelectorAll('.ty-menu [data-i]').forEach(b => b.onclick = e => { e.stopPropagation(); tyOpen = false; const t = types[Number(b.dataset.i)]; if(t) t.click(); drawFTabs(); });
+  }
+  document.addEventListener('click', e => { if(tyOpen && !e.target.closest('#mnav-ftabs .ty')){ tyOpen = false; drawFTabs(); } });
+
+  /* ── New post (the + button): who you post as, the words, made-up likes for characters, a preview, then post ── */
+  const P = { step:'write', text:'', stats:{ likes:'', replies:'', reposts:'' }, err:'', busy:false };
+  const api = () => (window.SLX_POST && window.SLX_POST.api) || null;
+  function drawPost(){
+    const box = $('mnav-postbody'), foot = $('mnav-postfoot'), A = api(); if(!box) return;
+    $('mnav-posttitle').textContent = P.step === 'preview' ? 'Preview' : 'New post';
+    if(!signedIn() || !A){
+      box.innerHTML = `<div class="mp-signin"><i class="ti ti-pencil-plus" style="font-size:44px;color:var(--gold)"></i><p>${signedIn() ? 'Posting is still loading. Try again in a moment.' : 'Sign in to post as yourself, as the characters you play, or as your promotion.'}</p></div>`;
+      foot.innerHTML = signedIn() ? '' : `<button type="button" class="go" id="mp-signin">Sign in</button>`;
+      if($('mp-signin')) $('mp-signin').onclick = () => { close(); setTimeout(signInNow, 30); };
+      return;
+    }
+    const list = A.list(), cur = A.current(list); if(!cur) return;
+    const fan = cur.k === 'me', mx = fan ? 1000 : 2000;
+    if(P.step === 'write'){
+      box.innerHTML = `<div class="mp-lab">Posting as</div>
+        <div class="mp-who" role="radiogroup" aria-label="Post as">${list.map((x, i) => `<button type="button" role="radio" aria-checked="${x === cur}" data-w="${i}" style="--c:${E(x.c)}"${x === cur ? ' class="on"' : ''}>${A.avatar(x)}<b>${E(x.name)}</b><small>${E(x.kind)}</small></button>`).join('')}</div>
+        <p class="mp-as" style="--c:${E(cur.c)}">${A.asLine(cur)}</p>
+        <textarea class="mp-text" id="mp-text" maxlength="${mx}" placeholder="What's happening in the WCA?" aria-label="Your post">${E(P.text)}</textarea>
+        <div class="mp-count" id="mp-count"></div>
+        ${fan ? `<p class="mp-note"><i class="ti ti-info-circle"></i> A post as yourself shows its real likes and reposts. To add numbers, post as one of your characters.</p>`
+          : `<div class="mp-stats"><div class="top"><span class="mp-lab" style="margin:0">Likes and reposts</span><button type="button" class="mp-dice" id="mp-dice"><i class="ti ti-dice-5"></i> Random</button></div>
+            <div class="row"><label>Likes<input id="mp-likes" inputmode="text" maxlength="12" placeholder="e.g. 12.4K" value="${E(P.stats.likes)}"></label>
+            <label>Replies<input id="mp-replies" inputmode="text" maxlength="12" placeholder="e.g. 640" value="${E(P.stats.replies)}"></label>
+            <label>Reposts<input id="mp-reposts" inputmode="text" maxlength="12" placeholder="e.g. 2.1K" value="${E(P.stats.reposts)}"></label></div></div>`}
+        ${P.err ? `<div class="mp-err">${E(P.err)}</div>` : ''}
+        <button type="button" class="mp-more" id="mp-more">${A.moreLabel(cur)}</button>`;
+      foot.innerHTML = `<button type="button" class="go" id="mp-next">Preview</button>`;
+      const ta = $('mp-text');
+      const count = () => { P.text = ta.value; $('mp-count').textContent = `${ta.value.length} / ${mx}`; $('mp-next').disabled = !ta.value.trim(); };
+      ta.oninput = count; count();
+      box.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const x = list[Number(b.dataset.w)]; if(x){ P.text = ta.value; A.setAs(x.k, x.id); P.err = ''; drawPost(); } });
+      ['likes','replies','reposts'].forEach(k => { const el = $('mp-' + k); if(el) el.oninput = () => { P.stats[k] = el.value; }; });
+      if($('mp-dice')) $('mp-dice').onclick = () => { try{ const r = wcaRandomSocialStats(); P.stats = { likes:r.likes, replies:r.replies, reposts:r.reposts }; }catch(e){}
+        ['likes','replies','reposts'].forEach(k => { const el = $('mp-' + k); if(el) el.value = P.stats[k]; }); };
+      $('mp-more').onclick = () => { const t = ta.value; close(); setTimeout(() => A.more(t), 60); };
+      $('mp-next').onclick = () => { if(!ta.value.trim()) return; P.text = ta.value; P.err = ''; P.step = 'preview'; drawPost(); box.scrollTop = 0; };
+    } else {
+      const stats = fan ? {} : Object.fromEntries(Object.entries(P.stats).filter(([, v]) => String(v).trim()));
+      let card = '';
+      try{
+        if(typeof slRenderSocial === 'function'){
+          const d = new Date(), day = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+          card = slRenderSocial({ id:0, kind:'social', title:null, body:P.text.trim(), story_date:day, is_published:true,
+            payload:Object.assign({ author:cur.name }, fan ? { fan:true } : stats), wrestler_id: cur.k === 'char' && !(cur.w && cur.w.promo) ? parseInt(cur.w.id, 10) : null });
+        }
+      }catch(e){ card = ''; }
+      if(!card) card = `<div class="mp-card"><div class="h">${A.avatar(cur)}<div><b>${E(cur.name)}</b><small>${E(cur.kind)} · just now</small></div></div><div class="tx">${E(P.text.trim())}</div>
+        ${fan ? '' : `<div class="ft"><span><i class="ti ti-heart-filled"></i>${E(stats.likes || '0')}</span><span><i class="ti ti-message-circle"></i>${E(stats.replies || '0')}</span><span><i class="ti ti-repeat"></i>${E(stats.reposts || '0')}</span></div>`}</div>`;
+      box.innerHTML = `<p class="mp-pv-note"><i class="ti ti-eye"></i><span>This is how your post will look in the Feed. If something looks off, go back and fix it before you post.</span></p>
+        <div class="mp-pv">${card}</div>${P.err ? `<div class="mp-err" style="margin-top:12px">${E(P.err)}</div>` : ''}`;
+      foot.innerHTML = `<button type="button" class="ghost" id="mp-back"><i class="ti ti-arrow-left"></i> Edit</button><button type="button" class="go" id="mp-send"${P.busy ? ' disabled' : ''}>${P.busy ? 'Posting…' : 'Post as ' + E(cur.name)}</button>`;
+      $('mp-back').onclick = () => { P.step = 'write'; drawPost(); };
+      $('mp-send').onclick = async () => {
+        if(P.busy) return; P.busy = true; P.err = ''; drawPost();
+        const r = await A.send(cur, P.text.trim(), stats);
+        P.busy = false;
+        if(r.error){ P.err = r.error; drawPost(); return; }
+        P.text = ''; P.stats = { likes:'', replies:'', reposts:'' }; P.step = 'write';
+        close();
+        try{ wcaToast(r.live ? 'Posted!' : 'Sent to WCA', r.live ? `Live on the Feed as ${cur.name}.` : 'Your post shows up once it is approved.'); }catch(e){}
+        window.scrollTo({ top:0, behavior:'smooth' });
+      };
+    }
+  }
+  function openPost(){
+    if(!signedIn()){ signInNow(); return; }
+    const A = api(); if(A && A.loadOrgs) A.loadOrgs().then(() => { if(root.dataset.mnavOpen === 'post') drawPost(); });
+    P.step = 'write'; P.err = ''; open('post');
+  }
+
+  let pT = 0; const paintSoon = () => { clearTimeout(pT); pT = setTimeout(paintBar, 60); };
+
+  /* ── build once ── */
+  function init(){
+    const inner = document.querySelector('header .head-inner');
+    if(inner && !$('mnav-burger')){
+      const b = document.createElement('button'); b.type = 'button'; b.id = 'mnav-burger';
+      b.setAttribute('aria-label', 'Open the menu'); b.setAttribute('aria-controls', 'mnav-drawer'); b.setAttribute('aria-expanded', 'false');
+      b.innerHTML = '<i class="ti ti-menu-2" aria-hidden="true"></i>';
+      b.onclick = () => (root.dataset.mnavOpen === 'menu' ? close() : open('menu'));
+      inner.insertBefore(b, inner.firstChild);
+    }
+    if(!$('mnav-bar')){
+      const logo = document.querySelector('header .brand img');
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="mnav-scrim" aria-hidden="true"></div>
+        <aside id="mnav-drawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
+          <div class="mnav-dhead">${logo ? `<img src="${E(logo.getAttribute('src'))}" alt="WCA">` : '<b>WCA</b>'}<button type="button" class="mnav-x" aria-label="Close the menu"><i class="ti ti-x"></i></button></div>
+          <div class="mnav-dlist" id="mnav-dlist" role="navigation" aria-label="All pages"></div>
+        </aside>
+        <section id="mnav-sheet" role="dialog" aria-modal="true" aria-label="Your account" aria-hidden="true"><div class="mnav-grab"></div><div id="mnav-sheetlist"></div></section>
+        <section id="mnav-post" role="dialog" aria-modal="true" aria-labelledby="mnav-posttitle" aria-hidden="true">
+          <div class="mp-head"><button type="button" class="mnav-x" id="mp-x" aria-label="Close"><i class="ti ti-x"></i></button><h2 id="mnav-posttitle">New post</h2><span class="sp"></span></div>
+          <div class="mp-body" id="mnav-postbody"></div><div class="mp-foot" id="mnav-postfoot"></div>
+        </section>
+        <div id="mnav-bar" role="navigation" aria-label="Main"></div>`);
+      $('mp-x').onclick = close;
+      $('mnav-scrim').onclick = close;
+      $('mnav-drawer').querySelector('.mnav-x').onclick = close;
+      // swipe the menu left, or the sheet down, to close it
+      const swipe = (el, axis, dir) => { let s = null;
+        el.addEventListener('touchstart', e => { const t = e.touches[0]; s = { x:t.clientX, y:t.clientY, top: el.scrollTop || ($('mnav-dlist') && axis === 'x' ? 0 : el.scrollTop) }; }, { passive:true });
+        el.addEventListener('touchmove', e => { if(!s) return; const t = e.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+          if(axis === 'x' && dx * dir > 70 && Math.abs(dx) > Math.abs(dy) * 1.4){ s = null; close(); }
+          if(axis === 'y' && dy * dir > 80 && s.top <= 0 && Math.abs(dy) > Math.abs(dx) * 1.4){ s = null; close(); } }, { passive:true });
+        el.addEventListener('touchend', () => { s = null; }, { passive:true }); };
+      swipe($('mnav-drawer'), 'x', -1); swipe($('mnav-sheet'), 'y', 1);
+    }
+    document.addEventListener('keydown', e => { if(e.key === 'Escape' && 'mnavOpen' in root.dataset){ e.stopImmediatePropagation(); close(); } }, true);
+    // follow the site: page changes, sign in and money changes, the bell
+    const mo = new MutationObserver(paintSoon);
+    document.querySelectorAll('.page').forEach(p => mo.observe(p, { attributes:true, attributeFilter:['class'] }));
+    const ub = $('userbox'); if(ub) new MutationObserver(paintSoon).observe(ub, { childList:true, subtree:true, characterData:true });
+    const st = $('slx-tabs'); if(st) new MutationObserver(paintSoon).observe(st, { childList:true });   // the Feed redraws its tabs whenever its view changes
+    const nd = $('notifDot'); if(nd) new MutationObserver(paintSoon).observe(nd, { attributes:true, attributeFilter:['hidden'] });
+    new MutationObserver(paintSoon).observe(root, { attributes:true, attributeFilter:['data-design','data-mnav-open'] });
+    // the full screen main menu (ESC menu) is not used on phones: if anything opens it, close it
+    const hub = $('fh-hub');
+    if(hub) new MutationObserver(() => { if(mq.matches && hub.classList.contains('open') && typeof window.fhHubClose === 'function') window.fhHubClose(); })
+      .observe(hub, { attributes:true, attributeFilter:['class'] });
+    const onMq = () => { if(!mq.matches) close(); paintBar(); };
+    if(mq.addEventListener) mq.addEventListener('change', onMq); else if(mq.addListener) mq.addListener(onMq);
+    paintBar();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
 </body>
