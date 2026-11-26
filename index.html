@@ -16984,7 +16984,8 @@ async function evcalPosters(){
   list = list.filter(x => f === 'all' || (f === 'wca' ? x.kind !== 'p' : f === 'p' + x.pid));
   box.querySelectorAll('.evc-posters').forEach(n => n.remove());
   if(!list.length) return;
-  box.insertAdjacentHTML('beforeend', `<section class="evc-posters" aria-label="Coming up"><div class="evc-h">Coming up</div>${wcaPostersHTML(list, 'cal')}</section>`);
+  // inside the calendar's own column, right under the month grid
+  (box.querySelector('.evc-main') || box).insertAdjacentHTML('beforeend', `<section class="evc-posters" aria-label="Coming up"><div class="evc-h">Coming up</div>${wcaPostersHTML(list, 'cal')}</section>`);
   wcaPosterTick();
 }
 /* ===== EVENTS CALENDAR (Nov 2026) =====
@@ -36069,24 +36070,24 @@ html .event-hero .ev-name{color:var(--gold);}
 .pe .pe-wallet{margin-top:22px;}
 
 /* ===== Event posters (Nov 2026) ===== */
-.ev-poster{max-width:640px; margin:22px auto 0; border-radius:12px; overflow:hidden; border:1px solid rgba(var(--gold-rgb),.45); background:#000; aspect-ratio:16/9;}
+.ev-poster{max-width:1100px; margin:22px auto 0; border-radius:12px; overflow:hidden; border:1px solid rgba(var(--gold-rgb),.45); background:#000; aspect-ratio:16/9;}
 .ev-poster img{display:block; width:100%; height:100%; object-fit:cover;}
 .pe .pe-ev.pe-ev-x .ev-poster{margin:0 auto 18px;}
 .pe .pe-ev.pe-ev-x .ev-poster + .event-hero{margin-top:0;}
-.wposts{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr)); gap:18px;}
+/* posters fill the row: as many as fit at 640 or wider, stretched to share the full width; a phone gets one full width */
+.wposts{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,640px),1fr)); gap:24px;}
 .wpost{display:flex; flex-direction:column; gap:8px; min-width:0; padding:0; border:0; background:none; color:var(--txt); text-align:left; cursor:pointer; font:inherit;}
 .wpost-pic{position:relative; display:block; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:#000; border:1px solid color-mix(in srgb, var(--wc) 55%, transparent); transition:transform .15s, box-shadow .15s;}
 .wpost-pic img{display:block; width:100%; height:100%; object-fit:cover;}
 .wpost:hover .wpost-pic, .wpost:focus-visible .wpost-pic{transform:translateY(-2px); box-shadow:0 0 0 2px var(--wc), 0 10px 30px -12px var(--wc);}
 .wpost-cd{position:absolute; left:8px; right:8px; bottom:8px; padding:6px 10px; border-radius:8px; background:rgba(0,0,0,.78); border:1px solid color-mix(in srgb, var(--wc) 60%, transparent);
-  font-family:var(--fh-fight, var(--font-display)); font-style:italic; font-weight:900; font-size:clamp(16px,1.5vw,20px); letter-spacing:1px; text-align:center; color:#fff; font-variant-numeric:tabular-nums;}
+  font-family:var(--fh-fight, var(--font-display)); font-style:italic; font-weight:900; font-size:clamp(18px,1.6vw,28px); letter-spacing:1px; text-align:center; color:#fff; font-variant-numeric:tabular-nums;}
 .wpost-cd[data-live]{background:rgba(207,62,62,.9); border-color:#ff8a8a;}
-.wpost-meta b{display:block; font-family:var(--fh-fight, var(--font-display)); font-weight:800; font-size:18px; letter-spacing:.5px; text-transform:uppercase; line-height:1.1; overflow-wrap:anywhere;}
+.wpost-meta b{display:block; font-family:var(--fh-fight, var(--font-display)); font-weight:800; font-size:22px; letter-spacing:.5px; text-transform:uppercase; line-height:1.1; overflow-wrap:anywhere;}
 .wpost-meta small{display:block; color:var(--wc); font-size:14px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; margin-top:2px;}
-.evc-posters{grid-column:1 / -1; margin-top:8px;}
+.evc-posters{margin-top:22px; padding-top:18px; border-top:1px solid var(--line);}
 .evc-posters .evc-h{margin-bottom:12px;}
 .fh-postwrap{margin:0 0 18px;}
-.fh-postwrap .wposts{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));}
 
 </style>
 <script>
