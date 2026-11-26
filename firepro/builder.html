@@ -1176,8 +1176,14 @@ async function loadWallet(){
   }catch(e){ /* leave SPEND_CAP at 0 */ }
 }
 
-// Wrestlers you've already paid for THIS season (any event) are free to reuse —
-// only genuinely new signings and match costs come out of the wallet again.
+// Wrestlers you've already paid for THIS season are free to reuse — only
+// genuinely new signings and match costs come out of the wallet again.
+// Ownership never carries over: every lookup here is for SEASON.id only, so a
+// new season always starts with an empty roster.
+// Where ownership comes from:
+//   • published shows: the database records signings when a show is published
+//     (fp_confirm_event_payouts), from the final reviewed cards only
+//   • draft seasons: anyone you drafted this season (fp_draft_picks)
 async function loadOwnedRoster(){
   OWNED_IDS = new Set(); MY_REC = {};
   if(!SEASON || !SEASON.id || !USER) return;
@@ -1190,9 +1196,15 @@ async function loadOwnedRoster(){
     const { data } = await sb.from('fp_season_rosters').select('wrestler_id,first_event_id').eq('season_id',SEASON.id).eq('auth_id',USER.id);
     (data||[]).forEach(r=>{ if(curEv==null || r.first_event_id!==curEv) OWNED_IDS.add(r.wrestler_id); });
   }catch(e){}
-  // 2) your own reviewed cards on EARLIER events this season — anyone on them
-  //    was paid for already, even if the ownership table missed the row.
-  //    Their published matches also give your roster's W/L record.
+  // 1b) draft seasons: wrestlers you drafted were paid for at the draft
+  try{
+    const { data } = await sb.from('fp_draft_picks').select('wrestler_id').eq('season_id',SEASON.id).eq('auth_id',USER.id);
+    (data||[]).forEach(r=>{ if(r.wrestler_id!=null) OWNED_IDS.add(Number(r.wrestler_id)); });
+  }catch(e){ /* no draft this season — fine */ }
+  // 2) your own reviewed cards on earlier PUBLISHED events this season — anyone
+  //    on them was paid for, even if the ownership table missed the row. A show
+  //    that was never published never charged you, so it gives you nobody.
+  //    Published matches also give your roster's W/L record.
   try{
     const { data:evs } = await sb.from('fp_events').select('id,status,is_test').eq('season_id',SEASON.id);
     const evMap={}; (evs||[]).forEach(e=>evMap[e.id]=e);
@@ -1205,7 +1217,8 @@ async function loadOwnedRoster(){
     const { data:ms } = await sb.from('fp_matches').select('card_id,sides,winner_side').in('card_id',mine.map(c=>c.id));
     (ms||[]).forEach(m=>{
       const ev=evMap[cardEv[m.card_id]]||{};
-      const counts = ev.status==='completed' && !ev.is_test;   // records only from published shows
+      if(ev.status!=='completed') return;                      // unpublished = never paid = not owned
+      const counts = !ev.is_test;                               // records only from real published shows
       const sides=Array.isArray(m.sides)?m.sides:[];
       const decided = sides.length>=2 && m.winner_side!=null && m.winner_side>=0 && m.winner_side<sides.length;
       sides.forEach((sd,si)=>(Array.isArray(sd)?sd:[]).forEach(widRaw=>{
@@ -1407,21 +1420,9 @@ async function submitCard(){
     const { error:e2 } = await sb.from('fp_matches').insert(rows);
     if(e2) throw e2;
 
-    // lock in ownership for anyone newly used on this card — free to reuse the rest of the season
-    if(SEASON && SEASON.id){
-      const newIds=[...usedIds()].filter(id=>!OWNED_IDS.has(id));
-      if(newIds.length){
-        try{
-          const rosterRows = newIds.map(id=>({
-            season_id:SEASON.id, auth_id:USER.id, wrestler_id:id,
-            first_event_id: EVENT.id, acquired_cost:(wrestlerById(id)||{}).cost||0
-          }));
-          // Recorded for NEXT show's discount only. Not added to OWNED_IDS here:
-          // this card paid for them, so they stay charged if you edit it again.
-          await sb.from('fp_season_rosters').upsert(rosterRows, { onConflict:'season_id,auth_id,wrestler_id', ignoreDuplicates:true });
-        }catch(e){ /* roster table not set up yet — no discount applied, no harm done */ }
-      }
-    }
+    // Ownership is NOT recorded here any more. The database records it when the
+    // show is published, from the final reviewed card — the same moment the
+    // money comes out of the wallet. Pay at publish, own at publish.
 
     toast(MY_CARD_ID ? ('Card updated ✓, you can keep editing until '+EVENT.name+' closes.')
                      : ('Card submitted ✓, good luck, '+PROMO+'!'));

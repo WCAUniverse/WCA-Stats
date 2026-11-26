@@ -957,7 +957,15 @@ function renderOrder(){
   }
 }
 
-function takenIds(){ return new Set(realPicks().map(p=>p.wrestler_id)); }
+// Which wrestlers are off the board for ME?
+//  Exclusive draft (season.draft_exclusive): anyone drafted by anybody.
+//  Open draft (default): only the ones I already drafted, others can still take them.
+function takenIds(){
+  if(SEASON && SEASON.draft_exclusive) return new Set(realPicks().map(p=>p.wrestler_id));
+  const me = ME ? ME.id : null;
+  return new Set(realPicks().filter(p=>p.auth_id===me).map(p=>p.wrestler_id));
+}
+function takenLabel(){ return (SEASON && SEASON.draft_exclusive) ? 'ALREADY DRAFTED' : 'ALREADY YOURS'; }
 
 // ----- center hero detail (cloned from practice) -----
 function renderCenter(){
@@ -1020,7 +1028,7 @@ function renderCenter(){
   if(AM_SPECTATOR){ btn.disabled=true; btn.textContent='SPECTATING'; }
   else if(!isMyTurn()){ btn.disabled=true; btn.textContent='NOT YOUR TURN'; }
   else if(!afford){ btn.disabled=true; btn.textContent='CAN’T AFFORD'; }
-  else if(takenIds().has(w.id)){ btn.disabled=true; btn.textContent='ALREADY DRAFTED'; }
+  else if(takenIds().has(w.id)){ btn.disabled=true; btn.textContent=takenLabel(); }
   else { btn.disabled=false; btn.textContent = (SEASON.draft_run_mode==='queue') ? 'QUEUE THIS PICK ►' : 'CONFIRM PICK ►'; }
   updateDoneBtn();
 }
@@ -1036,7 +1044,7 @@ async function confirmPick(){
   if(AM_SPECTATOR){ return; }
   if(!isMyTurn()){ toast('It’s not your turn.',true); return; }
   if(!SEL){ toast('Pick a wrestler first.',true); return; }
-  if(takenIds().has(SEL.id)){ toast('Already drafted.',true); return; }
+  if(takenIds().has(SEL.id)){ toast(SEASON.draft_exclusive?'Already drafted.':'You already drafted him.',true); return; }
   if(SEL._cost>budgetLeft(ME.id)){ toast('You can’t afford that.',true); return; }
   const picked=SEL;
   byId('confirmBtn').disabled=true;
@@ -1062,6 +1070,8 @@ async function confirmPick(){
     const msg=(e.message||e)+'';
     toast(
       msg.includes('INSUFFICIENT_FUNDS') ? 'Not enough budget left for that pick.' :
+      msg.includes('ALREADY_TAKEN')      ? 'Someone already drafted him (exclusive draft).' :
+      msg.includes('ALREADY_YOURS')      ? 'You already drafted him.' :
       msg.includes('Not your turn')      ? 'It’s not your turn anymore.' :
       msg.includes('not live')           ? 'The draft isn’t live right now.' :
       'Pick failed: '+msg, true);
@@ -1211,7 +1221,7 @@ function rosRender(){
       '<span class="rc" style="'+(unaff?'color:#ff7a6a':'')+'">'+money(w._cost)+'</span>'+
       '</div>';
   }).join('');
-  host.innerHTML=rowsHtml+'<div class="rcount">'+avail+' AVAILABLE · '+(list.length-avail)+' DRAFTED</div>';
+  host.innerHTML=rowsHtml+'<div class="rcount">'+avail+' AVAILABLE · '+(list.length-avail)+((SEASON&&SEASON.draft_exclusive)?' DRAFTED':' ALREADY YOURS')+'</div>';
 }
 
 // ===== RESULTS (reads the real saved picks) =====
