@@ -461,7 +461,7 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
   .cs-photo-bg{ position:absolute; inset:0; background:url('images/portrait-bg.png') center/cover no-repeat; z-index:0; }
   .cs-photo-img{ position:absolute; inset:3.667% 4.889%; width:auto; height:auto; object-fit:cover; z-index:1; display:block; }
   .cs-photo-noimg{ position:absolute; inset:3.667% 4.889%; z-index:1; display:flex; align-items:center; justify-content:center;
-    font-family:'Press Start 2P',monospace; font-size:28px; color:#5b3a3a; background:#0c0506; }
+    font-family:'Press Start 2P',monospace; font-size:28px; color:#ffd23f; text-shadow:2px 2px 0 #b3001b; background:#0c0506; }
   .cs-photo-lines{ position:absolute; inset:0; background:url('images/portrait-lines.png') center/cover no-repeat;
     z-index:2; pointer-events:none; }
   .cs-meta{ flex:1; min-width:0; }
@@ -826,20 +826,15 @@ function fpMainHref(){ return FP_HTTP ? '/' : '../index.html'; }
     </div>
   </section>
 
-  <!-- ---------- SCREEN: PLAY (choose event vs practice) ---------- -->
+  <!-- ---------- SCREEN: PLAY (scheduled event; practice draft retired Nov 2026) ---------- -->
   <section class="fp-screen" id="scr-play">
     <div class="fp-inner wide">
       <h2 class="fp-h">PLAY</h2>
-      <p class="fp-guide" id="play-guide">Jump into a scheduled show, or run a practice draft.</p>
+      <p class="fp-guide" id="play-guide">Jump into the scheduled show.</p>
       <div class="fp-card" id="play-event-card">
         <h3>Scheduled Event</h3>
         <p class="fp-cardsub" id="play-event-sub">Checking for an open show…</p>
         <button class="fp-btn primary" id="play-event-btn" onclick="goBuilder()" style="display:none">ENTER EVENT ►</button>
-      </div>
-      <div class="fp-card">
-        <h3>Practice Draft</h3>
-        <p class="fp-cardsub">Party up to draft against other players, or go solo against the AI. No stakes, just for fun and bragging rights.</p>
-        <button class="fp-btn primary" onclick="goPractice()">PRACTICE DRAFT ►</button>
       </div>
       <button class="fp-btn back" onclick="fpToMenu()">◄ BACK TO MENU</button>
     </div>
@@ -1003,6 +998,7 @@ let ME = { user:null, username:null, promo:null, owner:null, hasPromo:false, wal
 let OPEN_EVENT = null;       // currently-open event (or null)
 let CLOSED_EVENT = null;     // an event that exists but whose deadline/close has passed
 let HAS_ARCHIVE = false;     // any completed events?
+let ACTIVE_SEASON_ID = null; // the season that's ON right now (null = no season → nothing to book)
 
 /* ============================================================
    YOUTUBE PROMO  (main menu side panels)
@@ -1096,9 +1092,12 @@ async function fpLoadCopy(){
       }
     }catch(e){}
   }
+  // which season is ON? Checked for everyone (signed in or not) — no season
+  // means no show can be booked, whatever the events table says.
+  try{ const { data:sid } = await sb.rpc('fp_active_season'); ACTIVE_SEASON_ID = sid || null; }catch(e){}
   // open event + archive availability (for PLAY button state)
-  try{
-    const { data } = await sb.from('fp_events').select('*').eq('status','open').order('id',{ascending:false}).limit(1);
+  if(ACTIVE_SEASON_ID) try{
+    const { data } = await sb.from('fp_events').select('*').eq('status','open').eq('season_id',ACTIVE_SEASON_ID).order('id',{ascending:false}).limit(1);
     // An event is only really open if it hasn't been manually closed AND its
     // deadline hasn't passed — same rule builder.html enforces. Without this
     // the hub kept advertising "Event open" after the deadline, and anyone who
@@ -1227,10 +1226,11 @@ function renderMenu(){
                  sub:'Discord, Google or Twitch, takes one tap', cls:'primary', fn:"fpShow('signin')" });
   }
 
-  // PLAY — primary; opens the event-vs-practice choice
-  let playSub='Scheduled event or practice draft';
-  if(!ME.hasPromo) playSub='Practice now, or make a promotion to play events';
-  else if(OPEN_EVENT) playSub='Event open: '+(OPEN_EVENT.name||'now')+' · or practice';
+  // PLAY — primary; opens the scheduled-event screen (practice draft retired Nov 2026)
+  let playSub='Book a card for the scheduled show';
+  if(!ME.hasPromo) playSub='Make a promotion to play events';
+  else if(!ACTIVE_SEASON_ID) playSub='No season running right now';
+  else if(OPEN_EVENT) playSub='Event open: '+(OPEN_EVENT.name||'now');
   items.push({ key:'play', label:playLabel, sub:playSub, cls:(ME.user?'primary':''), fn:'fpPlay()' });
 
   items.push({ key:'tutorial', label:(m.tutorial||'TUTORIAL'), sub:'What this is & how to play', fn:"fpShow('tutorial')" });
@@ -2006,7 +2006,7 @@ async function fpRostersLoad(seasonId){
   if(allIds.size){
     try{
       const { data } = await sb.from('fp_wrestlers')
-        .select('id,name,image_url,image_crop_x,image_crop_y,image_zoom,rank_grade,charisma_grade,cost').in('id',[...allIds]);
+        .select('id,name,rank_grade,charisma_grade,cost').in('id',[...allIds]);
       (data||[]).forEach(w=>out.wrestlers[w.id]=w);
     }catch(e){}
   }
@@ -2052,11 +2052,7 @@ function fpRosterTableHtml(R, list, opts){
     list.map(en=>{
       const w = R.wrestlers[en.wrestler_id] || { name:'#'+en.wrestler_id };
       const ini = esc(wInitials(w.name));
-      const av = w.image_url
-        ? '<img src="'+esc(w.image_url)+'" alt="" loading="lazy" style="object-position:'+
-            (w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'+
-            'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" onerror="this.parentNode.textContent=\''+ini+'\'">'
-        : ini;
+      const av = ini;   // no sprites (Nov 2026)
       const ev = R.evById[en.first_event_id];
       const isNew = latest!=null && en.first_event_id===latest;
       return '<tr>'+
@@ -2288,8 +2284,8 @@ function fpRenderHero(){
   );
 }
 
-/* PLAY gate → opens the PLAY screen (event vs practice). Practice never needs a
-   promotion; only the Scheduled-Event option does, so gate that inside the screen. */
+/* PLAY gate → opens the PLAY screen (the scheduled event). Needing a promotion
+   is checked inside the screen. Practice draft retired Nov 2026. */
 function fpPlay(){
   // Signed out? Send them to the Fire Pro sign-in screen — no trip to the main site.
   if(!ME.user){ fpShow('signin'); return; }
@@ -2299,7 +2295,10 @@ function renderPlayScreen(){
   const sub=document.getElementById('play-event-sub');
   const btn=document.getElementById('play-event-btn');
   if(!sub||!btn) return;
-  if(!ME.hasPromo){
+  if(!ACTIVE_SEASON_ID){
+    sub.innerHTML='No season is running right now, so there\'s no show to book. Check back when the next season starts!';
+    btn.style.display='none';
+  } else if(!ME.hasPromo){
     sub.innerHTML='Create a promotion first (in the menu) to enter scheduled events.';
     btn.style.display='none';
   } else if(OPEN_EVENT){
@@ -2317,7 +2316,6 @@ function renderPlayScreen(){
     btn.style.display='none';
   }
 }
-function goPractice(){ _fpSaveState(); window.location.href=fpHref('practice-draft'); }
 function fpCloseModal(){ document.getElementById('fp-needpromo').classList.remove('on'); }
 
 /* first interaction with Press Start → menu (also a good moment to nudge music) */
@@ -2490,7 +2488,7 @@ async function csInit(){
   if(CS_LOADED){ csRenderGrid(); return; }
   try{
     const { data } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,origin,image_url,image_crop_x,image_crop_y,image_zoom,cost,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
+      .select('id,name,nickname,origin,cost,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
       .order('name',{ascending:true});
     CS_ALL = data||[];
   }catch(e){ CS_ALL=[]; }
@@ -2559,14 +2557,8 @@ function csSelect(id){
   // photo layers: background art (back) → cropped wrestler photo (middle) → frame lines (front).
   // Same crop_x/crop_y/zoom the admin sets in the roster editor, so framing matches everywhere.
   const initials = wInitials(w.name);
-  const noImgHtml = "<div class='cs-photo-noimg'>"+esc(initials)+"</div>";
-  const photoLayer = w.image_url
-    ? '<img class="cs-photo-img" src="'+esc(w.image_url)+'" style="object-position:'
-      +(w.image_crop_x!=null?w.image_crop_x:50)+'% '+(w.image_crop_y!=null?w.image_crop_y:50)+'%;'
-      +'transform:scale('+(w.image_zoom!=null?w.image_zoom:1)+')" '
-      +'onerror="console.warn(\'Photo failed to load for '+esc(w.name).replace(/'/g,"\\'")+':\', this.src); this.outerHTML='
-      +'\''+noImgHtml.replace(/'/g,"\\'")+'\';">'
-    : noImgHtml;
+  const noImgHtml = "<div class='cs-photo-noimg'"+(initials.length>2?" style='font-size:20px'":"")+">"+esc(initials)+"</div>";
+  const photoLayer = noImgHtml;   // no sprites (Nov 2026)
   L.innerHTML =
     '<div class="cs-detail">'+
       '<div class="cs-photowrap"><div class="cs-photo-bg"></div>'+photoLayer+'<div class="cs-photo-lines"></div></div>'+
@@ -2587,11 +2579,13 @@ function csSelect(id){
       '<br><span style="font-size:10px;opacity:.85">'+(info.promos.length ? 'BOOKED BY: '+info.promos.map(esc).join(', ') : 'NOT BOOKED BY ANYONE YET')+'</span>';
   }).catch(()=>{});
 }
+// No sprites (Nov 2026). Two+ names: first + last initial (Noah Alexander = NA).
+// One name: the whole name if it's 4 letters or less (KANE), else its first letter (Sting = S).
 function wInitials(name){
   const words = String(name||'').trim().split(/\s+/).filter(Boolean);
   if(!words.length) return '?';
-  if(words.length===1) return words[0].slice(0,2).toUpperCase();
-  return (words[0][0]+words[words.length-1][0]).toUpperCase();
+  if(words.length===1){ const w=words[0]; return (w.length<=4 ? w : w.charAt(0)).toUpperCase(); }
+  return (words[0].charAt(0)+words[words.length-1].charAt(0)).toUpperCase();
 }
 function money(n){ n=parseInt(n,10); if(isNaN(n)) n=0; return '$'+n.toLocaleString('en-US'); }
 

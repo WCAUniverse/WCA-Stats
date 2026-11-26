@@ -268,6 +268,13 @@ function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'i
   .rcard.used{opacity:.4;}
   .rcard.owned{border-color:#2f5f4a; background:#0e1a15;}
   .rcard img{width:42px; height:42px; border-radius:8px; object-fit:cover; background:#0c1118; flex:0 0 auto;}
+  /* No sprites (Nov 2026): initials tile in place of the picture */
+  .ini{display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+       border-radius:8px; background:#0c1118; border:1px solid var(--line);
+       font-family:'Oswald',sans-serif; font-weight:700; color:var(--gold2); letter-spacing:.5px;}
+  .rcard .ini{width:42px; height:42px; font-size:16px;}
+  .slot .ini{width:38px; height:38px; font-size:15px; border-radius:7px;}
+  .ini.long{font-size:11px !important;}
   .rcard .meta{flex:1 1 auto; min-width:0;}
   .rcard .meta .n{font-family:'Oswald',sans-serif; font-size:14px; white-space:nowrap;
                   overflow:hidden; text-overflow:ellipsis;}
@@ -396,7 +403,7 @@ function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'i
       <div class="bar"><i id="mBar"></i></div>
       <div class="row"><span>Spent</span><b id="mSpent">$0</b></div>
       <div class="row remain"><span>Remaining</span><b id="mRemain">$0</b></div>
-      <div class="overmsg">⚠ Over budget, trim the card before you can submit.</div>
+      <div class="overmsg">⚠ This card costs more than your wallet holds, trim it before you can submit.</div>
       <div id="walletNote" style="font-size:12px;color:#9be0ff;margin-top:8px;line-height:1.4"></div>
     </div>
 
@@ -472,7 +479,7 @@ let TYPE_BY_KEY = {};            // key -> type
 let VENUES = [];                 // fp_venues rows
 let VENUE_BY_KEY = {};           // key -> venue
 const TICKET_PRICES = [10,20,40,60,100];
-let ROSTER = [];                 // fp_wrestlers (id,name,nickname,image_url,cost,...)
+let ROSTER = [];                 // fp_wrestlers (id,name,nickname,cost,...)
 let PROMO_BY_ID = {};            // fp_promotions id -> name
 let FACTION_BY_ID = {};          // fp_factions id -> name
 let CARD = [];                   // array of matches: { typeKey, sides:[[id,...],[id,...]] }
@@ -486,8 +493,7 @@ let SEASON = null;               // active season row (id,name,bankroll) or null
 let WALLET = null;               // my fp_season_bookers row for SEASON, or null
 let OWNED_IDS = new Set();       // wrestler ids already paid for THIS season — free to reuse
 let MY_REC = {};                 // wrestler id -> {W,L,D} for MY promotion this season (published shows)
-let SPEND_CAP = 0;               // effective cap: your season wallet balance. No season/wallet = 0.
-let CARD_CAP = 0;                // per-card budget cap (fp_seasons.budget_cap); 0 = no cap
+let SPEND_CAP = 0;               // what you can spend: your season wallet balance, the ONLY limit. No wallet = 0.
 
 /* =====================================================================
    HELPERS
@@ -500,11 +506,17 @@ function toast(msg, isErr){
   setTimeout(()=>t.className=t.className.replace('show','').trim(),3200);
 }
 function wrestlerById(id){ for(const w of ROSTER){ if(w.id===id) return w; } return null; }
-function PLACEHOLDER(name){
-  // tiny inline avatar fallback (initial on a dark tile)
-  const ltr = (name||'?').trim().charAt(0).toUpperCase() || '?';
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="7" fill="#0c1118"/><text x="50%" y="56%" font-family="Oswald,sans-serif" font-size="18" fill="#5b6b7c" text-anchor="middle" dominant-baseline="middle">'+ltr+'</text></svg>';
-  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+// No sprites (Nov 2026). Two+ names: first + last initial (Noah Alexander = NA).
+// One name: the whole name if it's 4 letters or less (KANE), else its first letter (Sting = S).
+function fpInitials(name){
+  const words=String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!words.length) return '?';
+  if(words.length===1){ const w=words[0]; return (w.length<=4 ? w : w.charAt(0)).toUpperCase(); }
+  return (words[0].charAt(0)+words[words.length-1].charAt(0)).toUpperCase();
+}
+function iniTile(name){
+  const t=fpInitials(name);
+  return '<span class="ini'+(t.length>2?' long':'')+'">'+esc(t)+'</span>';
 }
 
 /* =====================================================================
@@ -645,6 +657,16 @@ async function checkAuth(){
 
   // active season + my wallet → the spend cap is the wallet balance when a season is live
   await loadWallet();
+
+  // Everything happens inside a season. No season on = nothing to book.
+  if(!SEASON){
+    showClosedNotice('No season is running right now, so there\'s nothing to book. Check back once the next season starts.');
+    return;
+  }
+  if(EVENT.season_id!==SEASON.id){
+    showClosedNotice((EVENT.name||'This show')+' isn\'t part of the current season ('+(SEASON.name||'the active season')+'), so it can\'t take cards.');
+    return;
+  }
 
   // header / event label
   byId('eventLabel').textContent = EVENT.name + (EVENT.subtitle ? ', '+EVENT.subtitle : '');
@@ -861,7 +883,7 @@ async function loadRoster(){
   ROSTER=[];
   try{
     const { data, error } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,origin,image_url,cost,rank_grade,charisma_grade,promotion_id,faction_id')
+      .select('id,name,nickname,origin,cost,rank_grade,charisma_grade,promotion_id,faction_id')
       .order('name',{ascending:true});
     if(error) throw error;
     ROSTER = (data||[]).map(w=>({ ...w, cost: (w.cost!=null?w.cost:0) }));
@@ -1001,7 +1023,7 @@ function slotHTML(mi,si,k,id){
     const owned = OWNED_IDS.has(id);
     return '<div class="slot filled" '+dataAttrs+
       ' ondragover="slotOver(event)" ondragleave="slotLeave(event)" ondrop="slotDrop(event)">'+
-      '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
+      iniTile(w.name)+
       '<span class="nm">'+esc(w.name)+'<small>'+esc([w.origin,(w.rank_grade||'?')+'/'+(w.charisma_grade||'?'),(MY_REC[id]?'Record '+recLabel(id):'')].filter(Boolean).join(' · '))+'</small></span>'+
       '<span class="pc"'+(owned?' style="color:#7fe0a0"':'')+'>'+(owned?'FREE · owned':money(w.cost))+'</span>'+
       '<span class="x" onclick="removeFromSlot('+mi+','+si+','+k+')" title="Remove">✕</span></div>';
@@ -1113,7 +1135,7 @@ function renderRoster(){
     html+='<div class="rcard'+(isUsed?' used':'')+(owned?' owned':'')+'" draggable="true"'+
       ' ondragstart="rosterDragStart(event,'+w.id+')" ondragend="rosterDragEnd(event)"'+
       ' title="'+esc(w.name)+(isUsed?', already on the card':'')+(owned?', already paid for this season, free to reuse':'')+'">'+
-      '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+PLACEHOLDER(w.name)+'\'">'+
+      iniTile(w.name)+
       '<div class="meta"><div class="n">'+esc(w.name)+'</div>'+
         '<div class="s">'+esc(tag||w.origin||w.nickname||'')+
           '<span class="gr">'+esc((w.rank_grade||'?')+'/'+(w.charisma_grade||'?'))+'</span>'+
@@ -1126,19 +1148,19 @@ function renderRoster(){
 
 /* =====================================================================
    WALLET — the spend cap is the booker's live season wallet balance, full
-   stop. No active season, or a season you haven't joined yet, means a $0
-   cap — going broke (or having no wallet) is part of the game, not
-   something a flat fallback should paper over.
+   stop. There is NO per-card cap: a booker may put every dollar they have
+   into one show and gamble on the payout. The wallet can never go below
+   $0 because a card can't cost more than the wallet holds. Wrestlers
+   already paid for this season are free (see loadOwnedRoster).
    ===================================================================== */
 async function loadWallet(){
-  SEASON=null; WALLET=null; SPEND_CAP=0; CARD_CAP=0; OWNED_IDS=new Set();
+  SEASON=null; WALLET=null; SPEND_CAP=0; OWNED_IDS=new Set();
   if(!sb||!USER) return;
   try{
     const { data:sid } = await sb.rpc('fp_active_season');
     if(!sid) return;                      // no season → nothing to spend
-    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,budget_cap,bankruptcy_floor,status').eq('id',sid).maybeSingle();
+    const { data:srow } = await sb.from('fp_seasons').select('id,name,bankroll,bankruptcy_floor,status').eq('id',sid).maybeSingle();
     SEASON = srow || { id:sid };
-    CARD_CAP = (srow && srow.budget_cap>0) ? srow.budget_cap : 0;   // 0 = no per-card cap
     const { data:w } = await sb.rpc('fp_my_wallet');
     WALLET = w || null;
     let walletCap;
@@ -1149,8 +1171,7 @@ async function loadWallet(){
     } else {
       walletCap = 0;                      // season live but you haven't joined yet
     }
-    // a card must satisfy BOTH the wallet and the per-card cap (when a cap is set)
-    SPEND_CAP = (CARD_CAP>0) ? Math.min(walletCap, CARD_CAP) : walletCap;
+    SPEND_CAP = Math.max(0, walletCap);   // your wallet is the only limit
     await loadOwnedRoster();
   }catch(e){ /* leave SPEND_CAP at 0 */ }
 }
@@ -1264,9 +1285,6 @@ function recalc(){
   const lbl=byId('mBudgetLbl'); const note=byId('walletNote');
   const eliminated = !!(WALLET && WALLET.eliminated);
   if(lbl) lbl.textContent = (WALLET && !eliminated) ? 'Wallet' : 'Budget';
-  // when a per-card cap is set AND it's lower than the wallet, the cap is what's limiting this card
-  const capBinds = (CARD_CAP>0 && WALLET && !eliminated && CARD_CAP < WALLET.balance);
-  if(lbl && capBinds) lbl.textContent = 'Card cap';
   byId('mBudget').textContent = money(budget);
   if(note){
     if(eliminated){
@@ -1274,9 +1292,7 @@ function recalc(){
       note.innerHTML='💀 Eliminated from '+esc(SEASON&&SEASON.name||'this season')+', you can\'t submit until next season.';
     } else if(WALLET){
       note.style.color='#9be0ff';
-      note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet ('+money(WALLET.balance)+').'+
-        (capBinds ? ' This card is capped at <b style="color:#ffd23f">'+money(CARD_CAP)+'</b> per show.' : '')+
-        ' Go broke and you\'re out for the season.';
+      note.innerHTML='Spending your <b style="color:#ffd23f">'+esc(SEASON&&SEASON.name||'season')+'</b> wallet ('+money(WALLET.balance)+'). Spend as much as you want on this show, but go broke and you\'re out for the season.';
       // how much this card is saving by reusing wrestlers already paid for this season
       const ownedOnCard = [...usedIds()].filter(id=>OWNED_IDS.has(id));
       if(ownedOnCard.length){

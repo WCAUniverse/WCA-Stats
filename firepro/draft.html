@@ -253,6 +253,12 @@ function fpHref(page){ return FP_HTTP ? '/firepro/' + (page || '') : (page || 'i
   .hero-portrait{position:relative;width:46%;max-width:330px;flex:0 0 auto;aspect-ratio:3/4;background:#0c0506;overflow:hidden;
     border-right:2px solid var(--line);}
   .hero-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
+  /* No sprites (Nov 2026): a big initials tile instead of a picture */
+  .hero-init{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    font-family:'Press Start 2P',monospace;font-size:clamp(34px,6vw,64px);color:var(--gold2);
+    text-shadow:3px 3px 0 #b3001b,0 0 22px rgba(255,210,63,.35);
+    background:radial-gradient(70% 60% at 50% 40%,#2a1112,#0c0506);}
+  .hero-init.long{font-size:clamp(24px,4vw,42px);}
   .hero-portrait::after{content:'';position:absolute;inset:0;
     background:linear-gradient(115deg,transparent 55%,rgba(255,59,59,.18) 100%),
       linear-gradient(0deg,rgba(10,5,6,.7),transparent 40%);pointer-events:none;}
@@ -585,6 +591,14 @@ try{
 function byId(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function money(n){n=parseInt(n,10);if(isNaN(n))n=0;return '$'+n.toLocaleString('en-US');}
+// No sprites (Nov 2026). Two+ names: first + last initial (Noah Alexander = NA).
+// One name: the whole name if it's 4 letters or less (KANE), else its first letter (Sting = S).
+function fpInitials(name){
+  const words=String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!words.length) return '?';
+  if(words.length===1){ const w=words[0]; return (w.length<=4 ? w : w.charAt(0)).toUpperCase(); }
+  return (words[0].charAt(0)+words[words.length-1].charAt(0)).toUpperCase();
+}
 function toast(m,err){const t=byId('toast');t.textContent=m;t.className='show'+(err?' err':'');setTimeout(()=>t.className=t.className.replace('show','').trim(),3000);}
 function goHub(){ _fpSaveState(); window.location.href=fpHref(''); }
 // Sign-in now lives on the Fire Pro hub itself (index.html#signin), so nobody
@@ -631,7 +645,7 @@ async function refreshAuth(){
 async function loadRoster(){
   try{
     const { data } = await sb.from('fp_wrestlers')
-      .select('id,name,nickname,origin,image_url,cost,cost_override,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
+      .select('id,name,nickname,origin,cost,cost_override,country,dob,height,weight,finisher,signatures,rank_grade,charisma_grade,promotion_id,faction_id')
       .order('name',{ascending:true});
     ROSTER = (data||[]).map(w=>({...w, _cost:(w.cost_override!=null&&w.cost_override!=='')?w.cost_override:(w.cost||0)}));
     WMAP={}; ROSTER.forEach(w=>{ WMAP[w.id]=w; });
@@ -961,7 +975,7 @@ function renderCenter(){
   }
   byId('confirmBtn').style.display='';
   const w=SEL;
-  const ph='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320"><rect width="240" height="320" fill="#0c0506"/><text x="50%" y="50%" font-family="monospace" font-size="16" fill="#5b3a3a" text-anchor="middle">NO IMAGE</text></svg>');
+  const ini=fpInitials(w.name);
   const pf=(w.promotion_id!=null)?(PROMOS.find(p=>p.id===w.promotion_id)||{}).name:null;
   const ff=(w.faction_id!=null)?(FACTIONS.find(f=>f.id===w.faction_id)||{}).name:null;
   const sigs=(w.signatures||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
@@ -987,7 +1001,7 @@ function renderCenter(){
           '<span class="gbadge"><small>RANK</small>'+(w.rank_grade||'?')+'</span>'+
           '<span class="gbadge"><small>CHA</small>'+(w.charisma_grade||'?')+'</span>'+
         '</div>'+
-        '<img src="'+esc(w.image_url||'')+'" onerror="this.src=\''+ph+'\'">'+
+        '<div class="hero-init'+(ini.length>2?' long':'')+'">'+esc(ini)+'</div>'+
       '</div>'+
       '<div class="hero-meta">'+
         '<div class="hero-name">'+esc(w.name)+'</div>'+
@@ -1370,9 +1384,9 @@ function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo
 function headerBar(ctx,W,title){
   ctx.fillStyle='#0a0506'; ctx.fillRect(0,0,W,90);
   ctx.font='22px Oswald, sans-serif'; ctx.fillStyle='#ffd23f';
-  ctx.fillText('WCA FIRE PRO, PRACTICE DRAFT', 24, 40);
+  ctx.fillText('WCA FIRE PRO, LIVE DRAFT', 24, 40);
   ctx.fillStyle='#9a7a6a'; ctx.font='14px Barlow, sans-serif';
-  ctx.fillText(title||('Snake/Linear · '+CFG.rounds+' rounds · '+money(CFG.budget)+' each'), 24, 66);
+  ctx.fillText(title||'', 24, 66);
 }
 function downloadCanvas(canvas,name){
   canvas.toBlob(b=>{
