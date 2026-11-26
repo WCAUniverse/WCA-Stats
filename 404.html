@@ -16112,6 +16112,8 @@ function tvStop(){
 // chat_messages table. Realtime keeps the feed fresh; a slow poll is a backup.
 let CHAT_CHANNEL = null;       // supabase realtime subscription
 let CHAT_POLL_TIMER = null;
+let CHAT_RT_OK = false;          // live chat connection is up
+let CHAT_RT_CAUGHT_UP = true;    // no catch-up check owed
 let CHAT_LAST_TS = null;       // newest message timestamp we've shown
 const CHAT_MAX = 60;           // how many recent messages to load/keep
 
@@ -16467,13 +16469,19 @@ function startChatRealtime(){
       .on('postgres_changes',
         { event:'DELETE', schema:'public', table:'chat_messages' },
         payload => { if(payload && payload.old) chatRemoveNode(payload.old.id); })
-      .subscribe();
-  }catch(e){}
-  // backup poll every 20s in case realtime isn't enabled
+      .subscribe(status => { CHAT_RT_OK = (status === 'SUBSCRIBED'); });
+  }catch(e){ CHAT_RT_OK = false; }
+  // Backup check every 20s, ONLY when the live connection is down and the tab
+  // is actually visible (Nov 2026: fewer requests = fewer Supabase log lines).
+  // When the connection comes back it does one catch-up check, then rests.
   CHAT_POLL_TIMER = setInterval(async ()=>{
     const pg = document.getElementById('page-live');
     if(!pg || !pg.classList.contains('active')){ stopChatRealtime(); return; }
     if(!CHAT_LAST_TS) return;
+    if(document.hidden) return;                       // tab minimized / in the background
+    if(CHAT_RT_OK && CHAT_RT_CAUGHT_UP) return;       // live connection is working
+    if(CHAT_RT_OK) CHAT_RT_CAUGHT_UP = true;          // just reconnected: one catch-up, then rest
+    else CHAT_RT_CAUGHT_UP = false;
     try{
       const { data } = await sb.from('chat_messages')
         .select('id,author_name,author_avatar,body,created_at')
@@ -16485,6 +16493,7 @@ function startChatRealtime(){
 function stopChatRealtime(){
   if(CHAT_CHANNEL){ try{ sb.removeChannel(CHAT_CHANNEL); }catch(e){} CHAT_CHANNEL=null; }
   if(CHAT_POLL_TIMER){ clearInterval(CHAT_POLL_TIMER); CHAT_POLL_TIMER=null; }
+  CHAT_RT_OK = false; CHAT_RT_CAUGHT_UP = true;
 }
 async function sendChat(){
   if(!CURRENT_USER){ signInDiscord(); return; }
