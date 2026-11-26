@@ -3497,7 +3497,8 @@
     opacity:.7;
   }
 
-  html{ --pl-a:rgba(30,96,168,.52); --pl-b:rgba(214,86,26,.50); --pl-void:#04060b; }
+  /* Nov 2026: the two lights follow the accent color (used to be a fixed blue and orange) */
+  html{ --pl-a:rgba(var(--gold-rgb,233,185,73),.30); --pl-b:rgba(var(--gold-rgb,233,185,73),.12); --pl-void:#04060b; }
 
   html[data-backdrop="space-nebula"]{ --pl-a:rgba(84,60,168,.50); --pl-b:rgba(34,86,168,.46); --pl-void:#05060d; }
 
@@ -23198,6 +23199,71 @@ function mpeDraw(){
 function mpeTournaments(){ if(!MPE.box) return; tbxEditorOpen(MPE.box, { kind:'promo', pid:MPE.pid, back:() => mpeDraw() }); }
 function mpeNew(){ MPE.cur = 'new'; MPE.matches = []; MPE.edit = null; mpeDraw(); const n = pmEl('mpe_name'); if(n) n.focus(); }
 async function mpePick(id){ MPE.cur = id; MPE.edit = null; await mpeLoadCard(); mpeDraw(); }
+/* Event poster upload (Nov 2026): the picture is shrunk to 1280 wide (WebP),
+   saved to WCA media and kept on the show as card_poster_url. */
+async function wcaPosterShrink(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
+    const k = Math.min(1, 1280 / Math.max(1, img.naturalWidth));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(res => c.toBlob(res, 'image/webp', 0.86));
+    if(blob && blob.type === 'image/webp') return blob;
+  }catch(e){} finally{ URL.revokeObjectURL(url); }
+  return file;
+}
+async function wcaPosterUpload(file, body){
+  if(!file || !/^image\//i.test(file.type || '')) throw new Error('Pick a picture file (PNG, JPG or WebP).');
+  const blob = await wcaPosterShrink(file);
+  const ext = blob.type === 'image/webp' ? 'webp' : (/png/i.test(blob.type) ? 'png' : 'jpg');
+  const files = [{ name:'poster-' + Date.now() + '.' + ext, base64:await slToBase64(blob) }];
+  let data;
+  try{ data = await wcaMediaCall(Object.assign({ action:'upload', files }, body)); }
+  catch(e){
+    if(e.missing || !body.kind) throw e;
+    const b2 = Object.assign({}, body); delete b2.kind;   // the media function doesn't know "posters" yet: save it with the rest
+    data = await wcaMediaCall(Object.assign({ action:'upload', files }, b2));
+  }
+  const got = (data.files || [])[0];
+  if(!got || !got.url) throw new Error((data.errors && data.errors[0]) || "The upload didn't return a link.");
+  return got.url;
+}
+function mpePosterPrev(url){
+  return wcaPosterOk(url) ? `<img src="${escAttr(url)}" alt="Event poster" referrerpolicy="no-referrer" style="display:block;width:100%;max-width:420px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`
+    : '<div class="pm-small pm-dim" style="padding:14px;border:1px dashed var(--line);border-radius:10px;max-width:420px;text-align:center">No poster yet</div>';
+}
+function mpePosterField(ev){
+  const url = (ev && ev.card_poster_url) || '';
+  return `<div style="grid-column:1/-1"><label>Event poster <span class="pm-opt">(optional)</span></label>
+    <input type="hidden" id="mpe_cposter" value="${escAttr(url)}">
+    <div id="mpe_pprev" style="margin:6px 0 10px">${mpePosterPrev(url)}</div>
+    <div class="pm-acts" style="margin-top:0"><label class="spc-ghost-btn" style="cursor:pointer"><i class="ti ti-upload" aria-hidden="true"></i> ${url ? 'Change poster' : 'Upload poster'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="mpePosterPick(this)"></label>
+      <button type="button" class="spc-mini" id="mpe_prm" onclick="mpePosterSet('')"${url ? '' : ' hidden'}>Remove poster</button></div>
+    <div class="pm-small pm-dim" style="margin-top:6px">Use your Thumbnail from the graphics studio (wide, like 1920 by 1080). While the show is Upcoming or Live it shows at the top of the show, under the Events calendar and on the menu. Once the show is Finished it goes away.</div>
+    <div class="msg" id="mpe_pmsg"></div></div>`;
+}
+function wcaPosterOk(u){ return /^https:\/\/\S+$/i.test(String(u || '').trim()); }
+async function mpePosterPick(inp){
+  const f = inp && inp.files && inp.files[0]; if(!f) return;
+  mpMsg('mpe_pmsg', 'Uploading the poster…', true);
+  try{
+    const url = await wcaPosterUpload(f, { folder:'promotions', promotion_id:Number(MPE.pid), kind:'posters' });
+    await mpePosterSet(url);
+  }catch(e){ mpMsg('mpe_pmsg', 'Not uploaded: ' + (e && e.message || e), false); }
+  inp.value = '';
+}
+async function mpePosterSet(url){
+  const h = pmEl('mpe_cposter'); if(h) h.value = url || '';
+  const pv = pmEl('mpe_pprev'); if(pv) pv.innerHTML = mpePosterPrev(url);
+  const rm = pmEl('mpe_prm'); if(rm) rm.hidden = !url;
+  if(MPE.cur === 'new' || !MPE.cur){ mpMsg('mpe_pmsg', url ? 'Poster ready. Press Save new show to keep it.' : 'Poster removed.', true); return; }
+  const { error } = await sb.from('promotion_events').update({ card_poster_url:url || null }).eq('id', MPE.cur);
+  if(error){ mpMsg('mpe_pmsg', /card_poster_url/.test(error.message || '') ? 'Posters are not switched on yet. Ask WCA to run SUPABASE_UPDATE_event_posters.sql.' : peErr(error), false); return; }
+  const ev = MPE.events.find(e => e.id === MPE.cur); if(ev) ev.card_poster_url = url || null;
+  try{ if(typeof WCA_POSTERS !== 'undefined') WCA_POSTERS.at = 0; }catch(e){}
+  mpMsg('mpe_pmsg', url ? 'Poster saved. It shows while the show is Upcoming or Live.' : 'Poster removed.', true);
+}
 function mpeShowForm(ev){
   ev = ev || { status:'draft' };
   return `<section data-keep="mp-show:${Number(MPE.pid)}:${ev.id ? Number(ev.id) : 'new'}">
@@ -23210,6 +23276,7 @@ function mpeShowForm(ev){
       <div><label for="mpe_watch">Where to watch <span class="pm-opt">(Twitch or YouTube link)</span></label><input id="mpe_watch" maxlength="400" value="${escAttr(ev.watch_url || '')}" placeholder="https://twitch.tv/..."></div>
       <div><label for="mpe_replay">Replay link <span class="pm-opt">(after the show)</span></label><input id="mpe_replay" maxlength="400" value="${escAttr(ev.replay_url || '')}"></div>
       <div style="grid-column:1/-1"><label for="mpe_about">About this show <span class="pm-opt">(optional)</span></label><textarea id="mpe_about" rows="3" maxlength="2000">${esc(ev.about || '')}</textarea></div>
+      ${mpePosterField(ev)}
     </div>
     <p class="pm-p pm-small" style="margin-top:10px">Followers get a notification when you set a show to Upcoming, to Live now, and to Finished.</p>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpeSaveShow()">${ev.id ? 'Save show' : 'Save new show'}</button>
@@ -23226,6 +23293,9 @@ async function mpeSaveShow(){
     about:(pmEl('mpe_about').value || '').trim() || null };
   if((MPE.brands || []).length && pmEl('mpe_brand')) row.brand_id = pmEl('mpe_brand').value ? Number(pmEl('mpe_brand').value) : null;
   const isNew = MPE.cur === 'new';
+  // the poster only goes with the save when it changed (older databases without the column still save shows)
+  { const cp = (pmEl('mpe_cposter') && pmEl('mpe_cposter').value) || '', was = isNew ? '' : (((MPE.events.find(e => e.id === MPE.cur) || {}).card_poster_url) || '');
+    if(cp !== was) row.card_poster_url = cp || null; }
   const q = isNew ? sb.from('promotion_events').insert(row).select('*') : sb.from('promotion_events').update(row).eq('id', MPE.cur).select('*');
   const { data, error } = await q;
   if(error || !data || !data.length){ mpMsg('mpe_msg', error ? peErr(error) : 'Not saved. Make sure you are signed in.', false); return; }

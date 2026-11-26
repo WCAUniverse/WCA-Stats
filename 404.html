@@ -5725,7 +5725,9 @@ try{ WCASeason.onRollover(()=>{ if(typeof applyTheme === 'function') applyTheme(
      other — with the middle falling to true black. The marble rule above is
      untouched, so Plain returns every panel to stone.
      The two lights are variables so the backdrop style can recolour them. */
-  html{ --pl-a:rgba(30,96,168,.52); --pl-b:rgba(214,86,26,.50); --pl-void:#04060b; }
+  /* Nov 2026: the two lights follow the accent color picked in Admin > Appearance
+     (they used to be a fixed blue and orange no matter the colors). */
+  html{ --pl-a:rgba(var(--gold-rgb,233,185,73),.30); --pl-b:rgba(var(--gold-rgb,233,185,73),.12); --pl-void:#04060b; }
   html[data-backdrop="space-nebula"]{ --pl-a:rgba(84,60,168,.50); --pl-b:rgba(34,86,168,.46); --pl-void:#05060d; }
   /* ── VICE SUNSET (Admin > Appearance > Site background) ───────────
      A dusk sky behind everything, pink and orange light on the panels, and
@@ -8546,8 +8548,8 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
 .evx-rail{position:sticky; top:146px; max-height:calc(100vh - 166px); overflow:auto; border:1px solid var(--line); border-radius:12px; background:rgba(14,14,16,.94); backdrop-filter:blur(6px); padding:12px; scrollbar-width:thin;}
 .evx-kick{display:block; font-family:var(--font-display); font-size:13.5px; letter-spacing:2.2px; text-transform:uppercase; color:var(--gold);}
 .evx-past{margin:16px 4px 8px;}
-.evx-up{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:12px 12px; border-radius:10px; border:1px solid rgba(233,185,73,.35); background:rgba(233,185,73,.06); color:var(--txt); cursor:pointer; font:inherit;}
-.evx-up.on{background:rgba(233,185,73,.16); border-color:var(--gold);}
+.evx-up{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:12px 12px; border-radius:10px; border:1px solid rgba(var(--gold-rgb),.35); background:rgba(var(--gold-rgb),.06); color:var(--txt); cursor:pointer; font:inherit;}
+.evx-up.on{background:rgba(var(--gold-rgb),.16); border-color:var(--gold);}
 .evx-up .evx-sn{font-weight:700; font-size:15px;}
 .evx-search{display:flex; align-items:center; gap:8px; border:1px solid var(--line, #26262e); border-radius:8px; padding:7px 10px; background:rgba(0,0,0,.25); margin:0 0 8px;}
 .evx-search i{color:var(--muted, #8d8a82);}
@@ -8555,7 +8557,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
 .evx-year{font-family:var(--font-display); font-size:14px; letter-spacing:2px; color:var(--muted, #8d8a82); margin:12px 6px 4px; padding-bottom:4px; border-bottom:1px solid var(--line, #26262e);}
 .evx-show{display:flex; justify-content:space-between; align-items:baseline; gap:10px; width:100%; text-align:left; padding:8px 10px; border-radius:8px; border:0; background:transparent; color:var(--txt); cursor:pointer; font:inherit; font-size:14.5px;}
 .evx-show:hover{background:rgba(255,255,255,.05);}
-.evx-show.on{background:rgba(233,185,73,.14); color:var(--gold); box-shadow:inset 3px 0 0 var(--gold);}
+.evx-show.on{background:rgba(var(--gold-rgb),.14); color:var(--gold); box-shadow:inset 3px 0 0 var(--gold);}
 .evx-sn{overflow-wrap:anywhere;}
 .evx-sd{flex:0 0 auto; font-size:14px; color:var(--muted, #8d8a82);}
 .evx-none{padding:10px 8px; font-size:14.5px; color:var(--muted, #8d8a82);}
@@ -8563,7 +8565,7 @@ div.ed-ce-old small{color:var(--muted); margin-left:8px;}
 .evx-live{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 16px; margin:0 0 16px; border-radius:10px; border:1px solid var(--bad, #cf3e3e); background:linear-gradient(90deg,rgba(207,62,62,.22),rgba(207,62,62,.06)); color:#fff; text-decoration:none; font-size:15px;}
 .evx-live b{font-family:var(--font-display); letter-spacing:2px; text-transform:uppercase;}
 .evx-live-go{margin-left:auto; color:var(--gold); font-weight:700;}
-.evx-cd{display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; margin:14px 0 6px; padding:14px; border-radius:12px; border:1px solid rgba(233,185,73,.3); background:rgba(233,185,73,.05);}
+.evx-cd{display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; margin:14px 0 6px; padding:14px; border-radius:12px; border:1px solid rgba(var(--gold-rgb),.3); background:rgba(var(--gold-rgb),.05);}
 .evx-cd-k{font-family:var(--font-display); font-size:14px; letter-spacing:2.4px; text-transform:uppercase; color:var(--gold); margin-right:4px;}
 .evx-cd-u{display:flex; flex-direction:column; align-items:center; min-width:58px;}
 .evx-cd-u b{font-family:var(--font-display); font-size:28px; line-height:1;}
@@ -14342,14 +14344,26 @@ function boutHTML(m, isMain, ctx, ord){
       <div class="bb-list">${rows}</div></details>`;
   }
 
-  const fhSum = (typeof fhBoutSummary==='function' && !isMain) ? fhBoutSummary(m, sides, { label, orderLabel, status, signedIn:ctx.signedIn, titleTag }) : '';
+  const fhSum = (typeof fhBoutSummary==='function' && !isMain) ? fhBoutSummary(m, sides, { label, orderLabel, status, signedIn:ctx.signedIn, titleTag, rules:rulesTxt }) : '';
+  /* Nov 2026: what the match IS sits together at the top, each in its own slot:
+     the spot on the card (big), the division, the match type, the rules, the title.
+     The belt picture goes under the wrestlers, since the picture explains itself. */
+  const headTxt = orderLabel || (isMain ? 'Main Event' : 'Match');
+  const typeTxt = (label && label !== headTxt && label !== 'Main Event' && label !== 'Match') ? label : '';
+  const facts = [
+    divName ? `<span class="bf bf-div"><i class="ti ti-category" aria-hidden="true"></i>${esc(divName)} Division</span>` : '',
+    typeTxt ? `<span class="bf bf-type">${esc(typeTxt)}</span>` : '',
+    rulesTxt ? `<span class="bf bf-rules">${esc(rulesTxt)}</span>` : '',
+    m.championship ? `<span class="bf bf-title"><i class="ti ti-trophy" aria-hidden="true"></i>${esc(m.championship)} Championship</span>` : ''
+  ].filter(Boolean).join('');
+  const beltPic = (m.championship && typeof beltFor === 'function') ? beltFor(m.championship) : null;
+  const beltLow = beltPic && beltPic.image_url
+    ? `<div class="bout-belt"><img src="${esc(beltPic.image_url)}" alt="${escAttr(m.championship)} title" loading="lazy"><span>${esc(m.championship)} Championship</span></div>` : '';
   return `<div class="bout ${isMain?'main':'fh-fold'} sides-${sides.length}">
     ${fhSum}
-    <div class="bout-label">${orderLabel && orderLabel!==label ? `<span class="bout-order">${esc(orderLabel)}</span>` : ''}${esc(label)}${ribbon}</div>
-    ${divTag}
-    ${titleTag}
+    <div class="bout-head"><div class="bout-label">${esc(headTxt)}${ribbon}</div>${facts ? `<div class="bout-facts">${facts}</div>` : ''}</div>
     <div class="vs-row">${vsRow}</div>
-    ${stip}${notes}
+    ${beltLow}${notes}
     ${status==='settled' ? ratingWidget(m.slot) : ''}
     ${mine}
     ${board}
@@ -14835,12 +14849,19 @@ async function loadEvents(){
     cardHTML='<div class="event-empty" style="padding:30px">Card to be announced.</div>';
   }
 
+  // the event poster on top, while the show isn't finished (SUPABASE_UPDATE_event_posters.sql)
+  let posterTop = '';
+  if(!ev.is_complete){
+    let pu = ev.card_poster_url;
+    if(pu === undefined){ try{ const pr = await sb.from('events').select('card_poster_url').eq('id', ev.id).maybeSingle(); pu = pr && !pr.error && pr.data ? pr.data.card_poster_url : null; }catch(e){ pu = null; } }
+    posterTop = wcaPosterTop(pu, ev.name);
+  }
   const evStream = streamEmbed(ev.stream_url);
   // Countdown to the show, only while it's still ahead
   const evT = ev.event_date ? new Date(ev.event_date).getTime() : NaN;
   const cdHTML = (!ev.is_complete && !isNaN(evT) && evT > Date.now())
     ? `<div class="evx-cd" id="evx-cd" data-t="${evT}" aria-label="Time until the show"></div>` : '';
-  el.innerHTML = `<div class="evx-livehost" id="evx-livehost"></div>` + hero + cdHTML + (evStream ? `<div class="ev-player">${evStream}</div>` : '')
+  el.innerHTML = `<div class="evx-livehost" id="evx-livehost"></div>` + posterTop + hero + cdHTML + (evStream ? `<div class="ev-player">${evStream}</div>` : '')
     + `<div class="tbx-host" data-kind="wca" data-ev="${escAttr(String(ev.id))}" data-card="#evx-card"></div><div id="evx-card">` + cardHTML + `</div>`;
   try{ if(typeof tbxScan === 'function') tbxScan(el); }catch(e){}
   evxCountdownStart();
@@ -16861,6 +16882,111 @@ async function evRailOpen(id){
   }
   openArchiveEvent(id);
 }
+/* ===== EVENT POSTERS (Nov 2026) =====
+   Every show that isn't finished can carry a poster (events.card_poster_url and
+   promotion_events.card_poster_url, SUPABASE_UPDATE_event_posters.sql). WCA adds
+   it in admin's Show Editor, promotions in their editor. It shows at the top of
+   the show page, in a row under the Events calendar and on the menu. Every
+   poster is the same size, soonest show first, with its countdown on it. Once a
+   show is set as finished its poster stops showing. */
+const WCA_POSTERS = { at:0, list:null, loading:null, sets:{} };
+function wcaPosterOk(u){ return /^https:\/\/\S+$/i.test(String(u || '').trim()); }
+async function wcaPostersLoad(force){
+  if(!force && WCA_POSTERS.list && Date.now() - WCA_POSTERS.at < 60000) return WCA_POSTERS.list;
+  if(WCA_POSTERS.loading) return WCA_POSTERS.loading;
+  WCA_POSTERS.loading = (async () => {
+    const out = [];
+    if(typeof sb === 'undefined' || !sb) return out;
+    let promos = []; try{ promos = await peLoadPromoList(); }catch(e){}
+    const pmap = {}; promos.forEach(p => { pmap[String(p.id)] = p; });
+    let sdIds = new Set(); try{ if(typeof sdShowdownIds === 'function') sdIds = await sdShowdownIds(); }catch(e){}
+    try{
+      const r = await sb.from('events').select('id,name,event_date,card_poster_url,is_complete,is_published').not('card_poster_url', 'is', null);
+      ((r && !r.error && r.data) || []).forEach(e => {
+        if(e.is_complete || e.is_published === false || !wcaPosterOk(e.card_poster_url)) return;
+        out.push({ kind:sdIds.has(String(e.id)) ? 'sd' : 'wca', id:e.id, name:e.name, ts:e.event_date, url:String(e.card_poster_url).trim() });
+      });
+    }catch(e){}
+    try{
+      const r = await sb.from('promotion_events').select('id,promotion_id,name,event_date,status,card_poster_url').in('status', ['upcoming', 'live']).not('card_poster_url', 'is', null);
+      ((r && !r.error && r.data) || []).forEach(e => {
+        const p = pmap[String(e.promotion_id)]; if(!p || !wcaPosterOk(e.card_poster_url)) return;
+        out.push({ kind:'p', pid:Number(p.id), p, id:e.id, name:e.name, ts:e.event_date, url:String(e.card_poster_url).trim(), live:e.status === 'live' });
+      });
+    }catch(e){}
+    out.forEach(x => { const t = x.ts ? new Date(x.ts).getTime() : NaN; x.t = isNaN(t) ? null : t; });
+    out.sort((a, b) => (a.t == null ? 9e15 : a.t) - (b.t == null ? 9e15 : b.t));
+    WCA_POSTERS.list = out; WCA_POSTERS.at = Date.now();
+    return out;
+  })().finally(() => { WCA_POSTERS.loading = null; });
+  return WCA_POSTERS.loading;
+}
+function wcaPosterWho(x){ return x.kind === 'p' ? ((typeof peShort === 'function' ? peShort(x.p) : '') || x.p.name || 'Promotion') : x.kind === 'sd' ? 'WCA Showdown' : 'WCA'; }
+function wcaPosterColor(x){ return x.kind === 'p' && typeof pmColor === 'function' ? pmColor(x.p.color) : '#e9b949'; }
+// one poster tile; set = which list it belongs to ('cal' or 'menu'), i = its place in that list
+function wcaPosterTile(x, set, i){
+  const when = x.t != null ? new Date(x.t).toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }) : '';
+  return `<button type="button" class="wpost" style="--wc:${escAttr(wcaPosterColor(x))}" data-pset="${escAttr(set)}" data-pi="${Number(i)}" onclick="wcaPosterOpen('${set === 'menu' ? 'menu' : 'cal'}',${Number(i)})" aria-label="${escAttr(wcaPosterWho(x) + ', ' + (x.name || 'Show') + (when ? ', ' + when : ''))}">
+    <span class="wpost-pic"><img src="${escAttr(x.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('.wpost').remove()">
+      <span class="wpost-cd" data-pcd="${x.t != null ? x.t : ''}"${x.live ? ' data-live="1"' : ''}></span></span>
+    <span class="wpost-meta"><b>${esc(x.name || 'Show')}</b><small>${esc(wcaPosterWho(x))}${when ? ' · ' + esc(when) : ''}</small></span>
+  </button>`;
+}
+function wcaPostersHTML(list, set){
+  WCA_POSTERS.sets[set] = list;
+  return list.length ? `<div class="wposts">${list.map((x, i) => wcaPosterTile(x, set, i)).join('')}</div>` : '';
+}
+let WCA_POSTER_TIMER = null;
+function wcaPosterTick(){
+  const run = () => {
+    const els = document.querySelectorAll('.wpost-cd');
+    if(!els.length){ clearInterval(WCA_POSTER_TIMER); WCA_POSTER_TIMER = null; return; }
+    els.forEach(el => {
+      if(el.dataset.live){ el.textContent = 'Live now'; return; }
+      const t = Number(el.dataset.pcd); if(!t){ el.textContent = 'Date coming soon'; return; }
+      const s = Math.max(0, Math.floor((t - Date.now()) / 1000)), z = n => String(n).padStart(2, '0');
+      el.textContent = s <= 0 ? 'Starting now' : Math.floor(s / 86400) + 'D ' + z(Math.floor(s % 86400 / 3600)) + 'H ' + z(Math.floor(s % 3600 / 60)) + 'M ' + z(s % 60) + 'S';
+    });
+  };
+  run();
+  if(!WCA_POSTER_TIMER) WCA_POSTER_TIMER = setInterval(run, 1000);
+}
+// open the show a poster belongs to
+function wcaPosterGo(x){
+  if(!x) return;
+  if(x.kind === 'sd'){ try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){} goPage('showdown'); return; }
+  if(x.kind === 'p'){
+    try{ localStorage.setItem('wca-events-promo', String(x.pid)); }catch(e){}
+    if(typeof wcaSetAddress === 'function') wcaSetAddress('events', 'promo=' + Number(x.pid) + '&ev=' + Number(x.id), true);
+  } else {
+    try{ localStorage.setItem('wca-events-promo', 'wca'); }catch(e){}
+    if(typeof wcaSetAddress === 'function') wcaSetAddress('events', 'event=' + encodeURIComponent(x.id), true);
+  }
+  try{ EVCAL.nav = false; EVCAL.navClick = false; }catch(e){}
+  activatePage('events'); window.scrollTo({ top:0, behavior:'smooth' });
+}
+function wcaPosterOpen(set, i){
+  const x = (WCA_POSTERS.sets[set] || [])[i]; if(!x) return;
+  if(set === 'menu' && typeof window.fhPosterGo === 'function'){ window.fhPosterGo(x); return; }
+  wcaPosterGo(x);
+}
+// the big poster at the top of a show page (only while the show isn't finished)
+function wcaPosterTop(url, name){
+  if(!wcaPosterOk(url)) return '';
+  return `<div class="ev-poster"><img src="${escAttr(String(url).trim())}" alt="${escAttr((name || 'Show') + ' poster')}" referrerpolicy="no-referrer" onerror="this.closest('.ev-poster').remove()"></div>`;
+}
+// under the Events calendar: every upcoming show that has a poster
+async function evcalPosters(){
+  const box = document.getElementById('evcal'); if(!box || EVCAL.mode !== 'cal') return;
+  let list = []; try{ list = await wcaPostersLoad(); }catch(e){}
+  if(EVCAL.mode !== 'cal' || !box.isConnected) return;
+  const f = EVCAL.filter || 'all';
+  list = list.filter(x => f === 'all' || (f === 'wca' ? x.kind !== 'p' : f === 'p' + x.pid));
+  box.querySelectorAll('.evc-posters').forEach(n => n.remove());
+  if(!list.length) return;
+  box.insertAdjacentHTML('beforeend', `<section class="evc-posters" aria-label="Coming up"><div class="evc-h">Coming up</div>${wcaPostersHTML(list, 'cal')}</section>`);
+  wcaPosterTick();
+}
 /* ===== EVENTS CALENDAR (Nov 2026) =====
    First thing on Events: a month calendar of every promotion's shows, with logos in the
    days. A day with more than one promotion lets you pick one, then opens that show.
@@ -17034,6 +17160,7 @@ function evcalDraw(){
       <div class="evc-grid">${cells}</div>${pick}
     </div>`;
   if(EVCAL.sel){ const pe = document.getElementById('evc-pick'); if(pe && pe.scrollIntoView) pe.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  evcalPosters();   // every upcoming show with a poster, under the calendar
 }
 function evcalMonth(n){ const d = new Date(EVCAL.y, EVCAL.m + n, 1); EVCAL.y = d.getFullYear(); EVCAL.m = d.getMonth(); EVCAL.sel = null; evcalDraw(); }
 function evcalToday(){ const t = new Date(); EVCAL.y = t.getFullYear(); EVCAL.m = t.getMonth(); EVCAL.sel = null; evcalDraw(); }
@@ -17448,9 +17575,9 @@ function archBoutHTML(m, isMain, status, winningSide){
   const winLbl = (!voided && winningSide!=null && sides[winningSide]) ? sideLabel(sides[winningSide]) : '';
   return `<div class="rbout ${isMain?'main':''}">
     <div class="rbout-label">${esc(label)}</div>
-    ${titleTag}${motnBadge('w', m.id)}
+    ${titleTag}${stip}${motnBadge('w', m.id)}
     <div class="rvs">${vs}</div>
-    ${stip}${voidLine}
+    ${voidLine}
     ${mdElimHTML(m, winLbl)}
     ${ratingWidget(m.slot)}
   </div>`;
@@ -35894,6 +36021,73 @@ label.pe-chk{display:flex; align-items:center; gap:8px; font-size:15px; text-tra
 .mpb-table{width:100%; border-collapse:collapse; font-size:15px; margin-top:8px;}
 .mpb-table th{text-align:left; font-family:var(--font-cond); font-weight:600; letter-spacing:1.2px; text-transform:uppercase; font-size:14px; color:var(--muted); padding:6px 8px; border-bottom:1px solid #2a2a33;}
 .mpb-table td{padding:8px; border-bottom:1px solid #1f1f27;}
+/* ===== Match header and promotion show pages (Nov 2026) =====
+   What the match is sits together at the top: the spot on the card (big), then
+   the division, match type, rules and title, each in its own pill. The belt
+   picture sits under the wrestlers. Promotions get the same page as WCA, in
+   their own color (peAccent sets --gold and friends on the page). */
+.bout .bout-head{display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:16px;}
+.bout .bout-head .bout-label{margin-bottom:0; flex-wrap:wrap;}
+html .bout.main .bout-head .bout-label{font-size:clamp(24px,2.8vw,38px); letter-spacing:5px; color:var(--gold); text-shadow:0 0 24px rgba(var(--gold-rgb),.45);}
+html .bout.main .bout-head .bout-label::before, html .bout.main .bout-head .bout-label::after{width:clamp(30px,6vw,90px); background:rgba(var(--gold-rgb),.5);}
+html .bout.main .bout-head .bet-status{font-size:14px; letter-spacing:1.5px; text-shadow:none;}
+.bout-facts{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 10px;}
+.bf{display:inline-flex; align-items:center; gap:7px; padding:5px 14px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.4);
+  font-family:var(--fh-fight, var(--font-cond)); font-weight:700; font-size:15px; letter-spacing:1.6px; text-transform:uppercase; color:var(--txt); line-height:1.2;}
+.bf i{font-size:16px; color:var(--gold);}
+.bf-div{border-color:var(--gold-dim); background:rgba(var(--gold-rgb),.10);}
+.bf-type{color:#fff;}
+.bf-rules{color:var(--gold); border-color:rgba(var(--gold-rgb),.55);}
+.bf-title{color:var(--gold); border-color:var(--gold); background:rgba(var(--gold-rgb),.16);}
+.bout.main .bf{font-size:clamp(15px,1.4vw,19px); padding:6px 18px;}
+.bout-belt{display:flex; flex-direction:column; align-items:center; gap:6px; margin:18px 0 6px;}
+.bout-belt img{height:40px; width:auto; max-width:90%; object-fit:contain; filter:drop-shadow(0 4px 12px rgba(0,0,0,.6));}
+.bout.main .bout-belt img{height:clamp(56px,6vw,84px);}
+.bout-belt span{font-family:var(--fh-fight, var(--font-display)); font-weight:800; font-size:15px; letter-spacing:2px; text-transform:uppercase; color:var(--gold);}
+.bout.main .bout-belt span{font-size:18px;}
+@media(max-width:600px){ .bf{font-size:13.5px; padding:4px 11px;} .bout.main .bf{font-size:14px;} }
+
+/* the show header: see through, so the animated background shows behind it */
+html .event-hero{background:radial-gradient(90% 140% at 50% 0%, rgba(var(--gold-rgb),.14), transparent 70%), rgba(6,7,10,.34) !important;
+  border-color:rgba(var(--gold-rgb),.45) !important;}
+html .event-hero .ev-name{color:var(--gold);}
+
+/* a promotion's show page: the same layout as WCA's Events */
+.pe-evx{display:grid; grid-template-columns:250px minmax(0,1fr); gap:26px; align-items:start;}
+@media (max-width:900px){ .pe-evx{grid-template-columns:minmax(0,1fr); gap:0;} }
+.pe .pe-ev.pe-ev-x{border:0; background:none; padding:0; margin:0; box-shadow:none; border-radius:0;}
+.pe .pe-ev.pe-ev-x .event-hero{margin-top:0;}
+.pe-railbrands{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px;}
+.pe .pe-hero .pe-hero-top{margin-bottom:4px;}
+.pe .pe-hero .ev-sharerow{gap:10px; flex-wrap:wrap; margin-top:10px;}
+.pe .pe-fc{margin-top:22px;}
+.pe .pe-bout .fighter.pe-lose{opacity:.55;}
+.pe .pe-bout .pe-form{margin-top:14px;}
+.pe .pe-bout .pe-mine, .pe .pe-bout .my-bet{text-align:center; margin-top:12px;}
+.pe .pe-bout .pe-extras{margin-top:14px;}
+.pe .pe-bout .pe-note{text-align:center;}
+.pe .pe-wallet{margin-top:22px;}
+
+/* ===== Event posters (Nov 2026) ===== */
+.ev-poster{max-width:640px; margin:22px auto 0; border-radius:12px; overflow:hidden; border:1px solid rgba(var(--gold-rgb),.45); background:#000; aspect-ratio:16/9;}
+.ev-poster img{display:block; width:100%; height:100%; object-fit:cover;}
+.pe .pe-ev.pe-ev-x .ev-poster{margin:0 auto 18px;}
+.pe .pe-ev.pe-ev-x .ev-poster + .event-hero{margin-top:0;}
+.wposts{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr)); gap:18px;}
+.wpost{display:flex; flex-direction:column; gap:8px; min-width:0; padding:0; border:0; background:none; color:var(--txt); text-align:left; cursor:pointer; font:inherit;}
+.wpost-pic{position:relative; display:block; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:#000; border:1px solid color-mix(in srgb, var(--wc) 55%, transparent); transition:transform .15s, box-shadow .15s;}
+.wpost-pic img{display:block; width:100%; height:100%; object-fit:cover;}
+.wpost:hover .wpost-pic, .wpost:focus-visible .wpost-pic{transform:translateY(-2px); box-shadow:0 0 0 2px var(--wc), 0 10px 30px -12px var(--wc);}
+.wpost-cd{position:absolute; left:8px; right:8px; bottom:8px; padding:6px 10px; border-radius:8px; background:rgba(0,0,0,.78); border:1px solid color-mix(in srgb, var(--wc) 60%, transparent);
+  font-family:var(--fh-fight, var(--font-display)); font-style:italic; font-weight:900; font-size:clamp(16px,1.5vw,20px); letter-spacing:1px; text-align:center; color:#fff; font-variant-numeric:tabular-nums;}
+.wpost-cd[data-live]{background:rgba(207,62,62,.9); border-color:#ff8a8a;}
+.wpost-meta b{display:block; font-family:var(--fh-fight, var(--font-display)); font-weight:800; font-size:18px; letter-spacing:.5px; text-transform:uppercase; line-height:1.1; overflow-wrap:anywhere;}
+.wpost-meta small{display:block; color:var(--wc); font-size:14px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; margin-top:2px;}
+.evc-posters{grid-column:1 / -1; margin-top:8px;}
+.evc-posters .evc-h{margin-bottom:12px;}
+.fh-postwrap{margin:0 0 18px;}
+.fh-postwrap .wposts{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));}
+
 </style>
 <script>
 /* ===================== PROMOTION EVENTS, BETTING AND FOLLOW (Oct 2026) =====================
@@ -36227,17 +36421,118 @@ function peCdStart(){
   };
   tick(); PE_CD = setInterval(tick, 1000);
 }
+/* ---------- a promotion's show page, built like WCA's (Nov 2026) ----------
+   Same layout as WCA's Events: a rail on the left with Upcoming and every past
+   show by year (with a search box), then the show header, the countdown and the
+   Fight Card with the main event big and the rest as rows you open.
+   Everything WCA shows in gold shows in the promotion's own color. */
+function peAccentVars(hex){
+  let h = String(hex || '').replace('#', '').trim();
+  if(h.length === 3) h = h.split('').map(c => c + c).join('');
+  h = h.slice(0, 6);
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  if([r, g, b].some(x => isNaN(x))) return null;
+  const rgb = r + ',' + g + ',' + b, lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return { '--pc':'#' + h, '--gold':'#' + h, '--au':'#' + h, '--au-bright':'#' + h, '--gold-rgb':rgb,
+    '--gold-dim':'rgba(' + rgb + ',.62)', '--gold-deep':'rgba(' + rgb + ',.08)', '--au-deep':'rgba(' + rgb + ',.62)',
+    '--au-hair':'rgba(' + rgb + ',.42)', '--au-faint':'rgba(' + rgb + ',.18)', '--on-gold':lum > .55 ? '#111' : '#fff',
+    '--pl-a':'rgba(' + rgb + ',.30)', '--pl-b':'rgba(' + rgb + ',.12)' };
+}
+function peAccent(S){
+  const v = peAccentVars(S.color); if(!v || !S.host) return;
+  Object.keys(v).forEach(k => S.host.style.setProperty(k, v[k]));
+}
 function peDrawPublic(){
   const S = PE.pub; if(!S || !S.host) return;
+  peAccent(S);
+  if(S.opts.view !== 'all'){   // Events and Past Events: the WCA style page
+    peDrawPage(S); peCdStart();
+    try{ if(typeof tbxScan === 'function') tbxScan(S.host); }catch(e){}
+    return;
+  }
   const one = S.onlyEv ? S.events.find(e => String(e.id) === String(S.onlyEv)) : null;
   if(one){
-    S.host.style.setProperty('--pc', S.color);
     const nm = (typeof peShort === 'function' ? peShort(S.promo) : '') || S.promo.name || 'Promotion';
     S.host.innerHTML = `<div class="pe-onebar"><button type="button" class="pe-chip" onclick="evcalHome()"><i class="ti ti-calendar-month" aria-hidden="true"></i> Back to the calendar</button><button type="button" class="pe-chip" onclick="PE.pub.onlyEv=null;peDrawPublic()">All ${esc(nm)} shows</button></div>` + peEventHTML(S, one);
     peCdStart(); try{ if(typeof tbxScan === 'function') tbxScan(S.host); }catch(e){} return;
   }
   peDrawPublicList(); peCdStart();
   try{ if(typeof tbxScan === 'function') tbxScan(S.host); }catch(e){}
+}
+function peYear(e){ const d = e && e.event_date ? new Date(e.event_date) : null; return d && !isNaN(d) ? String(d.getFullYear()) : 'Earlier'; }
+function peDay(e){ const d = e && e.event_date ? new Date(e.event_date) : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) : ''; }
+function peRailText(e){ return ((e.name || '') + ' ' + peYear(e) + ' ' + peDay(e) + (e.show_number != null ? ' show ' + e.show_number : '')).toLowerCase(); }
+function peDrawPage(S){
+  const all = S.brandF ? S.events.filter(e => String(e.brand_id) === String(S.brandF)) : S.events;
+  const up = all.filter(e => e.status === 'upcoming' || e.status === 'live')
+    .sort((a, b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || String(a.event_date || '9').localeCompare(String(b.event_date || '9')));
+  const past = all.filter(e => e.status === 'done').sort((a, b) => String(b.event_date || '').localeCompare(String(a.event_date || '')));
+  let cur = S.onlyEv ? S.events.find(e => String(e.id) === String(S.onlyEv)) : null;
+  if(!cur) cur = S.view === 'past' ? past[0] : up[0];
+  S.curEv = cur ? cur.id : null;
+  const q = String(S.q || '').trim().toLowerCase();
+  const isOn = e => cur && String(e.id) === String(cur.id);
+  // the rail
+  const brands = (S.brands || []).length ? `<div class="pe-railbrands" role="group" aria-label="Brands">
+      <button type="button" class="pe-bchip${!S.brandF ? ' on' : ''}" onclick="PE.pub.brandF=null;PE.pub.onlyEv=null;peDrawPublic()">Every show</button>
+      ${S.brands.map(b => `<button type="button" class="pe-bchip${String(S.brandF) === String(b.id) ? ' on' : ''}" style="--bc:${pmColor(b.color, '#c9c6be')}" title="${escAttr(b.name)}" onclick="PE.pub.brandF=${Number(b.id)};PE.pub.onlyEv=null;peDrawPublic()">${brLogo(b, 'pe-blogo')}${esc(brShort(b))}</button>`).join('')}</div>` : '';
+  const upHTML = up.length ? up.map(e => `<button type="button" class="evx-up${isOn(e) ? ' on' : ''}" onclick="pePageOpen(${Number(e.id)})"${isOn(e) ? ' aria-current="true"' : ''}>
+      <span class="evx-kick">${e.status === 'live' ? 'Live now' : 'Upcoming'}</span><span class="evx-sn">${esc(e.name || 'Next show')}</span>${peDay(e) ? `<span class="evx-sd">${esc(peDay(e))}</span>` : ''}</button>`).join('<div style="height:8px"></div>')
+    : `<div class="evx-up" style="cursor:default"><span class="evx-kick">Upcoming</span><span class="evx-sn">No show scheduled yet</span></div>`;
+  const years = [], byYear = {};
+  past.forEach(e => { const y = peYear(e); if(!byYear[y]){ byYear[y] = []; years.push(y); } byYear[y].push(e); });
+  let list = '';
+  years.forEach(y => {
+    const rows = byYear[y];
+    const shown = rows.filter(e => !q || peRailText(e).includes(q)).length;
+    list += `<div class="evx-year"${shown ? '' : ' style="display:none"'}>${esc(y)}</div>` + rows.map(e =>
+      `<button type="button" class="evx-show${isOn(e) ? ' on' : ''}" data-s="${escAttr(peRailText(e))}" onclick="pePageOpen(${Number(e.id)})"${isOn(e) ? ' aria-current="true"' : ''}${!q || peRailText(e).includes(q) ? '' : ' style="display:none"'}>
+        <span class="evx-sn">${esc(e.name || 'Show')}</span><span class="evx-sd">${esc(peDay(e))}</span></button>`).join('');
+  });
+  if(!past.length) list = `<div class="evx-none">Past shows show up here once they're in the books.</div>`;
+  const rail = `<button type="button" class="evx-up" style="margin-bottom:10px" onclick="evcalHome()"><span class="evx-kick">Calendar</span><span class="evx-sn">Every promotion</span></button>`
+    + brands + upHTML
+    + `<div class="evx-kick evx-past">Past shows</div>`
+    + `<label class="evx-search"><i class="ti ti-search" aria-hidden="true"></i><input type="search" placeholder="Search shows" aria-label="Search past shows" value="${escAttr(S.q || '')}" oninput="pePageSearch(this)"></label>`
+    + `<div class="evx-list">${list}</div>`;
+  // the same list as a dropdown on a phone
+  let opts = `<option value="__cal">Calendar</option>`;
+  if(up.length) opts += `<optgroup label="Upcoming">${up.map(e => `<option value="${Number(e.id)}"${isOn(e) ? ' selected' : ''}>${esc(e.name || 'Show')}</option>`).join('')}</optgroup>`;
+  years.forEach(y => { opts += `<optgroup label="${escAttr(y)}">${byYear[y].map(e => `<option value="${Number(e.id)}"${isOn(e) ? ' selected' : ''}>${esc(e.name || 'Show')}</option>`).join('')}</optgroup>`; });
+  if(!cur) opts = `<option value="" selected>Pick a show</option>` + opts;
+  const pick = `<div class="evx-pick"><span class="evx-pick-l">Show</span><select class="evx-sel" aria-label="Pick a show" onchange="pePageOpen(this.value)">${opts}</select></div>`;
+  const main = cur ? peEventHTML(S, cur, true)
+    : `<div class="event-empty" style="padding:30px">${S.view === 'past' ? 'No past shows yet.' : 'No upcoming show announced yet, check back soon.'}${S.view !== 'past' && past.length ? ` <button type="button" class="spc-mini" onclick="pePageOpen(${Number(past[0].id)})">See their last show</button>` : ''}</div>`;
+  const wallet = cur && cur.status !== 'done' ? peWalletHTML(S) : '';
+  // keep the search box focused while redrawing
+  const ae = document.activeElement, typing = ae && S.host.contains(ae) && ae.type === 'search', pos = typing ? ae.selectionStart : 0;
+  S.host.innerHTML = `<div class="pe-evx"><aside class="evx-rail" aria-label="Shows">${rail}</aside><div class="evx-main">${pick}${main}${wallet}</div></div>`;
+  if(typing){ const i = S.host.querySelector('.evx-rail input[type=search]'); if(i){ i.focus(); try{ i.setSelectionRange(pos, pos); }catch(e){} } }
+}
+function pePageSearch(inp){
+  const S = PE.pub; if(!S) return;
+  S.q = inp.value || '';
+  const q = S.q.trim().toLowerCase(), list = inp.closest('.evx-rail').querySelector('.evx-list'); if(!list) return;
+  let any = 0;
+  list.querySelectorAll('.evx-show').forEach(b => { const ok = !q || String(b.dataset.s || '').includes(q); b.style.display = ok ? '' : 'none'; if(ok) any++; });
+  list.querySelectorAll('.evx-year').forEach(h => {
+    let n = h.nextElementSibling, vis = false;
+    while(n && !n.classList.contains('evx-year')){ if(n.classList.contains('evx-show') && n.style.display !== 'none') vis = true; n = n.nextElementSibling; }
+    h.style.display = vis ? '' : 'none';
+  });
+  let none = list.querySelector('.evx-none.q');
+  if(!any && list.querySelector('.evx-show')){ if(!none){ none = document.createElement('div'); none.className = 'evx-none q'; none.textContent = 'No shows match that.'; list.appendChild(none); } }
+  else if(none) none.remove();
+}
+function pePageOpen(id){
+  const S = PE.pub; if(!S) return;
+  if(id === '__cal'){ evcalHome(); return; }
+  if(id === '' || id == null) return;
+  S.onlyEv = Number(id); S.focusEv = S.onlyEv;
+  const pg = S.host.closest('#page-archive') ? 'archive' : 'events';
+  try{ if(typeof wcaSetAddress === 'function') wcaSetAddress(pg, 'promo=' + Number(S.pid) + '&ev=' + Number(id), true); }catch(e){}
+  peDrawPublic();
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 function peDrawPublicList(){
   const S = PE.pub; if(!S || !S.host) return;
@@ -36262,47 +36557,162 @@ function peDrawPublicList(){
     (S.top && S.top.length && S.opts.view === 'all' ? `<section class="pe-top"><div class="pe-h">Top fans</div><ol>${S.top.map(t => `<li><span class="pe-rk">${Number(t.rank)}</span>${t.avatar ? `<img src="${escAttr(t.avatar)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<span>${esc(t.name)}</span><span class="pe-tb">${esc(peMoney(S.info, t.balance))}</span></li>`).join('')}</ol></section>` : '');
 }
 function peHeroHTML(S, e, st, links){
-  const color = S.color || '#e9b949';
   const b = (S.brands || []).find(x => String(x.id) === String(e.brand_id));
   const poster = e.poster_url || e.poster || '';
   const t = e.event_date ? new Date(e.event_date).getTime() : NaN;
   const cd = (st === 'up' && !isNaN(t) && t > Date.now()) ? `<div class="evx-cd" data-pecd="${t}" aria-label="Time until the show"></div>` : '';
-  const meta = e.event_date ? `<div class="event-meta"><div class="mi"><i class="ti ti-calendar-event"></i>${esc(peWhen(e.event_date))}</div></div>` : '';
-  return `<div class="event-hero pe-hero" style="border-color:${escAttr(color)}">
+  const meta = [];
+  if(e.event_date) meta.push(`<div class="mi"><i class="ti ti-calendar-event"></i>${esc(peWhen(e.event_date))}</div>`);
+  if(e.location) meta.push(`<div class="mi"><i class="ti ti-map-pin"></i>${esc(e.location)}</div>`);
+  return `<div class="event-hero pe-hero">
     ${poster ? `<div class="hero-bg" style="background-image:url('${escAttr(poster)}')"></div>` : ''}
     <div class="hero-in">
       <div class="pe-hero-top">${typeof pmLogo === 'function' ? pmLogo(S.promo, 'pe-hero-logo') : ''}<span class="pe-hero-pn">${esc(S.promo.name || '')}</span>${b ? brChip(b, 'pe-evbrand') : ''}<span class="pe-evstat ${st}">${st === 'live' ? 'Live now' : st === 'done' ? 'Results' : 'Upcoming'}</span></div>
       <div class="ev-name">${esc(e.name)}</div>
       ${e.show_number != null ? `<div class="ev-tag">Show ${Number(e.show_number)}</div>` : ''}
-      ${meta}${cd}
-      ${links.length ? `<div class="pe-evlinks" style="margin-top:14px;justify-content:center">${links.join('')}</div>` : ''}
-    </div></div>`;
+      ${meta.length ? `<div class="event-meta">${meta.join('')}</div>` : ''}
+      ${links.length ? `<div class="ev-sharerow pe-evlinks">${links.join('')}</div>` : ''}
+    </div></div>${cd}`;
 }
-function peEventHTML(S, e){
+function peEventHTML(S, e, pageMode){
   const ms = S.matches[e.id] || [];
   const st = e.status === 'live' ? 'live' : e.status === 'done' ? 'done' : 'up';
   const links = [];
-  if(e.watch_url && e.status !== 'done') links.push(`<a class="spc-post-btn" href="${escAttr(e.watch_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> ${e.status === 'live' ? 'Watch live' : 'Where to watch'}</a>`);
-  if(e.replay_url && e.status === 'done') links.push(`<a class="spc-ghost-btn" href="${escAttr(e.replay_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> Watch the replay</a>`);
-  links.push(`<button type="button" class="spc-ghost-btn" data-n="${escAttr(e.name || '')}" onclick="evShare('promo',${Number(e.id)},${Number(S.pid)},this.dataset.n)"><i class="ti ti-share-3" aria-hidden="true"></i> Share</button>`);
-  return `<article class="pe-ev${String(S.focusEv) === String(e.id) ? ' focus' : ''}" id="pe-ev-${Number(e.id)}">
-${peHeroHTML(S, e, st, links)}
+  if(e.watch_url && e.status !== 'done') links.push(`<a class="ev-sharebtn" href="${escAttr(e.watch_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> ${e.status === 'live' ? 'Watch live' : 'Where to watch'}</a>`);
+  if(e.replay_url && e.status === 'done') links.push(`<a class="ev-sharebtn" href="${escAttr(e.replay_url)}" target="_blank" rel="noopener noreferrer nofollow"><i class="ti ti-player-play"></i> Watch the replay</a>`);
+  links.push(`<button type="button" class="ev-sharebtn" data-n="${escAttr(e.name || '')}" onclick="evShare('promo',${Number(e.id)},${Number(S.pid)},this.dataset.n)"><i class="ti ti-share-3" aria-hidden="true"></i> Share this event</button>`);
+  // slot 1 is the opener; the card reads like WCA's, main event on top
+  const card = ms.length
+    ? `<div class="pe-fc"><div class="section-title">Fight Card</div><div class="card-list">${ms.map((m, i) => peMatchHTML(S, e, m, i, ms.length)).reverse().join('')}</div></div>`
+    : '<div class="event-empty" style="padding:30px">The card is coming soon.</div>';
+  return `<article class="pe-ev${pageMode ? ' pe-ev-x' : ''}${!pageMode && String(S.focusEv) === String(e.id) ? ' focus' : ''}" id="pe-ev-${Number(e.id)}">
+    ${st !== 'done' && typeof wcaPosterTop === 'function' ? wcaPosterTop(e.card_poster_url, e.name) : ''}
+    ${peHeroHTML(S, e, st, links)}
     ${e.about ? `<div class="pe-evabout">${esc(e.about)}</div>` : ''}
-    <div class="tbx-host" data-kind="promo" data-ev="${Number(e.id)}" data-card="#pe-ev-${Number(e.id)} .pe-card"></div>
-    ${ms.length ? `<ol class="pe-card">${ms.map((m, i) => peMatchHTML(S, e, m, i, ms.length)).join('')}</ol>` : '<div class="pe-empty" style="margin-top:10px">The card is coming soon.</div>'}
+    <div class="tbx-host" data-kind="promo" data-ev="${Number(e.id)}" data-card="#pe-ev-${Number(e.id)} .pe-fc"></div>
+    ${card}
   </article>`;
+}
+// one side of a match, with the same pieces WCA uses: pictures, the name, the record
+function peChampC(r){ return r && r.held && r.held.length ? '<span class="champ-c" title="Champion">(C)</span>' : ''; }
+function peRecBlock(D, r){
+  if(!r) return '';
+  const showRank = D.page && D.page.ranks_on !== false, cat = (r.cat && r.cat.name) || '';
+  const lbl = r.held.length ? 'Champion' : (showRank && r.rank ? '#' + r.rank + ' ' + cat : cat);
+  const has = r.rec && (r.rec.w + r.rec.l + r.rec.nc);
+  const line = has
+    ? `<span class="frec-line"><span class="w"><b>${r.rec.w}</b>W</span><span class="sep">·</span><span class="l"><b>${r.rec.l}</b>L</span>${r.rec.nc ? `<span class="sep">·</span><span class="nw"><b>${r.rec.nc}</b>NC</span>` : ''}</span>`
+    : '<span class="frec-new">No record yet</span>';
+  return `<div class="frec">${lbl ? `<span class="frec-lbl">${esc(lbl)}</span>` : ''}${line}</div>`;
+}
+function peFighterInner(S, side){
+  const D = S.cd;
+  const team = String((side && side.name) || '').trim();
+  const ppl = ((side && side.members) || []).filter(x => x && x.name);
+  if(!D){
+    if(team) return `<div class="fname">${esc(team)}</div>${ppl.length ? `<div class="fmembers">${ppl.map(x => peNameLink(S, x)).join(' &amp; ')}</div>` : ''}`;
+    return ppl.length ? ppl.map(x => `<div class="fname">${peNameLink(S, x)}</div>`).join('<div class="amp">&amp;</div>') : '<div class="fname">TBA</div>';
+  }
+  const pics = ppl.length ? `<div class="mp-row pe-mprow">${ppl.map(x => peBox(D, x)).join('')}</div>` : '';
+  if(team){
+    const tr = D.teamRank[peNorm(team)];
+    return pics + `<div class="fname">${esc(team)}${peChampC(tr)}</div>` + (ppl.length ? `<div class="fmembers">${ppl.map(x => peNameLink(S, x)).join(' &amp; ')}</div>` : '') + peRecBlock(D, tr);
+  }
+  if(!ppl.length) return '<div class="fname">TBA</div>';
+  return pics + ppl.map(x => { const p = pePerson(D, x), r = p ? D.rank[String(p.id)] : null; return `<div class="fname">${peNameLink(S, x)}${peChampC(r)}</div>${peRecBlock(D, r)}`; }).join('<div class="amp">&amp;</div>');
+}
+// the folded row for every match under the main event (the same row WCA uses)
+function peFace(S, x){
+  const D = S.cd, p = D ? pePerson(D, x) : null, name = (p && p.name) || (x && x.name) || '?';
+  const src = p ? (pmPicShow(p, 'avatar') || pmPicShow(p, 'portrait')) : '', ini = pmInit(name);
+  return `<span class="fh-face">${src ? `<img src="${escAttr(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode('${jsAttr(ini)}'))">` : esc(ini)}</span>`;
+}
+function peBoutSummary(S, m, sides, o){
+  try{
+    const D = S.cd;
+    const people = s => ((s && s.members) || []).filter(x => x && x.name);
+    const rOf = x => { const p = D ? pePerson(D, x) : null; return p ? D.rank[String(p.id)] : null; };
+    const beltsOf = x => { const r = rOf(x); const u = r ? r.held.map(h => pmBeltUrl(h.t)).filter(Boolean) : []; return u.length ? `<span class="fh-belts">${u.map(s => `<img src="${escAttr(s)}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('')}</span>` : ''; };
+    let body;
+    if(sides.length > 4){
+      const all = sides.flatMap(people);
+      body = `<span class="fh-sum-big">${sides.length} in it<small>${esc(all.slice(0, 4).map(x => x.name).join(', '))}${all.length > 4 ? ` and ${all.length - 4} more` : ''}</small></span>`;
+    } else {
+      body = sides.map((s, i) => {
+        const mem = people(s), team = String((s && s.name) || '').trim();
+        let name, faces, belts = '';
+        if(team){ name = esc(team) + peChampC(D ? D.teamRank[peNorm(team)] : null); faces = mem.slice(0, 3).map(x => peFace(S, x)).join(''); if(mem.length > 3) name += ` <small>${mem.length} members</small>`; }
+        else if(mem.length <= 2){ name = mem.map(x => esc(x.name) + peChampC(rOf(x))).join(' &amp; ') || 'TBA'; faces = mem.map(x => peFace(S, x)).join(''); belts = mem.map(beltsOf).join(''); }
+        else { name = esc(mem[0].name) + ` <small>and ${mem.length - 1} more</small>`; faces = mem.slice(0, 3).map(x => peFace(S, x)).join(''); }
+        return (i ? '<span class="fh-sum-v">VS</span>' : '') + `<span class="fh-who"><span class="fh-faces">${faces || peFace(S, { name:'?' })}</span><span><b>${name}</b>${belts}</span></span>`;
+      }).join('');
+    }
+    const belt = m.title ? `<span class="fh-sum-belt">${o.beltUrl ? `<img src="${escAttr(o.beltUrl)}" alt="">` : ''}${esc(m.title)}</span>` : '';
+    const sub = [o.type, o.rules, o.div].filter(Boolean).map(esc).join(' · ');
+    return `<button type="button" class="fh-sum" aria-expanded="${o.open ? 'true' : 'false'}" onclick="peFold(this,${Number(m.id)})">
+      <span class="fh-sum-k"><b>${esc(o.orderLabel)}</b>${sub ? `<small>${sub}</small>` : ''}${belt}</span>
+      <span class="fh-sum-sides">${body}</span>
+      <span class="fh-sum-r">${o.canBet ? '<span class="fh-sum-bet">Bet</span>' : ''}<span class="fh-sum-more"><span class="o">Open ▾</span><span class="c">Close ▴</span></span></span>
+    </button>`;
+  }catch(e){ return ''; }
+}
+function peFold(btn, mid){
+  const S = PE.pub; if(S){ S.fold = S.fold || {}; S.fold[mid] = !(btn.closest('.bout') || {classList:{contains:()=>false}}).classList.contains('fh-open'); }
+  if(typeof fhFold === 'function') fhFold(btn);
+}
+function peRibbon(m, sides){
+  const bs = m.bet_status;
+  if(bs === 'open') return '<span class="bet-status open"><i class="ti ti-coins"></i> Betting open</span>';
+  if(bs === 'locked') return '<span class="bet-status closed"><i class="ti ti-lock"></i> Bets locked</span>';
+  if(bs === 'settled'){
+    const w = m.winner_idx != null && sides[m.winner_idx] ? peSideName(sides[m.winner_idx]) : '';
+    return w ? `<span class="bet-status settled"><i class="ti ti-trophy"></i> Winner: ${esc(w)}</span>` : '<span class="bet-status void"><i class="ti ti-ban"></i> No winner, refunded</span>';
+  }
+  if(bs === 'refunded') return '<span class="bet-status void"><i class="ti ti-ban"></i> Bets refunded</span>';
+  return '';
 }
 function peMatchHTML(S, e, m, i, n){
   const I = S.info || {}, sides = peSides(m), odds = peOdds(m), board = S.board[m.id] || {}, mine = S.mine[m.id];
-  const tot = Object.values(board).reduce((a, b) => a + b.total, 0);
   const canBet = m.bet_status === 'open' && I.signed_in && I.betting_on !== false;
   const done = m.bet_status === 'settled';
-  const label = n > 1 && i === n - 1 ? 'Main event' : i === 0 && n > 1 ? 'Opener' : 'Match ' + (i + 1);
+  const isMain = n <= 1 || i === n - 1;
+  const orderLabel = isMain ? 'Main Event' : (i === 0 ? 'Opening Match' : 'Match ' + (i + 1));
+  // what the match is, all together up top
+  const dv = S.cd ? peMatchDiv(S, m) : null;
+  const t = m.title && S.cd ? (S.cd.titles || []).find(x => peNorm(x.name) === peNorm(m.title)) : null;
+  const beltUrl = t ? pmBeltUrl(t) : '';
+  const type = m.match_type && !/^singles$/i.test(String(m.match_type).trim()) ? String(m.match_type) : '';
+  const rules = String(m.stipulation || '').trim();
+  const facts = [
+    dv ? `<span class="bf bf-div" style="--dc:${pmColor(dv.color, '#e9b949')}"><i class="ti ti-category" aria-hidden="true"></i>${esc(peDivLabel(dv))}</span>` : '',
+    type ? `<span class="bf bf-type">${esc(type)}</span>` : '',
+    rules ? `<span class="bf bf-rules">${esc(rules)}</span>` : '',
+    m.title ? `<span class="bf bf-title"><i class="ti ti-trophy" aria-hidden="true"></i>${esc(m.title)}</span>` : ''
+  ].filter(Boolean).join('');
+  const beltLow = beltUrl ? `<div class="bout-belt"><img src="${escAttr(beltUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${esc(m.title)}</span></div>` : '';
+  // money on each side, the way WCA shows it
+  const tot = Object.values(board).reduce((a, b) => a + b.total, 0);
+  const totals = sides.map((s, k) => (board[k] && board[k].total) || 0);
+  const showMoney = I.betting_on !== false && m.bet_status !== 'closed';
   const sideHTML = sides.map((s, k) => {
-    const pool = board[k];
-    const extra = m.bet_status !== 'closed' && (pool || I.payout_mode === 'odds') ? `<div class="pe-pool">${I.payout_mode === 'odds' && odds[k] ? 'Pays ' + esc(String(odds[k])) + ' times the bet' : ''}${pool ? (I.payout_mode === 'odds' && odds[k] ? ', ' : '') + esc(peMoney(I, pool.total)) + ' from ' + pool.n + (pool.n === 1 ? ' fan' : ' fans') : ''}</div>` : '';
-    const btn = canBet ? `<button type="button" class="pe-betbtn${S.open[m.id] === k ? ' on' : ''}" onclick="peBetPick(${Number(m.id)},${k})">${mine && mine.side_idx === k ? 'Change my bet' : 'Bet on ' + esc(peSideName(s))}</button>` : '';
-    return `${k ? '<span class="pe-vs">VS</span>' : ''}<div class="pe-side${S.cd ? ' pe-side-card' : ''}${done && m.winner_idx === k ? ' win' : done && m.winner_idx != null ? ' lose' : ''}">${peCardSide(S, s)}${done && m.winner_idx === k ? '<span class="pe-wtag">Winner</span>' : ''}${extra}${btn}</div>`;
+    let potLine = '';
+    if(showMoney){
+      const sideT = totals[k];
+      if(I.payout_mode === 'odds'){
+        potLine = (sideT ? `<div class="side-pot">${esc(peMoney(I, sideT))}${tot ? ` <span class="side-share">${Math.round(sideT / tot * 100)}%</span>` : ''}</div>` : '')
+          + (odds[k] ? `<div class="side-mult">pays ${esc(String(odds[k]))}×</div>` : '');
+      } else if(tot > 0){
+        const isFav = sideT > 0 && sideT === Math.max(...totals);
+        const pos = totals.filter(x => x > 0);
+        const isDog = sideT > 0 && !isFav && sideT === Math.min(...pos);
+        potLine = `<div class="side-pot">${esc(peMoney(I, sideT))} <span class="side-share">${Math.round(sideT / tot * 100)}%</span></div>
+          <div class="side-mult">${sideT ? 'pays ' + (tot / sideT).toFixed(2) + '×' : ''}${isFav ? ' <span class="favtag">FAV</span>' : ''}${isDog ? ' <span class="dogtag">UNDERDOG</span>' : ''}</div>`;
+      } else potLine = `<div class="side-pot muted">no bets yet</div>`;
+    }
+    const picked = mine && mine.status === 'open' && mine.side_idx === k;
+    const btn = canBet ? `<button type="button" class="pick-btn${picked || S.open[m.id] === k ? ' picked' : ''}" onclick="peBetPick(${Number(m.id)},${k})">${picked ? '✓ Your pick' : 'Bet this side'}</button>` : '';
+    const win = done && m.winner_idx === k, lose = done && m.winner_idx != null && m.winner_idx !== k;
+    return `${k ? '<div class="vs">VS</div>' : ''}<div class="fighter betside${picked ? ' picked' : ''}${lose ? ' pe-lose' : ''}">${peFighterInner(S, s)}${win ? '<div class="rwin-tag"><i class="ti ti-trophy"></i> Winner</div>' : ''}${potLine}${btn}</div>`;
   }).join('');
   let mineHTML = '';
   if(mine){
@@ -36328,18 +36738,20 @@ function peMatchHTML(S, e, m, i, n){
       <label class="bet-hide" for="pe-hide-${m.id}" style="flex-basis:100%"><input type="checkbox" id="pe-hide-${m.id}"${(S.hide && S.hide[m.id] !== undefined ? S.hide[m.id] : !!(mine && mine.hide_pick)) ? ' checked' : ''} onchange="(PE.pub.hide = PE.pub.hide || {})[${Number(m.id)}] = this.checked"> <span>Hide who I picked. Everyone still sees how much I bet. My pick shows once the match is over.</span></label>
       <div class="pe-msg${S.msg[m.id] && S.msg[m.id].bad ? ' bad' : ''}" style="flex-basis:100%">${S.msg[m.id] ? esc(S.msg[m.id].t) : ''}</div></div>`;
   }
-  const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="pe-mine"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
-  return `<li class="pe-m" id="pe-m-${Number(m.id)}">
-    <div class="pe-mhead"><span class="pe-mno">${esc(label)}</span>${m.match_type ? `<span class="pe-tag">${esc(m.match_type)}</span>` : ''}${peStipTag(m)}${motnBadge('p', m.id)}${m.title && !S.cd ? `<span class="pe-tag title"><i class="ti ti-trophy"></i> ${esc(m.title)}</span>` : ''}
-      ${m.bet_status !== 'closed' ? `<span class="pe-bs ${m.bet_status}">${esc(PE_BS[m.bet_status] || '')}${tot && m.bet_status !== 'settled' ? ', ' + esc(peMoney(I, tot)) + ' in the pot' : ''}</span>` : ''}</div>
-    ${peMatchTop(S, m)}
-    <div class="pe-sides">${sideHTML || '<div class="pe-side"><div class="pe-sn">TBA</div></div>'}</div>
+  const signIn = m.bet_status === 'open' && !I.signed_in ? `<div class="my-bet muted"><button type="button" class="spc-mini" onclick="frSignIn(event)">Sign in to bet on this match</button></div>` : '';
+  const open = !isMain && !!((S.fold && S.fold[m.id]) || S.open[m.id] != null);
+  const sum = isMain ? '' : peBoutSummary(S, m, sides, { orderLabel, type, rules, div:dv ? peDivLabel(dv) : '', beltUrl, canBet:m.bet_status === 'open', open });
+  return `<div class="bout pe-bout ${isMain ? 'main' : 'fh-fold' + (open ? ' fh-open' : '')} sides-${sides.length || 1}" id="pe-m-${Number(m.id)}">
+    ${sum}
+    <div class="bout-head"><div class="bout-label">${esc(orderLabel)}${peRibbon(m, sides)}${motnBadge('p', m.id)}</div>${facts ? `<div class="bout-facts">${facts}</div>` : ''}</div>
+    <div class="vs-row">${sideHTML || '<div class="fighter"><div class="fname">TBA</div></div>'}</div>
+    ${beltLow}
     ${peExtrasHTML(m)}
     ${done && m.winner_idx == null ? '<div class="pe-note">No winner. Every bet was given back.</div>' : ''}
     ${done && m.finish ? `<div class="pe-note">Won by ${esc(m.finish)}</div>` : ''}
-    ${m.notes ? `<div class="pe-note">${esc(m.notes)}</div>` : ''}
-    ${mineHTML}${signIn}${form}${peBetListHTML(S, m, sides)}
-  </li>`;
+    ${m.notes ? `<div class="bnotes">${esc(m.notes)}</div>` : ''}
+    ${form}${mineHTML}${signIn}${peBetListHTML(S, m, sides)}
+  </div>`;
 }
 // "See who's betting" under a match. The amount always shows. A hidden pick
 // says Hidden pick; the promotion's owner and the WCA admin get Reveal.
@@ -36389,6 +36801,7 @@ function peMatchTop(S, m){
 }
 function peBetPick(mid, k){
   const S = PE.pub; S.open[mid] = S.open[mid] === k ? null : k; S.msg[mid] = null;
+  (S.fold = S.fold || {})[mid] = true;   // the match stays open while betting
   peDrawPublic();
   const inp = document.getElementById('pe-amt-' + mid); if(inp){ inp.focus(); peBetEst(mid); }
 }
@@ -36625,6 +37038,71 @@ function mpeDraw(){
 function mpeTournaments(){ if(!MPE.box) return; tbxEditorOpen(MPE.box, { kind:'promo', pid:MPE.pid, back:() => mpeDraw() }); }
 function mpeNew(){ MPE.cur = 'new'; MPE.matches = []; MPE.edit = null; mpeDraw(); const n = pmEl('mpe_name'); if(n) n.focus(); }
 async function mpePick(id){ MPE.cur = id; MPE.edit = null; await mpeLoadCard(); mpeDraw(); }
+/* Event poster upload (Nov 2026): the picture is shrunk to 1280 wide (WebP),
+   saved to WCA media and kept on the show as card_poster_url. */
+async function wcaPosterShrink(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
+    const k = Math.min(1, 1280 / Math.max(1, img.naturalWidth));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(res => c.toBlob(res, 'image/webp', 0.86));
+    if(blob && blob.type === 'image/webp') return blob;
+  }catch(e){} finally{ URL.revokeObjectURL(url); }
+  return file;
+}
+async function wcaPosterUpload(file, body){
+  if(!file || !/^image\//i.test(file.type || '')) throw new Error('Pick a picture file (PNG, JPG or WebP).');
+  const blob = await wcaPosterShrink(file);
+  const ext = blob.type === 'image/webp' ? 'webp' : (/png/i.test(blob.type) ? 'png' : 'jpg');
+  const files = [{ name:'poster-' + Date.now() + '.' + ext, base64:await slToBase64(blob) }];
+  let data;
+  try{ data = await wcaMediaCall(Object.assign({ action:'upload', files }, body)); }
+  catch(e){
+    if(e.missing || !body.kind) throw e;
+    const b2 = Object.assign({}, body); delete b2.kind;   // the media function doesn't know "posters" yet: save it with the rest
+    data = await wcaMediaCall(Object.assign({ action:'upload', files }, b2));
+  }
+  const got = (data.files || [])[0];
+  if(!got || !got.url) throw new Error((data.errors && data.errors[0]) || "The upload didn't return a link.");
+  return got.url;
+}
+function mpePosterPrev(url){
+  return wcaPosterOk(url) ? `<img src="${escAttr(url)}" alt="Event poster" referrerpolicy="no-referrer" style="display:block;width:100%;max-width:420px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`
+    : '<div class="pm-small pm-dim" style="padding:14px;border:1px dashed var(--line);border-radius:10px;max-width:420px;text-align:center">No poster yet</div>';
+}
+function mpePosterField(ev){
+  const url = (ev && ev.card_poster_url) || '';
+  return `<div style="grid-column:1/-1"><label>Event poster <span class="pm-opt">(optional)</span></label>
+    <input type="hidden" id="mpe_cposter" value="${escAttr(url)}">
+    <div id="mpe_pprev" style="margin:6px 0 10px">${mpePosterPrev(url)}</div>
+    <div class="pm-acts" style="margin-top:0"><label class="spc-ghost-btn" style="cursor:pointer"><i class="ti ti-upload" aria-hidden="true"></i> ${url ? 'Change poster' : 'Upload poster'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="mpePosterPick(this)"></label>
+      <button type="button" class="spc-mini" id="mpe_prm" onclick="mpePosterSet('')"${url ? '' : ' hidden'}>Remove poster</button></div>
+    <div class="pm-small pm-dim" style="margin-top:6px">Use your Thumbnail from the graphics studio (wide, like 1920 by 1080). While the show is Upcoming or Live it shows at the top of the show, under the Events calendar and on the menu. Once the show is Finished it goes away.</div>
+    <div class="msg" id="mpe_pmsg"></div></div>`;
+}
+function wcaPosterOk(u){ return /^https:\/\/\S+$/i.test(String(u || '').trim()); }
+async function mpePosterPick(inp){
+  const f = inp && inp.files && inp.files[0]; if(!f) return;
+  mpMsg('mpe_pmsg', 'Uploading the poster…', true);
+  try{
+    const url = await wcaPosterUpload(f, { folder:'promotions', promotion_id:Number(MPE.pid), kind:'posters' });
+    await mpePosterSet(url);
+  }catch(e){ mpMsg('mpe_pmsg', 'Not uploaded: ' + (e && e.message || e), false); }
+  inp.value = '';
+}
+async function mpePosterSet(url){
+  const h = pmEl('mpe_cposter'); if(h) h.value = url || '';
+  const pv = pmEl('mpe_pprev'); if(pv) pv.innerHTML = mpePosterPrev(url);
+  const rm = pmEl('mpe_prm'); if(rm) rm.hidden = !url;
+  if(MPE.cur === 'new' || !MPE.cur){ mpMsg('mpe_pmsg', url ? 'Poster ready. Press Save new show to keep it.' : 'Poster removed.', true); return; }
+  const { error } = await sb.from('promotion_events').update({ card_poster_url:url || null }).eq('id', MPE.cur);
+  if(error){ mpMsg('mpe_pmsg', /card_poster_url/.test(error.message || '') ? 'Posters are not switched on yet. Ask WCA to run SUPABASE_UPDATE_event_posters.sql.' : peErr(error), false); return; }
+  const ev = MPE.events.find(e => e.id === MPE.cur); if(ev) ev.card_poster_url = url || null;
+  try{ if(typeof WCA_POSTERS !== 'undefined') WCA_POSTERS.at = 0; }catch(e){}
+  mpMsg('mpe_pmsg', url ? 'Poster saved. It shows while the show is Upcoming or Live.' : 'Poster removed.', true);
+}
 function mpeShowForm(ev){
   ev = ev || { status:'draft' };
   return `<section data-keep="mp-show:${Number(MPE.pid)}:${ev.id ? Number(ev.id) : 'new'}">
@@ -36637,6 +37115,7 @@ function mpeShowForm(ev){
       <div><label for="mpe_watch">Where to watch <span class="pm-opt">(Twitch or YouTube link)</span></label><input id="mpe_watch" maxlength="400" value="${escAttr(ev.watch_url || '')}" placeholder="https://twitch.tv/..."></div>
       <div><label for="mpe_replay">Replay link <span class="pm-opt">(after the show)</span></label><input id="mpe_replay" maxlength="400" value="${escAttr(ev.replay_url || '')}"></div>
       <div style="grid-column:1/-1"><label for="mpe_about">About this show <span class="pm-opt">(optional)</span></label><textarea id="mpe_about" rows="3" maxlength="2000">${esc(ev.about || '')}</textarea></div>
+      ${mpePosterField(ev)}
     </div>
     <p class="pm-p pm-small" style="margin-top:10px">Followers get a notification when you set a show to Upcoming, to Live now, and to Finished.</p>
     <div class="pm-acts"><button type="button" class="spc-post-btn" onclick="mpeSaveShow()">${ev.id ? 'Save show' : 'Save new show'}</button>
@@ -36653,6 +37132,9 @@ async function mpeSaveShow(){
     about:(pmEl('mpe_about').value || '').trim() || null };
   if((MPE.brands || []).length && pmEl('mpe_brand')) row.brand_id = pmEl('mpe_brand').value ? Number(pmEl('mpe_brand').value) : null;
   const isNew = MPE.cur === 'new';
+  // the poster only goes with the save when it changed (older databases without the column still save shows)
+  { const cp = (pmEl('mpe_cposter') && pmEl('mpe_cposter').value) || '', was = isNew ? '' : (((MPE.events.find(e => e.id === MPE.cur) || {}).card_poster_url) || '');
+    if(cp !== was) row.card_poster_url = cp || null; }
   const q = isNew ? sb.from('promotion_events').insert(row).select('*') : sb.from('promotion_events').update(row).eq('id', MPE.cur).select('*');
   const { data, error } = await q;
   if(error || !data || !data.length){ mpMsg('mpe_msg', error ? peErr(error) : 'Not saved. Make sure you are signed in.', false); return; }
@@ -40294,7 +40776,7 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
         belt = `<span class="fh-sum-belt">${b && b.image_url ? `<img src="${escH(b.image_url)}" alt="">` : ''}${escH(m.championship)} title</span>`;
       }
       const kLabel = escH(o.orderLabel || 'Match');
-      const kSub = [o.label && o.label !== 'Match' && o.label !== 'Main Event' ? o.label : '', div ? div + ' Division' : ''].filter(Boolean).map(escH).join(' · ');
+      const kSub = [o.label && o.label !== 'Match' && o.label !== 'Main Event' && o.label !== o.orderLabel ? o.label : '', o.rules || '', div ? div + ' Division' : ''].filter(Boolean).map(escH).join(' · ');
       const allNames = [];
       sides.forEach(s => (typeof sideMembers==='function' ? sideMembers(s) : (s && s.members) || []).forEach(n => n && allNames.push(n)));
       let body;
@@ -40505,7 +40987,9 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
       }catch(e){}
       if(sub) return;
       const next = {}; rows.sort((a, b) => a.d - b.d).forEach(x => { const k = String(x.e.promotion_id); if(!next[k]) next[k] = x; });
-      const cards = list.map(p => ({ p, n:next[String(p.id)] || null })).sort((a, b) => (a.n ? a.n.d.getTime() : 9e15) - (b.n ? b.n.d.getTime() : 9e15));
+      const hasPoster = new Set(POSTERS.filter(x => x.kind === 'p').map(x => String(x.id)));
+      const cards = list.map(p => ({ p, n:next[String(p.id)] || null })).filter(c => !(c.n && hasPoster.has(String(c.n.e.id)))).sort((a, b) => (a.n ? a.n.d.getTime() : 9e15) - (b.n ? b.n.d.getTime() : 9e15));
+      if(!cards.length) return;
       const html = cards.map(({ p, n }) => `<button type="button" class="fh-pc" style="--pc:${escH(pcol(p))}" data-pid="${escH(p.id)}"${n ? ` data-eid="${escH(n.e.id)}"` : ''}>
           <span class="fh-pc-logo">${promoBadge(p)}</span>
           <span class="fh-pc-t"><b>${escH(pshort(p))}</b>${n ? `<small>${escH(n.e.name || 'Next show')}</small><small>${escH(n.d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' }))}${/T\d/.test(String(n.e.event_date)) ? ' at ' + escH(n.d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' })) : ''}</small>` : '<small>No show scheduled yet</small>'}</span>
@@ -40533,11 +41017,22 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
 
   /* the main menu's headline: the next WCA show and its main event */
   let cdTimer = null;
+  /* posters on the menu (Nov 2026): every upcoming show with a poster, same size, soonest first */
+  let POSTERS = [];
+  window.fhPosterGo = x => fhLoad(x.name || 'Events', () => wcaPosterGo(x));
+  function postersInto(st){
+    st.querySelectorAll('.fh-postwrap').forEach(n => n.remove());
+    if(!POSTERS.length || !st) return;
+    st.insertAdjacentHTML('afterbegin', `<div class="fh-postwrap"><div class="fh-kick" style="margin:0 0 10px">Coming up</div>${wcaPostersHTML(POSTERS, 'menu')}</div>`);
+    wcaPosterTick();
+  }
   async function renderSplash(st){
     st.innerHTML = '';
+    try{ POSTERS = typeof wcaPostersLoad === 'function' ? await wcaPostersLoad() : []; }catch(e){ POSTERS = []; }
+    if(sub) return;
     try{ if(typeof CURRENT_EVENT !== 'undefined' && !CURRENT_EVENT && typeof loadFeaturedData === 'function' && typeof sb !== 'undefined' && sb) await loadFeaturedData(); }catch(e){}
     const ev = (typeof CURRENT_EVENT !== 'undefined') ? CURRENT_EVENT : null;
-    if(!ev){ st.innerHTML = `<section class="fh-panel fh-splash" style="cursor:default"><div class="fh-kick">WCA Universe</div><div class="fh-big">Choose where to go</div><p class="fh-note">Pick anything from the menu on the left.</p></section>`; promoNext(st); return; }
+    if(!ev){ st.innerHTML = POSTERS.length ? '' : `<section class="fh-panel fh-splash" style="cursor:default"><div class="fh-kick">WCA Universe</div><div class="fh-big">Choose where to go</div><p class="fh-note">Pick anything from the menu on the left.</p></section>`; postersInto(st); promoNext(st); return; }
     const list = (typeof CURRENT_MATCHES !== 'undefined' && CURRENT_MATCHES) || [];
     const main = list.find(m => m.slot === 1) || list[0];
     let head = escH(ev.name), pics = '', tags = '';
@@ -40563,6 +41058,9 @@ function mpTabsMove(i, d){ const a = PM.tabOrder, j = i + d; if(j < 0 || j >= a.
       const s = Math.max(0, Math.floor((when - Date.now())/1000)), v = [Math.floor(s/86400), Math.floor(s%86400/3600), Math.floor(s%3600/60), s%60];
       el.innerHTML = ['DAYS','HRS','MIN','SEC'].map((l,i) => `<div><b>${String(v[i]).padStart(2,'0')}</b><small>${l}</small></div>`).join(''); };
     if(when){ tick(); cdTimer = setInterval(tick, 1000); }
+    // the next WCA show already has its poster up there: no second headline for it
+    if(POSTERS.some(x => x.kind !== 'p' && String(x.id) === String(ev.id))){ const h = $('fh-splash'); if(h) h.remove(); clearInterval(cdTimer); }
+    postersInto(st);
     promoNext(st);
   }
 
