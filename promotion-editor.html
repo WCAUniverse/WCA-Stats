@@ -8861,6 +8861,27 @@ body.pe{margin:0; min-height:100vh;}
 .pe-signin h1{font-family:var(--font-display); text-transform:uppercase; letter-spacing:1px; font-size:34px; margin:0 0 10px;}
 .pe-signin p{font-size:17px; color:var(--txt-2); line-height:1.6;}
 @media (max-width:900px){ .pe-main .ed{grid-template-columns:1fr;} .pe-kind{border-left:0; padding-left:0;} .pe-links{margin-left:0;} }
+/* ===== Getting around (Nov 2026): the same bar on the Promotion Editor and the
+   Graphics Studio. A big gold Back button, then where you are:
+   Website > Promotion Editor > Graphics Studio. The step you're on is lit up. ===== */
+.wtr{display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap; min-width:0;}
+.wtr-back{display:inline-flex; align-items:center; gap:8px; background:var(--gold,#E9B949); color:#15120a !important; font-weight:700; font-size:15px; line-height:1;
+  padding:10px 16px; border-radius:10px; border:0; cursor:pointer; text-decoration:none; white-space:nowrap; font-family:inherit;
+  box-shadow:0 0 0 1px rgba(233,185,73,.45), 0 6px 18px rgba(233,185,73,.22);}
+.wtr-back i{font-size:18px;}
+.wtr-back:hover{filter:brightness(1.08);}
+.wtr-trail{display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0;}
+.wtr-step{display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid rgba(255,255,255,.14);
+  color:#d4d4da !important; text-decoration:none; font-weight:600; font-size:14.5px; line-height:1; white-space:nowrap; background:transparent; cursor:pointer; font-family:inherit;}
+.wtr-step i{font-size:16px;}
+.wtr-step:hover{border-color:var(--gold,#E9B949); color:#fff !important;}
+.wtr-step.on{background:rgba(233,185,73,.15); border-color:var(--gold,#E9B949); color:var(--gold,#E9B949) !important; cursor:default;}
+.wtr-step[hidden]{display:none;}
+.wtr-sep{color:#6f6f78; font-size:15px;}
+.wtr-name{max-width:220px; overflow:hidden; text-overflow:ellipsis;}
+.wtr-back,.wtr-step{width:auto !important; flex:0 0 auto; min-width:0; text-transform:uppercase; letter-spacing:1px;}
+@media (max-width:700px){ .wtr-name{display:none;} .wtr-back{padding:9px 12px;} .wtr-step{padding:6px 9px; font-size:13px;} }
+
   /* personality sliders like WWE 2K (Nov 2026) */
   .tr-list{display:flex; flex-direction:column; gap:10px; margin:6px 0 14px;}
   .tr-row, .tr-edit{display:grid; grid-template-columns:minmax(0,1fr) 46px minmax(110px,2.2fr) 46px minmax(0,1fr); align-items:center; gap:10px;}
@@ -9015,11 +9036,52 @@ let sb = supabase.createClient('https://dmfbhszvrbaknaevdhxh.supabase.co', 'sb_p
 </head>
 <body class="pe">
 <header class="pe-top">
-  <a class="pe-brand" href="/" title="Back to WCAUniverse.com"><img src="/brand/wca-logo-sm.png" alt="" onerror="this.remove()"><span>WCA Universe</span></a>
-  <span class="pe-kind">Promotion Editor</span>
+  <nav class="wtr" aria-label="Getting around">
+    <a class="wtr-back" href="/" id="wtr-back" onclick="location.href=wtrSiteUrl();return false;"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back to the website</a>
+    <div class="wtr-trail">
+      <a class="wtr-step" href="/" onclick="location.href=wtrSiteUrl();return false;" title="WCAUniverse.com"><i class="ti ti-world" aria-hidden="true"></i><span class="wtr-l">Website</span></a>
+      <span class="wtr-sep" aria-hidden="true">›</span>
+      <span class="wtr-step on" aria-current="page"><i class="ti ti-pencil" aria-hidden="true"></i><span class="wtr-l">Promotion Editor</span><span class="wtr-name" id="wtr-name"></span></span>
+      <span class="wtr-sep" id="wtr-gsep" aria-hidden="true" hidden>›</span>
+      <a class="wtr-step" id="wtr-gfx" href="/promotion-graphics" hidden title="Make match cards, thumbnails, posters and lower thirds"><i class="ti ti-photo" aria-hidden="true"></i><span class="wtr-l">Graphics Studio</span></a>
+    </div>
+  </nav>
   <nav class="pe-links" aria-label="The site"><a href="/promotions">Promotions</a><a href="/feed">Feed</a><a href="/events">Events</a></nav>
   <div class="pe-user" id="pe-user"></div>
 </header>
+<script>
+/* ---- getting around (Nov 2026) ----
+   "Back to the website" returns to the site page you came from (never to
+   /my-promotion, which would just bounce you back here), else the home page. */
+(function(){
+  try{
+    const r = document.referrer; if(!r) return;
+    const u = new URL(r);
+    if(u.origin !== location.origin) return;
+    if(/promotion-(editor|graphics|lower)/i.test(u.pathname)){
+      if(/promotion-editor/i.test(u.pathname)) sessionStorage.setItem('wca:edReturn', u.pathname + u.search);
+      return;
+    }
+    if(/my-promotion/i.test(u.pathname)) return;
+    sessionStorage.setItem('wca:siteReturn', u.pathname + u.search + u.hash);
+  }catch(e){}
+})();
+function wtrSiteUrl(){ try{ return sessionStorage.getItem('wca:siteReturn') || '/'; }catch(e){ return '/'; } }
+
+/* the trail shows which promotion you're editing, and Graphics Studio once it's approved */
+function wtrSync(){
+  try{
+    const p = (typeof mpCur === 'function') ? mpCur() : null;
+    const nm = document.getElementById('wtr-name'), g = document.getElementById('wtr-gfx'), gs = document.getElementById('wtr-gsep');
+    if(nm) nm.textContent = p && p.name ? ' · ' + p.name : '';
+    const show = !!(p && p.status === 'approved');
+    if(g){ g.hidden = !show; if(show) g.href = '/promotion-graphics?id=' + Number(p.id); }
+    if(gs) gs.hidden = !show;
+  }catch(e){}
+}
+setInterval(wtrSync, 800);
+document.addEventListener('DOMContentLoaded', wtrSync);
+</script>
 <main class="pe-main">
   <div class="page active" id="page-mypromo"><div id="mp-body"><div class="loading">Loading…</div></div></div>
 </main>

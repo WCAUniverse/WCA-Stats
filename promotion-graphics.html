@@ -46,6 +46,30 @@ body{
   letter-spacing:2px;color:var(--muted);font-weight:600;margin-top:-3px}
 .tsep{width:1px;height:26px;background:var(--line);flex:0 0 1px}
 #topbar .spacer{flex:1}
+/* ===== Getting around (Nov 2026): the same bar on the Promotion Editor and the
+   Graphics Studio. A big gold Back button, then where you are:
+   Website > Promotion Editor > Graphics Studio. The step you're on is lit up. ===== */
+.wtr{display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap; min-width:0;}
+.wtr-back{display:inline-flex; align-items:center; gap:8px; background:var(--gold,#E9B949); color:#15120a !important; font-weight:700; font-size:15px; line-height:1;
+  padding:10px 16px; border-radius:10px; border:0; cursor:pointer; text-decoration:none; white-space:nowrap; font-family:inherit;
+  box-shadow:0 0 0 1px rgba(233,185,73,.45), 0 6px 18px rgba(233,185,73,.22);}
+.wtr-back i{font-size:18px;}
+.wtr-back:hover{filter:brightness(1.08);}
+.wtr-trail{display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0;}
+.wtr-step{display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px; border:1px solid rgba(255,255,255,.14);
+  color:#d4d4da !important; text-decoration:none; font-weight:600; font-size:14.5px; line-height:1; white-space:nowrap; background:transparent; cursor:pointer; font-family:inherit;}
+.wtr-step i{font-size:16px;}
+.wtr-step:hover{border-color:var(--gold,#E9B949); color:#fff !important;}
+.wtr-step.on{background:rgba(233,185,73,.15); border-color:var(--gold,#E9B949); color:var(--gold,#E9B949) !important; cursor:default;}
+.wtr-step[hidden]{display:none;}
+.wtr-sep{color:#6f6f78; font-size:15px;}
+.wtr-name{max-width:220px; overflow:hidden; text-overflow:ellipsis;}
+.wtr-back,.wtr-step{width:auto !important; flex:0 0 auto; min-width:0; text-transform:uppercase; letter-spacing:1px;}
+@media (max-width:700px){ .wtr-name{display:none;} .wtr-back{padding:9px 12px;} .wtr-step{padding:6px 9px; font-size:13px;} }
+
+#wtrbar{flex:0 0 auto; padding:8px 16px; background:#07070a; border-bottom:1px solid rgba(233,185,73,.35); z-index:41;}
+#wtrbar .wtr-back{padding:8px 14px; font-size:14.5px;}
+#wtrbar .wtr-step{padding:6px 11px; font-size:14px;}
 .evtpick{
   background:var(--panel2);border:1px solid var(--line);color:var(--txt);
   border-radius:7px;padding:8px 12px;font-size:13px;font-family:inherit;
@@ -749,6 +773,19 @@ body.poster-mode #s-labels, body.poster-mode #s-thumbtag{display:none}
 </div>
 
 <div id="app">
+
+  <!-- ================= GETTING AROUND (Nov 2026) =================
+       Same bar as the Promotion Editor: a big gold Back, then where you are. -->
+  <nav id="wtrbar" class="wtr" aria-label="Getting around">
+    <button type="button" class="wtr-back" onclick="wtrGo(wtrEditorUrl())"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back to the Promotion Editor</button>
+    <div class="wtr-trail">
+      <button type="button" class="wtr-step" onclick="wtrGo(wtrSiteUrl())" title="WCAUniverse.com"><i class="ti ti-world" aria-hidden="true"></i><span class="wtr-l">Website</span></button>
+      <span class="wtr-sep" aria-hidden="true">›</span>
+      <button type="button" class="wtr-step" onclick="wtrGo(wtrEditorUrl())"><i class="ti ti-pencil" aria-hidden="true"></i><span class="wtr-l">Promotion Editor</span><span class="wtr-name" id="wtr-name"></span></button>
+      <span class="wtr-sep" aria-hidden="true">›</span>
+      <span class="wtr-step on" aria-current="page"><i class="ti ti-photo" aria-hidden="true"></i><span class="wtr-l">Graphics Studio</span></span>
+    </div>
+  </nav>
 
   <!-- ================= TOP BAR ================= -->
   <div id="topbar">
@@ -3962,6 +3999,41 @@ function promoSlug(){ const s = PROMO.row && PROMO.row.slug; return /^[A-Za-z0-9
 function promoPageUrl(tab){ const s = promoSlug(); return PROMO_SITE + (s ? "/" + s + (tab ? "?tab=" + tab : "") : "/promotion?id=" + Number(PROMO.id) + (tab ? "&tab=" + tab : "")); }
 function promoPageShort(){ const s = promoSlug(); return s ? "WCAUniverse.com/" + s : "WCAUniverse.com"; }
 function promoEditorUrl(){ return "/promotion-editor?id=" + Number(PROMO.id); }
+/* ---- getting around (Nov 2026) ----
+   "Back to the website" returns to the site page you came from (never to
+   /my-promotion, which would just bounce you back here), else the home page. */
+(function(){
+  try{
+    const r = document.referrer; if(!r) return;
+    const u = new URL(r);
+    if(u.origin !== location.origin) return;
+    if(/promotion-(editor|graphics|lower)/i.test(u.pathname)){
+      if(/promotion-editor/i.test(u.pathname)) sessionStorage.setItem('wca:edReturn', u.pathname + u.search);
+      return;
+    }
+    if(/my-promotion/i.test(u.pathname)) return;
+    sessionStorage.setItem('wca:siteReturn', u.pathname + u.search + u.hash);
+  }catch(e){}
+})();
+function wtrSiteUrl(){ try{ return sessionStorage.getItem('wca:siteReturn') || '/'; }catch(e){ return '/'; } }
+
+/* back to the editor, on the same section you came from when we know it */
+function wtrEditorUrl(){
+  const id = PROMO.id != null ? PROMO.id : promoUrlId();
+  try{
+    const r = sessionStorage.getItem('wca:edReturn');
+    if(r && id != null && new RegExp('[?&]id=' + Number(id) + '(&|$)').test(r)) return r;
+  }catch(e){}
+  return id != null ? "/promotion-editor?id=" + Number(id) : "/promotion-editor";
+}
+/* save anything not yet saved, then go */
+async function wtrGo(url){
+  try{ if(typeof _dirty !== "undefined" && _dirty.size) await flushLooks(LOOKS_EV); }catch(e){}
+  try{ if(typeof LT !== "undefined" && LT.dirty.size) await ltFlush(); }catch(e){}
+  location.href = url;
+}
+setInterval(()=>{ const n=document.getElementById("wtr-name"); if(n) n.textContent = PROMO.row && PROMO.row.name ? " · " + PROMO.row.name : ""; }, 800);
+
 function promoUrlId(){
   const q = new URLSearchParams(location.search);
   const v = q.get("id") || q.get("promotion") || q.get("p");
@@ -10179,6 +10251,7 @@ async function checkAuth(){
   if(b){
     b.innerHTML = '<i class="ti ti-arrow-back-up"></i> Promotion Editor';
     b.classList.add("ghost");
+    b.style.display = "none";   /* the gold Back to the Promotion Editor at the top does this now */
     b.title = "Signed in as "+(PROMO.role||"owner").toLowerCase()+" of "+(PROMO.row?PROMO.row.name:"")+". Everything saves as you edit. Click to go back to the Promotion Editor.";
   }
   /* owners and co-owners get AI backgrounds too (a few a day each), and Copy it for ChatGPT */
