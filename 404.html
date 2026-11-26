@@ -41565,6 +41565,18 @@ const FHBG = (function(){
   .ex-rules{width:100%; border-collapse:collapse; margin-top:6px;}
   .ex-rules td{padding:7px 8px; border-bottom:1px solid var(--line); font-size:17px;}
   .ex-rules td:last-child{text-align:right; font-weight:700;}
+  /* the WCA stock: its public rules */
+  .ex-wca{margin-top:18px;}
+  .ex-wca h3{font-family:var(--ex-f); font-size:26px; text-transform:uppercase; margin:0 0 4px;}
+  .ex-wca h4{font-family:var(--ex-f); font-size:19px; text-transform:uppercase; letter-spacing:1px; margin:22px 0 4px; color:var(--gold, #d4af37);}
+  .ex-wca-grid{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px;}
+  .ex-wca-grid > div{padding:12px 14px; border:1px solid var(--line); background:rgba(0,0,0,.3);}
+  .ex-wca-grid h4{margin-top:0;}
+  .ex-wca-list{margin:6px 0 0; padding-left:22px; font-size:17px; line-height:1.55; color:var(--txt-2);}
+  .ex-wca-list li{margin:4px 0;}
+  .ex-wca-now td{text-align:right;} .ex-wca-now td:first-child{text-align:left;}
+  @media (max-width:900px){ .ex-wca-grid{grid-template-columns:1fr;} }
+  @media (max-width:520px){ .ex-wca-now td{font-size:15px; padding:6px 4px;} }
   .ex-faq details{padding:12px 16px; border:1px solid var(--line); background:rgba(10,10,14,.8); margin-bottom:8px;}
   .ex-faq summary{cursor:pointer; font-size:18px; font-weight:700;}
   .ex-faq p{font-size:17px; line-height:1.55; color:var(--txt-2); margin:8px 0 0;}
@@ -41674,7 +41686,7 @@ const FHBG = (function(){
   const hasSb = () => { try{ return typeof sb !== 'undefined' && !!sb; }catch(e){ return false; } };
   const signedIn = () => { try{ return !!CURRENT_USER; }catch(e){ return false; } };
   const isAdm = () => { try{ return IS_ADMIN === true; }catch(e){ return false; } };
-  const KINDS = { wrestler:'Wrestler', faction:'Faction', promotion:'Promotion', promo_char:'Wrestler', promo_team:'Team' };
+  const KINDS = { wrestler:'Wrestler', faction:'Faction', promotion:'Promotion', promo_char:'Wrestler', promo_team:'Team', wca:'Promotion' };
   const DEF = { booked_pct:10, win_pct:20, loss_pct:20, title_pct:40, defense_pct:20, motn_pct:15, decay_after:2, decay_pct:5, max_rise:80, max_drop:40,
     pay_win:5, pay_title:15, pay_defense:8, max_shares:500, sell_fee:0, nudge_pct:0.25, nudge_cap:15, sell_needs_ok:false, open:true, fan_posts:true };
   let _pv = 'cards'; try{ _pv = localStorage.getItem('wca-ex-pview') || 'cards'; }catch(e){}
@@ -41721,6 +41733,8 @@ const FHBG = (function(){
       (f.data || []).forEach(r => { X.faces['faction:' + r.id] = { col:r.color || '' }; });
       (p.data || []).forEach(r => { X.faces['promotion:' + r.id] = { img:r.logo_url || '', col:r.color || '' }; });
     }catch(e){}
+    // the WCA stock wears the WCA logo
+    try{ X.faces['wca:null'] = { img:new URL('/brand/wca-logo-sm.png', location.href).href }; }catch(e){}
   }
   /* which promotion each stock belongs to, for the promotion row on the Market (WCA = WCA's own wrestlers and factions) */
   X.promo = 'all'; X.promos = []; X.pmap = {};
@@ -41739,7 +41753,7 @@ const FHBG = (function(){
   }
   // 'wca' for WCA's own stocks, a promotion id for theirs
   function promoOf(s){
-    if(s.kind === 'wrestler' || s.kind === 'faction') return 'wca';
+    if(s.kind === 'wrestler' || s.kind === 'faction' || s.kind === 'wca') return 'wca';
     if(s.kind === 'promotion') return String(s.ref_id);
     if(s.promotion_id != null) return String(s.promotion_id);
     const v = X.pmap[s.kind + ':' + s.ref_id];
@@ -41824,6 +41838,7 @@ const FHBG = (function(){
     host.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => setView('stock', b.dataset.buy));
     wire();
     if(X.view === 'stock') loadOwners(X.stock);
+    if(X.view === 'stock'){ const ws = stockById(X.stock); if(ws && ws.kind === 'wca') loadWca(); }
     if(X.view === 'owners' && isAdm()) loadAllOwners();
   }
   /* who owns a stock: fans who chose to show it (the admin sees everyone) */
@@ -41835,7 +41850,8 @@ const FHBG = (function(){
     const b2 = $('ex-owners'); if(!b2 || String(b2.dataset.s) !== String(id)) return;
     if(!d){ b2.innerHTML = ''; return; }
     const own = d.owners || [];
-    const head = `<h4>Who owns it${d.admin ? ' <span class="ex-admtag">Admin view: everyone</span>' : ''}</h4>`;
+    const head = `<h4>Who owns it${d.admin && !d.always_public ? ' <span class="ex-admtag">Admin view: everyone</span>' : ''}</h4>`
+      + (d.always_public ? `<div class="ex-note" style="margin:0 0 8px">Everyone who owns WCA shares shows here. Nobody can hide it.</div>` : '');
     if(!d.total){ b2.innerHTML = head + `<div class="ex-note">Nobody owns this yet. Be the first.</div>`; return; }
     b2.innerHTML = head + (own.length ? `<div class="ex-ownlist">${own.map(o => `<div class="ex-own${o.me ? ' me' : ''}"><span class="av">${avHTML(o)}</span><b>${E(o.name)}${o.me ? ' (you)' : ''}</b>
       ${d.admin && o.private ? '<span class="ex-priv">Private</span>' : ''}${!d.admin && o.me && o.private ? '<span class="ex-priv">Only you see this</span>' : ''}<span class="n">${Number(o.shares).toLocaleString()} ${Number(o.shares) === 1 ? 'share' : 'shares'}</span></div>`).join('')}</div>` : '')
@@ -41892,9 +41908,9 @@ const FHBG = (function(){
   }
   function marketView(){
     let list = (X.board || []).slice();
-    if(X.filter !== 'all') list = list.filter(s => (X.filter === 'wrestler' ? (s.kind === 'wrestler' || s.kind === 'promo_char') : X.filter === 'faction' ? (s.kind === 'faction' || s.kind === 'promo_team') : s.kind === X.filter));
+    if(X.filter !== 'all') list = list.filter(s => (X.filter === 'wrestler' ? (s.kind === 'wrestler' || s.kind === 'promo_char') : X.filter === 'faction' ? (s.kind === 'faction' || s.kind === 'promo_team') : X.filter === 'promotion' ? (s.kind === 'promotion' || s.kind === 'wca') : s.kind === X.filter));
     // promotion row: a promotion (or WCA) shows only its own wrestlers and teams; its own company stock only under the Promotions button
-    if(X.promo !== 'all') list = list.filter(s => promoOf(s) === X.promo && (s.kind !== 'promotion' || X.filter === 'promotion'));
+    if(X.promo !== 'all') list = list.filter(s => promoOf(s) === X.promo && ((s.kind !== 'promotion' && s.kind !== 'wca') || X.filter === 'promotion'));
     if(X.q) list = list.filter(s => (s.name + ' ' + (s.ticker || '')).toLowerCase().indexOf(X.q.toLowerCase()) >= 0);
     const by = { price:(a, b) => b.price - a.price, up:(a, b) => chg(b) - chg(a), down:(a, b) => chg(a) - chg(b), owned:(a, b) => b.owned - a.owned, name:(a, b) => a.name.localeCompare(b.name),
       hot:(a, b) => busy(b) - busy(a) || Math.abs(chgWeek(b)) - Math.abs(chgWeek(a)), wup:(a, b) => chgWeek(b) - chgWeek(a), wdown:(a, b) => chgWeek(a) - chgWeek(b), recent:(a, b) => lastMove(b) - lastMove(a) };
@@ -41929,9 +41945,10 @@ const FHBG = (function(){
     const h = holding(s.id), worth = h.shares * s.price, profit = worth - h.cost;
     const c = X.cfg;
     const hist = (X.hist[s.id] || []).length;
+    const isW = s.kind === 'wca';
     const left = `<div class="ex-panel">
-      <div class="ex-dhead">${face(s, true)}<div class="ex-nm"><b>${E(s.name)}</b><small>${E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
-      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span class="ex-bigprice">${money2(s.price)}</span><span style="font-size:20px">${chgHTML(s)} <small style="color:var(--muted);font-size:15px">since the last show</small></span></div>
+      <div class="ex-dhead">${face(s, true)}<div class="ex-nm"><b>${E(s.name)}</b><small>${isW ? 'The fans\' stock' : E(KINDS[s.kind] || '')}${s.ticker ? ' · ' + E(s.ticker) : ''}</small></div></div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span class="ex-bigprice">${money2(s.price)}</span><span style="font-size:20px">${chgHTML(s)} <small style="color:var(--muted);font-size:15px">${isW ? 'since the last check or show' : 'since the last show'}</small></span></div>
       ${spark(s.id, 600, 220, 'ex-chart')}
       ${hist < 2 ? '<p class="ex-note">The chart fills in as the price moves after each show.</p>' : ''}
       <div class="ex-facts">
@@ -41941,18 +41958,111 @@ const FHBG = (function(){
         <div class="ex-fact"><small>Yours are worth</small><b>${money(worth)}</b></div>
         ${h.shares ? `<div class="ex-fact"><small>Your profit</small><b class="${profit >= 0 ? 'ex-up' : 'ex-dn'}">${profit >= 0 ? '+' : '-'}${money(Math.abs(profit))}</b></div>` : ''}
       </div>
-      <p class="ex-note">${s.frozen ? 'WCA has frozen this price for now. ' : ''}${Number(s.trend) > 0 ? 'This stock is climbing a little every day right now. ' : Number(s.trend) < 0 ? 'This stock is sliding a little every day right now. ' : ''}
-        After each show this price moves: booked on the show +${c.booked_pct}%, a win +${c.win_pct}%, a loss -${c.loss_pct}%, a title win +${c.title_pct}%. Every share you own pays ${c.pay_win}% of the price when ${s.kind === 'promotion' ? 'it' : 'they'} win.</p>
+      ${isW ? `<p class="ex-note">This stock belongs to the fans. Its rules are below, and nobody can change its price by hand. Not even WCA.</p>`
+      : `<p class="ex-note">${s.frozen ? 'WCA has frozen this price for now. ' : ''}${Number(s.trend) > 0 ? 'This stock is climbing a little every day right now. ' : Number(s.trend) < 0 ? 'This stock is sliding a little every day right now. ' : ''}
+        After each show this price moves: booked on the show +${c.booked_pct}%, a win +${c.win_pct}%, a loss -${c.loss_pct}%, a title win +${c.title_pct}%. Every share you own pays ${c.pay_win}% of the price when ${s.kind === 'promotion' ? 'it' : 'they'} win.</p>`}
       <div class="ex-owners" id="ex-owners" data-s="${s.id}"><div class="ex-note">Loading who owns it…</div></div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ex-btn ghost sm" id="ex-share-link">Share this stock</button><button type="button" class="ex-btn ghost sm" data-v="guide">How it works</button></div>
     </div>`;
-    return `<button type="button" class="ex-btn ghost sm ex-back" data-v="market">◀ Back to the market</button><div class="ex-detail">${left}${tradeBox(s, h)}</div>`;
+    return `<button type="button" class="ex-btn ghost sm ex-back" data-v="market">◀ Back to the market</button><div class="ex-detail">${left}${tradeBox(s, h)}</div>${isW ? wcaPanel(s) : ''}`;
+  }
+
+  /* ── the WCA stock: its public rules, this month so far, and every change ── */
+  async function loadWca(force){
+    if(!hasSb() || X.wcaBusy) return;
+    if(!force && X.wca && Date.now() - (X.wcaAt || 0) < 60000) return;
+    X.wcaBusy = true;
+    try{ const r = await sb.rpc('ex_wca_info'); X.wca = r.error ? null : r.data; X.wcaErr = !!r.error; }catch(e){ X.wca = null; X.wcaErr = true; }
+    X.wcaAt = Date.now(); X.wcaBusy = false;
+    const s = stockById(X.stock);
+    if(X.view === 'stock' && s && s.kind === 'wca'){ const keep = X.msg; draw(); X.msg = keep; }
+  }
+  const pctTxt = n => { const v = Number(n) || 0; return (v > 0 ? 'up ' : v < 0 ? 'down ' : '') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits:2 }) + '%'; };
+  const pctCls = n => Number(n) > 0 ? 'ex-up' : Number(n) < 0 ? 'ex-dn' : 'ex-flat';
+  const dayTxt = d => { try{ return new Date(String(d).length <= 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' }); }catch(e){ return String(d || ''); } };
+  const monthTxt = d => { try{ return new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'long' }); }catch(e){ return ''; } };
+  function wcaPanel(s){
+    const w = X.wca;
+    if(!w) return `<div class="ex-panel ex-wca"><p class="ex-note">${X.wcaErr ? 'The WCA stock rules could not load right now. Try again in a moment.' : 'Loading how the WCA stock works…'}</p></div>`;
+    const r = w.rules || {};
+    const one = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+    const up = t => `<span class="ex-up">${t}</span>`, dn = t => `<span class="ex-dn">${t}</span>`;
+    const names = { signups:'New sign ups', bets:'Bets placed', posts:'Feed posts by fans', watch:'Watch time claims' };
+    const sf = w.sofar || {}, cur = sf.counts || {}, prv = sf.prev || {}, parts = sf.parts || {};
+    const started = new Date(w.launch_at);
+    const firstCheck = (() => { try{ const d = new Date(String(w.first_month) + 'T12:00:00'); d.setMonth(d.getMonth() + 1); return d; }catch(e){ return null; } })();
+    const beforeFirst = firstCheck && Date.now() < firstCheck.getTime();
+    const hist = [].concat(
+      (w.promises || []).map(p => ({ t:Date.parse(p.at), txt:({ on_time:'On time', late_short:'Postponed up to ' + r.late_short_days + ' days', late_long:'Postponed more than ' + r.late_short_days + ' days', canceled:'Canceled' }[p.kind] || 'Show') + ': ' + (p.event_name || 'a WCA show'), pct:p.pct, to:p.price_to })),
+      (w.months || []).map(m => ({ t:Date.parse(m.done_at), txt:'Monthly check: ' + monthTxt(m.month) + ' against the month before', pct:m.pct, to:m.price_to }))
+    ).sort((a, b) => b.t - a.t).slice(0, 8);
+    const me = w.me || {};
+    const mine = me.signed_in && !me.blocked && me.shares ? `<h3>Your WCA shares</h3>
+      <div class="ex-facts">
+        <div class="ex-fact"><small>You own</small><b>${me.shares}</b></div>
+        <div class="ex-fact"><small>You can sell now</small><b>${me.can_sell}</b></div>
+        <div class="ex-fact"><small>Still locked</small><b>${me.locked}</b></div>
+        <div class="ex-fact"><small>Room left to buy</small><b>${me.room}</b></div>
+      </div>${me.locked && me.next_unlock ? `<p class="ex-note">Your next locked shares unlock on ${E(dayTxt(me.next_unlock))}.</p>` : ''}` : '';
+    return `<div class="ex-panel ex-wca">
+      <h3>How the WCA stock works</h3>
+      <p class="ex-note">Every other stock follows a superstar, a team or a promotion. This one follows you: how much the fans believe in WCA, and whether WCA keeps its promises. WCA set these rules once when it opened on ${E(dayTxt(started.toISOString()))}. They are written into the site itself, so WCA can't quietly change them, and every change to the price shows on the chart with the reason.</p>
+
+      <div class="ex-wca-grid">
+        <div><h4>1. Fans buying and selling</h4>
+          <table class="ex-rules">${one('Each share a fan buys', up('+' + r.buy_move_pct + '%'))}${one('Each share a fan sells', dn('-' + r.buy_move_pct + '%'))}${one('Most it can move in one day', r.day_move_cap + '%')}</table>
+          <p class="ex-note">This is the biggest part. Your belief moves it.</p></div>
+        <div><h4>2. The monthly check</h4>
+          <table class="ex-rules">${one('Doubled compared with the month before', up('+' + r.activity_each_pct + '%'))}${one('Stayed the same', '0%')}${one('Halved', dn('-' + (r.activity_each_pct / 2) + '%'))}${one('Most for the whole check', r.activity_cap + '% up or down')}</table>
+          <p class="ex-note">On the 1st of every month the site compares four things with the month before: new sign ups, bets placed, Feed posts by fans, and watch time. Each one is worth up to ${r.activity_each_pct}%.</p></div>
+        <div><h4>3. WCA keeping its promises</h4>
+          <table class="ex-rules">${one('A WCA show happens on its date', up('+' + r.on_time_pct + '%'))}${one('Postponed up to ' + r.late_short_days + ' days', dn('-' + r.late_short_pct + '%'))}${one('Postponed longer than that', dn('-' + r.late_long_pct + '%'))}${one('Canceled', dn('-' + r.canceled_pct + '%'))}</table>
+          <p class="ex-note">Every WCA show counts: the main show, numbered events and Showdown.</p></div>
+      </div>
+
+      <h4>What never counts</h4>
+      <ul class="ex-wca-list">
+        <li>WCA's own accounts. They can never own WCA shares, and their posts, bets and watch time are left out of the monthly check.</li>
+        <li>Posts WCA makes for the story, even when WCA posts as a fan's character. Only posts a real fan made themselves count.</li>
+        <li>Hand changes. Nobody can set this price, freeze it, make it climb or slide, or give WCA shares away.</li>
+      </ul>
+
+      <h4>Fair play rules</h4>
+      <ul class="ex-wca-list">
+        <li>Up to ${r.max_per_fan} WCA shares per fan, so nobody can control the price.</li>
+        <li>Shares you buy stay locked for ${r.lock_days} days before you can sell them. It shows real belief, not quick flips.</li>
+        <li>Everyone who owns WCA shares is shown publicly. Nobody can hide it.</li>
+        <li>There are ${r.shares_per_account} shares for every account on the site. That is ${Number(w.supply).toLocaleString()} right now, with ${Number(w.left).toLocaleString()} still for sale, and every new fan adds more.</li>
+        <li>It never drops below ${money(r.floor_price)}.</li>
+        <li>If WCA presses Postponed or Canceled by mistake, it can only be undone within ${r.undo_minutes} minutes, and the undo shows on the chart too.</li>
+        <li>WCA shares don't pay win payouts. You earn by selling for more than you paid.</li>
+      </ul>
+
+      <h4>This month so far</h4>
+      <table class="ex-rules ex-wca-now">
+        <tr><td><b>What</b></td><td><b>This month</b></td><td><b>Same days last month</b></td><td><b>Effect</b></td></tr>
+        ${['signups', 'bets', 'posts', 'watch'].map(k => `<tr><td>${names[k]}</td><td>${Number(cur[k] || 0).toLocaleString()}</td><td>${Number(prv[k] || 0).toLocaleString()}</td><td class="${pctCls(parts[k])}">${pctTxt(parts[k])}</td></tr>`).join('')}
+        <tr><td><b>Heading for</b></td><td></td><td></td><td class="${pctCls(sf.pct)}"><b>${pctTxt(sf.pct)}</b></td></tr>
+      </table>
+      <p class="ex-note">${beforeFirst
+        ? `The first monthly check is on ${E(dayTxt(firstCheck.toISOString()))}. It compares ${E(monthTxt(w.first_month))} with the month before, so nothing from before the WCA stock opened can move it.`
+        : `The next check is on ${E(dayTxt(w.next_check))}. It compares the whole month, so this is only where it is heading right now.`}</p>
+
+      <h4>Every change so far</h4>
+      ${hist.length ? `<table class="ex-rules">${hist.map(x => `<tr><td>${E(x.txt)}<br><small style="color:var(--muted);font-size:15px">${E(new Date(x.t).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' }))}</small></td><td><span class="${pctCls(x.pct)}">${pctTxt(x.pct)}</span><br><small style="color:var(--muted);font-size:15px">to ${money2(x.to)}</small></td></tr>`).join('')}</table>
+        <p class="ex-note">Fans buying and selling show on the chart above.</p>`
+        : `<p class="ex-note">No show or monthly check has moved it yet. Fans buying and selling show on the chart above.</p>`}
+      ${mine}
+    </div>`;
   }
   function tradeBox(s, h){
     if(!signedIn()) return `<div class="ex-panel ex-trade"><h3>Buy shares</h3><p class="ex-note">Sign in to buy shares. Everyone starts with WCA money to spend.</p><div style="margin-top:12px"><button type="button" class="ex-btn" data-signin>Sign in</button></div></div>`;
     const c = X.cfg, buy = X.side === 'buy';
-    const maxBuy = Math.max(0, Math.min(Number(c.max_shares) - h.shares, Math.floor(balance() / Math.max(0.01, s.price))));
-    const maxSell = h.shares;
+    const isW = s.kind === 'wca', wr = (X.wca && X.wca.rules) || {}, wme = (X.wca && X.wca.me) || {};
+    if(isW && wme.blocked) return `<div class="ex-panel ex-trade"><h3>Buy WCA shares</h3><p class="ex-note">WCA's own accounts can't own WCA shares. That keeps the WCA stock in the fans' hands.</p></div>`;
+    const cap = isW ? (Number(wr.max_per_fan) || 100) : Number(c.max_shares);
+    const maxBuy = Math.max(0, Math.min(cap - h.shares, Math.floor(balance() / Math.max(0.01, s.price)), isW && X.wca ? Number(X.wca.left) : Infinity));
+    const maxSell = isW && X.wca && wme.signed_in ? Math.max(0, Math.min(h.shares, Number(wme.can_sell) || 0)) : h.shares;
     const mx = buy ? maxBuy : maxSell;
     X.qty = Math.max(1, Math.min(Number(X.qty) || 1, Math.max(1, mx)));
     const fee = Number(c.sell_fee) || 0;
@@ -41961,8 +42071,9 @@ const FHBG = (function(){
     const can = mx > 0 && X.qty <= mx && c.open !== false;
     let why = '';
     if(c.open === false) why = 'The Exchange is closed right now.';
-    else if(buy && maxBuy < 1) why = h.shares >= Number(c.max_shares) ? `You own the most shares allowed (${c.max_shares}).` : 'You need more WCA money to buy a share.';
-    else if(!buy && maxSell < 1) why = 'You do not own any shares of this yet.';
+    else if(buy && maxBuy < 1) why = h.shares >= cap ? `You own the most shares allowed (${cap}).` : (isW && X.wca && Number(X.wca.left) < 1) ? 'All WCA shares are owned right now. More open up when someone sells or a new fan joins.' : 'You need more WCA money to buy a share.';
+    else if(!buy && maxSell < 1) why = isW && h.shares ? `Your WCA shares are still locked. Shares stay locked for ${wr.lock_days || 14} days after you buy them${wme.next_unlock ? `, and your next ones unlock on ${E(dayTxt(wme.next_unlock))}` : ''}.` : 'You do not own any shares of this yet.';
+    if(isW && !why) why = buy ? `Up to ${cap} WCA shares per fan. Shares you buy stay locked for ${wr.lock_days || 14} days before you can sell them.` : (wme.locked ? `${wme.locked} of your shares are still locked, so you can sell ${maxSell} right now.` : '');
     return `<div class="ex-panel ex-trade">
       <div class="ex-side"><button type="button" class="b${buy ? ' on' : ''}" data-side="buy">Buy</button><button type="button" class="s${buy ? '' : ' on'}" data-side="sell">Sell</button></div>
       <h3>${buy ? 'Buy' : 'Sell'} ${E(s.name)}</h3>
@@ -42026,6 +42137,7 @@ const FHBG = (function(){
     else X.msg = { trade:d.trade, text:`Done. You sold ${n} ${n === 1 ? 'share' : 'shares'} of ${s.name} for ${money(d.total)}.${d.profit != null ? (d.profit >= 0 ? ` That is ${money(d.profit)} profit.` : ` That is ${money(-d.profit)} less than you paid.`) : ''}`, suggest:`Sold ${n} ${n === 1 ? 'share' : 'shares'} of ${s.name} at ${money2(d.price)}.` };
     const keep = X.msg;
     await Promise.all([loadBoard(true), loadMe(), loadHist()]);
+    if(s.kind === 'wca'){ X.wcaAt = 0; loadWca(true); }
     X.msg = keep; X.qty = 1;
     draw();
     try{ if(window.slxRefresh) slxRefresh(); }catch(e){}
@@ -42145,7 +42257,7 @@ const FHBG = (function(){
         <details><summary>Does owning shares change my betting or watch money?</summary><p>No. Betting and watch money work exactly the same. The Exchange is a separate way to earn.</p></details>
         <details><summary>Who do I buy from and sell to?</summary><p>WCA. WCA is the company behind the Exchange, so you never have to wait for another fan to buy your shares.</p></details>
         <details><summary>What if the price drops?</summary><p>Your shares are worth less until it climbs again. You only lose money if you sell for less than you paid.</p></details>
-        <details><summary>Can WCA change prices?</summary><p>Yes. WCA can set a price, start a climb or a slide, or freeze a stock to fit the story.</p></details>
+        <details><summary>Can WCA change prices?</summary><p>Yes. WCA can set a price, start a climb or a slide, or freeze a stock to fit the story. The one exception is the WCA stock itself: it only follows its public rules, and nobody can change it by hand. Open it on the Market to read them.</p></details>
         <details><summary>Which promotions are on it?</summary><p>WCA superstars, WCA factions and the promotions themselves. More promotions' rosters may join later.</p></details>
       </div>
       <div><button type="button" class="ex-btn" data-v="market">Go to the Market ▶</button></div>
