@@ -8963,6 +8963,24 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
     input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea{font-size:16px;}
   }
   .site-foot .sf-copy{max-width:1180px; margin:0 auto; padding:12px 24px 22px; border-top:1px solid rgba(255,255,255,.06); font-family:var(--font-body); font-size:14px; color:var(--muted2,#5c5c58); text-align:center;}
+
+/* Nov 27: rankings arrows, #1 tag, pins, inactive (from the promotion editor) */
+.rk-mv{display:inline-block; font-family:var(--font-cond); font-weight:800; font-size:15px; letter-spacing:.3px; line-height:1; white-space:nowrap;}
+
+.rk-mv.up{color:var(--win,#3ecf8e);}
+ .rk-mv.dn{color:var(--loss,#e5484d);}
+ .rk-mv.same{color:var(--muted);}
+ .rk-mv.new{color:var(--gold);}
+
+.pm-rkwca .rank .rk-mv{display:block; margin-top:3px; font-size:14px;}
+
+.pm-rk-cno .rk-mv,.pm-rk-line .rk-mv,.pm-rk-cardtop .rk-mv{margin-left:6px;}
+
+.pm-rk-no1{margin-left:10px;}
+
+.pm-rk-pin{margin-left:8px; color:var(--gold); font-size:16px;}
+
+.pm-rk-idle{opacity:.55;}
 </style>
 
 <!-- ===== HOME PAGE styles ===== -->
@@ -24957,6 +24975,7 @@ function pmPageOf(x){
   if(x.ranks_on === false) o.ranks_on = false;
   if(x.champs_on === false) o.champs_on = false;
   o.cp = x.cp === true;
+  if(x.rk && typeof x.rk === 'object') o.rk = x.rk;     // Nov 27: keep how the rankings work (pmRkOf reads it)
   ['cp_w','cp_l','cp_nc'].forEach(k => { const n = Number(x[k]); if(x[k] !== undefined && x[k] !== null && x[k] !== '' && isFinite(n)) o[k] = Math.max(-99, Math.min(99, Math.round(n))); });
   return o;
 }
@@ -25006,66 +25025,262 @@ function pmRecOf(recs, kind, x){
   return { w:(Number(base.wins) || 0) + n('w'), l:(Number(base.losses) || 0) + n('l'), nc:(Number(base.no_contests) || 0) + n('nc') };
 }
 // D: { cats, roster, facs, titles, reigns, recs, page }
+var PM_RK_DEF = { group:'division', style:'', pname:'Contender points', pshort:'pts', tbonus:0,
+  lw:2, lup:1, lrow:true, lloss:1, ltake:false, lnew:'bottom', lstart:'',
+  arrows:true, top:0, idle:0, no1:'', lists:{}, moves:[], pins:{} };
+function pmRkKeyOk(k){ return /^[pt]\d+$/.test(String(k || '')); }
+function pmRkOf(pg){
+  pg = pg || {};
+  const x = (pg.rk && typeof pg.rk === 'object') ? pg.rk : {};
+  const o = JSON.parse(JSON.stringify(PM_RK_DEF));
+  if(['division','title','one'].includes(x.group)) o.group = x.group;
+  o.style = ['record','points','ladder','hand'].includes(x.style) ? x.style : (pg.cp ? 'points' : 'record');
+  const str = (v, d, n) => { v = String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n); return v || d; };
+  o.pname = str(x.pname, o.pname, 30); o.pshort = str(x.pshort, o.pshort, 10); o.no1 = str(x.no1, '', 30);
+  const int = (v, d, lo, hi) => { const n = Math.round(Number(v)); return (v === '' || v == null || !isFinite(n)) ? d : Math.max(lo, Math.min(hi, n)); };
+  o.tbonus = int(x.tbonus, 0, -99, 99); o.lw = int(x.lw, 2, 0, 20); o.lup = int(x.lup, 1, 0, 50); o.lloss = int(x.lloss, 1, 0, 50);
+  o.top = int(x.top, 0, 0, 500); o.idle = int(x.idle, 0, 0, 50);
+  o.lrow = x.lrow !== false; o.ltake = x.ltake === true; o.arrows = x.arrows !== false;
+  o.lnew = ['bottom','middle','top'].includes(x.lnew) ? x.lnew : 'bottom';
+  o.lstart = (x.lstart === 'first' || /^\d{4}-\d\d-\d\dT/.test(String(x.lstart || ''))) ? x.lstart : '';
+  if(x.lists && typeof x.lists === 'object') Object.keys(x.lists).forEach(k => { const l = x.lists[k] || {};
+    o.lists[k] = { add:(Array.isArray(l.add) ? l.add : []).filter(pmRkKeyOk).slice(0, 600), drop:(Array.isArray(l.drop) ? l.drop : []).filter(pmRkKeyOk).slice(0, 600) }; });
+  if(Array.isArray(x.moves)) o.moves = x.moves.filter(m => m && pmRkKeyOk(m.k) && typeof m.l === 'string' && Number(m.to) >= 1).slice(-1500)
+    .map(m => ({ l:String(m.l).slice(0, 20), k:m.k, to:Math.round(Number(m.to)), b:pmRkKeyOk(m.b) ? m.b : '', at:String(m.at || '').slice(0, 40) }));
+  if(x.pins && typeof x.pins === 'object') Object.keys(x.pins).forEach(l => { const p = x.pins[l] || {}; const q = {};
+    Object.keys(p).forEach(k => { const n = Math.round(Number(p[k])); if(pmRkKeyOk(k) && n >= 1) q[k] = n; }); if(Object.keys(q).length) o.pins[String(l).slice(0, 20)] = q; });
+  return o;
+}
+var PM_RKM = {};
+function pmRankMatches(pid){
+  pid = Number(pid);
+  if(!PM_RKM[pid]) PM_RKM[pid] = (async () => {
+    try{
+      const [e, m] = await Promise.all([
+        sb.from('promotion_events').select('id,name,event_date,status').eq('promotion_id', pid).neq('status', 'draft'),
+        sb.from('promotion_matches').select('id,event_id,slot,title,sides,winner_idx,bet_status').eq('promotion_id', pid)]);
+      const evs = ((e && !e.error && e.data) || []).filter(x => x.event_date), byEv = {};
+      evs.forEach(x => { byEv[x.id] = x; });
+      const ms = ((m && !m.error && m.data) || []).filter(x => x.bet_status === 'settled' && byEv[x.event_id] && Array.isArray(x.sides))
+        .map(x => Object.assign({}, x, { t:Date.parse(byEv[x.event_id].event_date) || 0 }))
+        .sort((a, b) => a.t - b.t || a.event_id - b.event_id || (a.slot || 0) - (b.slot || 0) || a.id - b.id);
+      const used = new Set(ms.map(x => x.event_id));
+      const shows = evs.filter(x => used.has(x.id)).map(x => ({ id:x.id, name:x.name, t:Date.parse(x.event_date) || 0 })).sort((a, b) => a.t - b.t || a.id - b.id);
+      return { ms, shows };
+    }catch(err){ return { ms:[], shows:[] }; }
+  })();
+  return PM_RKM[pid];
+}
 function pmRankSections(D){
-  const pg = D.page || PM_PAGE_DEF;
-  const tIdx = e => Math.min(...e.held.map(h => (D.titles || []).indexOf(h.t)));
-  // in a division's list, only that division's titles (or titles open to anyone) count
-  const ent = (kind, x, col, div) => {
-    const rec = pmRecOf(D.recs, kind, x), held = pmHeld(D.titles, D.reigns, kind, x.id, x.name)
-      .filter(h => div == null || h.t.division_id == null || String(h.t.division_id) === String(div));
-    return { kind, x, col, rec, held, pts:rec.w * pg.cp_w + rec.l * pg.cp_l + rec.nc * pg.cp_nc };
+  const pg = D.page || PM_PAGE_DEF, rk = pmRkOf(pg), M = D.rkm || { ms:[], shows:[] };
+  const titles = D.titles || [], roster = D.roster || [], facs = D.facs || [], cats = D.cats || [];
+  const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const colIn = p => { const c = cats.find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); };
+  // everyone who can be ranked
+  const E = {};
+  roster.forEach(p => { E['p' + p.id] = { kind:'person', key:'p' + p.id, x:p, col:colIn(p), rec:pmRecOf(D.recs, 'person', p) }; });
+  facs.forEach(f => { E['t' + f.id] = { kind:'team', key:'t' + f.id, x:f, col:pmColor(f.color, '#e9b949'), rec:pmRecOf(D.recs, 'team', f) }; });
+  const teamByName = {}; facs.forEach(f => { teamByName[norm(f.name)] = 't' + f.id; });
+  const teamEntry = {}; roster.filter(p => p.gender === 'Team').forEach(p => { teamEntry[norm(p.name)] = 'p' + p.id; });
+  const titleByName = {}; titles.forEach(t => { titleByName[norm(t.name)] = t; });
+  // every result, as who won and who lost
+  const R = (M.ms || []).map(m => {
+    const sideKeys = s => { const ks = new Set();
+      (s.members || []).forEach(x => { if(x && x.id != null && E['p' + x.id]) ks.add('p' + x.id); });
+      const n = norm(s.name); if(n){ if(teamByName[n]) ks.add(teamByName[n]); if(teamEntry[n]) ks.add(teamEntry[n]); }
+      return ks; };
+    const sides = m.sides.map(sideKeys), w = m.winner_idx;
+    const win = new Set(), lose = new Set(), all = new Set();
+    sides.forEach((ks, i) => ks.forEach(k => { all.add(k); if(w == null) return; if(i === w) win.add(k); else lose.add(k); }));
+    lose.forEach(k => { if(win.has(k)) lose.delete(k); });
+    return { t:m.t, ev:m.event_id, win, lose, all, title:!!titleByName[norm(m.title)] };
+  });
+  const lastShow = (M.shows || []).length ? M.shows[M.shows.length - 1] : null;
+  const Tb = lastShow ? lastShow.t : null;      // "before the last show": the arrows compare to this
+  // a record as it stood before time T (everything is counted when T is null)
+  const recAt = (k, T) => { const e = E[k], r = Object.assign({}, e.rec); if(T == null) return r;
+    R.forEach(m => { if(m.t < T || !m.all.has(k)) return; if(m.win.has(k)) r.w--; else if(m.lose.has(k)) r.l--; else r.nc--; });
+    r.w = Math.max(0, r.w); r.l = Math.max(0, r.l); r.nc = Math.max(0, r.nc); return r; };
+  const titleWins = (k, T) => R.filter(m => m.title && m.win.has(k) && (T == null || m.t < T)).length;
+  const ptsAt = (k, T) => { const r = recAt(k, T); return r.w * pg.cp_w + r.l * pg.cp_l + r.nc * pg.cp_nc + (rk.tbonus ? rk.tbonus * titleWins(k, T) : 0); };
+  const pct = r => (r.w + r.l) ? r.w / (r.w + r.l) : 0;
+  const nameCmp = (a, b) => String(E[a].x.name || '').localeCompare(String(E[b].x.name || ''), undefined, { sensitivity:'base' });
+  const recCmp = T => { const c = {}; const g = k => c[k] || (c[k] = { r:recAt(k, T), p:rk.style === 'points' ? ptsAt(k, T) : 0 });
+    return (a, b) => { const A = g(a), B = g(b);
+      return (rk.style === 'points' ? B.p - A.p : 0) || (pct(B.r) - pct(A.r)) || (B.r.w - A.r.w) || (A.r.l - B.r.l) || nameCmp(a, b); }; };
+  const created = k => Date.parse(E[k].x.created_at || '') || 0;
+  // the lists
+  const heldOf = (k, onlyTitles) => { const e = E[k];
+    return pmHeld(onlyTitles || titles, D.reigns, e.kind, e.x.id, e.x.name); };
+  const lists = [];
+  const groups = mpGroups(roster, cats);
+  const facIn = c => facs.filter(f => pmFacIn(c, f, roster));
+  if(rk.group === 'title'){
+    titles.forEach(t => {
+      let keys;
+      if(t.division_id != null){ const g = groups.find(x => String(x.cat.id) === String(t.division_id));
+        keys = g ? g.people.map(p => 'p' + p.id).concat(facIn(g.cat).map(f => 't' + f.id)) : []; }
+      else keys = roster.map(p => 'p' + p.id);
+      if(t.brand_id != null) keys = keys.filter(k => k[0] !== 'p' || E[k].x.brand_id == null || String(E[k].x.brand_id) === String(t.brand_id));
+      const ch = rk.lists[String(t.id)] || { add:[], drop:[] };
+      keys = keys.filter(k => !ch.drop.includes(k)).concat(ch.add.filter(k => E[k] && !keys.includes(k)));
+      const r = pmChampOf(D.reigns, t.id);
+      let champ = null;
+      if(r){ champ = r.holder_id != null ? (r.holder_kind === 'team' ? 't' : 'p') + r.holder_id : null;
+        if(!champ || !E[champ]){ const n = norm(r.holder_name); champ = Object.keys(E).find(k => norm(E[k].x.name) === n) || null; } }
+      if(champ && !keys.includes(champ)) keys.unshift(champ);
+      if(!keys.length) return;
+      lists.push({ cat:{ id:'ti' + t.id, name:t.name, color:pmTitleColor(t, cats), title:t }, keys, held:k => k === champ ? [{ t, r }] : [] });
+    });
+  } else if(rk.group === 'one'){
+    if(roster.length) lists.push({ cat:{ id:'all', name:'Everyone', color:'#e9b949' }, keys:roster.map(p => 'p' + p.id), held:k => heldOf(k) });
+    if(facs.length) lists.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, keys:facs.map(f => 't' + f.id), held:k => heldOf(k) });
+  } else {
+    groups.filter(g => g.people.length || (g.cat.id !== '' && facIn(g.cat).length)).forEach(g => {
+      const div = g.cat.id === '' ? null : g.cat.id;
+      const own = div == null ? null : titles.filter(t => t.division_id == null || String(t.division_id) === String(div));
+      lists.push({ cat:g.cat, keys:g.people.map(p => 'p' + p.id).concat(div == null ? [] : facIn(g.cat).map(f => 't' + f.id)), held:k => heldOf(k, own) });
+    });
+    const placed = new Set(cats.flatMap(c => facIn(c).map(f => 't' + f.id)));
+    const loose = facs.filter(f => !placed.has('t' + f.id));
+    if(loose.length) lists.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, keys:loose.map(f => 't' + f.id), held:k => heldOf(k) });
+  }
+  // the ladder (and the owner's own order): replay every result and every move, oldest first
+  const startT = rk.lstart === 'first' ? -Infinity : rk.lstart ? (Date.parse(rk.lstart) || Date.now()) : Date.now();
+  const ladder = (lk, keys, T) => {
+    const lim = T == null ? Infinity : T, auto = rk.style === 'ladder';
+    const inList = new Set(keys);
+    const first = keys.filter(k => startT === -Infinity || created(k) <= startT);
+    const order = first.slice().sort(recCmp(startT === -Infinity ? -Infinity : startT));
+    const items = [];
+    keys.forEach(k => { if(!order.includes(k)){ const ct = created(k); if(ct < lim) items.push({ t:ct, z:0, join:k }); } });
+    R.forEach(m => { if(auto && m.t > startT && m.t < lim) items.push({ t:m.t, z:1, m }); });
+    rk.moves.forEach((mv, i) => { if(mv.l !== String(lk) || !inList.has(mv.k)) return; const t = Date.parse(mv.at) || 0; if(t < lim) items.push({ t, z:2, i, mv }); });
+    items.sort((a, b) => a.t - b.t || a.z - b.z || (a.i || 0) - (b.i || 0));
+    const streak = {};
+    const put = (k, i) => { const j = order.indexOf(k); if(j >= 0) order.splice(j, 1); order.splice(Math.max(0, Math.min(order.length, i)), 0, k); };
+    const join = k => { if(order.includes(k)) return; put(k, rk.lnew === 'top' ? 0 : rk.lnew === 'middle' ? Math.floor(order.length / 2) : order.length); };
+    items.forEach(it => {
+      if(it.join){ join(it.join); return; }
+      if(it.mv){ const mv = it.mv; if(!order.includes(mv.k)) join(mv.k);
+        const without = order.filter(k => k !== mv.k);
+        put(mv.k, mv.b && without.includes(mv.b) ? without.indexOf(mv.b) : mv.to - 1); streak[mv.k] = 0; return; }
+      const m = it.m;
+      const W = [...m.win].filter(k => order.includes(k)), L = [...m.lose].filter(k => order.includes(k));
+      const took = new Set(), taken = new Set();
+      if(rk.ltake) W.forEach(w => {
+        const above = L.filter(x => order.indexOf(x) < order.indexOf(w)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+        if(above.length){ put(w, order.indexOf(above[0])); took.add(w); taken.add(above[0]); streak[w] = 0; } });
+      L.slice().sort((a, b) => order.indexOf(b) - order.indexOf(a)).forEach(x => {
+        if(rk.lrow) streak[x] = 0;
+        if(!taken.has(x) && rk.lloss > 0) put(x, order.indexOf(x) + rk.lloss); });
+      W.slice().sort((a, b) => order.indexOf(a) - order.indexOf(b)).forEach(w => {
+        if(took.has(w)) return;
+        streak[w] = (streak[w] || 0) + 1;
+        if(rk.lw > 0 && streak[w] >= rk.lw){ if(rk.lup > 0) put(w, order.indexOf(w) - rk.lup); streak[w] = 0; } });
+    });
+    if(T == null) keys.forEach(join);
+    return order.filter(k => inList.has(k));
   };
-  // champions on top (top title first), then the same order as WCA's own rankings:
-  // contender points (when the promotion uses them), then win percentage (no contests
-  // don't count toward it), then wins, then fewer losses, then A to Z
-  const pct = e => (e.rec.w + e.rec.l) ? e.rec.w / (e.rec.w + e.rec.l) : 0;
-  const order = (a, b) => (Number(!!b.held.length) - Number(!!a.held.length))
-    || (a.held.length && b.held.length ? tIdx(a) - tIdx(b) : 0)
-    || (pg.cp ? b.pts - a.pts : 0)
-    || (pct(b) - pct(a))
-    || (b.rec.w - a.rec.w)
-    || (a.rec.l - b.rec.l)
-    || String(a.x.name || '').localeCompare(String(b.x.name || ''), undefined, { sensitivity:'base' });
-  // C for a champion, then 1, 2, 3 for everyone else in that list
-  const rank = list => { let n = 0; list.forEach(e => { e.rank = e.held.length ? 'C' : String(++n); }); return list; };
-  const colIn = p => { const c = (D.cats || []).find(x => String(x.id) === String(p.category_id)); return pmColor(p.color, pmColor(c && c.color, '#c9c6be')); };
-  const facIn = c => (D.facs || []).filter(f => pmFacIn(c, f, D.roster));
-  const secs = mpGroups(D.roster || [], D.cats || []).filter(g => g.people.length || (g.cat.id !== '' && facIn(g.cat).length))
-    .map(g => ({ cat:g.cat, rows:g.people.map(p => ent('person', p, colIn(p), g.cat.id === '' ? null : g.cat.id))
-      .concat(g.cat.id === '' ? [] : facIn(g.cat).map(f => ent('team', f, pmColor(f.color, '#e9b949'), g.cat.id))).sort(order) }));
-  secs.forEach(x => rank(x.rows));
-  // teams and stables no team division takes in get their own list
-  const placed = new Set((D.cats || []).flatMap(c => facIn(c).map(f => Number(f.id))));
-  const teams = (D.facs || []).filter(f => !placed.has(Number(f.id))).map(f => ent('team', f, pmColor(f.color, '#e9b949')));
-  if(teams.length) secs.push({ cat:{ id:'teams', name:'Teams and stables', color:'#e9b949' }, rows:rank(teams.sort(order)) });
-  return secs;
+  // someone with no match in the promotion's last few shows
+  const idleSet = new Set();
+  if(rk.idle > 0 && (M.shows || []).length){
+    const recent = new Set(M.shows.slice(-rk.idle).map(s => s.id)), seen = new Set();
+    R.forEach(m => { if(recent.has(m.ev)) m.all.forEach(k => seen.add(k)); });
+    Object.keys(E).forEach(k => { if(!seen.has(k)) idleSet.add(k); });
+  }
+  const tIdx = held => Math.min(...held.map(h => titles.indexOf(h.t)));
+  // one list's order at time T: champions, then everyone ranked, then anyone unranked
+  const orderOf = (L, T) => {
+    const champs = L.keys.filter(k => L.held(k).length).sort((a, b) => tIdx(L.held(a)) - tIdx(L.held(b)));
+    const rest = L.keys.filter(k => !champs.includes(k));
+    let ranked = (rk.style === 'ladder' || rk.style === 'hand') ? ladder(L.cat.id, rest, T).filter(k => rest.includes(k)) : rest.slice().sort(recCmp(T));
+    if(rk.style === 'record' || rk.style === 'points'){
+      const pins = rk.pins[L.cat.id] || {};
+      Object.keys(pins).filter(k => ranked.includes(k)).sort((a, b) => pins[a] - pins[b]).forEach(k => {
+        ranked.splice(ranked.indexOf(k), 1); ranked.splice(Math.min(ranked.length, pins[k] - 1), 0, k); });
+    }
+    const idle = ranked.filter(k => idleSet.has(k));
+    ranked = ranked.filter(k => !idleSet.has(k));
+    return { champs, ranked, idle };
+  };
+  return lists.map(L => {
+    const now = orderOf(L, null);
+    const before = (rk.arrows && Tb != null) ? orderOf(L, Tb) : null;
+    const pins = rk.pins[L.cat.id] || {};
+    const mk = (k, rank, extra) => { const e = E[k];
+      // lists by championship: someone holding a different title is still a contender here, and it says so
+      const also = rk.group === 'title' ? heldOf(k).filter(h => !L.held(k).some(x => x.t === h.t)) : [];
+      return Object.assign({ kind:e.kind, key:k, x:e.x, col:e.col, rec:e.rec, pts:ptsAt(k, null), held:L.held(k), also, rank, move:null, inactive:false, cut:false,
+        pinned:(rk.style === 'record' || rk.style === 'points') && pins[k] != null }, extra || {}); };
+    const rows = now.champs.map(k => mk(k, 'C'))
+      .concat(now.ranked.map((k, i) => {
+        let move = null;
+        if(before){ const j = before.ranked.indexOf(k);
+          move = j >= 0 ? j - i : (created(k) >= Tb || !before.idle.includes(k) ? 'new' : null); }
+        return mk(k, String(i + 1), { move, cut:rk.top > 0 && i >= rk.top });
+      }))
+      .concat(now.idle.map(k => mk(k, '', { inactive:true, cut:rk.top > 0 })));
+    return { cat:L.cat, rk, rows };
+  });
+}
+function pmRkMv(e){
+  if(e.move == null || e.rank === 'C' || !e.rank) return '';
+  if(e.move === 'new') return '<span class="rk-mv new" title="New to this list since the last show">NEW</span>';
+  if(e.move > 0) return `<span class="rk-mv up" title="Up ${e.move} since the last show">▲${e.move}</span>`;
+  if(e.move < 0) return `<span class="rk-mv dn" title="Down ${-e.move} since the last show">▼${-e.move}</span>`;
+  return '<span class="rk-mv same" title="Same spot as before the last show">–</span>';
+}
+function pmRkTags(e, rk){
+  return (rk && rk.no1 && e.rank === '1' ? `<span class="tag ready pm-rk-no1">${esc(rk.no1)}</span>` : '')
+    + (e.pinned ? '<span class="pm-rk-pin" title="Placed here by hand"><i class="ti ti-pin" aria-hidden="true"></i></span>' : '');
 }
 function pmRankHTML(secs, pg, click){
+  const rk = pmRkOf(pg), pts = rk.style === 'points';
   // list views keep the belt small: a little picture of it when there is one, the trophy when not
   const beltIco = e => { const h = e.held.find(x => pmBeltUrl(x.t)); return h ? `<img class="pm-rk-beltimg" src="${escAttr(pmBeltUrl(h.t))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<i class="ti ti-trophy" aria-hidden="true"></i>'; };
-  const belt = e => e.held.length ? `<span class="pm-rk-belt">${beltIco(e)} ${esc(e.held.map(h => h.t.name).join(', '))}</span>` : '';
+  const belt = e => e.held.length ? `<span class="pm-rk-belt">${beltIco(e)} ${esc(e.held.map(h => h.t.name).join(', '))}</span>`
+    : (e.also || []).length ? `<span class="pm-rk-belt"><i class="ti ti-trophy" aria-hidden="true"></i> ${esc(e.also.map(h => h.t.name).join(', '))} champion</span>` : '';
   const ini = e => e.kind === 'person' ? pmFace(e.x, 'pm-rk-ini') : `<span class="pm-rk-ini">${esc(pmInit(e.x.name))}</span>`;
-  const rk = e => `<span class="pm-rk-no${e.rank === 'C' ? ' c' : ''}" title="${e.rank === 'C' ? 'Champion' : 'Ranked ' + e.rank}">${esc(e.rank || '')}</span>`;
+  const rkc = e => `<span class="pm-rk-no${e.rank === 'C' ? ' c' : ''}" title="${e.rank === 'C' ? 'Champion' : e.rank ? 'Ranked ' + e.rank : 'Not ranked right now'}">${esc(e.rank || '–')}</span>${pmRkMv(e)}`;
   return secs.map(s => {
-    const head = `<div class="pm-divh" style="--pc:${pmColor(s.cat.color, '#c9c6be')}"><b>${esc(s.cat.name)} <small>${s.rows.length}</small></b></div>`;
+    const rows = s.rows.filter(e => !e.cut), hidden = s.rows.length - rows.length;
+    const head = `<div class="pm-divh" style="--pc:${pmColor(s.cat.color, '#c9c6be')}"><b>${esc(s.cat.name)} <small>${hidden ? 'Top ' + rk.top + ' of ' + s.rows.length : s.rows.length}</small></b></div>`;
+    const cls = e => (e.held.length ? ' champ' : '') + (e.inactive ? ' pm-rk-idle' : '');
     let body;
-    if(pg.ranks === 'cards') body = `<div class="pm-rk-cards">${s.rows.map(e => `<button type="button" class="pm-rk-card${e.held.length ? ' champ' : ''}" style="--pc:${e.col}" onclick="${click(e)}">
-        <span class="pm-rk-cardtop">${rk(e)}${ini(e)}</span><b class="pm-rk-n">${esc(e.x.name)}</b>${belt(e)}
-        <span class="pm-rk-nums"><span><b>${e.rec.w}</b>Wins</span><span><b>${e.rec.l}</b>Losses</span><span><b>${e.rec.nc}</b>No contests</span>${pg.cp ? `<span class="pts"><b>${e.pts}</b>Points</span>` : ''}</span></button>`).join('')}</div>`;
-    else if(pg.ranks === 'list') body = `<div class="pm-rk-list">${s.rows.map(e => `<button type="button" class="pm-rk-line${e.held.length ? ' champ' : ''}" style="--pc:${e.col}" onclick="${click(e)}">
-        ${rk(e)}
-        <span class="pm-rk-who"><b>${esc(e.x.name)}</b>${e.held.length ? `<small>${esc(e.held.map(h => h.t.name).join(', '))}</small>` : ''}</span>
-        <span class="pm-rk-rec">${e.rec.w} W · ${e.rec.l} L · ${e.rec.nc} NC${pg.cp ? ` · <em>${e.pts} pts</em>` : ''}</span></button>`).join('')}</div>`;
-    else body = `<div class="pm-rk-wrap"><table class="pm-rk-table"><thead><tr><th scope="col" class="pm-rk-hno" title="Rank">#</th><th scope="col">Name</th><th scope="col" title="Wins">W</th><th scope="col" title="Losses">L</th><th scope="col" title="No contests">NC</th>${pg.cp ? '<th scope="col" title="Contender points">Pts</th>' : ''}</tr></thead>
-        <tbody>${s.rows.map(e => `<tr class="${e.held.length ? 'champ' : ''}" style="--pc:${e.col}"><td class="pm-rk-cno">${rk(e)}</td><th scope="row"><button type="button" class="pm-rk-name" onclick="${click(e)}">${ini(e)}<span><b>${esc(e.x.name)}</b>${belt(e)}</span></button></th>
-          <td>${e.rec.w}</td><td>${e.rec.l}</td><td>${e.rec.nc}</td>${pg.cp ? `<td class="pts">${e.pts}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+    if(pg.ranks === 'cards') body = `<div class="pm-rk-cards">${rows.map(e => `<button type="button" class="pm-rk-card${cls(e)}" style="--pc:${e.col}" onclick="${click(e)}">
+        <span class="pm-rk-cardtop">${rkc(e)}${ini(e)}</span><b class="pm-rk-n">${esc(e.x.name)}</b>${pmRkTags(e, rk)}${belt(e)}
+        <span class="pm-rk-nums"><span><b>${e.rec.w}</b>Wins</span><span><b>${e.rec.l}</b>Losses</span><span><b>${e.rec.nc}</b>No contests</span>${pts ? `<span class="pts"><b>${e.pts}</b>${esc(rk.pname)}</span>` : ''}</span></button>`).join('')}</div>`;
+    else if(pg.ranks === 'list') body = `<div class="pm-rk-list">${rows.map(e => `<button type="button" class="pm-rk-line${cls(e)}" style="--pc:${e.col}" onclick="${click(e)}">
+        ${rkc(e)}
+        <span class="pm-rk-who"><b>${esc(e.x.name)}</b>${pmRkTags(e, rk)}${e.held.length ? `<small>${esc(e.held.map(h => h.t.name).join(', '))}</small>` : ''}</span>
+        <span class="pm-rk-rec">${e.rec.w} W · ${e.rec.l} L · ${e.rec.nc} NC${pts ? ` · <em>${e.pts} ${esc(rk.pshort)}</em>` : ''}</span></button>`).join('')}</div>`;
+    else body = `<div class="pm-rk-wrap"><table class="pm-rk-table"><thead><tr><th scope="col" class="pm-rk-hno" title="Rank">#</th><th scope="col">Name</th><th scope="col" title="Wins">W</th><th scope="col" title="Losses">L</th><th scope="col" title="No contests">NC</th>${pts ? `<th scope="col" title="${escAttr(rk.pname)}">${esc(rk.pshort)}</th>` : ''}</tr></thead>
+        <tbody>${rows.map(e => `<tr class="${cls(e).trim()}" style="--pc:${e.col}"><td class="pm-rk-cno">${rkc(e)}</td><th scope="row"><button type="button" class="pm-rk-name" onclick="${click(e)}">${ini(e)}<span><b>${esc(e.x.name)}</b>${pmRkTags(e, rk)}${belt(e)}</span></button></th>
+          <td>${e.rec.w}</td><td>${e.rec.l}</td><td>${e.rec.nc}</td>${pts ? `<td class="pts">${e.pts}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
     return `<section class="pm-rk-sec">${head}${body}</section>`;
   }).join('');
 }
-function pmRankNote(pg){
-  return `<p class="pm-rk-note">Champions first. Everyone else is ranked by ${pg.cp ? 'contender points, then ' : ''}win percentage, then wins. W is wins, L is losses and NC is no contests, counted from every match with a result in Events.`
-    + (pg.cp ? ` Contender points: ${pg.cp_w} for a win, ${pg.cp_l} for a loss, ${pg.cp_nc} for a no contest.` : '') + `</p>`;
+function pmRkRules(pg){
+  const rk = pmRkOf(pg), s = [];
+  const n = (k, one, many) => k + ' ' + (k === 1 ? one : many);
+  s.push(rk.group === 'title' ? 'There is a list for each championship. The champion sits on top and the contenders are ranked under them. Someone who holds a different title can still be a contender.'
+    : rk.group === 'one' ? 'Everyone is ranked in one list.' : 'There is a list for each division, with that division’s champions on top.');
+  if(rk.style === 'points') s.push(`Everyone earns ${rk.pname}: ${pg.cp_w} for a win, ${pg.cp_l} for a loss, ${pg.cp_nc} for a no contest${rk.tbonus ? `, plus ${rk.tbonus} more for winning a championship match` : ''}. Most ${rk.pname} is #1. Ties go to the better win percentage.`);
+  else if(rk.style === 'ladder'){
+    const up = rk.lw > 0 && rk.lup > 0 ? `${n(rk.lw, 'win', 'wins')}${rk.lw > 1 && rk.lrow ? ' in a row' : ''} moves you up ${n(rk.lup, 'spot', 'spots')}` : '';
+    const dn = rk.lloss > 0 ? `a loss drops you ${n(rk.lloss, 'spot', 'spots')}` : '';
+    s.push('This is a ladder. ' + ([up, dn].filter(Boolean).join(' and ') || 'Results do not move anyone by themselves') + '.' + (rk.ltake ? ' Beat someone ranked above you and you take their spot.' : '') + ' A no contest changes nothing.');
+    s.push(`New people start at the ${rk.lnew}. The promotion can also move people by hand.`);
+  } else if(rk.style === 'hand') s.push('The promotion sets the order by hand.');
+  else s.push('Everyone is ranked by win percentage, then wins, then fewer losses.');
+  if((rk.style === 'record' || rk.style === 'points') && Object.keys(rk.pins).length) s.push('A pin means the promotion placed that person there by hand.');
+  if(rk.arrows) s.push('Arrows show who moved since the last show: ▲2 is up two spots, ▼1 is down one.');
+  if(rk.idle) s.push(`Anyone with no match in the last ${n(rk.idle, 'show', 'shows')} sits at the bottom without a number until they wrestle again.`);
+  s.push('W is wins, L is losses and NC is no contests, counted from every match with a result in Events.');
+  return s.join(' ');
 }
+function pmRankNote(pg){ return `<p class="pm-rk-note">${esc(pmRkRules(pg))}</p>`; }
 
 /* ---------- public page: Champions ---------- */
 // the belt picture a promotion gave this championship ('' when none)
@@ -25122,8 +25337,9 @@ async function pmRanksTab(box){
   const P = PM.pub;
   box.innerHTML = `<div class="loading">Loading…</div>`;
   await pmPubRecs(P);
+  if(!P.rkm) P.rkm = await pmRankMatches(P.p.id);     // Nov 27: results in order, for ladders and arrows
   if(PM.pub !== P || P.tab !== 'rankings') return;
-  const secs = pmRankSections({ cats:P.cats, roster:P.roster, facs:P.facs, titles:P.titles, reigns:P.reigns, recs:P.recs, page:P.page });
+  const secs = pmRankSections({ cats:P.cats, roster:P.roster, facs:P.facs, titles:P.titles, reigns:P.reigns, recs:P.recs, page:P.page, rkm:P.rkm });
   if(!secs.length){ box.innerHTML = `<div class="pm-empty">The rankings fill in once the roster is built.</div>`; return; }
   const f = secs.some(s => String(s.cat.id) === String(P.rcat)) ? String(P.rcat) : 'all';
   const click = e => e.kind === 'team' ? `pmPubTab('factions')` : `pmPubOpenPerson(${Number(e.x.id)})`;
@@ -36331,6 +36547,7 @@ async function peCardData(S){
     try{ D.recs = await pmRecsLoad(pid); }catch(e){ D.recs = null; }
   }
   D.recs = D.recs || { p:{}, t:{} };
+  try{ D.rkm = await pmRankMatches(pid); }catch(e){ D.rkm = null; }
   D.byId = {}; D.byName = {}; D.rank = {}; D.teamRank = {};
   D.roster.forEach(p => { D.byId[String(p.id)] = p; D.byName[peNorm(p.name)] = p; });
   try{
@@ -40238,8 +40455,9 @@ async function pmHierTab(box){
   if(!P.hnext){
     P.hnext = {};
     try{
-      const secs = pmRankSections({ cats:P.cats, roster:P.roster, facs:P.facs, titles:P.titles, reigns:P.reigns, recs:P.recs, page:P.page });
-      P.titles.forEach(t => { const s = secs.find(x => String(x.cat.id) === String(t.division_id)); const e = s && s.rows.find(r => !r.held.length); if(e) P.hnext[t.id] = e.x.name; });
+      if(!P.rkm) P.rkm = await pmRankMatches(P.p.id);
+      const secs = pmRankSections({ cats:P.cats, roster:P.roster, facs:P.facs, titles:P.titles, reigns:P.reigns, recs:P.recs, page:P.page, rkm:P.rkm });
+      P.titles.forEach(t => { const s = secs.find(x => String(x.cat.id) === 'ti' + t.id) || secs.find(x => String(x.cat.id) === String(t.division_id)); const e = s && s.rows.find(r => r.rank === '1'); if(e) P.hnext[t.id] = e.x.name; });
     }catch(e){}
   }
   phDraw();
