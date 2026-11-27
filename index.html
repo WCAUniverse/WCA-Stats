@@ -10239,6 +10239,7 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
         <button class="dh-tab on" type="button" role="tab" data-dtab="overview"><i class="ti ti-layout-dashboard" aria-hidden="true"></i>Overview</button>
         <button class="dh-tab" type="button" role="tab" data-dtab="character"><i class="ti ti-users" aria-hidden="true"></i>My Characters<span class="dh-tab-n"></span></button>
         <button class="dh-tab" type="button" role="tab" data-dtab="betting"><i class="ti ti-cash" aria-hidden="true"></i>Betting</button>
+        <button class="dh-tab" type="button" role="tab" data-dtab="style"><i class="ti ti-award" aria-hidden="true"></i>Badges &amp; Style</button>
         <button class="dh-tab" type="button" role="tab" data-dtab="settings"><i class="ti ti-settings" aria-hidden="true"></i>Settings</button>
       </div>
 
@@ -10285,6 +10286,11 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
           <button class="see-all" onclick="goPage('events')">what's next <i class="ti ti-arrow-right"></i></button>
         </div>
         <div id="dash-bets"><div class="loading">Loading…</div></div>
+      </section>
+
+      <!-- BADGES & STYLE — earned badges, name color, picture ring, featured badge -->
+      <section class="dh-panel" id="dpanel-style" role="tabpanel">
+        <div id="dh-style"><div class="loading">Loading…</div></div>
       </section>
 
       <!-- SETTINGS — the account page, rendered in place rather than duplicated -->
@@ -12149,8 +12155,8 @@ function renderUserChip(){
   const init = name.slice(0,2).toUpperCase();
   const avaSrc = MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url;
   const ava = avaSrc
-    ? `<img class="uava" src="${esc(avaSrc)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
-    : `<div class="uava-init">${init}</div>`;
+    ? `<img class="uava" data-rwa="${escAttr(MY_PROFILE.id)}" src="${esc(avaSrc)}" alt="" onerror="this.outerHTML='<div class=\\'uava-init\\'>${init}</div>'">`
+    : `<div class="uava-init" data-rwa="${escAttr(MY_PROFILE.id)}">${init}</div>`;
   // The chip now opens a small menu — Dashboard moved off the nav bar and
   // lives here, where a personal page belongs.
   box.innerHTML = `<div class="user-chip navdrop" id="userMenu">
@@ -12158,10 +12164,11 @@ function renderUserChip(){
         ${ava}
         <div class="ucol">
           ${wcaMoneyChip()}
-          <span class="uname">${esc(name)}</span>
+          <span class="uname" data-rwu="${escAttr(MY_PROFILE.id)}" data-rwnochip="1">${esc(name)}</span>
           <span class="uprov">${esc(wcaProviderLabel(wcaProviderOf(CURRENT_USER)))}</span>
         </div>
       </div>
+      <a class="udash-btn" href="/dash" onclick="goPage('dash');return false;" title="Your Dashboard: your character, bets, badges and settings"><i class="ti ti-layout-dashboard"></i> My Dashboard</a>
       <button class="logout-x" title="Sign out" onclick="signOut()"><i class="ti ti-logout"></i></button>
       <div class="navdrop-menu umenu" role="menu">
         <a href="/dash" data-page="dash" role="menuitem"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
@@ -16168,9 +16175,10 @@ function chatTidyDividers(feed){
 function chatMsgHTML(m){
   const name = m.author_name || 'Member';
   const init = name.slice(0,2).toUpperCase();
+  const rw = m.user_id ? ` data-rwa="${escAttr(String(m.user_id))}"` : '';
   const ava = m.author_avatar
-    ? `<img class="ch-ava" src="${esc(m.author_avatar)}" alt="" onerror="this.outerHTML='<div class=\\'ch-ava-init\\'>${init}</div>'">`
-    : `<div class="ch-ava-init">${init}</div>`;
+    ? `<img class="ch-ava"${rw} src="${esc(m.author_avatar)}" alt="" onerror="this.outerHTML='<div class=\\'ch-ava-init\\'>${init}</div>'">`
+    : `<div class="ch-ava-init"${rw}>${init}</div>`;
   const del = IS_ADMIN
     ? `<button class="ch-del" title="Delete message" onclick="deleteChatMessage('${jsAttr(String(m.id))}')"><i class="ti ti-x"></i></button>`
     : '';
@@ -16178,7 +16186,7 @@ function chatMsgHTML(m){
       ${ava}
       <div class="ch-body">
         <div class="ch-meta">
-          <span class="ch-author">${esc(name)}</span>
+          <span class="ch-author"${m.user_id ? ` data-rwu="${escAttr(String(m.user_id))}"` : ''}>${esc(name)}</span>
           <span class="ch-time" title="${esc(chatFullDate(m.created_at))}">${chatTime(m.created_at)}</span>
         </div>
         <div class="ch-text">${esc(m.body)}</div>
@@ -16609,7 +16617,7 @@ async function loadLeaderboard(){
       const cls = `lb-rowx lb-${r.rank<=3?r.rank:'n'}${r.rank%2?'':' alt'}`;
       return `<div class="${cls}">
         <span class="lb-rk">${r.rank}</span>
-        <span class="lb-nm">${esc(r.display_name)}</span>
+        <span class="lb-nm"${r.user_id ? ` data-rwu="${escAttr(String(r.user_id))}"` : ''}>${esc(r.display_name)}</span>
         <span class="lb-net ${n.cls}">${n.txt}</span>
       </div>`;
     }).join('') + `</div>`;
@@ -16687,7 +16695,7 @@ async function loadLeaderboard(){
     </span>`;
     return `<div class="${cls}">
       <span class="lb-rk">${rank}</span>
-      <span class="lb-nm">${esc(r.display_name)}${mine?'<span class="lb-me-tag">YOU</span>':''}</span>
+      <span class="lb-nm"${r.user_id ? ` data-rwu="${escAttr(String(r.user_id))}"` : ''}>${esc(r.display_name)}${mine?'<span class="lb-me-tag">YOU</span>':''}</span>
       ${meta}
       <span class="lb-net ${n.cls}">${n.txt}</span>
     </div>`;
@@ -18728,7 +18736,7 @@ function slRenderSocial(p){
     <div class="sl-head">
       ${slSrcAvatar(p, author)}
       <div class="sl-who">
-        <div class="sl-name">${slName(p, author, slVerify(p, author))}${p.payload && p.payload.fan ? '<span class="sl-fan">Fan</span>' : ''}</div>
+        <div class="sl-name"${p.payload && p.payload.fan && p.payload.by_user ? ` data-rwu="${escAttr(String(p.payload.by_user))}"` : ''}>${slName(p, author, slVerify(p, author))}${p.payload && p.payload.fan ? '<span class="sl-fan">Fan</span>' : ''}</div>
         <div class="sl-handle">${slHandle(p)} · <span class="sl-date"><i class="ti ti-calendar"></i>${esc(slDate(p.story_date))}</span></div>
       </div>
     </div>
@@ -20922,6 +20930,7 @@ async function slLoadComments(id){
     }
     SL_COMMENTS[id] = (data||[]).map(c=>({
       real: !c.is_fake && !!c.user_id,
+      uid: (!c.is_fake && c.user_id) ? c.user_id : null,
       character: (!c.is_fake && c.user_id) ? (charById[c.user_id]||'') : '',
       id: c.id,
       name: c.is_fake ? (c.fake_name||'Anonymous') : (nameById[c.user_id]||'Member'),
@@ -20978,7 +20987,7 @@ async function slRenderComments(id){
       ? `<span class="sl-creply-tag">↳ replying to ${esc(byId[c.parentId].name)}</span>` : '';
     let html = `<div class="sl-comment${c.real?' sl-real':''}"${depth?` style="margin-left:${Math.min(depth,4)*24}px"`:''}>
         <div class="sl-cmeta">
-          <span class="sl-cname">${esc(c.name)}${c.real?SL_VERIFIED_SVG:''}</span>
+          <span class="sl-cname"${c.uid ? ` data-rwu="${escAttr(String(c.uid))}"` : ''}>${esc(c.name)}${c.real?SL_VERIFIED_SVG:''}</span>
           ${c.character?`<span class="sl-cas">as ${esc(c.character)}</span>`:''}
           ${replyTag}
           <span class="sl-cwhen">${esc(slCommentWhen(c.created_at))}</span>
@@ -28547,9 +28556,9 @@ async function renderDhId(){
   const sub = [provider ? provider : '', since].filter(Boolean).join(' · ');
 
   host.innerHTML = `
-    <div class="dh-av">${av}</div>
+    <div class="dh-av" data-rwa="${E(MY_PROFILE.id)}">${av}</div>
     <div class="dh-who">
-      <h2 class="dh-name">${E(name)}</h2>
+      <h2 class="dh-name" data-rwu="${E(MY_PROFILE.id)}">${E(name)}</h2>
       ${sub ? `<div class="dh-sub">${E(sub)}</div>` : ''}
     </div>
     <div class="dh-figs">
@@ -29174,12 +29183,13 @@ function dhShow(tab){
   DH_TAB = tab;
   document.querySelectorAll('#dh-tabs .dh-tab').forEach(b=>
     b.classList.toggle('on', b.dataset.dtab === tab));
-  ['overview','character','betting','settings'].forEach(t=>{
+  ['overview','character','betting','style','settings'].forEach(t=>{
     const p = $d('dpanel-'+t);
     if(p) p.classList.toggle('on', t === tab);
   });
   if(tab === 'character') mcRender();
   if(tab === 'betting'){ renderDashYou(); renderDashBets(); }
+  if(tab === 'style' && typeof rwDashDraw === 'function') rwDashDraw();
   if(tab === 'settings' && typeof renderAccountPage === 'function'){
     renderAccountPage(false, 'dh-settings-body');
   }
@@ -41853,7 +41863,7 @@ const FHBG = (function(){
     const head = `<h4>Who owns it${d.admin && !d.always_public ? ' <span class="ex-admtag">Admin view: everyone</span>' : ''}</h4>`
       + (d.always_public ? `<div class="ex-note" style="margin:0 0 8px">Everyone who owns WCA shares shows here. Nobody can hide it.</div>` : '');
     if(!d.total){ b2.innerHTML = head + `<div class="ex-note">Nobody owns this yet. Be the first.</div>`; return; }
-    b2.innerHTML = head + (own.length ? `<div class="ex-ownlist">${own.map(o => `<div class="ex-own${o.me ? ' me' : ''}"><span class="av">${avHTML(o)}</span><b>${E(o.name)}${o.me ? ' (you)' : ''}</b>
+    b2.innerHTML = head + (own.length ? `<div class="ex-ownlist">${own.map(o => `<div class="ex-own${o.me ? ' me' : ''}"><span class="av"${o.uid ? ` data-rwa="${E(o.uid)}"` : ''}>${avHTML(o)}</span><b${o.uid ? ` data-rwu="${E(o.uid)}"` : ''}>${E(o.name)}${o.me ? ' (you)' : ''}</b>
       ${d.admin && o.private ? '<span class="ex-priv">Private</span>' : ''}${!d.admin && o.me && o.private ? '<span class="ex-priv">Only you see this</span>' : ''}<span class="n">${Number(o.shares).toLocaleString()} ${Number(o.shares) === 1 ? 'share' : 'shares'}</span></div>`).join('')}</div>` : '')
       + (d.hidden ? `<div class="ex-note">${own.length ? '+ ' : ''}${d.hidden} ${d.hidden === 1 ? 'fan keeps their' : 'fans keep their'} shares private.</div>` : '')
       + (d.admin && d.private_count ? `<div class="ex-note">${d.private_count} of them chose private. Fans only see the ones who chose to show it.</div>` : '');
@@ -45971,6 +45981,228 @@ function wcaBadgesHTML(name){
     paintBar();
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<!-- ===== Badges, name colors and picture rings (SUPABASE_UPDATE_badges.sql) =====
+     Anything on the site with data-rwu="<user id>" gets that person's name color and featured badge;
+     data-rwa="<user id>" gets their picture ring. One small call (rw_styles) per visit, kept 5 minutes. -->
+<style>
+  /* rarity, like card games: common silver, uncommon blue, rare gold, mythic orange and red */
+  .rw-common{--rw-a:#e9edf3; --rw-b:#8c95a6; --rw-ink:#1b1f27; --rw-glow:rgba(200,208,222,.35); --rw-txt:#cfd5e0;}
+  .rw-uncommon{--rw-a:#7cc4ff; --rw-b:#1f5fbf; --rw-ink:#06152e; --rw-glow:rgba(79,163,255,.45); --rw-txt:#7cc4ff;}
+  .rw-rare{--rw-a:#ffe08a; --rw-b:#b8860b; --rw-ink:#2a1c00; --rw-glow:rgba(233,185,73,.55); --rw-txt:#f2c94c;}
+  .rw-mythic{--rw-a:#ffb15c; --rw-b:#d6261c; --rw-ink:#2b0700; --rw-glow:rgba(255,106,48,.7); --rw-txt:#ff8a3d;}
+  /* small badge next to a name: the icon in a rarity colored shield */
+  .rw-chip{display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-left:7px; vertical-align:middle;
+    background:linear-gradient(145deg, var(--rw-a), var(--rw-b)); color:var(--rw-ink); font-size:15px; font-style:normal;
+    clip-path:polygon(50% 0, 100% 22%, 100% 70%, 50% 100%, 0 70%, 0 22%); box-shadow:0 0 0 1px rgba(0,0,0,.4); flex:none; line-height:1;}
+  .rw-chip.rw-mythic{animation:rwPulse 2.4s ease-in-out infinite;}
+  @keyframes rwPulse{0%,100%{filter:drop-shadow(0 0 2px var(--rw-glow)) brightness(1);} 50%{filter:drop-shadow(0 0 7px var(--rw-glow)) brightness(1.18);}}
+  /* picture rings */
+  [data-rwa].rw-ring{border-radius:50%;}
+  .rw-ring-gold{box-shadow:0 0 0 3px #e9b949, 0 0 10px rgba(233,185,73,.55) !important;}
+  .rw-ring-silver{box-shadow:0 0 0 3px #d5dae3, 0 0 10px rgba(213,218,227,.45) !important;}
+  .rw-ring-red{box-shadow:0 0 0 3px #ff4d4d, 0 0 10px rgba(255,77,77,.5) !important;}
+  .rw-ring-blue{box-shadow:0 0 0 3px #4f9bff, 0 0 10px rgba(79,155,255,.5) !important;}
+  .rw-ring-purple{box-shadow:0 0 0 3px #b07cff, 0 0 10px rgba(176,124,255,.5) !important;}
+  .rw-ring-green{box-shadow:0 0 0 3px #5fd16a, 0 0 10px rgba(95,209,106,.5) !important;}
+  .rw-ring-fire{animation:rwFire 1.6s ease-in-out infinite;}
+  @keyframes rwFire{0%,100%{box-shadow:0 0 0 3px #ff6a00, 0 0 10px 2px rgba(255,60,0,.65);} 50%{box-shadow:0 0 0 3px #ffd000, 0 0 16px 4px rgba(255,140,0,.75);}}
+  .rw-ring-rainbow{animation:rwRainbow 4s linear infinite;}
+  @keyframes rwRainbow{0%{box-shadow:0 0 0 3px #ff4d4d, 0 0 12px rgba(255,77,77,.6);} 20%{box-shadow:0 0 0 3px #ffb000, 0 0 12px rgba(255,176,0,.6);}
+    40%{box-shadow:0 0 0 3px #5fd16a, 0 0 12px rgba(95,209,106,.6);} 60%{box-shadow:0 0 0 3px #4f9bff, 0 0 12px rgba(79,155,255,.6);}
+    80%{box-shadow:0 0 0 3px #b07cff, 0 0 12px rgba(176,124,255,.6);} 100%{box-shadow:0 0 0 3px #ff4d4d, 0 0 12px rgba(255,77,77,.6);}}
+  @media (prefers-reduced-motion: reduce){ .rw-chip.rw-mythic, .rw-ring-fire, .rw-ring-rainbow, .rw-emb.rw-mythic{animation:none;} }
+  /* the clear Dashboard button next to your name (PC) */
+  .udash-btn{display:inline-flex; align-items:center; gap:6px; margin-left:10px; padding:7px 12px; border:1px solid var(--gold); color:var(--gold);
+    font-family:var(--font-cond); font-weight:700; font-size:15px; letter-spacing:1px; text-transform:uppercase; text-decoration:none; white-space:nowrap; border-radius:6px;}
+  .udash-btn:hover{background:var(--gold); color:#111;}
+  @media (max-width:1100px){ .udash-btn{display:none;} }
+
+  /* Dashboard: Badges & Style */
+  .rw-dash{display:grid; gap:18px;}
+  .rw-box{padding:16px 18px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.25);}
+  .rw-box h3{margin:0 0 6px; font-family:var(--font-display); font-size:22px; letter-spacing:1px; text-transform:uppercase;}
+  .rw-box p{margin:4px 0 0; font-size:16px; color:var(--txt-2, #c9c6be); line-height:1.5;}
+  .rw-look{display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+  .rw-look .rw-av{width:72px; height:72px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#222; font-size:26px; font-weight:800; flex:none;}
+  .rw-look .rw-av img{width:100%; height:100%; object-fit:cover; border-radius:50%;}
+  .rw-look .rw-nm{font-family:var(--font-cond); font-size:28px; font-weight:700; display:inline-flex; align-items:center;}
+  .rw-swatches{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
+  .rw-sw{width:40px; height:40px; border-radius:50%; border:2px solid rgba(255,255,255,.2); cursor:pointer; padding:0;}
+  .rw-sw.on{outline:3px solid #fff; outline-offset:3px;}
+  .rw-sw.none{background:transparent; color:var(--muted); font-size:13px; font-weight:700; width:auto; border-radius:20px; padding:0 14px;}
+  .rw-rings{display:flex; flex-wrap:wrap; gap:16px; margin-top:12px;}
+  .rw-rpick{display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:1px solid transparent; border-radius:10px; padding:8px 10px; cursor:pointer; color:var(--txt-2, #ccc); font-size:15px;}
+  .rw-rpick.on{border-color:var(--gold); color:var(--gold);}
+  .rw-rpick span.dot{width:40px; height:40px; border-radius:50%; background:#2a2a30;}
+  .rw-locked{opacity:.5; pointer-events:none;}
+  .rw-tier{margin-top:6px;}
+  .rw-tier h4{margin:14px 0 8px; font-family:var(--font-cond); font-size:20px; letter-spacing:2px; text-transform:uppercase; color:var(--rw-txt);}
+  .rw-cards{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:14px;}
+  .rw-card{position:relative; padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:linear-gradient(160deg, rgba(255,255,255,.05), rgba(0,0,0,.35)); display:flex; flex-direction:column; gap:8px;}
+  .rw-card.got{border-color:var(--rw-b); box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 0 18px -6px var(--rw-glow);}
+  .rw-card.no{filter:grayscale(.85); opacity:.6;}
+  .rw-emb{width:64px; height:72px; display:flex; align-items:center; justify-content:center; font-size:32px; color:var(--rw-ink);
+    background:linear-gradient(145deg, var(--rw-a), var(--rw-b)); clip-path:polygon(50% 0, 100% 22%, 100% 72%, 50% 100%, 0 72%, 0 22%);}
+  .rw-emb.rw-mythic{animation:rwPulse 2.4s ease-in-out infinite;}
+  .rw-card b.n{font-family:var(--font-cond); font-size:21px; letter-spacing:.5px;}
+  .rw-card .r{font-size:14px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--rw-txt);}
+  .rw-card .h{font-size:15.5px; color:var(--txt-2, #c9c6be); line-height:1.45;}
+  .rw-card .st{font-size:15px; color:var(--muted);}
+  .rw-bar{height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden;}
+  .rw-bar i{display:block; height:100%; background:linear-gradient(90deg, var(--rw-b), var(--rw-a));}
+  .rw-show{align-self:flex-start; margin-top:auto; padding:7px 12px; border-radius:6px; border:1px solid var(--rw-b); background:transparent; color:var(--rw-txt); font-weight:700; font-size:15px; cursor:pointer;}
+  .rw-show.on{background:var(--rw-b); color:#fff; cursor:default;}
+</style>
+<script>
+(function(){
+  const RW = window.RW = { badges:{}, list:[], styles:{}, at:0, busy:false };
+  const esc2 = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const okColor = c => /^#[0-9a-f]{3,8}$/i.test(c || '');
+  const okRing = r => /^[a-z]{2,12}$/.test(r || '');
+  const TIER_NAME = { common:'Common', uncommon:'Uncommon', rare:'Rare', mythic:'Mythic' };
+  function chipHTML(key){
+    const b = RW.badges[key]; if(!b) return '';
+    return `<i class="rw-chip rw-${esc2(b.tier)} ti ${esc2(b.icon)}" title="${esc2(b.name)} (${esc2(TIER_NAME[b.tier] || '')} badge)" aria-label="${esc2(b.name)} badge" data-rwchip="1"></i>`;
+  }
+  window.rwChipHTML = chipHTML;
+  function paintName(el){
+    const st = RW.styles[el.getAttribute('data-rwu')] || {};
+    el.style.color = okColor(st.c) ? st.c : '';
+    el.querySelectorAll(':scope > [data-rwchip]').forEach(x => x.remove());
+    if(st.b && !el.hasAttribute('data-rwnochip')) el.insertAdjacentHTML('beforeend', chipHTML(st.b));
+  }
+  function paintAva(el){
+    const st = RW.styles[el.getAttribute('data-rwa')] || {};
+    [...el.classList].filter(c => /^rw-ring/.test(c)).forEach(c => el.classList.remove(c));
+    if(okRing(st.r)) el.classList.add('rw-ring', 'rw-ring-' + st.r);
+  }
+  function paint(root){
+    if(!root || !root.querySelectorAll) return;
+    if(root.matches && root.matches('[data-rwu]')) paintName(root);
+    if(root.matches && root.matches('[data-rwa]')) paintAva(root);
+    root.querySelectorAll('[data-rwu]').forEach(paintName);
+    root.querySelectorAll('[data-rwa]').forEach(paintAva);
+  }
+  window.rwPaint = paint;
+  async function load(force){
+    if(RW.busy || typeof sb === 'undefined' || !sb) return;
+    if(!force && RW.at && Date.now() - RW.at < 300000) return;
+    RW.busy = true;
+    try{
+      const r = await sb.rpc('rw_styles');
+      if(!r.error && r.data){
+        RW.list = Array.isArray(r.data.badges) ? r.data.badges : [];
+        RW.badges = {}; RW.list.forEach(b => { RW.badges[b.key] = b; });
+        RW.styles = r.data.styles || {};
+      }
+    }catch(e){}
+    RW.at = Date.now(); RW.busy = false;
+    paint(document.body);
+  }
+  window.rwLoad = load;
+  // new names drawn anywhere on the site get painted as they appear
+  let pending = false;
+  const mo = new MutationObserver(muts => {
+    if(!RW.at){ if(!pending){ pending = true; setTimeout(() => { pending = false; load(); }, 600); } return; }
+    for(const m of muts) for(const n of m.addedNodes){ if(n.nodeType === 1 && (n.hasAttribute('data-rwu') || n.hasAttribute('data-rwa') || n.querySelector('[data-rwu],[data-rwa]'))) paint(n); }
+  });
+  function start(){ mo.observe(document.body, { childList:true, subtree:true }); setTimeout(load, 1200); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+
+  /* ── Dashboard: Badges & Style ── */
+  let ME = null, SAVING = false;
+  const money = n => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+  function progress(b){
+    const n = (ME && ME.need) || {};
+    const p = (have, need, fmt) => ({ pct:Math.max(0, Math.min(100, need ? have / need * 100 : 0)), txt:fmt(have) + ' of ' + fmt(need) });
+    const num = x => Math.round(Number(x) || 0).toLocaleString('en-US');
+    switch(b.key){
+      case 'shareholder': return p(Math.min(ME.shares, 1), 1, num);
+      case 'wca_believer': return p(Math.min(ME.wca, 1), 1, x => x ? 'Own WCA shares' : 'No WCA shares');
+      case 'investor': return p(ME.shares, n.investor, num);
+      case 'backer': return p(ME.top, n.backer, num);
+      case 'full_faith': return p(ME.wca, n.full_faith, num);
+      case 'mogul': return p(ME.worth, n.mogul, money);
+      case 'millionaire': return p(ME.net, n.millionaire, money);
+      default: return null;
+    }
+  }
+  function draw(){
+    const host = document.getElementById('dh-style'); if(!host) return;
+    if(!ME){ host.innerHTML = '<div class="loading">Loading…</div>'; return; }
+    if(ME.error){ host.innerHTML = `<div class="rw-box"><p>${esc2(ME.error)}</p></div>`; return; }
+    const got = new Set(ME.rewards || []), st = ME.style || {}, uid = (typeof MY_PROFILE !== 'undefined' && MY_PROFILE && MY_PROFILE.id) || '';
+    const name = (MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'You';
+    const avaSrc = MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url);
+    const ava = /^https:\/\//i.test(avaSrc || '') ? `<img src="${esc2(avaSrc)}" alt="" referrerpolicy="no-referrer">` : esc2(name.slice(0, 2).toUpperCase());
+    const byTier = { common:[], uncommon:[], rare:[], mythic:[] };
+    (ME.badges || []).forEach(b => (byTier[b.tier] = byTier[b.tier] || []).push(b));
+    const dayOne = ME.day_one_until ? new Date(ME.day_one_until) : null;
+    const card = b => {
+      const has = got.has(b.key), pr = !has ? progress(b) : null;
+      let status = '';
+      if(has) status = b.while_held ? 'Earned. It shows while you own WCA shares.' : 'Earned' + (ME.when && ME.when[b.key] ? ' on ' + new Date(ME.when[b.key]).toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' }) : '') + '. Yours to keep.';
+      else if(b.key === 'day_one') status = dayOne && Date.now() < dayOne.getTime() ? 'Still open until ' + dayOne.toLocaleDateString('en-US', { month:'long', day:'numeric' }) + '.' : 'This one can no longer be earned.';
+      return `<div class="rw-card rw-${esc2(b.tier)} ${has ? 'got' : 'no'}">
+        <div class="rw-emb rw-${esc2(b.tier)}"><i class="ti ${esc2(b.icon)}"></i></div>
+        <b class="n">${esc2(b.name)}</b><span class="r">${esc2(TIER_NAME[b.tier] || b.tier)}</span>
+        <span class="h">${esc2(b.how)}${b.unlocks ? ' Unlocks: ' + esc2(b.unlocks) + '.' : ''}</span>
+        ${pr ? `<div class="rw-bar" aria-hidden="true"><i style="width:${pr.pct.toFixed(1)}%"></i></div><span class="st">${esc2(pr.txt)}</span>` : ''}
+        ${status ? `<span class="st">${esc2(status)}</span>` : ''}
+        ${has ? `<button type="button" class="rw-show${st.badge === b.key ? ' on' : ''}" data-rwbadge="${esc2(b.key)}">${st.badge === b.key ? 'Showing next to your name' : 'Show next to my name'}</button>` : ''}
+      </div>`;
+    };
+    host.innerHTML = `<div class="rw-dash">
+      <div class="rw-box"><h3>How you look</h3>
+        <div class="rw-look"><span class="rw-av" data-rwa="${esc2(uid)}">${ava}</span><span class="rw-nm" data-rwu="${esc2(uid)}">${esc2(name)}</span></div>
+        <p>This is how your name and picture show on the Feed, in chat, on the Leaderboard and in the Exchange. Changes save as soon as you pick.</p>
+        ${st.badge ? `<p><button type="button" class="rw-show" style="border-color:var(--line);color:var(--txt-2,#ccc)" data-rwbadge="">Stop showing a badge</button></p>` : ''}</div>
+      <div class="rw-box"><h3>Name color</h3>
+        ${ME.colors_on ? `<p>Pick the color your name shows in, everywhere including chat.</p>` : `<p>Name colors unlock with the <b>Shareholder</b> badge: buy your first share on the WCA Exchange.</p>`}
+        <div class="rw-swatches${ME.colors_on ? '' : ' rw-locked'}">
+          <button type="button" class="rw-sw none${!st.name_color ? ' on' : ''}" data-rwcolor="">Default</button>
+          ${(ME.colors || []).map(c => `<button type="button" class="rw-sw${st.name_color === c ? ' on' : ''}" style="background:${esc2(c)}" data-rwcolor="${esc2(c)}" aria-label="Color ${esc2(c)}"></button>`).join('')}
+        </div></div>
+      <div class="rw-box"><h3>Picture ring</h3>
+        ${ME.rings_on ? `<p>A ring around your picture. Fire and Rainbow move.</p>` : `<p>Picture rings unlock with the <b>Mogul</b> badge: own shares worth ${money((ME.need || {}).mogul)}.</p>`}
+        <div class="rw-rings${ME.rings_on ? '' : ' rw-locked'}">
+          <button type="button" class="rw-rpick${!st.ring ? ' on' : ''}" data-rwring=""><span class="dot"></span>None</button>
+          ${(ME.rings || []).map(r => `<button type="button" class="rw-rpick${st.ring === r ? ' on' : ''}" data-rwring="${esc2(r)}"><span class="dot rw-ring rw-ring-${esc2(r)}"></span>${esc2(r.charAt(0).toUpperCase() + r.slice(1))}</button>`).join('')}
+        </div></div>
+      <div class="rw-box"><h3>Your badges</h3>
+        <p>You have ${got.size} of ${(ME.badges || []).length}. Badges hand themselves out as you play the Exchange. Pick one to show next to your name.</p>
+        ${['common', 'uncommon', 'rare', 'mythic'].filter(t => (byTier[t] || []).length).map(t => `<div class="rw-tier rw-${t}"><h4>${TIER_NAME[t]}</h4><div class="rw-cards">${byTier[t].map(card).join('')}</div></div>`).join('')}
+      </div></div>`;
+    host.querySelectorAll('[data-rwcolor]').forEach(b => b.onclick = () => save({ name_color:b.dataset.rwcolor || null }));
+    host.querySelectorAll('[data-rwring]').forEach(b => b.onclick = () => save({ ring:b.dataset.rwring || null }));
+    host.querySelectorAll('[data-rwbadge]').forEach(b => b.onclick = () => save({ badge:b.dataset.rwbadge || null }));
+  }
+  async function save(change){
+    if(SAVING || !ME) return;
+    const st = Object.assign({}, ME.style || {}, change);
+    SAVING = true;
+    const r = await sb.rpc('rw_save_style', { p_color:st.name_color || null, p_badge:st.badge || null, p_ring:st.ring || null });
+    SAVING = false;
+    if(r.error){ if(typeof wcaToast === 'function') wcaToast('Not saved', String(r.error.message || r.error).replace(/^.*?ERROR:\s*/, ''), true); return; }
+    ME.style = Object.assign({}, ME.style, { name_color:r.data.name_color, badge:r.data.badge, ring:r.data.ring });
+    const uid = MY_PROFILE && MY_PROFILE.id;
+    if(uid){ RW.styles[uid] = { c:r.data.name_color || undefined, b:r.data.badge || undefined, r:r.data.ring || undefined }; }
+    draw(); paint(document.body);
+    if(typeof wcaToast === 'function') wcaToast('Saved', 'Your look is updated everywhere.');
+  }
+  window.rwDashDraw = async function(){
+    draw();
+    if(typeof sb === 'undefined' || !sb) return;
+    try{
+      const r = await sb.rpc('rw_me');
+      if(r.error) ME = { error:/rw_me|could not find|PGRST202/i.test(r.error.message || '') ? 'Badges turn on once WCA finishes an update.' : r.error.message };
+      else if(!r.data || r.data.signed_in === false) ME = { error:'Sign in to see your badges.' };
+      else{ ME = r.data; (ME.badges || []).forEach(b => { RW.badges[b.key] = b; }); }
+    }catch(e){ ME = { error:'Badges could not load right now.' }; }
+    draw();
+  };
 })();
 </script>
 </body>
