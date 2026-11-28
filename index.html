@@ -23,10 +23,13 @@ try{ window.__wcaFirstVisit = !localStorage.getItem('wca-seen-home'); }catch(e){
 var WCA_PATHS = /^https?:$/.test(location.protocol);
 var WCA_PAGES = ['feed','storylines','events','archive','live','rankings','leaderboard','roster',
                  'timeline','apply','sponsors','showdown','home','account','dash','dashboard','donate',
-                 'promotions','promotion','my-promotion','mypromo','relationships','starmap','games','exchange','music'];
+                 'promotions','promotion','my-promotion','mypromo','relationships','starmap','games','exchange','music',
+                 'messages','notifications'];
 var WCA_SEG_FOR  = { storylines:'feed', mypromo:'my-promotion' };                       // tab id -> address
 var WCA_PAGE_FOR = { feed:'storylines', dashboard:'dash', 'my-promotion':'mypromo' };   // address -> tab id
 (function(){
+  // a locked account tried to sign in (Supabase answers "User is banned"): the chat bubble script shows the notice
+  try{ if(/error_description=[^&#]*banned/i.test(location.search + '&' + location.hash)) sessionStorage.setItem('wca-banned', '1'); }catch(e){}
   if(!WCA_PATHS) return;
   var h = location.hash || '';
   if(/access_token=|refresh_token=|error_description=/.test(h)) return;   // a sign in is finishing
@@ -9649,7 +9652,7 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
   /* the music widget: floats over every page, on top of everything */
   .sm-player{--sm-hair:rgba(233,185,73,.26); --sm-panel:rgba(9,10,16,.92); --sm-parch:#efe9db; --sm-dim:#8f8b80;}
   .sm-player.popped{
-    position:fixed;right:16px;bottom:16px;left:auto;
+    position:fixed;left:16px;bottom:16px;right:auto;
     width:min(460px,calc(100vw - 16px));z-index:2147483000;
     box-shadow:0 18px 44px rgba(0,0,0,.55);
     animation:sm-pop-in .32s cubic-bezier(.22,.61,.36,1) both;
@@ -10729,6 +10732,25 @@ button.evc-day:hover{border-color:var(--gold); background:rgba(233,185,73,.08);}
   <div class="page" id="page-account">
     <div id="account-page-body">
       <div class="acc-empty">Sign in to view your account.</div>
+    </div>
+  </div>
+
+  <!-- ===== MESSAGES (Nov 2026): the chat bubble's full page. Phones open this
+       when they tap the bubble. The chat window itself is moved in here. ===== -->
+  <div class="page" id="page-messages">
+    <div class="section-title">Messages</div>
+    <div id="wcab-pagehost"></div>
+    <div class="wcab-page-foot" id="wcab-pagefoot"></div>
+  </div>
+
+  <!-- ===== NOTIFICATION SETTINGS (Nov 2026): reached from "Edit notifications"
+       in the bell. The bell itself only lists notifications now. ===== -->
+  <div class="page" id="page-notifications">
+    <div class="nset-wrap">
+      <div class="nset-back"><button class="wcab-pill" type="button" onclick="wcaNotifBack()"><i class="ti ti-arrow-left"></i> Back</button></div>
+      <div class="section-title">Notification Settings</div>
+      <div class="nset-card"><div class="np-sec" id="np-device"></div></div>
+      <div class="nset-card"><div class="np-sec" id="nset-chat"></div></div>
     </div>
   </div>
 </div>
@@ -16544,6 +16566,7 @@ async function sendChat(){
     });
     if(error) throw error;
     input.value=''; chatAutoGrow(input);
+    try{ if(typeof wcaTrack === 'function') wcaTrack('chat', true); }catch(e){}
   }catch(e){
     wcaToast('Message failed','Could not send, try again.',true);
   }finally{
@@ -18414,6 +18437,7 @@ async function confirmBet(){
   const hideIt = !!(document.getElementById('bet-hide') || {}).checked;
   try{ await sb.rpc('set_bet_hidden', { p_event: CURRENT_EVENT.id, p_slot: BET_CTX.slot, p_hide: hideIt }); }catch(e){}
   closeBet();
+  try{ if(typeof wcaTrack === 'function') wcaTrack('bet', true); }catch(e){}
   await refreshUser();   // update balance pill
   await refreshBetViews();
   wcaToast('Bet placed', 'Editable until the match locks.');
@@ -26888,7 +26912,7 @@ function activatePage(pg){
   const btn=document.querySelector('nav [data-page="'+pg+'"]');
   // Pages reached without a nav button: account and the personal dashboard
   // (both from the user chip) and home (the logo).
-  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo' && pg!=='relationships' && pg!=='starmap') return false;
+  if(!btn && pg!=='account' && pg!=='home' && pg!=='dash' && pg!=='promotion' && pg!=='mypromo' && pg!=='relationships' && pg!=='starmap' && pg!=='messages' && pg!=='notifications') return false;
   document.getElementById('headRight')?.classList.remove('open');  // close mobile menu on navigate
   setTimeout(() => { try{ if(typeof MY_PROFILE !== 'undefined' && MY_PROFILE) renderUserChip(); }catch(e){} }, 60);   // the money in the top right
   if(typeof wcaNavIcon==='function') wcaNavIcon();
@@ -26943,6 +26967,7 @@ function activatePage(pg){
     if(pg==='dash' && typeof renderPersonalDashboard==='function') renderPersonalDashboard();
     if(typeof spaceSetPage==='function') spaceSetPage(pg);
   }catch(e){}
+  try{ if(typeof wcabOnPageChange==='function') wcabOnPageChange(pg); }catch(e){}   // chat bubble, Notification Settings, member activity
   return true;
 }
 // On load (and on Back/Forward), open whatever tab the address points to.
@@ -26950,7 +26975,8 @@ function activatePage(pg){
 function restorePageFromHash(){
   let { pg, qs } = wcaRoute();
   const known = pg && (document.querySelector('nav [data-page="'+pg+'"]') ||
-                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo' || pg==='relationships' || pg==='starmap');
+                       pg==='account' || pg==='home' || pg==='dash' || pg==='donate' || pg==='promotion' || pg==='mypromo' || pg==='relationships' || pg==='starmap' ||
+                       pg==='messages' || pg==='notifications');
   // maybe a promotion's link (wcauniverse.com/PWF): ask once which promotion it is
   const seg0 = WCA_PATHS ? (location.pathname.split('/').filter(Boolean)[0] || '') : '';
   if(!known && /^[A-Za-z0-9]{2,20}$/.test(seg0) && !restorePageFromHash.asked && typeof sb !== 'undefined' && sb){
@@ -27327,6 +27353,9 @@ if(!isConfigured){
     background:rgba(9,11,19,.98); border-bottom:1px solid var(--line);}
   .np-head b{font-family:var(--font-display); font-size:20px; letter-spacing:1.2px; color:var(--txt); font-weight:400; flex:1;}
   .np-x{background:transparent; border:0; color:var(--muted); font-size:20px; cursor:pointer; padding:4px;}
+  .np-edit{display:inline-flex; align-items:center; gap:6px; background:transparent; border:1px solid rgba(var(--gold-rgb),.45); color:var(--gold);
+    border-radius:8px; padding:6px 10px; cursor:pointer; font-family:var(--font-cond); font-size:14px; font-weight:700; letter-spacing:1px; text-transform:uppercase; white-space:nowrap;}
+  .np-edit:hover{border-color:var(--gold);}
   .np-x:hover{color:var(--txt);}
   .np-sec{padding:14px 16px; border-bottom:1px solid var(--line);}
   .np-sec:last-child{border-bottom:0;}
@@ -27372,9 +27401,10 @@ if(!isConfigured){
 
 <div class="np-veil" id="np-veil" onclick="wcaNotifClose()"></div>
 <div class="np" id="np" role="dialog" aria-modal="true" aria-label="Notifications">
-  <div class="np-head"><b>Notifications</b><button class="np-x" onclick="wcaNotifClose()" aria-label="Close"><i class="ti ti-x"></i></button></div>
+  <div class="np-head"><b>Notifications</b>
+    <button class="np-edit" type="button" onclick="wcaNotifClose();goPage('notifications')"><i class="ti ti-settings"></i> Edit notifications</button>
+    <button class="np-x" onclick="wcaNotifClose()" aria-label="Close"><i class="ti ti-x"></i></button></div>
   <div class="np-sec" id="np-admin" hidden></div>
-  <div class="np-sec" id="np-device"></div>
   <div id="np-list"><div class="np-empty">Loading…</div></div>
 </div>
 
@@ -27481,9 +27511,8 @@ function wcaNotifOpen(){
   const hr = document.getElementById('headRight'); if(hr) hr.classList.remove('open');
   document.getElementById('np').classList.add('open');
   document.getElementById('np-veil').classList.add('open');
-  npRenderDevice(); npRenderAdmin(); npRenderList();
+  npRenderAdmin(); npRenderList();
   npLoad(); npLoadWaiting();
-  if(npPushSupported() && !NP_KEY) npGetKey().then(()=>{ if(npOpenNow()) npRenderDevice(); });
   // opening the panel marks everything as seen (the dots stay on this visit)
   if(NP_ROWS[0]) setTimeout(()=>{ npLS('wca-notif-seen', NP_ROWS[0].created_at); npPaintBell(); }, 600);
 }
@@ -27501,8 +27530,7 @@ function npRenderList(){
   if(!NP_ROWS.length){ box.innerHTML = '<div class="np-empty">No notifications yet. New posts, shows and live alerts land here.</div>'; return; }
   if(!npRenderList.seenAt) npRenderList.seenAt = npSeen();   // what counted as new when the panel opened
   const seen = npRenderList.seenAt;
-  box.innerHTML = '<div class="np-sec" style="padding-bottom:4px;border-bottom:0"><div class="np-eyebrow" style="margin:0">Recent</div></div>' +
-    NP_ROWS.map(r=>`<a class="np-item c-${escAttr(r.category||'news')}${r.created_at > seen ? ' new' : ''}" href="${escAttr(r.url || '/')}" onclick="return wcaNotifGo(this.getAttribute('href'))">
+  box.innerHTML = NP_ROWS.map(r=>`<a class="np-item c-${escAttr(r.category||'news')}${r.created_at > seen ? ' new' : ''}" href="${escAttr(r.url || '/')}" onclick="return wcaNotifGo(this.getAttribute('href'))">
       <div class="ic"><i class="ti ${NP_ICON[r.category] || 'ti-bell'}"></i></div>
       <div style="min-width:0;flex:1"><div class="t">${esc(r.title)}</div>${r.body ? `<div class="b">${esc(r.body)}</div>` : ''}<div class="w">${esc(npAgo(r.created_at))}</div></div>
     </a>`).join('');
@@ -27512,14 +27540,12 @@ function npRenderAdmin(){
   const box = document.getElementById('np-admin');
   if(!box) return;
   if(!npAdmin()){ box.hidden = true; box.innerHTML = ''; return; }
-  box.hidden = false;
   const w = NP_WAITING || {};
   const rows = NP_WAIT.filter(([k])=>Number(w[k]) > 0);
-  box.innerHTML = `<div class="np-eyebrow">Waiting for you</div>` +
-    (NP_WAITING === null ? '<p class="np-p" style="margin:0">Checking…</p>'
-      : rows.length ? rows.map(([k,l])=>`<div class="np-wait"><span>${esc(l)}</span><em>${Number(w[k])}</em></div>`).join('') +
-          '<p class="np-p" style="margin:10px 0 0;font-size:14px;color:var(--muted)">Approve them in your admin: <b>Superstar Portal</b>, <b>Creator Portals</b> and <b>Applications</b> tabs.</p>'
-        : '<p class="np-p" style="margin:0">Nothing is waiting for you right now.</p>');
+  // Nov 2026: the bell is notifications only, so this shows only when something is waiting
+  box.hidden = !rows.length;
+  box.innerHTML = rows.length ? `<div class="np-eyebrow">Waiting for you</div>` +
+    rows.map(([k,l])=>`<div class="np-wait"><span>${esc(l)}</span><em>${Number(w[k])}</em></div>`).join('') : '';
 }
 
 function npRenderDevice(msg, bad){
@@ -27530,7 +27556,7 @@ function npRenderDevice(msg, bad){
   if(!npPushSupported()){
     if(npIOS() && !npStandalone()){
       h += `<p class="np-p">On iPhone and iPad, add WCA to your Home Screen first, then open it from there and turn notifications on.</p>
-        <div class="np-btns"><button class="np-btn ghost" onclick="wcaNotifClose();wcaInstall()"><i class="ti ti-download"></i> Get the App</button></div>`;
+        <div class="np-btns"><button class="np-btn ghost" onclick="wcaInstall()"><i class="ti ti-download"></i> Get the App</button></div>`;
     } else {
       h += '<p class="np-p" style="margin:0">This browser can\'t show phone style notifications. New alerts still show up in this list.</p>';
     }
@@ -27656,6 +27682,7 @@ async function npFindSub(){
 
 /* ---------- sign in / out: refresh who this device belongs to ---------- */
 async function wcaNotifAuth(){
+  try{ if(typeof wcaMsgAuth === 'function') wcaMsgAuth(); }catch(e){}   // chat bubble: who is signed in
   const sig = (npSignedIn() ? CURRENT_USER.id : '-') + '|' + (npAdmin() ? 'a' : 'u');
   if(sig === NP_AUTH_SIG) return;
   NP_AUTH_SIG = sig;
@@ -32176,8 +32203,9 @@ function musSyncMin(){
   const fx = document.getElementById('mus-fab-x'); if(fx) fx.hidden = f.hidden;
   // on a phone the open player sits along the bottom, so leave room for it
   document.body.classList.toggle('mus-open', show && !musMin && !musPos);
-  // the tab sits on whichever side the player was on
-  const left = musPos && (musPos.x + 180) < window.innerWidth / 2;
+  // the tab sits on whichever side the player was on (Nov 2026: the left by default,
+  // the chat bubble has the bottom right now)
+  const left = !musPos || (musPos.x + 180) < window.innerWidth / 2;
   f.classList.toggle('left', !!left);
   if(fx) fx.classList.toggle('left', !!left);
   f.classList.toggle('playing', !audio.paused);
@@ -46423,5 +46451,673 @@ function wcaBadgesHTML(name){
   };
 })();
 </script>
+<!-- ===== CHAT BUBBLE + MESSAGES + MEMBER ACTIVITY (Nov 2026) =====
+     The glowing chat bubble in the bottom right of every page.
+       All Chat:       the same chat as Watch Live (chat_messages), shown on
+                       any page. It only connects while that tab is open.
+       Message Admin:  each member's private conversation with the admin
+                       (dm_threads / dm_messages). Signed in as the admin,
+                       this tab is the Inbox instead.
+       Computers: the bubble opens a small window. Phones: it opens /messages.
+       Minimize closes the window, X removes the bubble. A new message from
+       the admin always brings it back. It can also be turned back on from
+       the Notification Settings page.
+     Activity: wcaTrack() tells the database which feature someone used, at
+       most once every few minutes per feature (admin.html > Members).
+     Needs: SUPABASE_SETUP_messages_members.sql. Without it, All Chat still
+       works and the Message Admin tab says messages aren't open yet. -->
+<style>
+  .wcab-btn{position:fixed; right:18px; bottom:18px; z-index:8990; width:60px; height:60px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+    background:radial-gradient(circle at 35% 30%, rgba(var(--gold-rgb),.38), rgba(12,13,20,.96) 70%);
+    border:2px solid var(--gold); color:var(--gold); font-size:28px; line-height:1;
+    box-shadow:0 0 0 0 rgba(var(--gold-rgb),.55), 0 10px 28px rgba(0,0,0,.55);
+    animation:wcab-glow 2.6s ease-in-out infinite; transition:transform .15s;}
+  .wcab-btn:hover{transform:translateY(-2px) scale(1.04);}
+  .wcab-btn[hidden]{display:none !important;}
+  .wcab-btn.open{animation:none; box-shadow:0 0 18px rgba(var(--gold-rgb),.5), 0 10px 28px rgba(0,0,0,.55);}
+  @keyframes wcab-glow{0%,100%{box-shadow:0 0 6px 1px rgba(var(--gold-rgb),.35), 0 10px 28px rgba(0,0,0,.55);}
+    50%{box-shadow:0 0 22px 6px rgba(var(--gold-rgb),.55), 0 10px 28px rgba(0,0,0,.55);}}
+  @media (prefers-reduced-motion:reduce){ .wcab-btn{animation:none;} }
+  .wcab-n{position:absolute; top:-4px; right:-4px; min-width:24px; height:24px; padding:0 6px; border-radius:12px;
+    background:#ff5a6e; color:#fff; font:700 14px/24px var(--font-body); text-align:center; box-shadow:0 0 0 2px #0d0d0f;}
+  .wcab-n[hidden]{display:none;}
+  /* Watch Live pins its chat on the right, so on a computer the bubble moves to the
+     left there, above the music widget */
+  html[data-wcab-page="live"] .wcab-btn{right:auto; left:18px; bottom:236px;}
+  html[data-wcab-page="live"] .wcab-panel:not(.full){right:auto; left:18px; bottom:306px; height:min(520px, calc(100dvh - 340px));}
+  html[data-wcab-page="messages"] .wcab-btn{display:none !important;}
+
+  .wcab-panel{position:fixed; right:18px; bottom:90px; z-index:8991; width:min(390px, calc(100vw - 36px));
+    height:min(560px, calc(100dvh - 130px)); display:flex; flex-direction:column; overflow:hidden;
+    background:rgba(9,11,19,.98); border:1px solid rgba(var(--gold-rgb),.5); border-radius:14px;
+    box-shadow:0 22px 60px rgba(0,0,0,.65); animation:wcab-in .2s ease-out both;}
+  .wcab-panel[hidden]{display:none !important;}
+  @keyframes wcab-in{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+  .wcab-panel.full{position:relative; right:auto; bottom:auto; left:auto; width:100%; max-width:760px; margin:0 auto;
+    height:calc(100dvh - 220px); min-height:440px; animation:none; z-index:1;}
+  .wcab-head{display:flex; align-items:center; gap:6px; padding:10px 10px 0 12px; border-bottom:1px solid var(--line); flex:0 0 auto;}
+  .wcab-tabs{display:flex; gap:4px; flex:1; min-width:0;}
+  .wcab-tab{position:relative; background:transparent; border:0; border-bottom:3px solid transparent; color:var(--muted); cursor:pointer;
+    padding:8px 10px 9px; font-family:var(--font-cond); font-size:16px; font-weight:700; letter-spacing:1px; text-transform:uppercase; white-space:nowrap;}
+  .wcab-tab.on{color:var(--gold); border-bottom-color:var(--gold);}
+  .wcab-tab .wcab-tn{display:inline-block; margin-left:6px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:#ff5a6e; color:#fff;
+    font:700 13px/20px var(--font-body); text-align:center; letter-spacing:0;}
+  .wcab-tab .wcab-tn[hidden]{display:none;}
+  .wcab-ic{background:transparent; border:0; color:var(--muted); cursor:pointer; font-size:20px; padding:6px; line-height:1;}
+  .wcab-ic:hover{color:var(--txt);}
+  .wcab-panel.full .wcab-ic.only-float{display:none;}
+  .wcab-body{flex:1; min-height:0; display:flex; flex-direction:column;}
+  .wcab-feed{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:12px 12px 6px;}
+  .wcab-note{font-family:var(--font-body); font-size:14px; line-height:1.5; color:var(--muted); text-align:center; padding:22px 14px;}
+  .wcab-note b{color:var(--txt);}
+  .wcab-day{text-align:center; font-family:var(--font-cond); font-size:14px; letter-spacing:1.6px; text-transform:uppercase; color:var(--muted); margin:10px 0 6px;}
+  /* All Chat rows */
+  .wcab-cm{display:flex; gap:9px; padding:5px 0; align-items:flex-start;}
+  .wcab-av{flex:0 0 30px; width:30px; height:30px; border-radius:50%; object-fit:cover; background:rgba(var(--gold-rgb),.15);
+    display:flex; align-items:center; justify-content:center; font:700 13px var(--font-body); color:var(--gold); overflow:hidden;}
+  .wcab-cm .who{font-family:var(--font-body); font-weight:700; font-size:14.5px; color:var(--gold);}
+  .wcab-cm .when{font-family:var(--font-body); font-size:13px; color:var(--muted); margin-left:6px;}
+  .wcab-cm .txt{font-family:var(--font-body); font-size:15px; line-height:1.45; color:var(--txt); white-space:pre-wrap; word-break:break-word;}
+  /* private message bubbles */
+  .wcab-m{display:flex; flex-direction:column; max-width:82%; margin:6px 0;}
+  .wcab-m.me{margin-left:auto; align-items:flex-end;}
+  .wcab-m .bb{padding:9px 13px; border-radius:14px; font-family:var(--font-body); font-size:15px; line-height:1.45; white-space:pre-wrap; word-break:break-word;
+    background:rgba(255,255,255,.07); color:var(--txt); border:1px solid rgba(255,255,255,.06);}
+  .wcab-m.me .bb{background:rgba(var(--gold-rgb),.2); border-color:rgba(var(--gold-rgb),.35);}
+  .wcab-m .mt{font-family:var(--font-body); font-size:13px; color:var(--muted); margin-top:3px; padding:0 4px;}
+  .wcab-from{display:flex; align-items:center; gap:8px; font-family:var(--font-cond); font-size:15px; letter-spacing:1px; text-transform:uppercase; color:var(--gold); margin:0 0 4px 2px;}
+  .wcab-from img{width:22px; height:22px; object-fit:contain;}
+  .wcab-convhead{display:flex; align-items:center; gap:8px; padding:9px 12px; border-bottom:1px solid var(--line); flex:0 0 auto;
+    font-family:var(--font-body); font-size:15px; color:var(--txt);}
+  .wcab-convhead b{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .wcab-convhead .lk{font-family:var(--font-cond); font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#ff8a96;}
+  .wcab-hint{font-family:var(--font-body); font-size:13.5px; color:var(--muted); padding:0 12px 8px; line-height:1.4;}
+  /* the admin's inbox list */
+  .wcab-row{display:flex; gap:10px; width:100%; text-align:left; align-items:center; padding:10px 12px; background:transparent; border:0;
+    border-bottom:1px solid rgba(255,255,255,.05); cursor:pointer; color:inherit;}
+  .wcab-row:hover{background:rgba(var(--gold-rgb),.06);}
+  .wcab-row .wcab-nm{font-family:var(--font-body); font-weight:700; font-size:15px; color:var(--txt); display:flex; gap:8px; align-items:center;}
+  .wcab-row .wcab-pv{font-family:var(--font-body); font-size:14px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .wcab-row .wcab-tm{font-family:var(--font-body); font-size:13px; color:var(--muted); flex:0 0 auto;}
+  .wcab-row.unread .wcab-nm::after{content:''; width:9px; height:9px; border-radius:50%; background:#ff5a6e; flex:0 0 9px;}
+  .wcab-row .lk{font-family:var(--font-cond); font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#ff8a96;}
+  /* composer */
+  .wcab-comp{flex:0 0 auto; display:flex; gap:8px; align-items:flex-end; padding:10px 12px 12px; border-top:1px solid var(--line);}
+  .wcab-comp textarea{flex:1; min-height:42px; max-height:130px; resize:none; padding:10px 12px; border-radius:10px;
+    background:rgba(255,255,255,.05); border:1px solid var(--line); color:var(--txt); font-family:var(--font-body); font-size:15px; line-height:1.4;}
+  .wcab-comp textarea:focus{outline:none; border-color:rgba(var(--gold-rgb),.6);}
+  .wcab-send{flex:0 0 auto; width:44px; height:42px; border-radius:10px; border:1px solid var(--gold); background:var(--gold); color:var(--on-gold,#111);
+    font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .wcab-send:disabled{opacity:.55; cursor:wait;}
+  .wcab-signin{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; padding:12px; border-top:1px solid var(--line);}
+  .wcab-signin p{width:100%; text-align:center; margin:0 0 2px; font-family:var(--font-body); font-size:14px; color:var(--muted);}
+  .wcab-signin button, .wcab-pill{display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:8px; cursor:pointer;
+    background:transparent; color:var(--gold); border:1px solid rgba(var(--gold-rgb),.45); font-family:var(--font-cond); font-size:15px; font-weight:700; letter-spacing:1px; text-transform:uppercase;}
+  .wcab-page-foot{max-width:760px; margin:14px auto 0; text-align:center;}
+  /* the fight design already titles every page in its top bar */
+  html[data-design="fight"] #page-messages .section-title, html[data-design="fight"] #page-notifications .section-title{display:none;}
+  /* the music tab steps aside on the Messages page on phones, so it can't cover the message box */
+  @media (max-width:760px){ html[data-wcab-page="messages"] .mus-fab, html[data-wcab-page="messages"] .mus-fab-x{visibility:hidden !important; pointer-events:none !important;} }
+
+  /* the locked account notice (in the page, not a pop up) */
+  .wca-locked-note{max-width:900px; margin:16px auto; padding:16px 18px; border-radius:12px; border:1px solid rgba(255,90,110,.55);
+    background:rgba(255,90,110,.08); font-family:var(--font-body); font-size:16px; line-height:1.5; color:var(--txt); display:flex; gap:12px; align-items:flex-start;}
+  .wca-locked-note i{font-size:24px; color:#ff8a96;}
+  .wca-locked-note b{color:#fff;}
+
+  /* Notification Settings page */
+  .nset-wrap{max-width:640px; margin:0 auto;}
+  .nset-card{border:1px solid var(--line); border-radius:12px; background:rgba(9,11,19,.7);}
+  .nset-card + .nset-card{margin-top:14px;}
+  .nset-back{margin:0 0 14px;}
+
+  @media (max-width:760px){
+    .wcab-btn{right:14px; bottom:calc(var(--mnav-h, 0px) + 14px + env(safe-area-inset-bottom, 0px)); width:56px; height:56px; font-size:26px;}
+    body.mus-open .wcab-btn{bottom:calc(var(--mnav-h, 0px) + 124px + env(safe-area-inset-bottom, 0px));}
+    html[data-wcab-page="live"] .wcab-btn{left:auto; right:14px; bottom:calc(var(--mnav-h, 0px) + 14px + env(safe-area-inset-bottom, 0px));}
+    html[data-mnav-open] .wcab-btn{visibility:hidden !important;}
+    .wcab-panel:not(.full){display:none !important;}
+    .wcab-panel.full{height:calc(100dvh - 230px - var(--mnav-h, 0px)); min-height:380px; border-radius:12px;}
+  }
+</style>
+
+<button class="wcab-btn" id="wcab-btn" type="button" onclick="wcabToggle()" aria-label="Chat and messages" title="Chat and messages" hidden>
+  <i class="ti ti-message-circle-2" aria-hidden="true"></i><span class="wcab-n" id="wcab-n" hidden></span>
+</button>
+<div class="wcab-panel" id="wcab-panel" role="dialog" aria-label="Chat and messages" hidden>
+  <div class="wcab-head">
+    <div class="wcab-tabs" role="tablist">
+      <button class="wcab-tab" type="button" data-t="all" role="tab" onclick="wcabTab('all')"><i class="ti ti-messages" aria-hidden="true"></i> All Chat</button>
+      <button class="wcab-tab" type="button" data-t="dm" role="tab" onclick="wcabTab('dm')"><span id="wcab-dmlabel">Message Admin</span><span class="wcab-tn" id="wcab-tn" hidden></span></button>
+    </div>
+    <button class="wcab-ic only-float" type="button" onclick="wcabClose()" aria-label="Minimize" title="Minimize"><i class="ti ti-minus"></i></button>
+    <button class="wcab-ic only-float" type="button" onclick="wcabRemove()" aria-label="Remove the chat bubble" title="Remove (turn it back on in Notification Settings)"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="wcab-body" id="wcab-body"></div>
+</div>
+
+<script>
+/* ---------- state ---------- */
+const WCAB = {
+  open:false,            // the floating window is showing
+  tab:'all',             // 'all' | 'dm'
+  off:false,             // the visitor removed the bubble
+  ready:null,            // messages are set up in the database (null = not checked yet)
+  unread:0,
+  uid:null,              // who this device is signed in as
+  admin:false,
+  thread:null,           // member: their conversation id
+  msgs:[],               // messages in the open conversation
+  inbox:[],              // admin: conversation list
+  conv:null,             // admin: the open conversation {id, member_id, display_name, locked}
+  all:[],                // All Chat messages
+  allLoaded:false,
+  allCh:null, dmCh:null,
+  host:null              // where the window lives when it's on the /messages page
+};
+try{ WCAB.off = localStorage.getItem('wca-chat-off') === '1'; }catch(e){}
+const WCAB_LOGO = 'brand/wca-logo-sm.png';
+
+function wcabPhone(){ return window.matchMedia && window.matchMedia('(max-width:760px)').matches; }
+function wcabEl(id){ return document.getElementById(id); }
+function wcabMyName(){ return (typeof MY_PROFILE !== 'undefined' && MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'there'; }
+function wcabFill(body, name){ return String(body || '').replace(/\{name\}/gi, name || 'there'); }
+function wcabAgo(iso){ return typeof npAgo === 'function' ? npAgo(iso) : ''; }
+function wcabWhen(iso){ try{ return typeof chatTime === 'function' ? chatTime(iso) : new Date(iso).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }); }catch(e){ return ''; } }
+function wcabDay(iso){ try{ return new Date(iso).toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' }); }catch(e){ return ''; } }
+function wcabOnPage(){ return !!(WCAB.host && WCAB.host.contains(wcabEl('wcab-panel'))); }
+function wcabVisible(){ return wcabOnPage() || WCAB.open; }
+
+/* ---------- the bubble ---------- */
+function wcabPaint(){
+  const btn = wcabEl('wcab-btn'), n = wcabEl('wcab-n'), tn = wcabEl('wcab-tn'), lab = wcabEl('wcab-dmlabel');
+  if(!btn) return;
+  btn.hidden = WCAB.off || typeof sb === 'undefined' || !sb;
+  btn.classList.toggle('open', WCAB.open);
+  const c = WCAB.unread > 99 ? '99+' : String(WCAB.unread);
+  if(n){ n.hidden = !WCAB.unread; n.textContent = c; }
+  if(tn){ tn.hidden = !WCAB.unread; tn.textContent = c; }
+  if(lab) lab.textContent = WCAB.admin ? 'Inbox' : 'Message Admin';
+  btn.setAttribute('aria-label', WCAB.unread ? 'Chat and messages, ' + c + ' new' : 'Chat and messages');
+  document.querySelectorAll('#wcab-panel .wcab-tab').forEach(b=>{
+    const on = b.dataset.t === WCAB.tab;
+    b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+function wcabToggle(){
+  if(wcabPhone()){ if(typeof goPage === 'function') goPage('messages'); return; }
+  WCAB.open ? wcabClose() : wcabOpen();
+}
+function wcabOpen(tab){
+  if(tab) WCAB.tab = tab;
+  if(wcabPhone()){ if(typeof goPage === 'function') goPage('messages'); return; }
+  const p = wcabEl('wcab-panel'); if(!p) return;
+  if(wcabOnPage()) return wcabRender();
+  WCAB.open = true; p.hidden = false;
+  wcabPaint(); wcabRender();
+}
+function wcabClose(){
+  const p = wcabEl('wcab-panel');
+  WCAB.open = false;
+  if(p && !wcabOnPage()) p.hidden = true;
+  wcabAllStop();
+  wcabPaint();
+}
+function wcabRemove(){
+  WCAB.off = true;
+  try{ localStorage.setItem('wca-chat-off', '1'); }catch(e){}
+  wcabClose();
+  if(typeof wcaToast === 'function') wcaToast('Chat bubble removed', 'Turn it back on any time in Notification Settings.');
+  wcabSyncSettings();
+}
+function wcabSetOff(off){
+  WCAB.off = !!off;
+  try{ localStorage.setItem('wca-chat-off', WCAB.off ? '1' : '0'); }catch(e){}
+  if(WCAB.off) wcabClose(); else wcabPaint();
+  wcabSyncSettings();
+}
+function wcabTab(t){
+  WCAB.tab = t === 'dm' ? 'dm' : 'all';
+  if(WCAB.tab !== 'all') wcabAllStop();
+  wcabPaint(); wcabRender();
+}
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && WCAB.open && !wcabOnPage()) wcabClose(); });
+
+/* ---------- drawing ---------- */
+function wcabRender(){
+  const body = wcabEl('wcab-body'); if(!body) return;
+  wcabPaint();
+  if(WCAB.tab === 'all') return wcabRenderAll(body);
+  return wcabRenderDm(body);
+}
+function wcabSignInHTML(what){
+  return `<div class="wcab-signin"><p>Sign in to ${what}.</p>
+    <button type="button" onclick="signInProvider('discord')"><i class="ti ti-brand-discord"></i> Discord</button>
+    <button type="button" onclick="signInProvider('google')"><i class="ti ti-brand-google"></i> Google</button>
+    <button type="button" onclick="signInProvider('twitch')"><i class="ti ti-brand-twitch"></i> Twitch</button></div>`;
+}
+function wcabComposerHTML(kind, ph){
+  return `<div class="wcab-comp"><textarea id="wcab-in" rows="1" maxlength="${kind === 'all' ? 500 : 2000}" placeholder="${escAttr(ph)}"
+      oninput="wcabGrow(this)" onkeydown="wcabKey(event,'${kind}')"></textarea>
+    <button class="wcab-send" id="wcab-sendbtn" type="button" onclick="wcabSend('${kind}')" aria-label="Send"><i class="ti ti-send"></i></button></div>`;
+}
+function wcabGrow(t){ t.style.height = 'auto'; t.style.height = Math.min(130, t.scrollHeight) + 'px'; }
+function wcabKey(e, kind){ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); wcabSend(kind); } }
+function wcabScrollEnd(){ const f = wcabEl('wcab-feed'); if(f) f.scrollTop = f.scrollHeight; }
+function wcabKeepDraft(){ const t = wcabEl('wcab-in'); return t ? t.value : ''; }
+function wcabPutDraft(v){ const t = wcabEl('wcab-in'); if(t && v){ t.value = v; wcabGrow(t); } }
+
+/* ----- All Chat: the same chat as Watch Live ----- */
+function wcabAllRowHTML(m){
+  const name = m.author_name || 'Member', init = esc(name.slice(0,2).toUpperCase());
+  const av = m.author_avatar ? `<img class="wcab-av" src="${escAttr(m.author_avatar)}" alt="" onerror="this.outerHTML='<div class=\\'wcab-av\\'>${init}</div>'">` : `<div class="wcab-av">${init}</div>`;
+  return `<div class="wcab-cm" data-cid="${escAttr(String(m.id))}">${av}<div style="min-width:0;flex:1">
+    <div><span class="who">${esc(name)}</span><span class="when">${esc(wcabWhen(m.created_at))}</span></div>
+    <div class="txt">${esc(m.body)}</div></div></div>`;
+}
+function wcabAllListHTML(){
+  if(!WCAB.all.length) return '<div class="wcab-note">No messages yet. Say hi, or ask a question and someone will help you out.</div>';
+  let prev = '';
+  return WCAB.all.map(m=>{
+    const d = wcabDay(m.created_at); const lab = d !== prev ? `<div class="wcab-day">${esc(d)}</div>` : ''; prev = d;
+    return lab + wcabAllRowHTML(m);
+  }).join('');
+}
+async function wcabRenderAll(body){
+  const draft = wcabKeepDraft();
+  const signed = !!WCAB.uid;
+  body.innerHTML = `<div class="wcab-hint" style="padding-top:8px">One chat for the whole site, the same one as Watch Live. Ask anything and the admin or another member can help.</div>
+    <div class="wcab-feed" id="wcab-feed">${WCAB.allLoaded ? wcabAllListHTML() : '<div class="wcab-note">Loading…</div>'}</div>` +
+    (signed ? wcabComposerHTML('all', 'Message everyone') : wcabSignInHTML('chat'));
+  wcabPutDraft(draft);
+  wcabScrollEnd();
+  if(!WCAB.allLoaded) await wcabAllLoad();
+  wcabAllStart();
+}
+async function wcabAllLoad(){
+  try{
+    if(typeof chatLoadRetention === 'function') await chatLoadRetention();
+    let q = sb.from('chat_messages').select('id,user_id,author_name,author_avatar,body,created_at');
+    const keep = typeof CHAT_KEEP_DAYS !== 'undefined' ? CHAT_KEEP_DAYS : 0;
+    if(keep > 0) q = q.gte('created_at', new Date(Date.now() - keep*86400000).toISOString());
+    const { data, error } = await q.order('created_at', { ascending:false }).limit(typeof CHAT_MAX !== 'undefined' ? CHAT_MAX : 60);
+    if(error) throw error;
+    WCAB.all = (data || []).reverse();
+    WCAB.allLoaded = true;
+  }catch(e){
+    const f = wcabEl('wcab-feed'); if(f) f.innerHTML = '<div class="wcab-note">Chat is unavailable right now.</div>';
+    return;
+  }
+  if(WCAB.tab === 'all' && wcabVisible()){ const f = wcabEl('wcab-feed'); if(f){ f.innerHTML = wcabAllListHTML(); wcabScrollEnd(); } }
+}
+// only connected while All Chat is on screen
+function wcabAllStart(){
+  if(WCAB.allCh || typeof sb === 'undefined' || !sb || !sb.channel) return;
+  try{
+    WCAB.allCh = sb.channel('wcab-allchat')
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_messages' }, ({ new:m })=>{
+        if(!m || WCAB.all.some(x=>String(x.id) === String(m.id))) return;
+        WCAB.all.push(m); if(WCAB.all.length > 200) WCAB.all.shift();
+        const f = wcabEl('wcab-feed');
+        if(f && WCAB.tab === 'all'){
+          const near = f.scrollHeight - f.scrollTop - f.clientHeight < 80;
+          if(f.querySelector('.wcab-note')) f.innerHTML = '';
+          f.insertAdjacentHTML('beforeend', wcabAllRowHTML(m));
+          if(near) wcabScrollEnd();
+        }
+      })
+      .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_messages' }, ({ old:m })=>{
+        if(!m) return;
+        WCAB.all = WCAB.all.filter(x=>String(x.id) !== String(m.id));
+        const n = document.querySelector(`#wcab-feed [data-cid="${CSS.escape(String(m.id))}"]`); if(n) n.remove();
+      })
+      .subscribe();
+  }catch(e){ WCAB.allCh = null; }
+}
+function wcabAllStop(){
+  if(!WCAB.allCh) return;
+  try{ sb.removeChannel(WCAB.allCh); }catch(e){}
+  WCAB.allCh = null;
+  WCAB.allLoaded = false;     // reload fresh next time, so nothing is missed while it was closed
+}
+async function wcabSendAll(text){
+  const name = (IS_ADMIN && typeof POST_AS_ADMIN !== 'undefined' && POST_AS_ADMIN) ? 'Admin' : ((MY_PROFILE && (MY_PROFILE.display_name || MY_PROFILE.username)) || 'Member');
+  const avatar = (IS_ADMIN && typeof POST_AS_ADMIN !== 'undefined' && POST_AS_ADMIN) ? null : ((MY_PROFILE && (MY_PROFILE.custom_avatar || MY_PROFILE.avatar_url)) || null);
+  const { error } = await sb.from('chat_messages').insert({ user_id: CURRENT_USER.id, author_name: name, author_avatar: avatar, body: text });
+  if(error) throw error;
+  wcaTrack('chat', true);
+}
+
+/* ----- Message Admin (members) / Inbox (admin) ----- */
+function wcabMsgHTML(m, memberName){
+  const mine = m.sender_id === WCAB.uid;
+  const fromAdmin = WCAB.admin ? mine : !mine;
+  const text = esc(wcabFill(m.body, memberName));
+  const from = (!mine && fromAdmin) ? `<div class="wcab-from"><img src="${WCAB_LOGO}" alt="">Admin</div>` : '';
+  return `<div class="wcab-m${mine ? ' me' : ''}">${from}<div class="bb">${text}</div><div class="mt">${esc(wcabAgo(m.created_at))}</div></div>`;
+}
+function wcabMsgListHTML(memberName){
+  if(!WCAB.msgs.length) return WCAB.admin
+    ? '<div class="wcab-note">No messages yet. Say hi.</div>'
+    : '<div class="wcab-note">This is your private line to the <b>admin</b> of the World Championship Alliance. Questions, ideas, or just saying hi, send it here.</div>';
+  let prev = '';
+  return WCAB.msgs.map(m=>{
+    const d = wcabDay(m.created_at); const lab = d !== prev ? `<div class="wcab-day">${esc(d)}</div>` : ''; prev = d;
+    return lab + wcabMsgHTML(m, memberName);
+  }).join('');
+}
+async function wcabRenderDm(body){
+  if(!WCAB.uid){
+    body.innerHTML = '<div class="wcab-feed"><div class="wcab-note">Sign in to send the <b>admin</b> a private message.</div></div>' + wcabSignInHTML('message the admin');
+    return;
+  }
+  if(WCAB.ready === false){
+    body.innerHTML = '<div class="wcab-feed"><div class="wcab-note">Private messages aren\'t open yet. Check back soon, or ask in All Chat.</div></div>';
+    return;
+  }
+  if(WCAB.admin) return WCAB.conv ? wcabRenderConv(body) : wcabRenderInbox(body);
+  // a member's conversation with the admin
+  const draft = wcabKeepDraft();
+  body.innerHTML = `<div class="wcab-hint" style="padding-top:8px">Only you and the admin can see this conversation.</div>
+    <div class="wcab-feed" id="wcab-feed">${WCAB.thread && WCAB.msgsLoaded ? wcabMsgListHTML(wcabMyName()) : '<div class="wcab-note">Loading…</div>'}</div>` +
+    wcabComposerHTML('dm', 'Message the admin');
+  wcabPutDraft(draft); wcabScrollEnd();
+  if(!WCAB.thread || !WCAB.msgsLoaded){ await wcabLoadMine(); }
+  wcabMarkRead();
+}
+async function wcabLoadMine(){
+  try{
+    if(!WCAB.thread){
+      const { data, error } = await sb.rpc('dm_my_thread');
+      if(error) throw error;
+      WCAB.thread = data;
+    }
+    await wcabLoadMsgs(WCAB.thread);
+  }catch(e){
+    WCAB.ready = false;
+  }
+  if(WCAB.tab === 'dm' && wcabVisible() && !WCAB.admin) wcabRender();
+}
+async function wcabLoadMsgs(threadId){
+  const { data, error } = await sb.from('dm_messages').select('id,thread_id,sender_id,body,created_at')
+    .eq('thread_id', threadId).order('created_at', { ascending:false }).limit(200);
+  if(error) throw error;
+  WCAB.msgs = (data || []).reverse();
+  WCAB.msgsLoaded = true;
+}
+async function wcabRenderInbox(body){
+  body.innerHTML = `<div class="wcab-feed" id="wcab-feed" style="padding:0">${WCAB.inbox.length ? wcabInboxHTML() : '<div class="wcab-note">Loading…</div>'}</div>`;
+  try{
+    const { data, error } = await sb.rpc('dm_admin_inbox');
+    if(error) throw error;
+    WCAB.inbox = data || [];
+  }catch(e){ WCAB.ready = false; return wcabRenderDm(body); }
+  if(WCAB.tab === 'dm' && !WCAB.conv && wcabVisible()){ const f = wcabEl('wcab-feed'); if(f) f.innerHTML = wcabInboxHTML(); }
+}
+function wcabInboxHTML(){
+  if(!WCAB.inbox.length) return '<div class="wcab-note">No messages yet. When members message you, they show up here. You can start a conversation from the <b>Members</b> tab in your admin.</div>';
+  return WCAB.inbox.map(r=>{
+    const name = r.display_name || 'Member';
+    const pv = (r.last_sender === r.member_id ? '' : 'You: ') + wcabFill(r.last_body || '', name);
+    const av = r.avatar ? `<img class="wcab-av" src="${escAttr(r.avatar)}" alt="">` : `<div class="wcab-av">${esc(name.slice(0,2).toUpperCase())}</div>`;
+    return `<div role="button" tabindex="0" class="wcab-row${r.unread ? ' unread' : ''}" onclick="wcabOpenConv(${Number(r.id)})" onkeydown="if(event.key==='Enter')wcabOpenConv(${Number(r.id)})">${av}
+      <div style="min-width:0;flex:1"><div class="wcab-nm">${esc(name)}${r.locked ? ' <span class="lk">Locked</span>' : ''}</div><div class="wcab-pv">${esc(pv)}</div></div>
+      <span class="wcab-tm">${esc(wcabAgo(r.last_at))}</span></div>`;
+  }).join('');
+}
+async function wcabOpenConv(id){
+  const r = WCAB.inbox.find(x=>Number(x.id) === Number(id));
+  WCAB.conv = r ? { id:r.id, member_id:r.member_id, display_name:r.display_name, locked:r.locked } : { id, display_name:'Member' };
+  WCAB.msgs = []; WCAB.msgsLoaded = false;
+  wcabRender();
+}
+function wcabBackToInbox(){ WCAB.conv = null; WCAB.msgs = []; wcabRender(); }
+async function wcabRenderConv(body){
+  const c = WCAB.conv, draft = wcabKeepDraft();
+  body.innerHTML = `<div class="wcab-convhead"><button class="wcab-ic" type="button" onclick="wcabBackToInbox()" aria-label="Back to the inbox"><i class="ti ti-arrow-left"></i></button>
+      <b>${esc(c.display_name || 'Member')}</b>${c.locked ? '<span class="lk">Locked</span>' : ''}</div>
+    <div class="wcab-feed" id="wcab-feed">${WCAB.msgsLoaded ? wcabMsgListHTML(c.display_name) : '<div class="wcab-note">Loading…</div>'}</div>` +
+    wcabComposerHTML('dm', 'Reply as the admin');
+  wcabPutDraft(draft); wcabScrollEnd();
+  if(!WCAB.msgsLoaded){
+    try{ await wcabLoadMsgs(c.id); }catch(e){}
+    if(WCAB.conv && WCAB.conv.id === c.id && wcabVisible()){ const f = wcabEl('wcab-feed'); if(f){ f.innerHTML = wcabMsgListHTML(c.display_name); wcabScrollEnd(); } }
+  }
+  wcabMarkRead();
+}
+async function wcabMarkRead(){
+  const id = WCAB.admin ? (WCAB.conv && WCAB.conv.id) : WCAB.thread;
+  if(!id || !wcabVisible() || WCAB.tab !== 'dm' || document.hidden) return;
+  try{ await sb.rpc('dm_mark_read', { p_thread:id }); }catch(e){}
+  if(WCAB.admin){ const r = WCAB.inbox.find(x=>Number(x.id) === Number(id)); if(r) r.unread = false; }
+  wcabUnread();
+}
+async function wcabUnread(){
+  if(!WCAB.uid || WCAB.ready === false){ WCAB.unread = 0; wcabPaint(); return; }
+  try{
+    const { data, error } = await sb.rpc('dm_unread');
+    if(error) throw error;
+    WCAB.ready = true;
+    WCAB.unread = Number(data) || 0;
+  }catch(e){ WCAB.ready = false; WCAB.unread = 0; }
+  wcabPaint();
+}
+
+/* ----- sending ----- */
+async function wcabSend(kind){
+  const t = wcabEl('wcab-in'), btn = wcabEl('wcab-sendbtn');
+  const text = t ? t.value.trim() : '';
+  if(!text || !WCAB.uid) return;
+  if(btn) btn.disabled = true;
+  try{
+    if(kind === 'all') await wcabSendAll(text);
+    else {
+      const id = WCAB.admin ? (WCAB.conv && WCAB.conv.id) : WCAB.thread;
+      if(!id) throw new Error('Conversation not ready yet');
+      const { data, error } = await sb.rpc('dm_send', { p_thread:id, p_body:text });
+      if(error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if(row && !WCAB.msgs.some(x=>x.id === row.id)){ WCAB.msgs.push(row); wcabAppendDm(row); }
+      wcaTrack('messages', true);
+    }
+    if(t){ t.value = ''; wcabGrow(t); }
+  }catch(e){
+    if(typeof wcaToast === 'function') wcaToast('Message not sent', (e && e.message) || 'Please try again.', true);
+  }finally{
+    if(btn) btn.disabled = false;
+    if(t) t.focus();
+  }
+}
+function wcabAppendDm(m){
+  const f = wcabEl('wcab-feed'); if(!f || WCAB.tab !== 'dm') return;
+  const name = WCAB.admin ? (WCAB.conv && WCAB.conv.display_name) : wcabMyName();
+  if(f.querySelector('.wcab-note')) f.innerHTML = '';
+  f.insertAdjacentHTML('beforeend', wcabMsgHTML(m, name));
+  wcabScrollEnd();
+}
+
+/* ----- new private messages, live ----- */
+function wcabDmLive(){
+  if(WCAB.dmCh){ try{ sb.removeChannel(WCAB.dmCh); }catch(e){} WCAB.dmCh = null; }
+  if(!WCAB.uid || WCAB.ready !== true || !sb.channel) return;
+  try{
+    WCAB.dmCh = sb.channel('wcab-dm-' + WCAB.uid.slice(0, 8))
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'dm_messages' }, ({ new:m })=>wcabDmArrived(m))
+      .subscribe();
+  }catch(e){ WCAB.dmCh = null; }
+}
+function wcabDmArrived(m){
+  if(!m || m.sender_id === WCAB.uid) return;
+  const openId = WCAB.admin ? (WCAB.conv && WCAB.conv.id) : WCAB.thread;
+  const showing = wcabVisible() && WCAB.tab === 'dm' && Number(openId) === Number(m.thread_id);
+  if(showing){
+    if(!WCAB.msgs.some(x=>x.id === m.id)){ WCAB.msgs.push(m); wcabAppendDm(m); }
+    wcabMarkRead();
+    return;
+  }
+  if(WCAB.admin){
+    wcabUnread();
+    if(WCAB.tab === 'dm' && !WCAB.conv && wcabVisible()) wcabRender();
+    const r = WCAB.inbox.find(x=>Number(x.id) === Number(m.thread_id));
+    if(typeof wcaToast === 'function') wcaToast('New message' + (r && r.display_name ? ' from ' + r.display_name : ''), String(m.body || '').slice(0, 90));
+    return;
+  }
+  // a member got a message from the admin: it always comes back and pops up
+  if(Number(m.thread_id) === Number(WCAB.thread)){ WCAB.msgs.push(m); }
+  else WCAB.msgsLoaded = false;
+  if(WCAB.off) wcabSetOff(false);
+  WCAB.unread = Math.max(1, WCAB.unread + 1);
+  wcabPaint();
+  if(wcabPhone()){
+    if(typeof wcaToast === 'function') wcaToast('New message from the admin', 'Tap the chat bubble to read it.');
+  } else {
+    WCAB.tab = 'dm';
+    wcabOpen('dm');
+  }
+}
+
+/* ---------- the /messages page (phones, or anyone who opens it) ---------- */
+function wcabPageEnter(){
+  const host = wcabEl('wcab-pagehost'), p = wcabEl('wcab-panel');
+  if(!host || !p) return;
+  WCAB.host = host;
+  if(p.parentNode !== host) host.appendChild(p);
+  p.classList.add('full'); p.hidden = false;
+  WCAB.open = false;
+  // a new message waiting: open straight to it
+  if(WCAB.unread) WCAB.tab = 'dm';
+  wcabRender();
+  const ft = wcabEl('wcab-pagefoot');
+  if(ft) ft.innerHTML = WCAB.off ? '' : '<button class="wcab-pill" type="button" onclick="wcabRemove();wcabPageFoot()"><i class="ti ti-eye-off"></i> Hide the chat bubble</button>';
+}
+function wcabPageFoot(){ const ft = wcabEl('wcab-pagefoot'); if(ft) ft.innerHTML = WCAB.off ? '<p class="np-p" style="text-align:center">The chat bubble is hidden. Turn it back on in <a href="/notifications">Notification Settings</a>.</p>' : ''; }
+function wcabPageLeave(){
+  const p = wcabEl('wcab-panel');
+  if(!p || !WCAB.host || p.parentNode !== WCAB.host) return;
+  document.body.appendChild(p);
+  p.classList.remove('full'); p.hidden = true;
+  WCAB.host = null; WCAB.open = false;
+  wcabAllStop();
+  wcabPaint();
+}
+
+/* ---------- sign in / out ---------- */
+async function wcaMsgAuth(){
+  const uid = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) ? CURRENT_USER.id : null;
+  const admin = typeof IS_ADMIN !== 'undefined' && IS_ADMIN === true;
+  // a locked account that still had a session: sign this device out
+  if(uid && typeof MY_PROFILE !== 'undefined' && MY_PROFILE && MY_PROFILE.locked_at && !admin){
+    wcaLockedNote();
+    try{ await sb.auth.signOut({ scope:'local' }); }catch(e){}
+    try{ if(typeof refreshUser === 'function') refreshUser(); }catch(e){}
+    return;
+  }
+  if(uid === WCAB.uid && admin === WCAB.admin) return;
+  WCAB.uid = uid; WCAB.admin = admin;
+  WCAB.thread = null; WCAB.msgs = []; WCAB.msgsLoaded = false; WCAB.inbox = []; WCAB.conv = null; WCAB.unread = 0;
+  WCAB.ready = null;
+  await wcabUnread();
+  wcabDmLive();
+  if(wcabVisible()) wcabRender();
+  wcaTrack('visit');
+  if(WCAB.page) wcaTrackPage(WCAB.page);
+  // a message from the admin is waiting (like the welcome message): bring the
+  // bubble back if it was removed, and on a computer open it once per visit
+  if(uid && !admin && WCAB.unread){
+    if(WCAB.off) wcabSetOff(false);
+    let popped = null; try{ popped = sessionStorage.getItem('wcab-popped'); }catch(e){}
+    if(!popped && !wcabPhone() && WCAB.page !== 'live'){
+      try{ sessionStorage.setItem('wcab-popped', '1'); }catch(e){}
+      wcabOpen('dm');
+    }
+  }
+}
+
+/* ---------- member activity ---------- */
+// Each feature is sent at most once every 5 minutes per device, so this costs almost nothing.
+const WCA_TRACK_FOR = {
+  storylines:'feed', live:'watch_live', events:'events', archive:'events', showdown:'events', timeline:'events',
+  rankings:'rankings', leaderboard:'betting_board', roster:'roster', starmap:'roster', relationships:'roster', rivalries:'roster',
+  apply:'apply', exchange:'exchange', music:'music', games:'games', promotions:'promotions', promotion:'promotions',
+  mypromo:'my_promotion', dash:'dashboard', account:'dashboard', home:'home', sponsors:'sponsors', messages:'messages',
+  notifications:'notification_settings'
+};
+function wcaTrack(feature, now){
+  if(typeof sb === 'undefined' || !sb || typeof CURRENT_USER === 'undefined' || !CURRENT_USER || !feature) return;
+  const key = 'wca-trk-' + CURRENT_USER.id.slice(0, 8) + '-' + feature;
+  try{
+    const last = Number(localStorage.getItem(key)) || 0;
+    if(Date.now() - last < 5*60*1000) return;
+    localStorage.setItem(key, String(Date.now()));
+  }catch(e){}
+  try{ sb.rpc('wca_track', { p_feature: feature }).then(()=>{}, ()=>{}); }catch(e){}
+}
+function wcaTrackPage(pg){ const f = WCA_TRACK_FOR[pg]; if(f) wcaTrack(f); }
+
+/* ---------- page changes ---------- */
+function wcabOnPageChange(pg){
+  if(WCAB.page && WCAB.page !== pg) WCAB.prev = WCAB.page;
+  WCAB.page = pg;
+  try{ document.documentElement.setAttribute('data-wcab-page', pg || ''); }catch(e){}
+  if(pg === 'messages') wcabPageEnter(); else wcabPageLeave();
+  if(pg === 'notifications') wcaNotifSettingsOpen();
+  wcaTrackPage(pg);
+}
+
+/* ---------- locked accounts ---------- */
+function wcaLockedNote(){
+  if(document.getElementById('wca-locked-note')) return;
+  const first = document.querySelector('.page');
+  if(!first || !first.parentNode) return;
+  const d = document.createElement('div');
+  d.className = 'wca-locked-note'; d.id = 'wca-locked-note'; d.setAttribute('role', 'status');
+  d.innerHTML = `<i class="ti ti-lock" aria-hidden="true"></i><div><b>This account has been locked by the admin.</b><br>
+    If you think this is a mistake, reach out to WCA on Discord or @WCAUniverse on social media and the admin can restore it.</div>
+    <button class="wcab-ic" type="button" onclick="this.parentNode.remove()" aria-label="Dismiss" style="margin-left:auto"><i class="ti ti-x"></i></button>`;
+  first.parentNode.insertBefore(d, first);
+}
+
+/* ---------- Notification Settings page ---------- */
+function wcabSyncSettings(){
+  const box = wcabEl('nset-chat'); if(!box) return;
+  box.innerHTML = `<div class="np-eyebrow">Chat bubble</div>
+    <label class="np-sw"><i class="ti ti-message-circle-2"></i><span>Show the chat bubble on every page (All Chat and Message Admin)</span>
+      <input type="checkbox" ${WCAB.off ? '' : 'checked'} onchange="wcabSetOff(!this.checked)"></label>
+    <p class="np-p" style="margin:6px 0 0;font-size:14px;color:var(--muted)">A new message from the admin always brings it back.</p>`;
+}
+function wcaNotifSettingsOpen(){
+  if(typeof npRenderDevice === 'function') npRenderDevice();
+  if(typeof npPushSupported === 'function' && npPushSupported() && typeof NP_KEY !== 'undefined' && !NP_KEY && typeof npGetKey === 'function')
+    npGetKey().then(()=>{ const pg = wcabEl('page-notifications'); if(pg && pg.classList.contains('active')) npRenderDevice(); });
+  wcabSyncSettings();
+}
+function wcaNotifBack(){
+  const to = WCAB.prev && WCAB.prev !== 'notifications' ? WCAB.prev : 'storylines';
+  if(typeof goPage === 'function') goPage(to);
+}
+
+/* ---------- start ---------- */
+(function wcabBoot(){
+  if(typeof sb === 'undefined' || !sb) return;
+  const btn = wcabEl('wcab-btn'), p = wcabEl('wcab-panel');
+  if(btn && btn.parentNode !== document.body) document.body.appendChild(btn);
+  if(p && p.parentNode !== document.body && !wcabOnPage()) document.body.appendChild(p);
+  wcabPaint();
+  // an account the admin locked tried to sign in
+  try{ if(sessionStorage.getItem('wca-banned') === '1'){ sessionStorage.removeItem('wca-banned'); wcaLockedNote(); } }catch(e){}
+  // the sign in check may have finished before this script ran
+  wcaMsgAuth();
+  // the page the visitor landed on
+  try{ const cur = document.querySelector('.page.active'); if(cur) wcabOnPageChange(cur.id.replace(/^page-/, '')); }catch(e){}
+  // coming back to the tab: catch up on anything that arrived (no constant checking)
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState !== 'visible') return;
+    wcabUnread();
+    if(wcabVisible() && WCAB.tab === 'dm'){ WCAB.msgsLoaded = false; if(WCAB.admin && !WCAB.conv) WCAB.inbox = []; wcabRender(); }
+  });
+})();
+</script>
+
 </body>
 </html>
